@@ -25,7 +25,6 @@
       <thead>
         <tr>
           <th>ETF</th>
-          <th>Comparto</th>
           <th>Peso  {{ totalWeight * 100 | number:'1.2-2' }}%</th>
           <th>Rend. att.</th>
           <th>Vol.</th>
@@ -36,7 +35,6 @@
       <tbody>
         <tr *ngFor="let etf of state.etfs(); let i = index">
           <td>{{ etf.name }}</td>
-          <td>{{ etf.compartment }}</td>
           <td>
             <input
               type="text"
