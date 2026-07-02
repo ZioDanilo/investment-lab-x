@@ -1,0 +1,60 @@
+<div class="grid2">
+  <div class="card">
+    <div class="actions">
+      <h2>KPI prioritari</h2>
+      <button type="button" class="btn btn-secondary" (click)="resetKpis()">Reset KPI</button>
+    </div>
+    <table>
+      <tr><th>Priorità</th><th>KPI</th><th>Target</th><th>Attuale</th><th>Stato</th></tr>
+      <tr *ngFor="let kpi of state.kpis(); let i = index" [ngClass]="kpiStatus(kpi.name,kpi.target,kpi.direction)==='OK' ? 'ok':'ko'">
+        <td>{{kpi.priority}}</td>
+        <td>
+          <select class="kpi-select" [ngModel]="kpi.name" (ngModelChange)="updateKpiName(i, $event)">
+            <option *ngFor="let option of getAvailableKpiNames(i)" [value]="option">{{option}}</option>
+          </select>
+        </td>
+        <td><input type="number" [value]="getKpiTargetInputValue(kpi.name, kpi.target)" (input)="updateKpiTarget(i, $any($event.target).value, kpi.name)"></td>
+        <td>{{formatKpi(kpi.name, state.kpiValues()[kpi.name])}}</td>
+        <td>{{kpiStatus(kpi.name,kpi.target,kpi.direction)}}</td>
+      </tr>
+    </table>
+    <p><strong>Primo KPI in KO:</strong> {{state.firstKo()?.name || 'Nessuno'}}</p>
+  </div>
+
+  <div class="card">
+    <div class="actions">
+      <h2>Sintesi portafoglio</h2>
+      <button type="button" class="btn btn-primary" (click)="runSimulation()">Simula</button>
+    </div>
+    <table>
+      <tr><td>Rendimento atteso</td><td class="num">{{state.portfolioSummary().expectedReturn | percent:'1.2-2'}}</td></tr>
+      <tr><td>Volatilità</td><td class="num">{{state.portfolioSummary().volatility | percent:'1.2-2'}}</td></tr>
+      <tr><td>Max Drawdown</td><td class="num">{{state.portfolioSummary().maxDrawdown | percent:'1.2-2'}}</td></tr>
+      <tr><td>Sharpe</td><td class="num">{{state.portfolioSummary().sharpe | number:'1.2-2'}}</td></tr>
+      <tr><td>PQS</td><td class="num">{{state.portfolioSummary().pqs | number:'1.0-0'}}</td></tr>
+      <tr><td>Simulazione MC</td><td class="num">{{state.monteCarloSummary().simulatedValue | number:'1.2-2'}}</td></tr>
+      <tr><td>Prob. positiva</td><td class="num">{{state.monteCarloSummary().probabilityPositive | percent:'1.0-0'}}</td></tr>
+      <tr><td>Scenario</td><td class="num">{{state.monteCarloSummary().scenarios}}</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>ETF, pesi manuali e score</h2>
+  <table>
+    <tr>
+      <th>ETF</th><th>ISIN</th><th>Comparto</th><th>Peso %</th><th>Rendimento</th><th>Vol.</th><th>DD</th><th>Score</th><th>Guida</th>
+    </tr>
+    <tr *ngFor="let etf of state.scoredEtfs(); let i = index" [ngClass]="scoreClass(etf.score)">
+      <td>{{etf.name}}</td>
+      <td>{{etf.isin || 'da inserire'}}</td>
+      <td>{{etf.compartment}}</td>
+      <td><input type="number" [value]="etf.weight * 100" (input)="state.updateEtfWeight(i, +$any($event.target).value)"></td>
+      <td class="num">{{etf.expectedReturn | percent:'1.2-2'}}</td>
+      <td class="num">{{etf.volatility | percent:'1.2-2'}}</td>
+      <td class="num">{{etf.maxDrawdown | percent:'1.2-2'}}</td>
+      <td class="num">{{etf.score | number:'1.0-0'}}</td>
+      <td>{{etf.suggestion}}</td>
+    </tr>
+  </table>
+</div>

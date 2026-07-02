@@ -1,0 +1,62 @@
+<section class="page-panel">
+
+     <div class="card card-soft">
+    <div class="card-title">KPI</div>
+    <div class="kpi-card-grid">
+      <div
+        class="kpi-card"
+        *ngFor="let kpiName of kpiOrder; let i = index"
+        draggable="true"
+        (dragstart)="onCardDragStart(i, $event)"
+        (dragover)="onCardDragOver($event)"
+        (drop)="onCardDrop(i, $event)"
+        (dragend)="onCardDragEnd()"
+        [class.dragging]="dragSrcIndex === i"
+      >
+        <span class="drag-handle">☰</span>
+        <h3>{{ kpiName }}</h3>
+        <strong>{{ formatKpiValue(kpiName, state.kpiValues()[kpiName]) }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-shell">
+    <table class="portfolio-table">
+      <thead>
+        <tr>
+          <th>ETF</th>
+          <th>Comparto</th>
+          <th>Peso  {{ totalWeight * 100 | number:'1.2-2' }}%</th>
+          <th>Rend. att.</th>
+          <th>Vol.</th>
+          <th>DD</th>
+          <th>TER</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let etf of state.etfs(); let i = index">
+          <td>{{ etf.name }}</td>
+          <td>{{ etf.compartment }}</td>
+          <td>
+            <input
+              type="text"
+              class="weight-input"
+              [value]="editingValues[i] !== undefined ? editingValues[i] : (etf.weight * 100 | number:'1.2-2')"
+              inputmode="decimal"
+              pattern="[0-9]*[.,]?[0-9]*"
+              placeholder="0,00"
+              (focus)="startEdit(i, $event)"
+              (input)="onEditInput(i, $event)"
+              (blur)="commitEdit(i, $event)"
+            />
+          </td>
+          <td class="num">{{ etf.expectedReturn | percent:'1.2-2' }}</td>
+          <td class="num">{{ etf.volatility | percent:'1.2-2' }}</td>
+          <td class="num">{{ etf.maxDrawdown | percent:'1.2-2' }}</td>
+          <td class="num">{{ etf.ter | percent:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</section>

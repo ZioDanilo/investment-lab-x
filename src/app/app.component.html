@@ -1,0 +1,49 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand-block">
+      <div class="brand-mark"></div>
+      <div>
+        <h1>Portfolio Simulator</h1>
+        <p>Quantum workspace</p>
+      </div>
+    </div>
+
+    <nav class="nav-main">
+      <button
+        *ngFor="let item of navItems"
+        class="nav-item"
+        [class.active]="activePage() === item.id"
+        type="button"
+        (click)="selectPage(item.id)"
+      >
+        <span class="icon">{{ item.icon }}</span>
+        <span class="copy">
+          <strong>{{ item.label }}</strong>
+          <small>{{ item.description }}</small>
+        </span>
+      </button>
+    </nav>
+
+
+    <div class="sidebar-footer">
+      <p>Frontend ready for REST APIs</p>
+      <span>Live data layer next</span>
+    </div>
+  </aside>
+
+  <main class="content-area">
+    <header class="topbar">
+      <div class="eyebrow">Portfolio Simulator / {{ activeLabel() }}</div>
+      <h2>{{ activeLabel() }}</h2>
+    </header>
+
+    <section class="content-card">
+      <app-portfolio-page *ngIf="activePage() === 'portfolio'"></app-portfolio-page>
+      <app-correlations-page *ngIf="activePage() === 'correlations'"></app-correlations-page>
+      <app-montecarlo-page *ngIf="activePage() === 'montecarlo'"></app-montecarlo-page>
+      <app-backtesting-page *ngIf="activePage() === 'backtesting'"></app-backtesting-page>
+      <app-new-etf-page *ngIf="activePage() === 'new-etf'"></app-new-etf-page>
+      <app-settings-page *ngIf="activePage() === 'settings'"></app-settings-page>
+    </section>
+  </main>
+</div>

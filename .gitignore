@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+.angular/
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/settings.json
+.env
+.env.local

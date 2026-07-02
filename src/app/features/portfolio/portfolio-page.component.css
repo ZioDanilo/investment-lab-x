@@ -1,0 +1,197 @@
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.kpi-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.kpi-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(20, 34, 58, 0.98), rgba(12, 19, 35, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: grab;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.kpi-card h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #9bd1ff;
+  line-height: 1.2;
+}
+
+.kpi-card strong {
+  font-size: 1.2rem;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.kpi-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+.kpi-card.dragging {
+  opacity: 1 !important;
+  cursor: grabbing !important;
+}
+
+.drag-handle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.8rem;
+  cursor: grab;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.table-shell {
+  position: relative;
+  z-index: 1;
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(2, 8, 23, 0.56);
+  backdrop-filter: blur(12px);
+  margin-top: 6px;
+}
+
+.portfolio-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+  font-size: 0.85rem;
+}
+
+.portfolio-table th,
+.portfolio-table td {
+  padding: 7px 9px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.portfolio-table th {
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #a8b8ff;
+  font-weight: 600;
+}
+
+.portfolio-table td {
+  color: var(--text);
+}
+
+.portfolio-table .num {
+  font-feature-settings: 'tnum';
+  text-align: right;
+}
+
+.weight-input {
+  width: 100%;
+  padding: 5px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 12, 20, 0.95);
+  color: #fff;
+  font-size: 0.8rem;
+}
+
+.weight-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(28, 184, 255, 0.2);
+}
+
+.card-soft {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(6, 12, 22, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(12px);
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #8bc8ff;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+@media (max-width: 1024px) {
+  .kpi-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+  }
+
+  .portfolio-table {
+    font-size: 0.8rem;
+  }
+
+  .portfolio-table th,
+  .portfolio-table td {
+    padding: 6px 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .kpi-card {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  .kpi-card h3 {
+    font-size: 0.75rem;
+  }
+
+  .kpi-card strong {
+    font-size: 1rem;
+  }
+
+  .portfolio-table {
+    font-size: 0.75rem;
+    min-width: 500px;
+  }
+
+  .portfolio-table th,
+  .portfolio-table td {
+    padding: 5px 6px;
+  }
+
+  .weight-input {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+  }
+
+  .card-soft {
+    padding: 8px 10px;
+  }
+
+  .card-title {
+    font-size: 0.7rem;
+    margin-bottom: 6px;
+  }
+}

@@ -1,0 +1,30 @@
+<section class="page-panel correlations-panel">
+  <div class="page-header page-header-compact">
+    <h2>Correlazioni</h2>
+    <p>Analisi delle correlazioni tra asset con scala cromatica negativa/neutra/positiva.</p>
+  </div>
+
+  <div class="table-shell correlation-shell">
+    <table class="correlation-table">
+      <thead>
+        <tr>
+          <th>Asset</th>
+          <th *ngFor="let asset of assets">{{ asset }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of matrix; let rowIndex = index">
+          <th scope="row">{{ assets[rowIndex] }}</th>
+          <td
+            *ngFor="let value of row"
+            [class.corr-positive]="value > 0"
+            [class.corr-neutral]="value === 0"
+            [class.corr-negative]="value < 0"
+          >
+            {{ displayValue(value) }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

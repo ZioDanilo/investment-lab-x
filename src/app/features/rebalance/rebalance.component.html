@@ -1,0 +1,41 @@
+<div class="card" style="text-align:center">
+  <h2>Ribilanciamento</h2>
+  <h1>{{totalValue() | currency:'EUR':'symbol':'1.2-2'}}</h1>
+  <div class="muted">Controvalore portafogli aggregati</div>
+  <p>
+    Liquidità da aggiungere:
+    <input type="number" [value]="cashToAdd()" (input)="setCash($any($event.target).value)">
+  </p>
+  <h3>Totale investibile: {{totalInvestable() | currency:'EUR':'symbol':'1.2-2'}}</h3>
+</div>
+
+<div class="card">
+  <h2>Tabella elaborazione</h2>
+  <table>
+    <tr>
+      <th>ETF</th><th>ISIN</th><th>Q.tà</th><th>Prezzo</th><th>Controvalore</th><th>Peso attuale</th><th>Peso target</th><th>Δ €</th><th>Q.tà da fare</th>
+    </tr>
+    <tr *ngFor="let row of rows()" [ngClass]="row.deltaEur > 0 ? 'green' : row.deltaEur < 0 ? 'red' : ''">
+      <td>{{row.etfName}}</td>
+      <td>{{row.isin || 'da inserire'}}</td>
+      <td class="num">{{row.quantity | number:'1.0-2'}}</td>
+      <td class="num">{{row.marketPrice | currency:'EUR':'symbol':'1.2-4'}}</td>
+      <td class="num">{{row.marketValue | currency:'EUR':'symbol':'1.2-2'}}</td>
+      <td class="num">{{row.currentWeight | percent:'1.2-2'}}</td>
+      <td class="num">{{row.targetWeight | percent:'1.2-2'}}</td>
+      <td class="num">{{row.deltaEur | currency:'EUR':'symbol':'1.2-2'}}</td>
+      <td class="num">{{row.deltaQuantity}}</td>
+    </tr>
+  </table>
+</div>
+
+<div class="grid2">
+  <div class="card paste-area">
+    <h2>Export Portafoglio 1</h2>
+    <textarea rows="12" style="width:100%" [value]="portfolio1Text()" (input)="portfolio1Text.set($any($event.target).value)" placeholder="Incolla qui l'export broker completo con intestazioni"></textarea>
+  </div>
+  <div class="card paste-area">
+    <h2>Export Portafoglio 2</h2>
+    <textarea rows="12" style="width:100%" [value]="portfolio2Text()" (input)="portfolio2Text.set($any($event.target).value)" placeholder="Incolla qui l'export broker completo con intestazioni"></textarea>
+  </div>
+</div>
