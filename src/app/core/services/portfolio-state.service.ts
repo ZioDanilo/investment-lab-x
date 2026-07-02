@@ -3,6 +3,7 @@ import { INITIAL_ETFS } from '../data/etf-data';
 import { Etf, ScoredEtf } from '../models/etf.model';
 import { KpiName, KpiTarget, PortfolioSummary } from '../models/kpi.model';
 import { PortfolioEngine } from '../engines/portfolio.engine';
+import { ApiService } from '../api/api.service';
 
 export interface MonteCarloSummary {
   simulatedValue: number;
@@ -36,6 +37,31 @@ export class PortfolioStateService {
   scoredEtfs = computed<ScoredEtf[]>(() => PortfolioEngine.scoreEtfs(this.etfs(), this.firstKo()));
   kpiValues = computed(() => PortfolioEngine.kpiValues(this.portfolioSummary()));
   monteCarloSummary = computed<MonteCarloSummary>(() => this.calculateMonteCarloSummary());
+
+  constructor(private apiService: ApiService) {
+    this.initializeFromApi();
+  }
+
+  initializeFromApi(): void {
+    // Try to fetch ETFs from backend, fallback to local data
+    this.apiService.getETFs().subscribe({
+      next: (response: any) => {
+        if (response.success && response.data && response.data.length > 0) {
+          const etfsFromApi = response.data.map((etf: any) => ({
+            ticker: etf.ticker,
+            name: etf.name,
+            weight: 1 / (response.data.length || 1),
+            return: 0,
+            volatility: 0
+          }));
+          this.etfs.set(etfsFromApi);
+        }
+      },
+      error: (error: any) => {
+        console.log('Using local ETF data (backend unavailable):', error.message);
+      }
+    });
+  }
 
   updateEtfWeight(index: number, weightPercent: number): void {
     const next = [...this.etfs()];
@@ -86,6 +112,27 @@ export class PortfolioStateService {
   runMonteCarloSimulation(): void {
     const nextSeed = this.simulationSeed() + 1;
     this.simulationSeed.set(nextSeed);
+  }
+
+  savePortfolioToBackend(portfolioName: string): void {
+    const payload = {
+      name: portfolioName,
+      description: `Portfolio created on ${new Date().toLocaleDateString()}`,
+      holdings: this.etfs().map(etf => ({
+        ticker: etf.ticker,
+        weight: etf.weight * 100
+      })),
+      kpis: this.kpiValues()
+    };
+
+    this.apiService.createPortfolio(payload).subscribe({
+      next: (response: any) => {
+        console.log('Portfolio saved to backend:', response);
+      },
+      error: (error: any) => {
+        console.error('Error saving portfolio:', error);
+      }
+    });
   }
 
   private calculateMonteCarloSummary(): MonteCarloSummary {
