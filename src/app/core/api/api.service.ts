@@ -49,6 +49,11 @@ export class ApiService {
     return this.http.put(`${this.apiUrl}/etf/${id}`, data);
   }
 
+  // Add ETF endpoint (new)
+  addEtf(isin: string, descrizione: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/etf/add`, { isin, descrizione });
+  }
+
   // KPI endpoints
   calculateKPIs(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/kpi/calculate`, data);

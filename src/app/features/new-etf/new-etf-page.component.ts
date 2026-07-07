@@ -12,7 +12,7 @@ import { ApiService } from '../../core/api/api.service';
 })
 export class NewEtfPageComponent {
   isin = signal('');
-  description = signal('');
+  descrizione = signal('');
   loading = signal(false);
   successMessage = signal('');
   errorMessage = signal('');
@@ -20,11 +20,17 @@ export class NewEtfPageComponent {
   constructor(private apiService: ApiService) {}
 
   addEtf(): void {
+    // Validation
     const isinValue = this.isin().trim();
-    const descriptionValue = this.description().trim();
+    const descrizioneValue = this.descrizione().trim();
 
-    if (!isinValue || !descriptionValue) {
-      this.errorMessage.set('ISIN e Descrizione sono obbligatori');
+    if (!isinValue) {
+      this.errorMessage.set('ISIN è obbligatorio');
+      return;
+    }
+
+    if (!descrizioneValue) {
+      this.errorMessage.set('Descrizione è obbligatoria');
       return;
     }
 
@@ -32,25 +38,48 @@ export class NewEtfPageComponent {
     this.errorMessage.set('');
     this.successMessage.set('');
 
-    const payload = {
-      ticker: isinValue.toUpperCase(),
-      name: descriptionValue,
-      description: descriptionValue
-    };
-
-    this.apiService.createETF(payload).subscribe({
+    // Call backend API
+    this.apiService.addEtf(isinValue, descrizioneValue).subscribe({
       next: (response: any) => {
         this.loading.set(false);
-        this.successMessage.set(`ETF ${isinValue} aggiunto con successo!`);
-        this.isin.set('');
-        this.description.set('');
-        setTimeout(() => this.successMessage.set(''), 3000);
+        
+        if (response.success) {
+          // Success: clear form and show message
+          this.successMessage.set(response.message || `Aggiunto ETF ${descrizioneValue}`);
+          this.isin.set('');
+          this.descrizione.set('');
+          
+          // Auto-hide success message after 3 seconds
+          setTimeout(() => this.successMessage.set(''), 3000);
+        } else {
+          // Error response from backend
+          this.errorMessage.set(response.error || 'Errore sconosciuto');
+        }
       },
       error: (error: any) => {
         this.loading.set(false);
-        this.errorMessage.set('Errore nell\'aggiunta dell\'ETF: ' + (error.error?.error?.message || error.message));
+        
+        // Handle specific error messages
+        if (error.error?.error === 'ETF già censito') {
+          this.errorMessage.set('ETF già censito');
+        } else if (error.error?.error) {
+          this.errorMessage.set(error.error.error);
+        } else if (error.status === 409) {
+          this.errorMessage.set('ETF già censito');
+        } else {
+          this.errorMessage.set('Errore nell\'aggiunta dell\'ETF');
+        }
+        
+        console.error('Error adding ETF:', error);
       }
     });
+  }
+
+  clearForm(): void {
+    this.isin.set('');
+    this.descrizione.set('');
+    this.errorMessage.set('');
+    this.successMessage.set('');
   }
 }
 
