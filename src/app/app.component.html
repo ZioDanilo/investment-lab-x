@@ -38,6 +38,7 @@
     </header>
 
     <section class="content-card">
+      <app-portafogli-page *ngIf="activePage() === 'portafogli'"></app-portafogli-page>
       <app-portfolio-page *ngIf="activePage() === 'portfolio'"></app-portfolio-page>
       <app-correlations-page *ngIf="activePage() === 'correlations'"></app-correlations-page>
       <app-montecarlo-page *ngIf="activePage() === 'montecarlo'"></app-montecarlo-page>

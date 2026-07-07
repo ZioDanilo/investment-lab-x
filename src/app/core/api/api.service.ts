@@ -54,6 +54,16 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/etf/add`, { isin, descrizione });
   }
 
+  // Search ETF by ISIN or description
+  searchETF(query: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/portfolio/search-etf?q=${query}`);
+  }
+
+  // Save portafoglio
+  savePortafoglio(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/portfolio`, data);
+  }
+
   // KPI endpoints
   calculateKPIs(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/kpi/calculate`, data);
