@@ -48,11 +48,21 @@ export class PortfolioStateService {
       next: (response: any) => {
         if (response.success && response.data && response.data.length > 0) {
           const etfsFromApi = response.data.map((etf: any) => ({
+            id: etf.id || etf.ticker || etf.isin,
             ticker: etf.ticker,
+            isin: etf.isin,
             name: etf.name,
+            description: etf.description,
+            compartment: etf.compartment || 'ETF',
+            mission: etf.mission || etf.description || etf.name,
             weight: 1 / (response.data.length || 1),
-            return: 0,
-            volatility: 0
+            expectedReturn: etf.expectedReturn || 0,
+            volatility: etf.volatility || 0,
+            maxDrawdown: etf.maxDrawdown || 0,
+            ter: etf.expense || 0,
+            liquidity: etf.liquidity || 5,
+            recession: etf.recession || 0,
+            stagflation: etf.stagflation || 0
           }));
           this.etfs.set(etfsFromApi);
         }

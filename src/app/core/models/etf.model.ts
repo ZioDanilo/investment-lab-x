@@ -3,6 +3,7 @@ export interface Etf {
   name: string;
   isin: string;
   ticker?: string;
+  description?: string;
   compartment: string;
   mission: string;
   weight: number;
