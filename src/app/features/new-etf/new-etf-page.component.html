@@ -1,9 +1,57 @@
-<section class="page-panel placeholder-panel">
+<section class="page-panel">
   <div class="page-header page-header-compact">
     <h2>Nuovo ETF</h2>
-    <p>Gestisci l'inserimento di nuovi ETF e strumenti finanziari.</p>
+    <p>Aggiungi un nuovo ETF inserendo ISIN e descrizione.</p>
   </div>
-  <div class="placeholder-card">
-    <p>Pagina dedicata all'aggiunta di ETF.</p>
+
+  <div class="content-card">
+    <form (ngSubmit)="addEtf()" class="etf-form">
+      <div class="form-group">
+        <label for="isin">ISIN</label>
+        <input
+          id="isin"
+          type="text"
+          placeholder="es. IE00B4L5Y983"
+          [(ngModel)]="isin"
+          name="isin"
+          class="form-input"
+          [disabled]="loading()"
+          maxlength="20"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Descrizione</label>
+        <input
+          id="description"
+          type="text"
+          placeholder="es. Vanguard FTSE All-World"
+          [(ngModel)]="description"
+          name="description"
+          class="form-input"
+          [disabled]="loading()"
+          maxlength="100"
+        />
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="loading()"
+        >
+          {{ loading() ? 'Aggiungendo...' : 'Aggiungi' }}
+        </button>
+      </div>
+    </form>
+
+    <div *ngIf="successMessage()" class="alert alert-success">
+      {{ successMessage() }}
+    </div>
+
+    <div *ngIf="errorMessage()" class="alert alert-error">
+      {{ errorMessage() }}
+    </div>
   </div>
 </section>
+
