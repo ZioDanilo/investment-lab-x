@@ -1,0 +1,93 @@
+<section class="portfolio-editor" aria-label="Editor composizione portafoglio Monte Carlo">
+  <div class="editor-header">
+    <strong>Composizione temporanea</strong>
+    <span class="editor-status" [class.valid]="isValid()" [class.invalid]="!isValid()">{{ isValid() ? 'Totale valido' : 'Totale non valido' }}</span>
+  </div>
+
+  <div class="editor-summary">
+    <div class="summary-line">Totale portafoglio: <strong>{{ totalWeight().toFixed(2).replace('.', ',') }}%</strong></div>
+    <div class="summary-line" [class.positive]="totalWeight() - 100 >= 0" [class.negative]="totalWeight() - 100 < 0">{{ getWeightDelta() }}</div>
+  </div>
+
+  <div class="items-list" *ngIf="items().length > 0; else emptyState">
+    <div class="item-row" *ngFor="let item of items(); let i = index; trackBy: trackByEtfId">
+      <div class="item-name" [title]="item.fullName + ' · ' + item.ticker + ' · ' + item.isin">{{ item.nickname || item.ticker || item.isin }}</div>
+      <input
+        class="slider"
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        [value]="item.weight"
+        (input)="onSliderChange(i, $any($event.target).value)"
+        [attr.aria-label]="'Peso ' + (item.nickname || item.ticker || item.isin)"
+      />
+      <input
+        class="weight-input"
+        type="text"
+        [value]="item.displayValue || formatWeight(item.weight)"
+        inputmode="decimal"
+        (input)="onWeightInput(i, $any($event.target).value)"
+        (blur)="commitWeight(i, $any($event.target).value)"
+        [attr.aria-label]="'Percentuale ' + (item.nickname || item.ticker || item.isin)"
+      />
+      <span class="percent-sign">%</span>
+      <button type="button" class="remove-btn" (click)="removeItem(i)" [attr.aria-label]="'Rimuovi ' + (item.nickname || item.ticker || item.isin)">×</button>
+    </div>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="empty-state">Seleziona un portafoglio per iniziare.</div>
+  </ng-template>
+
+  <div class="search-box">
+    <input
+      type="text"
+      class="search-input"
+      [value]="searchQuery()"
+      placeholder="Cerca ETF per nickname, nome, ISIN, ticker"
+      (input)="onSearchInput($any($event.target).value)"
+      (keydown)="onSearchKeydown($event)"
+      [attr.aria-label]="'Cerca ETF'"
+    />
+    <div class="search-results" *ngIf="showSearchResults() && searchResults().length > 0">
+      <button
+        type="button"
+        *ngFor="let result of searchResults(); let index = index"
+        class="search-result"
+        [class.active]="index === highlightedIndex()"
+        (click)="selectSearchResult(result)"
+      >
+        <span class="search-result-name">{{ result.name }}</span>
+        <span class="search-result-meta">{{ result.isin }}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="editor-actions" *ngIf="portfolioId">
+    <button type="button" class="action-btn" (click)="restorePortfolio()" [disabled]="!canRestorePortfolio()">
+      Ripristina portafoglio
+    </button>
+    <button type="button" class="action-btn" (click)="updatePortfolio()" [disabled]="!canUpdatePortfolio()">
+      Aggiorna portafoglio
+    </button>
+    <button type="button" class="action-btn" (click)="openCreatePortfolioDialog()" [disabled]="!canCreatePortfolio()">
+      Crea portafoglio
+    </button>
+  </div>
+
+  <div class="editor-loading" *ngIf="loading()">Caricamento composizione…</div>
+
+  <app-dialog-input
+    [visible]="createDialogVisible()"
+    message="Nome del nuovo portafoglio"
+    [value]="createPortfolioNameDraft()"
+    placeholder="Inserisci nome portafoglio"
+    confirmLabel="Crea portafoglio"
+    cancelLabel="Annulla"
+    [confirmDisabled]="!canConfirmCreatePortfolio()"
+    (valueChange)="onCreatePortfolioNameInput($event)"
+    (confirm)="confirmCreatePortfolio()"
+    (cancel)="closeCreatePortfolioDialog()"
+  ></app-dialog-input>
+</section>

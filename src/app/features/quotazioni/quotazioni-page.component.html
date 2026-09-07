@@ -1,0 +1,107 @@
+<section class="page-panel">
+  <div class="page-header page-header-compact">
+    <h2>Quotazioni</h2>
+    <p>Quotazioni ETF aggiornate per oggi</p>
+  </div>
+
+  <!-- Last update info -->
+  <div class="content-card" *ngIf="lastUpdateDate()">
+    <p class="last-update">
+      Ultimo aggiornamento: <strong>{{ lastUpdateDate() }}</strong>
+    </p>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="content-card button-group">
+    <div class="filter-container">
+      <input
+        class="filter-input"
+        type="text"
+        [value]="filterText()"
+        (input)="onFilterInput($event)"
+        placeholder="Filtra ETF per nome o ISIN"
+        aria-label="Filtra ETF per nome o ISIN"
+      />
+    </div>
+    <app-tasto-conferma 
+      label="Aggiorna" 
+      loadingText="Caricamento..."
+      variant="primary"
+      [disabled]="loading()"
+      [loading]="loading()"
+      [onConfirm]="forceRefreshQuotations.bind(this)"
+    ></app-tasto-conferma>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error()" class="alert alert-error">
+    {{ error() }}
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="loading()" class="content-card loading-state">
+    <p>Caricamento quotazioni in corso...</p>
+  </div>
+
+  <!-- Quotations table -->
+  <div class="content-card" *ngIf="!loading() && quotations().length > 0">
+    <table class="quotations-table">
+      <thead>
+        <tr>
+          <th>Nome ETF</th>
+          <th>ISIN</th>
+          <th>Quotazione</th>
+          <th>Variazione</th>
+          <th>Azioni</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let quote of filteredQuotations()">
+          <td class="etf-name">{{ quote.name }}</td>
+          <td class="isin">{{ quote.isin }}</td>
+          <td class="quotation">
+            <span *ngIf="quote.quotation !== null && quote.quotation !== undefined">€ {{ quote.quotation.toFixed(2) }}</span>
+            <span *ngIf="quote.quotation === null || quote.quotation === undefined" class="no-data">ND</span>
+          </td>
+          <td class="variation-cell">
+            <span
+              class="variation-badge"
+              [class.positive]="getVariationClass(quote.variation) === 'positive'"
+              [class.negative]="getVariationClass(quote.variation) === 'negative'"
+            >
+              {{ quote.variation }}
+            </span>
+          </td>
+          <td class="actions">
+            <div class="actions-group">
+              <button 
+                class="icon-action-button icon-action-button--accent"
+                (click)="refreshSingleQuotation(quote.isin)"
+                [disabled]="quote.refreshing || quote.deleting"
+                title="Aggiorna questa quotazione"
+              >
+                <span *ngIf="!quote.refreshing" class="icon-action-button__glyph icon-action-button__glyph--refresh">↻</span>
+                <span *ngIf="quote.refreshing" class="icon-action-button__glyph">⏳</span>
+              </button>
+              <button
+                class="icon-action-button icon-action-button--danger"
+                (click)="deleteEtf(quote.isin)"
+                [disabled]="quote.deleting || quote.inPortfolio"
+                [title]="quote.inPortfolio ? 'ETF presente in almeno un portafoglio: cancellazione disabilitata' : 'Elimina ETF e tutti i dati correlati'"
+              >
+                <span *ngIf="!quote.deleting" class="icon-action-button__glyph">✕</span>
+                <span *ngIf="quote.deleting" class="icon-action-button__glyph">⏳</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Empty state -->
+  <div class="content-card" *ngIf="!loading() && quotations().length === 0">
+    <p>Nessun ETF disponibile. Aggiungi i tuoi ETF dalla sezione "Nuovo ETF".</p>
+  </div>
+
+</section>

@@ -1,30 +1,58 @@
 <section class="page-panel correlations-panel">
   <div class="page-header page-header-compact">
     <h2>Correlazioni</h2>
-    <p>Analisi delle correlazioni tra asset con scala cromatica negativa/neutra/positiva.</p>
+    <p>Matrice di correlazione tra ETF censiti — triangolo superiore da DB, simmetria applicata automaticamente.</p>
   </div>
 
-  <div class="table-shell correlation-shell">
+  <!-- Scenario selector -->
+  <div class="scenario-bar">
+    <button
+      *ngFor="let sc of scenarios"
+      class="scenario-btn"
+      [class.active]="selectedScenario() === sc"
+      (click)="selectedScenario.set(sc)">
+      {{ scenarioLabels[sc] }}
+    </button>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading()" class="state-msg">Caricamento correlazioni...</div>
+  <div *ngIf="error()" class="state-msg state-error">{{ error() }}</div>
+  <div *ngIf="!loading() && etfs().length === 0 && !error()" class="state-msg">Nessun ETF censito.</div>
+
+  <!-- Matrix -->
+  <div class="table-shell correlation-shell" *ngIf="!loading() && etfs().length > 0">
     <table class="correlation-table">
       <thead>
         <tr>
-          <th>Asset</th>
-          <th *ngFor="let asset of assets">{{ asset }}</th>
+          <th class="label-col">ETF</th>
+          <th *ngFor="let etf of etfs()" class="col-head" [title]="etf.name">
+            {{ displayEtfLabel(etf) }}
+          </th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let row of matrix; let rowIndex = index">
-          <th scope="row">{{ assets[rowIndex] }}</th>
+        <tr *ngFor="let rowEtf of etfs(); let i = index">
+          <th scope="row" class="row-head" [title]="etfTitle(rowEtf)">{{ displayEtfLabel(rowEtf) }}</th>
           <td
-            *ngFor="let value of row"
-            [class.corr-positive]="value > 0"
-            [class.corr-neutral]="value === 0"
-            [class.corr-negative]="value < 0"
-          >
-            {{ displayValue(value) }}
+            *ngFor="let colEtf of etfs(); let j = index"
+            [class]="corrClass(getValue(i, j))">
+            {{ displayValue(getValue(i, j)) }}
           </td>
         </tr>
       </tbody>
     </table>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend" *ngIf="!loading() && etfs().length > 0">
+    <span class="leg-item"><span class="leg-swatch corr-strong-pos"></span>≥ 0.70</span>
+    <span class="leg-item"><span class="leg-swatch corr-moderate-pos"></span>0.30 – 0.69</span>
+    <span class="leg-item"><span class="leg-swatch corr-weak-pos"></span>0.01 – 0.29</span>
+    <span class="leg-item"><span class="leg-swatch corr-neutral"></span>0</span>
+    <span class="leg-item"><span class="leg-swatch corr-weak-neg"></span>-0.29 – -0.01</span>
+    <span class="leg-item"><span class="leg-swatch corr-moderate-neg"></span>-0.69 – -0.30</span>
+    <span class="leg-item"><span class="leg-swatch corr-strong-neg"></span>≤ -0.70</span>
+    <span class="leg-item"><span class="leg-swatch corr-missing"></span>N/D</span>
   </div>
 </section>

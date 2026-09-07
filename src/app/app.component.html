@@ -1,11 +1,7 @@
 <div class="app-shell">
   <aside class="sidebar">
-    <div class="brand-block">
-      <div class="brand-mark"></div>
-      <div>
-        <h1>Portfolio Simulator</h1>
-        <p>Quantum workspace</p>
-      </div>
+    <div class="brand-block brand-block--logo">
+      <img src="assets/img/Logo_investment_lab_x.png" alt="Investment Lab X" class="brand-logo" />
     </div>
 
     <nav class="nav-main">
@@ -16,7 +12,7 @@
         type="button"
         (click)="selectPage(item.id)"
       >
-        <span class="icon">{{ item.icon }}</span>
+        <span class="icon material-symbols-rounded">{{ item.icon }}</span>
         <span class="copy">
           <strong>{{ item.label }}</strong>
           <small>{{ item.description }}</small>
@@ -37,11 +33,12 @@
       <h2>{{ activeLabel() }}</h2>
     </header>
 
-    <section class="content-card">
+    <section class="content-card" [class.content-card-portafogli]="activePage() === 'portafogli'">
       <app-portafogli-page *ngIf="activePage() === 'portafogli'"></app-portafogli-page>
-      <app-portfolio-page *ngIf="activePage() === 'portfolio'"></app-portfolio-page>
+      <app-quotazioni-page *ngIf="activePage() === 'quotazioni'"></app-quotazioni-page>
       <app-correlations-page *ngIf="activePage() === 'correlations'"></app-correlations-page>
-      <app-montecarlo-page *ngIf="activePage() === 'montecarlo'"></app-montecarlo-page>
+      <app-montecarlo-new-page *ngIf="activePage() === 'montecarlo'"></app-montecarlo-new-page>
+      <app-montecarlo-validation-page *ngIf="activePage() === 'montecarlo-validation'"></app-montecarlo-validation-page>
       <app-backtesting-page *ngIf="activePage() === 'backtesting'"></app-backtesting-page>
       <app-new-etf-page *ngIf="activePage() === 'new-etf'"></app-new-etf-page>
       <app-settings-page *ngIf="activePage() === 'settings'"></app-settings-page>

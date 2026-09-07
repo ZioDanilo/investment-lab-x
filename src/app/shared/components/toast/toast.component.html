@@ -1,0 +1,6 @@
+<div class="toast" [class.visible]="isVisible()">
+  <div class="toast-content">
+    {{ message() }}
+  </div>
+  <button class="toast-close" (click)="hide()">✕</button>
+</div>

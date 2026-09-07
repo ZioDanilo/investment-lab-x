@@ -1,0 +1,17 @@
+<article class="card-compact" [class.card-compact--expanded]="expanded" (click)="onToggle()">
+  <header class="card-compact__header">
+    <h3 class="card-compact__title" [title]="title">{{ title }}</h3>
+    <div class="card-compact__actions">
+      <button class="icon-action-button icon-action-button--accent" type="button" [title]="editTitle" (click)="onEdit($event)">
+        <span class="icon-action-button__glyph">✎</span>
+      </button>
+      <button class="icon-action-button icon-action-button--danger" type="button" [title]="deleteTitle" (click)="onDelete($event)">
+        <span class="icon-action-button__glyph">✕</span>
+      </button>
+    </div>
+  </header>
+
+  <section *ngIf="expanded" class="card-compact__body">
+    <ng-content></ng-content>
+  </section>
+</article>

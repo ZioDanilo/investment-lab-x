@@ -62,7 +62,8 @@ export class PortfolioStateService {
             ter: etf.expense || 0,
             liquidity: etf.liquidity || 5,
             recession: etf.recession || 0,
-            stagflation: etf.stagflation || 0
+            stagflation: etf.stagflation || 0,
+            macroStatistics: etf.macroStatistics || etf.macro_statistics
           }));
           this.etfs.set(etfsFromApi);
         }
@@ -122,6 +123,47 @@ export class PortfolioStateService {
   runMonteCarloSimulation(): void {
     const nextSeed = this.simulationSeed() + 1;
     this.simulationSeed.set(nextSeed);
+  }
+
+  /**
+   * Load ETFs from a specific portfolio (called when user selects a portfolio for Monte Carlo)
+   */
+  loadPortfolioEtfs(portfolioId: string, onLoaded?: (etfs: Etf[]) => void): void {
+    this.apiService.getPortfolioById(portfolioId).subscribe({
+      next: (response: any) => {
+        if (response.success && response.data) {
+          const portfolio = response.data;
+          if (portfolio.holdings && Array.isArray(portfolio.holdings)) {
+            // Map portfolio holdings to ETF objects
+            // NOTE: Backend now sends all values in decimals (already converted from percentages)
+            const etfsFromPortfolio: Etf[] = portfolio.holdings.map((holding: any) => ({
+              id: holding.id || holding.ticker || holding.isin,
+              ticker: holding.ticker,
+              isin: holding.isin,
+              name: holding.name,
+              description: holding.description,
+              compartment: holding.compartment || 'ETF',
+              mission: holding.mission || holding.description || holding.name,
+              weight: holding.weight || 0, // Already in decimals from backend
+              expectedReturn: holding.expectedReturn || 0,
+              volatility: holding.volatility || 0,
+              maxDrawdown: holding.maxDrawdown || 0,
+              ter: holding.ter || holding.expense || 0,
+              liquidity: holding.liquidity || 5,
+              recession: holding.recession || 0,
+              stagflation: holding.stagflation || 0,
+              macroStatistics: holding.macroStatistics || holding.macro_statistics
+            }));
+            this.etfs.set(etfsFromPortfolio);
+            console.log(`✅ Loaded ${etfsFromPortfolio.length} ETFs from portfolio: ${portfolio.name}`);
+            if (onLoaded) onLoaded(etfsFromPortfolio);
+          }
+        }
+      },
+      error: (error: any) => {
+        console.error('Error loading portfolio ETFs:', error);
+      }
+    });
   }
 
   savePortfolioToBackend(portfolioName: string): void {

@@ -1,0 +1,85 @@
+<section class="validation-page">
+  <div class="validation-header">
+    <h3>Monte Carlo Step 11 validation</h3>
+    <p>DEV VALIDATION ONLY — browser + real Web Workers</p>
+  </div>
+
+  <div class="validation-actions">
+    <button type="button" (click)="runDiagnosticDefaultWorkers()" [disabled]="running()">
+      {{ running() ? 'Running...' : 'Run Diagnostic — Default Workers' }}
+    </button>
+    <button type="button" class="secondary" (click)="runDiagnosticTwoWorkers()" [disabled]="running()">
+      {{ running() ? 'Running...' : 'Run Diagnostic — 2 Workers' }}
+    </button>
+    <button type="button" (click)="runValidation()" [disabled]="running()">
+      {{ running() ? 'Running...' : 'Run validation' }}
+    </button>
+    <button type="button" class="secondary" (click)="runMomentumCagr1000x100()" [disabled]="running()">
+      {{ running() ? 'Running...' : 'Run Momentum CAGR 1000×100' }}
+    </button>
+    <button type="button" class="secondary" (click)="runCompleteValidation()" [disabled]="running() || !canRunComplete()">
+      {{ running() ? 'Running...' : 'Run COMPLETE' }}
+    </button>
+    <button type="button" class="secondary" (click)="copyReport()" [disabled]="!report()">Copy report</button>
+  </div>
+
+  <div class="validation-status">
+    <strong>Status:</strong> {{ status() }}
+  </div>
+
+  <div class="validation-log" *ngIf="log().length">
+    <div *ngFor="let entry of log()">{{ entry }}</div>
+  </div>
+
+  <div class="report-block" *ngIf="diagnosticReport() as diagnostic">
+    <h4>Diagnostic A/B summary</h4>
+    <pre>{{ diagnostic | json }}</pre>
+  </div>
+
+  <div class="report-block" *ngIf="report() as report">
+    <h4>Environment</h4>
+    <pre>{{ report.environment | json }}</pre>
+
+    <h4>Regression gate</h4>
+    <pre>{{ report.regressionGate | json }}</pre>
+
+    <h4>Snapshot</h4>
+    <pre>{{ report.snapshot | json }}</pre>
+
+    <h4>Smoke</h4>
+    <pre>{{ report.smoke | json }}</pre>
+
+    <h4>Smoke result</h4>
+    <pre>{{ report.smokeResult | json }}</pre>
+
+    <h4>Intermediate</h4>
+    <pre>{{ report.intermediate | json }}</pre>
+
+    <h4>Intermediate result</h4>
+    <pre>{{ report.intermediateResult | json }}</pre>
+
+    <h4>Complete</h4>
+    <pre>{{ report.complete | json }}</pre>
+
+    <h4>Complete result</h4>
+    <pre>{{ report.completeResult | json }}</pre>
+
+    <h4>Complete official result</h4>
+    <pre>{{ report.completeOfficialResult | json }}</pre>
+
+    <h4>Momentum CAGR 1000×100</h4>
+    <pre>{{ report.momentumCagr | json }}</pre>
+
+    <h4>Technical checks</h4>
+    <pre>{{ report.technicalChecks | json }}</pre>
+
+    <h4>Statistical diagnostics</h4>
+    <pre>{{ report.statisticalDiagnostics | json }}</pre>
+
+    <h4>Performance metrics</h4>
+    <pre>{{ report.performanceMetrics | json }}</pre>
+
+    <h4>Certification</h4>
+    <pre>{{ report.certification | json }}</pre>
+  </div>
+</section>

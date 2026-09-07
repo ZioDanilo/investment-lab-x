@@ -1,0 +1,117 @@
+<div class="etf-detail-container">
+  @if (state().loading) {
+    <div class="loading">Loading ETF details...</div>
+  } @else if (state().error) {
+    <div class="error-message">{{ state().error }}</div>
+  } @else if (state().etf) {
+    <div class="detail-card">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-content">
+          <h2>{{ state().etf!.name }}</h2>
+          <p class="isin">{{ state().etf!.isin }} {{ state().etf!.ticker ? '(' + state().etf!.ticker + ')' : '' }}</p>
+          <p class="description">{{ state().etf!.description }}</p>
+        </div>
+        <div class="calibration-badge" [ngClass]="state().calibrationStatus?.includes('CALIBRATED') ? 'success' : state().calibrationStatus?.includes('OUT OF') ? 'warning' : 'danger'">
+          {{ state().calibrationStatus }}
+        </div>
+      </div>
+
+      <!-- Main KPI Section -->
+      <div class="kpi-section">
+        <div class="kpi-card">
+          <div class="kpi-label">Long Term Expected CAGR</div>
+          <div class="kpi-value">
+            @if (state().etf!.longTermExpectedReturn) {
+              {{ (state().etf!.longTermExpectedReturn * 100).toFixed(2) }}%
+            } @else {
+              <span class="not-set">Not set</span>
+            }
+          </div>
+          <div class="kpi-description">Target CAGR for calibration</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Median CAGR (Last Calibration)</div>
+          <div class="kpi-value">
+            @if (state().etf!.lastCalibrationMedianCagr) {
+              {{ (state().etf!.lastCalibrationMedianCagr * 100).toFixed(2) }}%
+            } @else {
+              <span class="not-set">Not yet calibrated</span>
+            }
+          </div>
+          <div class="kpi-description">Result from diagnostic run</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Calibration Delta</div>
+          <div class="kpi-value" [ngClass]="computeCalibrationDelta() && Math.abs(computeCalibrationDelta()!) < 0.002 ? 'success' : 'warning'">
+            @if (computeCalibrationDelta() !== null) {
+              {{ (computeCalibrationDelta()! * 100).toFixed(3) }}%
+            } @else {
+              <span class="not-set">—</span>
+            }
+          </div>
+          <div class="kpi-description">Difference from target</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Last Calibration</div>
+          <div class="kpi-value">
+            @if (state().etf!.calibratedAt) {
+              {{ (state().etf!.calibratedAt | date: 'short') }}
+            } @else {
+              <span class="not-set">Never</span>
+            }
+          </div>
+          <div class="kpi-description">Calibration timestamp</div>
+        </div>
+      </div>
+
+      <!-- Scenario Returns Section -->
+      <div class="scenarios-section">
+        <div class="scenarios-header" (click)="toggleScenarios()">
+          <h3>Expected Returns by Macro Scenario</h3>
+          <div class="toggle-icon" [ngClass]="expandedScenarios() ? 'expanded' : ''">
+            <span>▼</span>
+          </div>
+        </div>
+
+        @if (expandedScenarios()) {
+          <div class="scenarios-grid">
+            @for (scenario of ['expansion', 'soft_landing', 'recession', 'stagflation']; track scenario) {
+              <div class="scenario-card">
+                <div class="scenario-label">{{ getScenarioName(scenario) }}</div>
+                <div class="scenario-value">
+                  @if (getScenarioExpectedReturn(state().etf!.macroStatistics, scenario) !== null) {
+                    {{ (getScenarioExpectedReturn(state().etf!.macroStatistics, scenario)! * 100).toFixed(2) }}%
+                  } @else {
+                    <span class="not-set">—</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Calibration Button -->
+      <div class="action-section">
+        <button
+          class="calibrate-button"
+          (click)="onCalibrate()"
+          [disabled]="state().calibrating || !state().etf!.longTermExpectedReturn"
+        >
+          @if (state().calibrating) {
+            <span class="spinner"></span> Calibrating...
+          } @else {
+            🔄 Recalibrate ETF
+          }
+        </button>
+        <p class="help-text">
+          This will run 100,000 Monte Carlo simulations to verify and adjust scenario returns so that the median CAGR matches the long-term expected return target.
+        </p>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,137 @@
+.contribution-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.chart-header h3 {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.chart-header p {
+  margin: 0.12rem 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  max-width: 720px;
+}
+
+.chart-metrics {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.chart-metrics strong {
+  color: #dff8ff;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text);
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+.chart-frame {
+  position: relative;
+  border-radius: 8px;
+  border: 1px solid rgba(24, 217, 246, 0.16);
+  background: linear-gradient(180deg, rgba(9, 19, 34, 0.78), rgba(9, 15, 27, 0.92));
+  padding: 0.35rem;
+}
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: 320px;
+  overflow: visible;
+}
+
+.grid line {
+  stroke: rgba(255,255,255,0.08);
+  stroke-width: 1;
+}
+
+.axes line {
+  stroke: rgba(255,255,255,0.22);
+  stroke-width: 1;
+}
+
+.y-labels text,
+.x-labels text {
+  fill: #8ea7c5;
+  font-size: 10px;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.y-labels text {
+  text-anchor: end;
+}
+
+.x-labels text {
+  text-anchor: middle;
+}
+
+.series-line {
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.series-hit-area {
+  opacity: 0;
+  cursor: pointer;
+}
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 1300;
+  min-width: 170px;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(24, 217, 246, 0.26);
+  background: rgba(7, 12, 22, 0.96);
+  color: var(--text);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.34);
+  pointer-events: none;
+  font-size: 0.72rem;
+}
+
+.chart-tooltip strong {
+  color: #dff8ff;
+}
+
+@media (max-width: 768px) {
+  .chart-svg {
+    height: 260px;
+  }
+
+  .chart-header {
+    flex-direction: column;
+  }
+}

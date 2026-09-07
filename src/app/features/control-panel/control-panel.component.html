@@ -2,16 +2,24 @@
   <div class="card">
     <div class="actions">
       <h2>KPI prioritari</h2>
-      <button type="button" class="btn btn-secondary" (click)="resetKpis()">Reset KPI</button>
+      <app-tasto-conferma 
+        label="Reset KPI" 
+        loadingText="Reset..."
+        variant="secondary"
+        size="small"
+        [onConfirm]="resetKpis.bind(this)"
+      ></app-tasto-conferma>
     </div>
     <table>
       <tr><th>Priorità</th><th>KPI</th><th>Target</th><th>Attuale</th><th>Stato</th></tr>
       <tr *ngFor="let kpi of state.kpis(); let i = index" [ngClass]="kpiStatus(kpi.name,kpi.target,kpi.direction)==='OK' ? 'ok':'ko'">
         <td>{{kpi.priority}}</td>
         <td>
-          <select class="kpi-select" [ngModel]="kpi.name" (ngModelChange)="updateKpiName(i, $event)">
-            <option *ngFor="let option of getAvailableKpiNames(i)" [value]="option">{{option}}</option>
-          </select>
+          <app-dropdown
+            [items]="getAvailableKpiOptions(i)"
+            [value]="kpi.name"
+            (valueChange)="updateKpiNameFromDropdown(i, $event)"
+          ></app-dropdown>
         </td>
         <td><input type="number" [value]="getKpiTargetInputValue(kpi.name, kpi.target)" (input)="updateKpiTarget(i, $any($event.target).value, kpi.name)"></td>
         <td>{{formatKpi(kpi.name, state.kpiValues()[kpi.name])}}</td>
@@ -24,7 +32,13 @@
   <div class="card">
     <div class="actions">
       <h2>Sintesi portafoglio</h2>
-      <button type="button" class="btn btn-primary" (click)="runSimulation()">Simula</button>
+      <app-tasto-conferma 
+        label="Simula" 
+        loadingText="Simulazione..."
+        variant="primary"
+        size="small"
+        [onConfirm]="runSimulation.bind(this)"
+      ></app-tasto-conferma>
     </div>
     <table>
       <tr><td>Rendimento atteso</td><td class="num">{{state.portfolioSummary().expectedReturn | percent:'1.2-2'}}</td></tr>

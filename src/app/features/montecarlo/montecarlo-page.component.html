@@ -1,9 +1,215 @@
-<section class="page-panel placeholder-panel">
-  <div class="page-header page-header-compact">
-    <h2>Montecarlo</h2>
-    <p>Pagina vuota: qui arriveranno i modelli di simulazione in una fase successiva.</p>
+<section class="montecarlo-page">
+  <!-- ===== SELEZIONE PORTAFOGLIO + AVVIA ===== -->
+  <div class="section-card top-controls">
+
+    <div class="param-group">
+      <label>Portafoglio</label>
+      <app-dropdown
+        [items]="portfolioDropdownOptions()"
+        [value]="selectedPortfolio()?.id || null"
+        [disabled]="loadingPortafogli()"
+        placeholder="Seleziona Portafoglio"
+        emptyText="Nessun portafoglio disponibile"
+        (valueChange)="onPortfolioSelected($event)"
+      ></app-dropdown>
+    </div>
+
+    <div class="param-group">
+      <label>Orizzonte temporale</label>
+      <app-dropdown
+        [items]="horizonDropdownOptions"
+        [value]="params.horizonYears.toString()"
+        (valueChange)="onHorizonYearsSelected($event)"
+      ></app-dropdown>
+    </div>
+
+    <div class="param-group">
+      <label>Numero simulazioni</label>
+      <app-dropdown
+        [items]="simulationDropdownOptions"
+        [value]="params.simulationCount.toString()"
+        (valueChange)="onSimulationCountSelected($event)"
+      ></app-dropdown>
+    </div>
+    
+    <div class="param-group">
+      <label>Capitale iniziale</label>
+      <app-dropdown
+        [items]="initialCapitalDropdownOptions"
+        [value]="params.initialCapital.toString()"
+        (valueChange)="onInitialCapitalSelected($event)"
+      ></app-dropdown>
+    </div>
+
+    <app-tasto-conferma
+      label="▶"
+      loadingText="⏳"
+      variant="primary"
+      size="small"
+      [disabled]="!mc.canRun() || !editorState()?.state?.isValid"
+      [loading]="mc.running()"
+      [onConfirm]="runSimulation.bind(this)"
+    ></app-tasto-conferma>
+
+    <div class="top-loading-indicator" *ngIf="mc.running()">
+      <app-spinner
+        size="sm"
+        label="Simulazione in corso..."
+        ariaLabel="Simulazione Montecarlo in esecuzione"
+      ></app-spinner>
+    </div>
+
+    <div class="progress-bar-wrap" *ngIf="mc.running()">
+      <div class="progress-bar" [style.width.%]="mc.progress()"></div>
+      <span class="progress-label">{{ mc.progress() }}%</span>
+    </div>
+
   </div>
-  <div class="placeholder-card">
-    <p>Per ora questa pagina rimane pulita. Usa KPI e Portafoglio per i dati attivi.</p>
+
+  <!-- ===== D. KPI RISULTATI ===== -->
+  <div class="section-card results-section" *ngIf="displayedSummary()" [class.results-section--loading]="mc.running()">
+    <div class="results-loading-overlay" *ngIf="mc.running()">
+      <app-spinner
+        size="md"
+        label="Aggiornamento risultati in corso..."
+        ariaLabel="Aggiornamento risultati Montecarlo"
+      ></app-spinner>
+    </div>
+    <div class="sim-meta sim-meta--top">{{ displayedSummary()!.validSimulationCount | number }} / {{ displayedSummary()!.simulationCount | number }} simulazioni · {{ displayedSummary()!.horizonYears }} anni</div>
+    <div class="kpi-grid">
+      <div *ngFor="let card of kpiCards()" class="kpi-card" [class.kpi-card--range]="card!.format === 'range'">
+        <div class="kpi-name">{{ card!.name }}</div>
+        <div class="kpi-value">
+          <ng-container *ngIf="card!.format === 'range'; else normalKpiTop">
+            <span class="kpi-range">{{ card!.sub }}</span>
+          </ng-container>
+          <ng-template #normalKpiTop>
+            {{ fmtKpiValue(card!.value, card!.format) }}
+          </ng-template>
+        </div>
+        <div class="kpi-sub" *ngIf="card!.format !== 'range'">{{ card!.sub }}</div>
+      </div>
+    </div>
+
+    <ng-container *ngFor="let entry of historicalResults(); trackBy: trackByHistoryEntry">
+      <div class="kpi-grid kpi-grid--history">
+        <div *ngFor="let card of buildKpiCards(entry.summary)" class="kpi-card kpi-card--history">
+          <div class="kpi-value">{{ fmtKpiValue(card!.value, card!.format) }}</div>
+        </div>
+      </div>
+    </ng-container>
   </div>
+
+  <div class="section-card" *ngIf="representativeContributionAnalysis() as analysis">
+    <app-montecarlo-contribution-chart [analysis]="analysis"></app-montecarlo-contribution-chart>
+  </div>
+
+  <div class="section-card" *ngIf="mc.selectedPath() as path">
+    <app-montecarlo-portfolio-return-chart [path]="path"></app-montecarlo-portfolio-return-chart>
+  </div>
+
+  <div class="section-card">
+    <app-montecarlo-portfolio-editor
+      [portfolioId]="selectedPortfolio()?.id || null"
+      (stateChange)="onEditorStateChange($event)"
+    ></app-montecarlo-portfolio-editor>
+  </div>
+
+  <!-- Spinner while service is computing and before results are available -->
+  <div class="section-card simulation-loading" *ngIf="mc.running() && !summary()">
+    <app-spinner
+      size="md"
+      label="Simulazione in corso, attendo i risultati del servizio..."
+      ariaLabel="Simulazione Montecarlo in corso"
+    ></app-spinner>
+  </div>
+
+  <div class="section-card scenario-freq-section" *ngIf="displayedSummary()">
+    <div class="freq-grid">
+      <div *ngFor="let sc of scenarios" class="freq-item">
+        <span class="freq-label">{{ scenarioLabels[sc] }}</span>
+        <div class="freq-bar-wrap">
+          <div class="freq-bar" [style.width.%]="displayedSummary()!.scenarioFrequencies[sc] * 100"
+            [class]="'freq-bar--' + sc"></div>
+        </div>
+        <span class="freq-pct">{{ (displayedSummary()!.scenarioFrequencies[sc] * 100).toFixed(1) }}%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== E. DETTAGLIO SIMULAZIONE ===== -->  <div class="section-card detail-section" *ngIf="mc.detailedPaths().length > 0">
+    <ng-container *ngIf="mc.selectedPath() as path">
+      <div class="path-meta">
+        Capitale finale: <strong>{{ fmtEur(path.finalCapital) }}</strong> ·
+        CAGR: <strong>{{ fmtPct(path.cagr) }}</strong> ·
+        Max Drawdown: <strong class="text-danger">{{ fmtPct(path.maxDrawdown) }}</strong>
+      </div>
+      <div class="table-wrap">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Anno</th>
+              <th>Scenario</th>
+              <th>Intens.</th>
+              <th>Rend. Port.</th>
+              <th>Cap. Inizio</th>
+              <th>Cap. Fine</th>
+              <th>Drawdown</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let yr of path.years">
+              <!-- Riga anno -->
+              <tr class="year-row"
+                [class.row-negative]="yr.portfolioReturn < 0"
+                [class.row-dd]="yr.drawdown < -0.1"
+                (click)="toggleYear(yr.year)">
+                <td class="expand-toggle">{{ expandedYears.has(yr.year) ? '▾' : '▸' }}</td>
+                <td>{{ yr.year }}</td>
+                <td><span class="scenario-badge" [class]="'scenario-badge--' + yr.scenario">{{ scenarioLabels[yr.scenario] }}</span></td>
+                  <td>{{ yr.durationInCurrentScenario }}</td>
+                <td [class.text-positive]="yr.portfolioReturn >= 0" [class.text-danger]="yr.portfolioReturn < 0">
+                  {{ fmtPct(yr.portfolioReturn) }}
+                </td>
+                <td>{{ fmtEur(yr.startingCapital) }}</td>
+                <td>{{ fmtEur(yr.endingCapital) }}</td>
+                <td [class.text-danger]="yr.drawdown < -0.05">{{ fmtPct(yr.drawdown) }}</td>
+              </tr>
+              <!-- Righe ETF espanse -->
+              <ng-container *ngIf="expandedYears.has(yr.year)">
+                <tr class="etf-header-row">
+                  <td></td>
+                  <td colspan="2" class="etf-header-label">ETF</td>
+                  <td class="etf-header-label">Peso</td>
+                  <td class="etf-header-label">E[R] Scenario</td>
+                  <td class="etf-header-label">R Simulato</td>
+                  <td class="etf-header-label">Contributo</td>
+                  <td class="etf-header-label">Dir.</td>
+                </tr>
+                <tr *ngFor="let etf of yr.etfReturns" class="etf-row">
+                  <td></td>
+                  <td colspan="2" class="etf-name">{{ etf.name }}</td>
+                  <td>{{ fmtPct(etf.weight) }}</td>
+                  <td class="muted">{{ fmtPct(etf.expectedReturn) }}</td>
+                  <td [class.text-positive]="etf.annualReturn >= 0" [class.text-danger]="etf.annualReturn < 0">
+                    {{ fmtPct(etf.annualReturn) }}
+                  </td>
+                  <td [class.text-positive]="etf.contribution >= 0" [class.text-danger]="etf.contribution < 0">
+                    {{ fmtPct(etf.contribution) }}
+                  </td>
+                  <td>
+                    <span class="dir-badge" [class.dir-above]="etf.deviationDirection === 'above_expected'" [class.dir-below]="etf.deviationDirection === 'below_expected'">
+                      {{ etf.deviationDirection === 'above_expected' ? '↑' : '↓' }}
+                    </span>
+                  </td>
+                </tr>
+              </ng-container>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+  </div>
+
 </section>

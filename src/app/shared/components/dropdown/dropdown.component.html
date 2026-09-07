@@ -1,0 +1,42 @@
+<div class="dropdown-shell" [class.dropdown-shell--disabled]="disabled" [class.dropdown-shell--open]="panelVisible()">
+  <input
+    *ngIf="mode === 'autocomplete'; else selectMode"
+    class="dropdown-control dropdown-control--input"
+    type="text"
+    [value]="query"
+    [placeholder]="placeholder"
+    [disabled]="disabled"
+    autocomplete="off"
+    (focus)="onInputFocus()"
+    (input)="onInput($event)"
+  />
+
+  <ng-template #selectMode>
+    <button
+      type="button"
+      class="dropdown-control dropdown-control--trigger"
+      [disabled]="disabled"
+      (click)="toggle()"
+    >
+      <span class="dropdown-trigger-text" [class.dropdown-placeholder]="!selectedLabel()">{{ selectedLabel() || placeholder }}</span>
+      <span class="dropdown-chevron">▾</span>
+    </button>
+  </ng-template>
+
+  <div *ngIf="panelVisible()" class="dropdown-panel">
+    <div *ngIf="loading" class="dropdown-loading">{{ loadingText }}</div>
+
+    <button
+      *ngFor="let item of items"
+      type="button"
+      class="dropdown-item"
+      [disabled]="item.disabled"
+      (click)="selectItem(item)"
+    >
+      <div class="dropdown-primary" [innerHTML]="highlight(item.label)"></div>
+      <div *ngIf="item.description" class="dropdown-secondary" [innerHTML]="highlight(item.description)"></div>
+    </button>
+
+    <div *ngIf="!loading && items.length === 0" class="dropdown-empty">{{ emptyText }}</div>
+  </div>
+</div>

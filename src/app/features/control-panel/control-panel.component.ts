@@ -1,13 +1,14 @@
 import { Component } from '@angular/core';
 import { CommonModule, PercentPipe, DecimalPipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { KpiName } from '../../core/models/kpi.model';
 import { PortfolioStateService } from '../../core/services/portfolio-state.service';
+import { TastoConfermaComponent } from '../../shared/components/tasto-conferma/tasto-conferma.component';
+import { DropdownComponent, DropdownOption } from '../../shared/components/dropdown/dropdown.component';
 
 @Component({
   selector: 'app-control-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, PercentPipe, DecimalPipe],
+  imports: [CommonModule, PercentPipe, DecimalPipe, TastoConfermaComponent, DropdownComponent],
   templateUrl: './control-panel.component.html'
 })
 export class ControlPanelComponent {
@@ -31,16 +32,20 @@ export class ControlPanelComponent {
     return 'red';
   }
 
-  runSimulation(): void {
+  async runSimulation(): Promise<void> {
     this.state.runMonteCarloSimulation();
   }
 
-  resetKpis(): void {
+  async resetKpis(): Promise<void> {
     this.state.resetKpis();
   }
 
   updateKpiName(index: number, name: KpiName): void {
     this.state.updateKpiName(index, name);
+  }
+
+  updateKpiNameFromDropdown(index: number, value: string): void {
+    this.updateKpiName(index, value as KpiName);
   }
 
   updateKpiTarget(index: number, value: string, name: string): void {
@@ -49,6 +54,13 @@ export class ControlPanelComponent {
 
   getAvailableKpiNames(index: number): KpiName[] {
     return this.state.availableKpiNames(index);
+  }
+
+  getAvailableKpiOptions(index: number): DropdownOption[] {
+    return this.getAvailableKpiNames(index).map((option) => ({
+      value: option,
+      label: option
+    }));
   }
 
   getKpiTargetInputValue(name: string, target: number): string {

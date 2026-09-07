@@ -1,0 +1,44 @@
+.shared-spinner {
+  --spinner-size: 34px;
+  --spinner-accent: #18d9f6;
+  --spinner-track: rgba(255, 255, 255, 0.16);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--muted);
+}
+
+.shared-spinner--sm {
+  --spinner-size: 22px;
+}
+
+.shared-spinner--md {
+  --spinner-size: 34px;
+}
+
+.shared-spinner--lg {
+  --spinner-size: 46px;
+}
+
+.shared-spinner__ring {
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+  border-radius: 50%;
+  border: 3px solid var(--spinner-track);
+  border-top-color: var(--spinner-accent);
+  animation: sharedSpinnerRotate 0.82s linear infinite;
+}
+
+.shared-spinner__label {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+@keyframes sharedSpinnerRotate {
+  to {
+    transform: rotate(360deg);
+  }
+}

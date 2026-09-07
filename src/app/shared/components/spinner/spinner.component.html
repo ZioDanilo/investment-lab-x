@@ -1,0 +1,4 @@
+<div [class]="hostClass()" role="status" aria-live="polite" [attr.aria-label]="ariaLabel">
+  <span class="shared-spinner__ring" aria-hidden="true"></span>
+  <p *ngIf="label" class="shared-spinner__label">{{ label }}</p>
+</div>

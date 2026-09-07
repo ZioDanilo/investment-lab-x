@@ -1,0 +1,22 @@
+<div class="dialog-overlay" [class.visible]="visible" (click)="onOverlayClick()">
+  <div class="dialog-container" (click)="onDialogClick($event)">
+    <div class="dialog-content">
+      <p class="dialog-message">{{ message }}</p>
+      <input
+        type="text"
+        class="dialog-input"
+        [value]="value"
+        [placeholder]="placeholder"
+        maxlength="120"
+        autofocus
+        (input)="onInput($any($event.target).value)"
+        (keydown.enter)="onConfirm()"
+        (keydown.escape)="onCancel()"
+      />
+    </div>
+    <div class="dialog-footer">
+      <button type="button" class="btn-cancel" (click)="onCancel()">{{ cancelLabel }}</button>
+      <button type="button" class="btn-confirm" [disabled]="confirmDisabled" (click)="onConfirm()">{{ confirmLabel }}</button>
+    </div>
+  </div>
+</div>

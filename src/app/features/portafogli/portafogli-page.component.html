@@ -3,117 +3,119 @@
   <!-- Header with "Nuovo Portafoglio" button -->
   <div class="portafogli-header">
     <h2>Portafogli</h2>
-    <button class="btn-nuovo-portafoglio" (click)="openNewPortfolioForm()">
-      ＋ Nuovo Portafoglio
-    </button>
+    <app-tasto-conferma
+      label="＋ Nuovo Portafoglio"
+      loadingText="Apertura..."
+      variant="primary"
+      size="medium"
+      [onConfirm]="openNewPortfolioForm.bind(this)"
+    ></app-tasto-conferma>
   </div>
 
   <!-- New Portfolio Form Modal -->
   <div *ngIf="showForm()" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Crea Nuovo Portafoglio</h3>
+        <h3>{{ currentEditingPortfolioId() ? 'Modifica Portafoglio' : 'Crea Nuovo Portafoglio' }}</h3>
         <button class="btn-close" (click)="closeForm()">✕</button>
       </div>
 
       <div class="modal-body">
-        <!-- Portfolio Name -->
-        <div class="form-group">
-          <label>Nome Portafoglio</label>
-          <input 
-            type="text" 
-            [(ngModel)]="nomePortafoglio" 
-            placeholder="es. Portafoglio Conservativo"
-            class="form-input"
-          />
-        </div>
-
-        <!-- Search ETF -->
-        <div class="form-group">
-          <label>Aggiungi ETF</label>
-          <div class="search-container">
+        <div class="modal-fixed-fields">
+          <!-- Portfolio Name -->
+          <div class="form-group">
+            <label>Nome Portafoglio</label>
             <input 
               type="text" 
-              [(ngModel)]="searchQuery" 
-              (input)="onSearchChange(searchQuery())"
-              placeholder="Cerca per ISIN o nome (min. 3 caratteri)"
+              [(ngModel)]="nomePortafoglio" 
+              placeholder="es. Portafoglio Conservativo"
               class="form-input"
             />
-            <div *ngIf="searchLoading()" class="search-loading">
-              Ricerca in corso...
-            </div>
-            <div *ngIf="searchResults().length > 0" class="search-dropdown">
-              <div 
-                *ngFor="let etf of searchResults()" 
-                class="dropdown-item"
-                (click)="addEtfFromSearch(etf)"
-              >
-                <div class="etf-name">{{ etf.name }}</div>
-                <div class="etf-isin">{{ etf.isin }}</div>
-              </div>
-            </div>
+          </div>
+
+          <!-- Search ETF -->
+          <div class="form-group">
+            <label>Aggiungi ETF</label>
+            <app-dropdown
+              mode="autocomplete"
+              [query]="searchQuery()"
+              [items]="searchDropdownOptions()"
+              [loading]="searchLoading()"
+              placeholder="Cerca per ISIN o nome (min. 3 caratteri)"
+              emptyText="Nessun ETF trovato"
+              loadingText="Ricerca in corso..."
+              [minQueryLength]="3"
+              (queryChange)="onSearchChange($event)"
+              (valueChange)="onSearchResultSelected($event)"
+            ></app-dropdown>
           </div>
         </div>
 
-        <!-- Selected ETFs Table -->
-        <div *ngIf="selectedEtfs().length > 0" class="table-shell">
-          <table class="portfolio-table">
-            <thead>
-              <tr>
-                <th>ETF</th>
-                <th>Peso %</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let etf of selectedEtfs(); let i = index">
-                <td>
-                  <div class="etf-info">
-                    <strong>{{ etf.etf?.name }}</strong>
-                    <small>{{ etf.etf?.isin }}</small>
-                  </div>
-                </td>
-                <td>
-                  <input 
-                    type="number" 
-                    [value]="etf.peso" 
-                    (input)="updateEtfWeight(i, $event.target.value)"
-                    placeholder="0"
-                    class="weight-input"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                  />
-                </td>
-                <td>
-                  <button class="btn-remove" (click)="removeEtf(i)">✕</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="modal-list-zone">
+          <!-- Selected ETFs Table -->
+          <div *ngIf="selectedEtfs().length > 0" class="table-shell">
+            <div class="etf-list-scroll">
+              <table class="portfolio-table">
+                <thead>
+                  <tr>
+                    <th>ETF</th>
+                    <th>Peso %</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let etf of selectedEtfs(); let i = index">
+                    <td>
+                      <div class="etf-info">
+                        <strong>{{ etf.etf?.name }}</strong>
+                        <small>{{ etf.etf?.isin }}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <input 
+                        type="number" 
+                        [value]="getWeightDisplay(etf.peso)" 
+                        (input)="onWeightInput(i, $event)"
+                        placeholder="0"
+                        class="weight-input"
+                        step="1"
+                        min="0"
+                        [max]="getMaxWeight(i)"
+                      />
+                    </td>
+                    <td>
+                      <button class="icon-action-button icon-action-button--danger" (click)="removeEtf(i)" title="Rimuovi ETF">
+                        <span class="icon-action-button__glyph">✕</span>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-          <!-- Total Weight -->
-          <div class="total-weight" [class.valid]="isTotalValid()" [class.invalid]="!isTotalValid()">
-            Peso totale: <strong>{{ totalWeight().toFixed(2) }}%</strong>
-            <span *ngIf="isTotalValid()" class="check">✓</span>
-            <span *ngIf="!isTotalValid()" class="warning">⚠</span>
+            <!-- Total Weight -->
+            <div class="total-weight" [class.valid]="isTotalValid()" [class.invalid]="!isTotalValid()">
+              Peso totale: <strong>{{ totalWeight().toFixed(2) }}%</strong>
+              <span *ngIf="isTotalValid()" class="check">✓</span>
+              <span *ngIf="!isTotalValid()" class="warning">⚠</span>
+            </div>
           </div>
-        </div>
 
-        <div *ngIf="selectedEtfs().length === 0" class="empty-state">
-          <p>Aggiungi almeno un ETF dal campo di ricerca sopra</p>
+          <div *ngIf="selectedEtfs().length === 0" class="empty-state empty-state-modal">
+            <p>Aggiungi almeno un ETF dal campo di ricerca sopra</p>
+          </div>
         </div>
       </div>
 
       <div class="modal-footer">
         <button class="btn-cancel" (click)="closeForm()">Annulla</button>
-        <button 
-          class="btn-save" 
-          (click)="savePortafoglio()"
+        <app-tasto-conferma 
+          label="Salva Portafoglio"
+          loadingText="Salvataggio..."
+          variant="primary"
           [disabled]="!isTotalValid() || selectedEtfs().length === 0 || !nomePortafoglio().trim()"
-        >
-          Salva Portafoglio
-        </button>
+          [onConfirm]="savePortafoglio.bind(this)"
+        ></app-tasto-conferma>
       </div>
     </div>
   </div>
@@ -124,20 +126,27 @@
       <p>Nessun portafoglio creato. Clicca su "Nuovo Portafoglio" per iniziare</p>
     </div>
 
-    <div *ngFor="let portafoglio of portafogli()" class="portafoglio-card">
-      <h3>{{ portafoglio.nome }}</h3>
-      <p *ngIf="portafoglio.descrizione" class="descrizione">{{ portafoglio.descrizione }}</p>
-      
-      <div class="portafoglio-etfs">
-        <div *ngFor="let pe of portafoglio.etfs" class="etf-item">
-          <span class="etf-name">{{ pe.etf?.name }}</span>
-          <span class="etf-weight">{{ pe.peso.toFixed(2) }}%</span>
-        </div>
-      </div>
+    <div *ngIf="portafogli().length > 0" class="portfolio-columns">
+      <div *ngFor="let column of portfolioColumns(); let columnIndex = index" class="portfolio-column" [attr.data-column]="columnIndex + 1">
+        <app-card-compact
+          *ngFor="let portafoglio of column"
+          [title]="portafoglio.nome"
+          [expanded]="isPortfolioExpanded(portafoglio.id)"
+          editTitle="Modifica portafoglio"
+          deleteTitle="Elimina portafoglio"
+          (edit)="openEditPortfolioForm(portafoglio)"
+          (delete)="deletePortafoglio(portafoglio)"
+          (toggle)="togglePortfolioExpanded(portafoglio.id)"
+        >
+          <p *ngIf="portafoglio.descrizione" class="descrizione">{{ portafoglio.descrizione }}</p>
 
-      <div class="portafoglio-actions">
-        <button class="btn-secondary">Modifica</button>
-        <button class="btn-secondary">Elimina</button>
+          <div class="portafoglio-etfs">
+            <div *ngFor="let pe of portafoglio.etfs" class="etf-item">
+              <span class="etf-name">{{ pe.etf?.name }}</span>
+              <span class="etf-weight">{{ formatWeight(pe.peso) }}%</span>
+            </div>
+          </div>
+        </app-card-compact>
       </div>
     </div>
   </div>
@@ -145,5 +154,11 @@
   <div *ngIf="loading()" class="loading-spinner">
     Caricamento portafogli...
   </div>
+
+  <!-- Toast Notification -->
+  <app-toast></app-toast>
+
+  <!-- Dialog Component -->
+  <app-dialog></app-dialog>
 
 </section>

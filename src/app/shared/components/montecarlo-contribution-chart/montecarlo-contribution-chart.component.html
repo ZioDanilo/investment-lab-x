@@ -1,0 +1,83 @@
+<section class="contribution-chart" *ngIf="currentAnalysis() as analysis">
+  <div class="chart-header">
+    <div>
+      <h3>Contributo annuale degli ETF</h3>
+      <p>
+        Simulazione #{{ analysis.simulationId }} selezionata tra il peggior {{ analysis.selectedFromWorstDrawdownPercentile }}%
+        per max drawdown; CAGR più vicino alla mediana complessiva.
+      </p>
+    </div>
+    <div class="chart-metrics">
+      <span>Max DD: <strong>{{ formatPercent(analysis.simulationMaxDrawdown) }}</strong></span>
+      <span>CAGR: <strong>{{ formatPercent(analysis.simulationCagr) }}</strong></span>
+      <span>Mediana: <strong>{{ formatPercent(analysis.medianCagrReference) }}</strong></span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span *ngFor="let item of series()" class="legend-item">
+      <span class="legend-swatch" [style.background]="item.color"></span>
+      {{ item.nickname }}
+    </span>
+  </div>
+
+  <div #frameRef class="chart-frame" (mouseleave)="hideTooltip()">
+    <svg class="chart-svg" [attr.viewBox]="'0 0 ' + width + ' ' + height" preserveAspectRatio="none">
+      <g class="grid">
+        <line
+          *ngFor="let tick of yTicks()"
+          [attr.x1]="padding.left"
+          [attr.x2]="width - padding.right"
+          [attr.y1]="padding.top + ((maxAbsContribution() - tick) / (2 * maxAbsContribution())) * (height - padding.top - padding.bottom)"
+          [attr.y2]="padding.top + ((maxAbsContribution() - tick) / (2 * maxAbsContribution())) * (height - padding.top - padding.bottom)"
+        ></line>
+      </g>
+
+      <g class="axes">
+        <line [attr.x1]="padding.left" [attr.x2]="padding.left" [attr.y1]="padding.top" [attr.y2]="height - padding.bottom"></line>
+        <line [attr.x1]="padding.left" [attr.x2]="width - padding.right" [attr.y1]="zeroLineY()" [attr.y2]="zeroLineY()"></line>
+      </g>
+
+      <g class="y-labels">
+        <text
+          *ngFor="let tick of yTicks()"
+          [attr.x]="padding.left - 8"
+          [attr.y]="padding.top + ((maxAbsContribution() - tick) / (2 * maxAbsContribution())) * (height - padding.top - padding.bottom) + 4"
+        >{{ formatPercent(tick) }}</text>
+      </g>
+
+      <g class="series-group" *ngFor="let line of series()">
+        <polyline
+          class="series-line"
+          fill="none"
+          [attr.stroke]="line.color"
+          [attr.points]="buildPolyline(line.points)"
+        ></polyline>
+        <circle
+          *ngFor="let point of line.points"
+          class="series-hit-area"
+          [attr.cx]="point.x"
+          [attr.cy]="point.y"
+          [attr.r]="7"
+          [attr.fill]="line.color"
+          (mouseenter)="showTooltip(point, $event)"
+          (mousemove)="moveTooltip($event)"
+        ></circle>
+      </g>
+    </svg>
+
+    <div
+      #tooltipRef
+      class="chart-tooltip"
+      *ngIf="hoveredPoint() as point"
+      [style.left.px]="tooltipLeft()"
+      [style.top.px]="tooltipTop()"
+    >
+      <div>Anno: <strong>{{ point.year }}</strong></div>
+      <div>ETF: <strong>{{ point.nickname }}</strong></div>
+      <div>Rendimento ETF: <strong>{{ formatPercent(point.annualReturn) }}</strong></div>
+      <div>Peso ETF: <strong>{{ formatPercent(point.weight) }}</strong></div>
+      <div>Contributo: <strong>{{ formatPercent(point.contribution) }}</strong></div>
+    </div>
+  </div>
+</section>

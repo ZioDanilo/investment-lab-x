@@ -1,0 +1,160 @@
+<section class="montecarlo-page">
+  <div class="section-card top-controls">
+    <div class="param-group">
+      <label>Portafoglio</label>
+      <app-dropdown
+        [items]="portfolioDropdownOptions()"
+        [value]="selectedPortfolio()?.id || null"
+        [disabled]="loadingPortafogli()"
+        placeholder="Seleziona Portafoglio"
+        emptyText="Nessun portafoglio disponibile"
+        (valueChange)="onPortfolioSelected($event)"
+      ></app-dropdown>
+    </div>
+
+    <div class="param-group">
+      <label>Orizzonte temporale</label>
+      <app-dropdown
+        [items]="horizonDropdownOptions"
+        [value]="selectedHorizonYears().toString()"
+        (valueChange)="onHorizonYearsSelected($event)"
+      ></app-dropdown>
+    </div>
+
+    <div class="param-group">
+      <label>Capitale iniziale</label>
+      <app-dropdown
+        [items]="initialCapitalDropdownOptions"
+        [value]="selectedInitialCapital().toString()"
+        (valueChange)="onInitialCapitalSelected($event)"
+      ></app-dropdown>
+    </div>
+
+    <app-tasto-conferma
+      label="▶"
+      loadingText="⏳"
+      variant="primary"
+      size="small"
+      [disabled]="!editorState()?.state?.isValid || executionState() === 'loadingSnapshot' || executionState() === 'running'"
+      [loading]="executionState() === 'loadingSnapshot' || executionState() === 'running'"
+      [onConfirm]="runSimulation.bind(this)"
+    ></app-tasto-conferma>
+
+    <button
+      type="button"
+      class="btn btn-secondary btn-small"
+      [disabled]="executionState() !== 'running' && executionState() !== 'loadingSnapshot'"
+      (click)="cancelSimulation()"
+      aria-label="Annulla simulazione Monte Carlo"
+    >
+      Annulla
+    </button>
+
+    <div class="top-loading-indicator" *ngIf="executionState() === 'running' || executionState() === 'loadingSnapshot' || executionState() === 'aggregating'">
+      <app-spinner
+        size="sm"
+        [label]="executionState() === 'aggregating' ? 'Calcolo statistiche...' : 'Simulazione in corso...'"
+        [ariaLabel]="executionState() === 'aggregating' ? 'Calcolo statistiche Monte Carlo in corso' : 'Simulazione Montecarlo in esecuzione'"
+      ></app-spinner>
+    </div>
+
+    <div class="progress-bar-wrap" *ngIf="executionState() === 'running' || executionState() === 'loadingSnapshot' || executionState() === 'aggregating'">
+      <div class="progress-bar" [style.width.%]="progress()"></div>
+      <span class="progress-label">{{ progress() }}%</span>
+    </div>
+  </div>
+
+  <div class="section-card" *ngIf="errorMessage()">
+    <strong>Errore:</strong> {{ errorMessage() }}
+  </div>
+
+  <div class="section-card results-section" *ngIf="officialResult() as result">
+    <div class="sim-meta sim-meta--top">Monte Carlo ufficiale · {{ selectedHorizonYears() }} anni · {{ selectedInitialCapital() | number:'1.0-0' }} €</div>
+    <div class="kpi-grid">
+      <div *ngFor="let card of officialKpiCards()" class="kpi-card">
+        <div class="kpi-name">{{ card.name }}</div>
+        <div class="kpi-value">{{ fmtKpiValue(card.value, card.format) }}</div>
+        <div class="kpi-sub">{{ card.sub }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" *ngIf="capitalFan().length">
+    <h3>Capital fan</h3>
+    <table class="detail-table">
+      <thead>
+        <tr>
+          <th>Anno</th>
+          <th>P5</th>
+          <th>P25</th>
+          <th>P50</th>
+          <th>P75</th>
+          <th>P95</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let point of capitalFan()">
+          <td>{{ point.year }}</td>
+          <td>{{ fmtEur(point.capitalP5) }}</td>
+          <td>{{ fmtEur(point.capitalP25) }}</td>
+          <td>{{ fmtEur(point.capitalP50) }}</td>
+          <td>{{ fmtEur(point.capitalP75) }}</td>
+          <td>{{ fmtEur(point.capitalP95) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-card" *ngIf="representativePath() as path">
+    <h3>Percorso rappresentativo</h3>
+    <p>
+      Percorso rappresentativo tra il 5% dei path con drawdown più elevato. Simulation ID: {{ path.simulationId }} · CAGR: {{ fmtPct(path.cagr) }} · Max Drawdown: {{ fmtPct(path.maxDrawdown) }}
+    </p>
+    <ul>
+      <li *ngFor="let step of path.capital.slice(0, 12); let i = index">
+        Mese {{ step.month }}: {{ fmtEur(step.capital) }}
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-card" *ngIf="statistics() as stats">
+    <div class="section-header-row">
+      <h3>Statistics</h3>
+      <button
+        type="button"
+        class="copy-button"
+        [class.copy-button--success]="copiedStatistics()"
+        [attr.aria-label]="copiedStatistics() ? 'Statistiche copiate' : 'Copia JSON delle statistiche'"
+        [attr.title]="copiedStatistics() ? 'Statistiche copiate' : 'Copia JSON delle statistiche'"
+        (click)="copyStatistics()"
+      >
+        {{ copiedStatistics() ? '✓' : '⧉' }}
+      </button>
+    </div>
+    <pre>{{ stats | json }}</pre>
+  </div>
+
+  <div class="section-card" *ngIf="officialResult()?.performanceMetrics as metrics">
+    <h3>Performance metrics</h3>
+    <ul>
+      <li>Total time: {{ metrics.totalTime ?? 'Non disponibile' }}</li>
+      <li>Paths/sec: {{ metrics.pathsPerSecond ?? 'Non disponibile' }}</li>
+      <li>Months/sec: {{ metrics.monthsPerSecond ?? 'Non disponibile' }}</li>
+      <li>Factorization time: {{ metrics.factorizationTime ?? 'Non disponibile' }}</li>
+      <li>Total redraw: {{ metrics.totalRedraw ?? 'Non disponibile' }}</li>
+      <li>Reject rate: {{ metrics.rejectRate ?? 'Non disponibile' }}</li>
+    </ul>
+  </div>
+
+  <div class="section-card" *ngIf="technicalChecks() as checks">
+    <h3>Technical checks</h3>
+    <pre>{{ checks | json }}</pre>
+  </div>
+
+  <div class="section-card">
+    <app-montecarlo-portfolio-editor
+      [portfolioId]="selectedPortfolio()?.id || null"
+      (stateChange)="onEditorStateChange($event)"
+    ></app-montecarlo-portfolio-editor>
+  </div>
+</section>

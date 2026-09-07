@@ -1,56 +1,125 @@
 <section class="page-panel">
   <div class="page-header page-header-compact">
     <h2>Nuovo ETF</h2>
-    <p>Aggiungi un nuovo ETF inserendo ISIN e descrizione.</p>
+    <p>Aggiungi un nuovo ETF inserendo ISIN, nickname opzionale e descrizione.</p>
   </div>
 
+  <!-- ISIN + Descrizione -->
   <div class="content-card">
-    <form (ngSubmit)="addEtf()" class="etf-form">
-      <div class="form-group">
-        <label for="isin">ISIN</label>
-        <input
-          id="isin"
-          type="text"
-          placeholder="es. IE00B4L5Y983"
-          [(ngModel)]="isin"
-          name="isin"
-          class="form-input"
-          [disabled]="loading()"
-          maxlength="20"
-        />
+    <div class="form-group">
+      <label for="isin">ISIN</label>
+      <input
+        id="isin"
+        type="text"
+        placeholder="es. IE00B4L5Y983"
+        [(ngModel)]="isin"
+        name="isin"
+        class="form-input"
+        [class.form-input-duplicate]="isDuplicateIsin()"
+        [disabled]="correlationLoading() || searchingJustETF()"
+        maxlength="20"
+        (blur)="searchOnJustETF()"
+      />
+      <div *ngIf="isDuplicateIsin()" class="duplicate-warning">
+        ⚠ Questo ETF risulta già censito
       </div>
-
-      <div class="form-group">
-        <label for="descrizione">Descrizione</label>
-        <input
-          id="descrizione"
-          type="text"
-          placeholder="es. Vanguard FTSE All-World"
-          [(ngModel)]="descrizione"
-          name="descrizione"
-          class="form-input"
-          [disabled]="loading()"
-          maxlength="100"
-        />
+      <div *ngIf="searchingJustETF()" class="search-status">
+        🔍 Ricerca su JustETF...
       </div>
-
-      <div class="form-actions">
-        <button
-          type="submit"
-          class="btn btn-primary"
-          [disabled]="loading()"
-        >
-          {{ loading() ? 'Aggiungendo...' : 'Aggiungi' }}
-        </button>
+      <div *ngIf="searchError()" class="search-error">
+        ❌ {{ searchError() }}
       </div>
-    </form>
-
-    <div *ngIf="successMessage()" class="alert alert-success">
-      {{ successMessage() }}
     </div>
 
-    <div *ngIf="errorMessage()" class="alert alert-error">
-      {{ errorMessage() }}
+    <div class="form-group">
+      <label for="nickname">Nickname <span class="field-optional">(opzionale)</span></label>
+      <input
+        id="nickname"
+        type="text"
+        placeholder="es. World Equity, Tech Core, Income Bond"
+        name="nickname"
+        class="form-input"
+        [disabled]="correlationLoading() || searchingJustETF()"
+        maxlength="60"
+        [value]="nickname()"
+        (input)="onNicknameInput($event)"
+      />
+    </div>
+
+    <!-- Display search results in one row (only after search completes) -->
+    <div *ngIf="etfName()" class="search-results-row">
+      <div class="result-item">
+        <span class="result-value">{{ etfName() }}</span>
+      </div>
+      <div class="result-item">
+        <span class="result-value">{{ etfTicker() || '-' }}</span>
+      </div>
+      <div class="result-item">
+        <span class="result-value">{{ etfQuotation() ? ('€ ' + etfQuotation()) : '-' }}</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Prompt generator (visible when ISIN is filled and search completed) -->
+  <div class="content-card" *ngIf="promptText()">
+    <div class="prompt-header">
+      <label class="prompt-label">Prompt da copiare</label>
+      <button
+        type="button"
+        class="btn-copy"
+        (click)="copyPrompt()"
+        title="Copia prompt"
+      >
+        <span *ngIf="!promptCopied()">⎘ Copia</span>
+        <span *ngIf="promptCopied()" class="copied-feedback">✓ Copiato!</span>
+      </button>
+    </div>
+    <textarea
+      class="prompt-textarea"
+      readonly
+      [value]="promptText()"
+      rows="10"
+    ></textarea>
+  </div>
+
+  <!-- Correlation JSON input -->
+  <div class="content-card">
+    <div class="form-group">
+      <label for="correlationJson">Incolla JSON correlazioni</label>
+      <p class="field-hint">Incolla qui il JSON restituito dal modello AI con le correlazioni macroeconomiche.</p>
+      <textarea
+        id="correlationJson"
+        class="form-input correlation-textarea"
+        placeholder='{ "task": "macro_scenario_correlations", "base_isin": "...", "correlations": [...] }'
+        [(ngModel)]="correlationJson"
+        name="correlationJson"
+        [disabled]="correlationLoading()"
+        rows="8"
+      ></textarea>
+    </div>
+  </div>
+
+  <!-- Single unified action button -->
+  <div class="content-card action-card">
+    <div class="form-actions">
+      <app-tasto-conferma
+        label="Aggiungi"
+        loadingText="Salvataggio in corso..."
+        variant="primary"
+        size="large"
+        [disabled]="correlationLoading() || !canSubmitAll()"
+        [loading]="correlationLoading()"
+        [onConfirm]="addAndSave.bind(this)"
+      ></app-tasto-conferma>
+    </div>
+
+    <div *ngIf="correlationSuccess()" class="alert alert-success">
+      {{ correlationSuccess() }}
+    </div>
+
+    <div *ngIf="correlationError()" class="alert alert-error">
+      {{ correlationError() }}
     </div>
   </div>
 </section>
