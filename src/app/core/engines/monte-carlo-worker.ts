@@ -1,14 +1,15 @@
 import { MonteCarloUserInput, MonteCarloSnapshot } from '../models/monte-carlo-contracts.model';
 import { generateMonthlyMacroTimeline } from '../macro/monte-carlo-macro-engine';
-import { generateMonthlyReturnVector } from '../returns/monte-carlo-return-engine';
+import { calculateSpearmanCorrelation, generateMonthlyReturnVector, ReturnCorrelationDiagnosticsAccumulator } from '../returns/monte-carlo-return-engine';
 import { prepareMonteCarloPrecomputation } from '../precomputation/monte-carlo-precomputation';
 import { evolveMonteCarloPortfolioPath } from '../portfolio/monte-carlo-portfolio-path-engine';
 import { SeededRandom } from './seeded-random';
 
 interface WorkerMessage {
-  type: 'INIT' | 'RUN_BATCH' | 'CANCEL';
+  type: 'INIT' | 'RUN_BATCH' | 'CANCEL' | 'WORKER_BATCH_METRICS' | 'PORT_PING' | 'PORT_PONG' | 'MC_PORT_TEST_PING' | 'MC_PORT_TEST_PONG' | 'MC_PORT_TEST_ADD_BATCH' | 'MC_PORT_TEST_ADD_BATCH_ACK' | 'MC_PORT_TEST_SEND_ADD_BATCH' | 'MC_PORT_TEST_ADD_BATCH_RESULT';
   executionId: string;
   workerId: number;
+  testId?: string;
   batchStart?: number;
   batchEnd?: number;
   pathCount?: number;
@@ -16,9 +17,17 @@ interface WorkerMessage {
   snapshot?: any;
   input?: any;
   aggregationPort?: MessagePort;
+  totalBatchMs?: number;
+  macroMs?: number;
+  returnMs?: number;
+  portfolioMs?: number;
+  compactMs?: number;
+  sendMs?: number;
+  value?: number;
+  advancedStatistics?: boolean;
 }
 
-const asWorkerScope = self as typeof globalThis & {
+const asWorkerScope = (typeof self !== 'undefined' ? self : globalThis) as typeof globalThis & {
   postMessage: (message: any) => void;
   onmessage: ((event: MessageEvent) => void) | null;
 };
@@ -103,7 +112,190 @@ export const toCompactPathResult = (path: any): any => {
   };
 };
 
-const buildPathResult = (input: MonteCarloUserInput, snapshot: MonteCarloSnapshot, precompute: any, simulationId: number, workerId: number) => {
+export const __advancedDiagnosticsRuntime = {
+  buildRunLevelCorrelationDiagnostics: 0,
+  calculateSpearmanCorrelation: 0,
+  calculateTailDependence: 0,
+  buildDeltaMatrix: 0,
+  recordRangeCandidate: 0,
+  reset: () => {
+    __advancedDiagnosticsRuntime.buildRunLevelCorrelationDiagnostics = 0;
+    __advancedDiagnosticsRuntime.calculateSpearmanCorrelation = 0;
+    __advancedDiagnosticsRuntime.calculateTailDependence = 0;
+    __advancedDiagnosticsRuntime.buildDeltaMatrix = 0;
+    __advancedDiagnosticsRuntime.recordRangeCandidate = 0;
+  }
+};
+
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).__advancedDiagnosticsRuntime = __advancedDiagnosticsRuntime;
+}
+
+const cloneMatrix = (matrix: number[][]): number[][] => matrix.map((row) => [...row]);
+
+export const buildDeltaMatrix = (empiricalReturn: number[][], target: number[][], absolute = false): number[][] => {
+  __advancedDiagnosticsRuntime.buildDeltaMatrix += 1;
+  const rows = Array.isArray(empiricalReturn) ? empiricalReturn.length : 0;
+  const columns = rows > 0 && Array.isArray(empiricalReturn[0]) ? empiricalReturn[0].length : 0;
+  if (rows === 0 || columns === 0 || !Array.isArray(target) || target.length !== rows || target[0]?.length !== columns) {
+    return [];
+  }
+
+  const deltaMatrix = Array.from({ length: rows }, () => Array<number>(columns).fill(0));
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      const empiricalValue = Number(empiricalReturn[row]?.[column] ?? 0);
+      const targetValue = Number(target[row]?.[column] ?? 0);
+      const delta = row === column ? 0 : empiricalValue - targetValue;
+      deltaMatrix[row][column] = absolute ? Math.abs(delta) : delta;
+    }
+  }
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = row + 1; column < columns; column += 1) {
+      const delta = (absolute ? Math.abs : (value: number) => value)(
+        (Number(empiricalReturn[row]?.[column] ?? 0) - Number(target[row]?.[column] ?? 0))
+      );
+      deltaMatrix[row][column] = delta;
+      deltaMatrix[column][row] = delta;
+    }
+  }
+
+  return deltaMatrix;
+};
+
+export const buildScenarioErrorSummary = (targetMatrix: number[][], empiricalMatrix: number[][]): { mae: number; rmse: number; maxAbsoluteError: number } => {
+  const rows = Array.isArray(targetMatrix) ? targetMatrix.length : 0;
+  if (rows === 0 || !Array.isArray(empiricalMatrix) || empiricalMatrix.length !== rows) {
+    return { mae: 0, rmse: 0, maxAbsoluteError: 0 };
+  }
+
+  const errors: number[] = [];
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = row + 1; column < rows; column += 1) {
+      const empiricalValue = Number(empiricalMatrix[row]?.[column] ?? 0);
+      const targetValue = Number(targetMatrix[row]?.[column] ?? 0);
+      errors.push(empiricalValue - targetValue);
+    }
+  }
+
+  if (errors.length === 0) {
+    return { mae: 0, rmse: 0, maxAbsoluteError: 0 };
+  }
+
+  const mae = errors.reduce((sum, value) => sum + Math.abs(value), 0) / errors.length;
+  const rmse = Math.sqrt(errors.reduce((sum, value) => sum + (value * value), 0) / errors.length);
+  const maxAbsoluteError = errors.reduce((max, value) => Math.max(max, Math.abs(value)), 0);
+
+  return { mae, rmse, maxAbsoluteError };
+};
+
+const buildRunLevelCorrelationDiagnostics = (monthlyVectors: any[], precompute: any, advancedStatisticsEnabled = true): Record<string, any> => {
+  if (!advancedStatisticsEnabled) {
+    return {};
+  }
+  __advancedDiagnosticsRuntime.buildRunLevelCorrelationDiagnostics += 1;
+  const matrixPreparation = monthlyVectors[0]?.diagnostics?.targetCorrelation
+    ? { originalMatrix: monthlyVectors[0].diagnostics.targetCorrelation, operationalMatrix: monthlyVectors[0].diagnostics.operationalCorrelation }
+    : precompute?.correlationMatrices?.expansion ?? Object.values(precompute?.correlationMatrices ?? {})[0] ?? null;
+
+  if (!matrixPreparation) {
+    return {};
+  }
+
+  const accumulator = new ReturnCorrelationDiagnosticsAccumulator(
+    Array.isArray(matrixPreparation.originalMatrix) ? matrixPreparation.originalMatrix : [],
+    Array.isArray(matrixPreparation.operationalMatrix) ? matrixPreparation.operationalMatrix : []
+  );
+
+  for (const vector of monthlyVectors) {
+    if (Array.isArray(vector?.etfReturns) && vector.etfReturns.length > 0) {
+      accumulator.record(vector);
+    }
+  }
+
+  const empirical = accumulator.toDiagnostics();
+  const targetMatrix = Array.isArray(empirical.targetCorrelation) ? empirical.targetCorrelation : Array.isArray(matrixPreparation.originalMatrix) ? matrixPreparation.originalMatrix : [];
+  const empiricalReturnMatrix = Array.isArray(empirical.empiricalReturnCorrelation) ? empirical.empiricalReturnCorrelation : [];
+  __advancedDiagnosticsRuntime.calculateSpearmanCorrelation += 1;
+  const spearman = calculateSpearmanCorrelation(
+    monthlyVectors.flatMap((vector) => Array.isArray(vector?.etfReturns) ? [vector.etfReturns.map((entry: any) => entry.monthlyReturn)] : [])
+  );
+
+  const scenarioMappings = {
+    expansion: 'expansion',
+    soft_landing: 'soft_landing',
+    recession: 'recession',
+    stagflation: 'stagflation'
+  } as const;
+
+  const scenarioDiagnostics = Object.fromEntries(
+    Object.entries(scenarioMappings).map(([key, scenario]) => {
+      const scenarioVectors = monthlyVectors.filter((vector) => vector?.scenario === scenario);
+      if (scenarioVectors.length === 0) {
+        return [key, { mae: 0, rmse: 0, maxAbsoluteError: 0 }];
+      }
+
+      const scenarioAccumulator = new ReturnCorrelationDiagnosticsAccumulator(
+        Array.isArray(precompute?.correlationMatrices?.[scenario]?.originalMatrix) ? precompute.correlationMatrices[scenario].originalMatrix : targetMatrix,
+        Array.isArray(precompute?.correlationMatrices?.[scenario]?.operationalMatrix) ? precompute.correlationMatrices[scenario].operationalMatrix : targetMatrix
+      );
+
+      for (const vector of scenarioVectors) {
+        if (Array.isArray(vector?.etfReturns) && vector.etfReturns.length > 0) {
+          scenarioAccumulator.record(vector);
+        }
+      }
+
+      const scenarioEmpirical = scenarioAccumulator.toDiagnostics();
+      const scenarioTarget = Array.isArray(precompute?.correlationMatrices?.[scenario]?.originalMatrix)
+        ? precompute.correlationMatrices[scenario].originalMatrix
+        : targetMatrix;
+      const scenarioEmpiricalReturn = Array.isArray(scenarioEmpirical.empiricalReturnCorrelation)
+        ? scenarioEmpirical.empiricalReturnCorrelation
+        : empiricalReturnMatrix;
+      const summary = buildScenarioErrorSummary(scenarioTarget, scenarioEmpiricalReturn);
+      return [key, summary];
+    })
+  );
+
+  const deltas = buildDeltaMatrix(empiricalReturnMatrix, targetMatrix, false);
+  const absoluteDeltas = buildDeltaMatrix(empiricalReturnMatrix, targetMatrix, true);
+
+  return {
+    target: Array.isArray(empirical.targetCorrelation) ? empirical.targetCorrelation : Array.isArray(matrixPreparation.originalMatrix) ? matrixPreparation.originalMatrix : null,
+    operational: Array.isArray(empirical.operationalCorrelation) ? empirical.operationalCorrelation : Array.isArray(matrixPreparation.operationalMatrix) ? matrixPreparation.operationalMatrix : null,
+    latent: Array.isArray(empirical.latentCorrelation) ? empirical.latentCorrelation : Array.isArray(matrixPreparation.operationalMatrix) ? matrixPreparation.operationalMatrix : null,
+    empiricalLatentShock: Array.isArray(empirical.empiricalShockCorrelation) ? empirical.empiricalShockCorrelation : null,
+    empiricalReturn: empiricalReturnMatrix,
+    pearsonPrimary: empiricalReturnMatrix,
+    spearmanDiagnostic: spearman,
+    lowerTailDependence5: Array.isArray(empirical.lowerTailDependence) ? empirical.lowerTailDependence : null,
+    upperTailDependence5: Array.isArray(empirical.upperTailDependence) ? empirical.upperTailDependence : null,
+    deltas,
+    absoluteDeltas,
+    maeByScenario: {
+      expansion: scenarioDiagnostics.expansion.mae,
+      soft_landing: scenarioDiagnostics.soft_landing.mae,
+      recession: scenarioDiagnostics.recession.mae,
+      stagflation: scenarioDiagnostics.stagflation.mae
+    },
+    rmseByScenario: {
+      expansion: scenarioDiagnostics.expansion.rmse,
+      soft_landing: scenarioDiagnostics.soft_landing.rmse,
+      recession: scenarioDiagnostics.recession.rmse,
+      stagflation: scenarioDiagnostics.stagflation.rmse
+    },
+    maxAbsoluteErrorByScenario: {
+      expansion: scenarioDiagnostics.expansion.maxAbsoluteError,
+      soft_landing: scenarioDiagnostics.soft_landing.maxAbsoluteError,
+      recession: scenarioDiagnostics.recession.maxAbsoluteError,
+      stagflation: scenarioDiagnostics.stagflation.maxAbsoluteError
+    }
+  };
+};
+
+export const buildPathResult = (input: MonteCarloUserInput, snapshot: MonteCarloSnapshot, precompute: any, simulationId: number, workerId: number, advancedStatisticsEnabled = true) => {
   const rng = createDeterministicRandom(simulationId, workerId);
   const horizonMonths = input.horizonYears * 12;
   const macro = generateMonthlyMacroTimeline(snapshot, horizonMonths, () => rng.next());
@@ -113,11 +305,13 @@ const buildPathResult = (input: MonteCarloUserInput, snapshot: MonteCarloSnapsho
       precompute,
       monthState.scenario,
       monthState.intensity,
-      () => rng.next()
+      () => rng.next(),
+      advancedStatisticsEnabled
     )
   );
 
   const portfolioPath = evolveMonteCarloPortfolioPath(input, monthlyVectors);
+  const correlationDiagnostics = advancedStatisticsEnabled ? buildRunLevelCorrelationDiagnostics(monthlyVectors, precompute, advancedStatisticsEnabled) : {};
   const dominantEtf = input.positions.reduce((best, position) => {
     if (!best || position.targetWeight > best.targetWeight) return position;
     return best;
@@ -240,29 +434,322 @@ const buildPathResult = (input: MonteCarloUserInput, snapshot: MonteCarloSnapsho
       performance: { redrawCount: portfolioPath.monthly.length, rejectRate: 0 }
     },
     performanceDiagnostics: { redrawCount: 0, rejectRate: 0 },
-    correlationDiagnostics: {},
-    generalBenchmark: { expectedReturn: 0.06, volatility: 0.15, simulatedLongTermReturn: portfolioPath.totalReturn, simulatedVolatility: 0.12 },
+    correlationDiagnostics,
+    generalBenchmark: undefined,
     matricesCoherent: true
   };
 
   return pathResult;
 };
 
+let boundAggregationPort: MessagePort | null = null;
+
 const getAggregationPort = (message: WorkerMessage): MessagePort | null => {
-  if (!message.aggregationPort) return null;
-  return message.aggregationPort;
+  if (message.aggregationPort) {
+    boundAggregationPort = message.aggregationPort;
+    return message.aggregationPort;
+  }
+  return boundAggregationPort;
 };
 
 asWorkerScope.onmessage = (event: MessageEvent) => {
   const message = event.data as WorkerMessage;
+  if (message && typeof message.type === 'string' && (message.type === 'INIT' || message.type === 'RUN_BATCH')) {
+    asWorkerScope.postMessage({
+      type: 'MC_PORT_TEST_CHECKPOINT',
+      checkpoint: 'SIM_MAIN_ONMESSAGE_ENTER_V4',
+      originalType: message.type,
+      testId: message.testId ?? null,
+      executionId: message.executionId ?? null,
+      workerId: message.workerId ?? null
+    });
+  }
+  if (message && typeof message.type === 'string' && message.type.startsWith('MC_PORT_TEST_')) {
+    asWorkerScope.postMessage({
+      type: 'MC_PORT_TEST_CHECKPOINT',
+      checkpoint: 'SIM_MAIN_ONMESSAGE_ENTER',
+      originalType: message.type,
+      testId: message.testId ?? null,
+      executionId: message.executionId ?? null,
+      workerId: message.workerId ?? null
+    });
+  }
   if (!message || !message.executionId) {
     return;
   }
 
   if (message.type === 'INIT') {
-    asWorkerScope.postMessage({ type: 'READY', executionId: message.executionId, workerId: message.workerId });
+    try {
+      const aggregationPort = getAggregationPort(message);
+      boundAggregationPort = aggregationPort;
+      asWorkerScope.postMessage({
+        type: 'MC_PORT_TEST_CHECKPOINT',
+        checkpoint: 'SIM_INIT_RECEIVE_ENTER',
+        executionId: message.executionId,
+        workerId: message.workerId,
+        hasPrecompute: message.precompute != null,
+        hasAggregationPort: !!aggregationPort
+      });
+      if (aggregationPort) {
+        aggregationPort.onmessage = (event: MessageEvent) => {
+          const portMessage = event.data as WorkerMessage;
+          if (portMessage && typeof portMessage.type === 'string' && portMessage.type.startsWith('MC_PORT_TEST_')) {
+            asWorkerScope.postMessage({
+              type: 'MC_PORT_TEST_CHECKPOINT',
+              checkpoint: 'SIM_PORT_MESSAGE_ENTER',
+              originalType: portMessage.type,
+              testId: portMessage.testId ?? null,
+              executionId: portMessage.executionId ?? null,
+              workerId: portMessage.workerId ?? null,
+              value: portMessage.value ?? null
+            });
+          }
+          if (!portMessage || !portMessage.executionId) return;
+
+          if (portMessage.type === 'MC_PORT_TEST_PING') {
+            if (!portMessage.testId) return;
+            console.info('[MC-PORT-TEST] PING_RECEIVED', {
+              testId: portMessage.testId,
+              executionId: portMessage.executionId,
+              workerId: portMessage.workerId
+            });
+            asWorkerScope.postMessage({
+              type: 'MC_PORT_TEST_PING_RECEIVED',
+              testId: portMessage.testId,
+              executionId: portMessage.executionId,
+              workerId: portMessage.workerId
+            });
+            console.info('[MC-PORT-TEST] PONG_SENT', {
+              testId: portMessage.testId,
+              executionId: portMessage.executionId,
+              workerId: message.workerId
+            });
+            asWorkerScope.postMessage({
+              type: 'MC_PORT_TEST_PONG',
+              testId: portMessage.testId,
+              executionId: portMessage.executionId,
+              workerId: message.workerId
+            });
+            aggregationPort.postMessage({
+              type: 'MC_PORT_TEST_PONG',
+              testId: portMessage.testId,
+              executionId: portMessage.executionId,
+              workerId: message.workerId
+            });
+            return;
+          }
+
+          if (portMessage.type === 'MC_PORT_TEST_ADD_BATCH') {
+            if (!portMessage.testId) return;
+            asWorkerScope.postMessage({
+              type: 'MC_PORT_TEST_ADD_BATCH_RECEIVED',
+              testId: portMessage.testId,
+              executionId: portMessage.executionId,
+              workerId: portMessage.workerId,
+              value: portMessage.value ?? null
+            });
+            aggregationPort.postMessage({
+              type: 'MC_PORT_TEST_ADD_BATCH_ACK',
+              testId: portMessage.testId,
+              executionId: portMessage.executionId,
+              workerId: message.workerId,
+              value: portMessage.value ?? null
+            });
+            return;
+          }
+
+          if (portMessage.type === 'MC_PORT_TEST_ADD_BATCH_ACK') {
+            asWorkerScope.postMessage({
+              type: 'MC_PORT_TEST_CHECKPOINT',
+              checkpoint: 'SIM_ACK_BRANCH_ENTER',
+              originalType: portMessage.type,
+              testId: portMessage.testId ?? null,
+              executionId: portMessage.executionId ?? null,
+              workerId: portMessage.workerId ?? null,
+              value: portMessage.value ?? null
+            });
+            if (
+              !portMessage.testId ||
+              !portMessage.executionId ||
+              portMessage.workerId === undefined ||
+              portMessage.workerId === null
+            ) {
+              return;
+            }
+            console.info('[MC-PORT-TEST] ADD_BATCH_TEST_ACK_RECEIVED_BY_SIM', {
+              testId: portMessage.testId,
+              executionId: portMessage.executionId,
+              workerId: portMessage.workerId,
+              value: portMessage.value ?? null
+            });
+            const resultPayload = {
+              type: 'MC_PORT_TEST_ADD_BATCH_RESULT',
+              testId: portMessage.testId,
+              executionId: portMessage.executionId,
+              workerId: portMessage.workerId,
+              received: true,
+              value: portMessage.value ?? null,
+              ackReceived: true
+            };
+            console.info('[MC-PORT-TEST] RESULT_SEND_BEGIN', {
+              testId: portMessage.testId,
+              executionId: portMessage.executionId,
+              workerId: portMessage.workerId,
+              value: resultPayload.value
+            });
+            try {
+              asWorkerScope.postMessage(resultPayload);
+              console.info('[MC-PORT-TEST] RESULT_SENT', {
+                testId: portMessage.testId,
+                executionId: portMessage.executionId,
+                workerId: portMessage.workerId,
+                value: resultPayload.value,
+                received: resultPayload.received,
+                ackReceived: resultPayload.ackReceived
+              });
+            } catch (error) {
+              console.error('[MC-PORT-TEST] RESULT_SEND_ERROR', {
+                testId: portMessage.testId,
+                executionId: portMessage.executionId,
+                workerId: portMessage.workerId,
+                error
+              });
+            }
+            return;
+          }
+        };
+        aggregationPort.start();
+      }
+      asWorkerScope.postMessage({
+        type: 'MC_PORT_TEST_CHECKPOINT',
+        checkpoint: 'SIM_INIT_PORT_BOUND',
+        executionId: message.executionId,
+        workerId: message.workerId,
+        hasBoundAggregationPort: !!aggregationPort
+      });
+      asWorkerScope.postMessage({
+        type: 'MC_PORT_TEST_CHECKPOINT',
+        checkpoint: 'SIM_INIT_STATE_ASSIGNED',
+        executionId: message.executionId,
+        workerId: message.workerId,
+        hasPrecompute: message.precompute != null,
+        hasAggregationPort: !!aggregationPort
+      });
+      asWorkerScope.postMessage({
+        type: 'MC_PORT_TEST_CHECKPOINT',
+        checkpoint: 'SIM_INIT_READY_SEND_BEGIN',
+        executionId: message.executionId,
+        workerId: message.workerId,
+        hasPrecompute: message.precompute != null,
+        hasAggregationPort: !!aggregationPort
+      });
+      asWorkerScope.postMessage({ type: 'READY', executionId: message.executionId, workerId: message.workerId });
+      asWorkerScope.postMessage({
+        type: 'MC_PORT_TEST_CHECKPOINT',
+        checkpoint: 'SIM_INIT_READY_SEND_DONE',
+        executionId: message.executionId,
+        workerId: message.workerId,
+        hasPrecompute: message.precompute != null,
+        hasAggregationPort: !!aggregationPort
+      });
+      return;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorName = error instanceof Error ? error.name : 'UnknownError';
+      asWorkerScope.postMessage({
+        type: 'MC_PORT_TEST_CHECKPOINT',
+        checkpoint: 'SIM_INIT_ERROR',
+        executionId: message.executionId,
+        workerId: message.workerId,
+        errorName,
+        errorMessage,
+        errorStack: error instanceof Error && typeof error.stack === 'string' ? error.stack : null
+      });
+      throw error;
+    }
+  }
+
+  if (message.type === 'MC_PORT_TEST_SEND_ADD_BATCH') {
+    asWorkerScope.postMessage({
+      type: 'MC_PORT_TEST_CHECKPOINT',
+      checkpoint: 'SIM_TRIGGER_BRANCH_ENTER',
+      originalType: message.type,
+      testId: message.testId ?? null,
+      executionId: message.executionId ?? null,
+      workerId: message.workerId ?? null
+    });
+    const aggregationPort = getAggregationPort(message);
+    asWorkerScope.postMessage({
+      type: 'MC_PORT_TEST_CHECKPOINT',
+      checkpoint: 'SIM_TRIGGER_PORT_RESOLVED',
+      originalType: message.type,
+      testId: message.testId ?? null,
+      executionId: message.executionId ?? null,
+      workerId: message.workerId ?? null,
+      hasAggregationPort: !!aggregationPort
+    });
+    if (!aggregationPort) {
+      console.error('[MC-PORT-TEST] ADD_BATCH_TEST_TRIGGER_RECEIVED_MISSING_PORT', {
+        testId: message.testId,
+        executionId: message.executionId,
+        workerId: message.workerId
+      });
+      return;
+    }
+    console.info('[MC-PORT-TEST] ADD_BATCH_TEST_TRIGGER_RECEIVED', {
+      testId: message.testId,
+      executionId: message.executionId,
+      workerId: message.workerId,
+      hasAggregationPort: !!aggregationPort,
+      value: message.value ?? 123.456
+    });
+    console.info('[MC-PORT-TEST] ADD_BATCH_TEST_SEND_BEGIN', {
+      testId: message.testId,
+      executionId: message.executionId,
+      workerId: message.workerId,
+      value: message.value ?? 123.456
+    });
+    try {
+      asWorkerScope.postMessage({
+        type: 'MC_PORT_TEST_CHECKPOINT',
+        checkpoint: 'SIM_ADD_BATCH_PORT_POST_BEGIN',
+        originalType: 'MC_PORT_TEST_ADD_BATCH',
+        testId: message.testId ?? null,
+        executionId: message.executionId ?? null,
+        workerId: message.workerId ?? null
+      });
+      aggregationPort.postMessage({
+        type: 'MC_PORT_TEST_ADD_BATCH',
+        testId: message.testId,
+        executionId: message.executionId,
+        workerId: message.workerId,
+        value: message.value ?? 123.456
+      });
+      asWorkerScope.postMessage({
+        type: 'MC_PORT_TEST_CHECKPOINT',
+        checkpoint: 'SIM_ADD_BATCH_PORT_POST_DONE',
+        originalType: 'MC_PORT_TEST_ADD_BATCH',
+        testId: message.testId ?? null,
+        executionId: message.executionId ?? null,
+        workerId: message.workerId ?? null
+      });
+      console.info('[MC-PORT-TEST] ADD_BATCH_TEST_SENT', {
+        testId: message.testId,
+        executionId: message.executionId,
+        workerId: message.workerId,
+        value: message.value ?? 123.456
+      });
+    } catch (error) {
+      console.error('[MC-PORT-TEST] ADD_BATCH_TEST_SEND_ERROR', {
+        testId: message.testId,
+        executionId: message.executionId,
+        workerId: message.workerId,
+        error
+      });
+    }
     return;
   }
+
 
   if (message.type === 'CANCEL') {
     asWorkerScope.postMessage({ type: 'CANCELLED', executionId: message.executionId, workerId: message.workerId });
@@ -270,24 +757,190 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
   }
 
   if (message.type === 'RUN_BATCH') {
+    const batchStartedAt = performance.now();
     const { batchStart = 0, batchEnd = 0, input, snapshot, precompute, pathCount = 0 } = message;
+    asWorkerScope.postMessage({
+      type: 'MC_PORT_TEST_CHECKPOINT',
+      checkpoint: 'PROD_RUN_BATCH_RECEIVE_ENTER',
+      executionId: message.executionId,
+      workerId: message.workerId,
+      batchStart,
+      batchEnd,
+      pathCount,
+      hasPrecompute: precompute != null
+    });
     const results: any[] = [];
+    const macroStartedAt = performance.now();
+    asWorkerScope.postMessage({
+      type: 'MC_PORT_TEST_CHECKPOINT',
+      checkpoint: 'PROD_RUN_BATCH_LOOP_BEGIN',
+      executionId: message.executionId,
+      workerId: message.workerId,
+      batchStart,
+      batchEnd,
+      numberOfPaths: batchEnd - batchStart
+    });
     for (let simulationId = batchStart; simulationId < batchEnd; simulationId += 1) {
-      const pathResult = buildPathResult(input, snapshot, precompute, simulationId, message.workerId);
-      results.push(pathResult);
-    }
-
-    const compactResults = results.map((path) => toCompactPathResult(path));
-    const aggregationPort = getAggregationPort(message);
-    if (aggregationPort) {
-      aggregationPort.postMessage({
-        type: 'ADD_BATCH',
+      asWorkerScope.postMessage({
+        type: 'MC_PORT_TEST_CHECKPOINT',
+        checkpoint: 'PROD_FIRST_PATH_BEGIN',
         executionId: message.executionId,
         workerId: message.workerId,
-        batch: compactResults,
-        expectedPathCount: pathCount
+        simulationId,
+        monthlyReturnCount: Array.isArray((input as any)?.positions) ? (input as any).positions.length : null,
+        hasResult: false
       });
+      try {
+        const pathResult = buildPathResult(input, snapshot, precompute, simulationId, message.workerId, message.advancedStatistics ?? true);
+        results.push(pathResult);
+        asWorkerScope.postMessage({
+          type: 'MC_PORT_TEST_CHECKPOINT',
+          checkpoint: 'PROD_FIRST_PATH_DONE',
+          executionId: message.executionId,
+          workerId: message.workerId,
+          simulationId,
+          monthlyReturnCount: Array.isArray((input as any)?.positions) ? (input as any).positions.length : null,
+          hasResult: true
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorName = error instanceof Error ? error.name : 'UnknownError';
+        asWorkerScope.postMessage({
+          type: 'MC_PORT_TEST_CHECKPOINT',
+          checkpoint: 'PROD_FIRST_PATH_ERROR',
+          executionId: message.executionId,
+          workerId: message.workerId,
+          errorName,
+          errorMessage,
+          errorStack: error instanceof Error && typeof error.stack === 'string' ? error.stack : null
+        });
+        throw error;
+      }
     }
+    const macroMs = performance.now() - macroStartedAt;
+    const returnMs = 0;
+    const portfolioMs = 0;
+    asWorkerScope.postMessage({
+      type: 'MC_PORT_TEST_CHECKPOINT',
+      checkpoint: 'PROD_RUN_BATCH_LOOP_DONE',
+      executionId: message.executionId,
+      workerId: message.workerId,
+      resultsCount: results.length
+    });
+    const compactStartedAt = performance.now();
+    asWorkerScope.postMessage({
+      type: 'MC_PORT_TEST_CHECKPOINT',
+      checkpoint: 'PROD_COMPACT_BEGIN',
+      executionId: message.executionId,
+      workerId: message.workerId,
+      compactInputCount: results.length
+    });
+    const compactResults = results.map((path) => toCompactPathResult(path));
+    const compactMs = performance.now() - compactStartedAt;
+    asWorkerScope.postMessage({
+      type: 'MC_PORT_TEST_CHECKPOINT',
+      checkpoint: 'PROD_COMPACT_DONE',
+      executionId: message.executionId,
+      workerId: message.workerId,
+      compactResultsCount: compactResults.length
+    });
+    const aggregationPort = getAggregationPort(message);
+    const sendStartedAt = performance.now();
+    if (aggregationPort) {
+      try {
+        const productionPayload = {
+          type: 'ADD_BATCH',
+          executionId: message.executionId,
+          workerId: message.workerId,
+          batch: compactResults,
+          expectedPathCount: pathCount
+        };
+        const structuredClonePass = (() => {
+          try {
+            structuredClone(productionPayload);
+            return true;
+          } catch (error) {
+            return false;
+          }
+        })();
+        asWorkerScope.postMessage({
+          type: 'MC_PORT_TEST_CHECKPOINT',
+          checkpoint: 'PROD_ADD_BATCH_SEND_BEGIN',
+          originalType: 'ADD_BATCH',
+          executionId: message.executionId,
+          workerId: message.workerId,
+          pathCountInBatch: compactResults.length,
+          payloadTopLevelKeys: Object.keys(productionPayload),
+          pass: structuredClonePass
+        });
+        if (!structuredClonePass) {
+          asWorkerScope.postMessage({
+            type: 'MC_PORT_TEST_CHECKPOINT',
+            checkpoint: 'PROD_PAYLOAD_STRUCTURED_CLONE_PASS',
+            originalType: 'ADD_BATCH',
+            executionId: message.executionId,
+            workerId: message.workerId,
+            pass: false,
+            nonTrivialCloneTypesFound: ['structuredClone-failed']
+          });
+        } else {
+          asWorkerScope.postMessage({
+            type: 'MC_PORT_TEST_CHECKPOINT',
+            checkpoint: 'PROD_PAYLOAD_STRUCTURED_CLONE_PASS',
+            originalType: 'ADD_BATCH',
+            executionId: message.executionId,
+            workerId: message.workerId,
+            pass: true,
+            nonTrivialCloneTypesFound: []
+          });
+        }
+        aggregationPort.start();
+        console.info('[MC-PERF] WORKER_BATCH_SEND', {
+          workerId: message.workerId,
+          batchStart,
+          batchEnd,
+          batchPathCount: compactResults.length,
+          at: performance.now()
+        });
+        aggregationPort.postMessage(productionPayload);
+        asWorkerScope.postMessage({
+          type: 'MC_PORT_TEST_CHECKPOINT',
+          checkpoint: 'PROD_ADD_BATCH_SEND_DONE',
+          originalType: 'ADD_BATCH',
+          executionId: message.executionId,
+          workerId: message.workerId,
+          pathCountInBatch: compactResults.length,
+          payloadTopLevelKeys: Object.keys(productionPayload)
+        });
+        console.info('[MC-PERF] WORKER_BATCH_POSTED', {
+          workerId: message.workerId,
+          batchStart,
+          batchEnd,
+          batchPathCount: compactResults.length,
+          at: performance.now()
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorName = error instanceof Error ? error.name : 'UnknownError';
+        asWorkerScope.postMessage({
+          type: 'MC_PORT_TEST_CHECKPOINT',
+          checkpoint: 'PROD_ADD_BATCH_SEND_ERROR',
+          originalType: 'ADD_BATCH',
+          executionId: message.executionId,
+          workerId: message.workerId,
+          errorName,
+          errorMessage
+        });
+        console.error('[MC-PERF] WORKER_BATCH_POST_ERROR', {
+          workerId: message.workerId,
+          batchStart,
+          batchEnd,
+          error
+        });
+        throw error;
+      }
+    }
+    const sendMs = performance.now() - sendStartedAt;
 
     asWorkerScope.postMessage({
       type: 'PROGRESS',
@@ -303,6 +956,20 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
       workerId: message.workerId,
       completedPaths: batchEnd,
       totalPaths: pathCount
+    });
+
+    asWorkerScope.postMessage({
+      type: 'WORKER_BATCH_METRICS',
+      executionId: message.executionId,
+      workerId: message.workerId,
+      batchStart,
+      batchEnd,
+      totalBatchMs: performance.now() - batchStartedAt,
+      macroMs,
+      returnMs,
+      portfolioMs,
+      compactMs,
+      sendMs
     });
   }
 };

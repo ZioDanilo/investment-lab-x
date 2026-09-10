@@ -260,6 +260,7 @@ export class MonteCarloStatisticsEngine {
       correlationDiagnostics?: MonteCarloCorrelationDiagnostics;
       performanceDiagnostics?: { redrawCount?: number; rejectRate?: number };
       matricesCoherent?: boolean;
+      advancedStatisticsEnabled?: boolean;
     }
   ): MonteCarloResult {
     if (!Array.isArray(paths) || paths.length === 0) {
@@ -311,7 +312,31 @@ export class MonteCarloStatisticsEngine {
     const capitalFan = this.buildCapitalFan(paths, horizonYears);
     const representativePath = this.selectRepresentativePath(paths, medianCagr);
     const flatDiagnostics = statisticsInput && !statisticsInput.diagnostics && (('correlations' in statisticsInput) || ('generalBenchmark' in statisticsInput) || ('performance' in statisticsInput) || ('matricesCoherent' in statisticsInput)) ? (statisticsInput as any) : statisticsInput?.diagnostics;
-    const generalBenchmark = this.coerceGeneralBenchmark(statisticsInput?.generalBenchmark ?? flatDiagnostics?.generalBenchmark ?? undefined);
+    const pathCorrelationDiagnostics = paths.reduce((accumulator, path) => {
+      const candidate = (path as any)?.correlationDiagnostics;
+      if (candidate && Object.keys(candidate).length > 0) {
+        return { ...accumulator, ...candidate };
+      }
+      return accumulator;
+    }, {} as MonteCarloCorrelationDiagnostics);
+    const pathGeneralBenchmark = paths.reduce<MonteCarloGeneralBenchmark | undefined>((accumulator, path) => {
+      const candidate = (path as any)?.generalBenchmark;
+      return accumulator ?? candidate;
+    }, undefined);
+    const generalBenchmark = this.coerceGeneralBenchmark(statisticsInput?.generalBenchmark ?? flatDiagnostics?.generalBenchmark ?? pathGeneralBenchmark ?? undefined);
+    const advancedStatisticsEnabled = statisticsInput?.advancedStatisticsEnabled ?? true;
+    const officialStatistics = this.buildScenarioStatistics(paths, horizonYears, {
+      diagnostics: flatDiagnostics,
+      generalBenchmark,
+      correlationDiagnostics: statisticsInput?.correlationDiagnostics ?? flatDiagnostics?.correlations ?? pathCorrelationDiagnostics,
+      performanceDiagnostics: statisticsInput?.performanceDiagnostics ?? flatDiagnostics?.performance,
+      matricesCoherent: statisticsInput?.matricesCoherent ?? flatDiagnostics?.matricesCoherent,
+      advancedStatisticsEnabled
+    });
+    const officialReturnGeneration = (officialStatistics as any)?.returnGeneration ?? {};
+    const canonicalRedrawCount = Number(officialReturnGeneration.totalRejectedVectors ?? 0);
+    const canonicalRejectRate = Number(officialReturnGeneration.rejectRate ?? 0);
+    (officialStatistics as Record<string, unknown>).advancedStatisticsEnabled = advancedStatisticsEnabled;
 
     return {
       mainKpis: {
@@ -330,21 +355,15 @@ export class MonteCarloStatisticsEngine {
       },
       capitalFan,
       representativePath,
-      statistics: this.buildScenarioStatistics(paths, horizonYears, {
-        diagnostics: flatDiagnostics,
-        generalBenchmark,
-        correlationDiagnostics: statisticsInput?.correlationDiagnostics ?? flatDiagnostics?.correlations,
-        performanceDiagnostics: statisticsInput?.performanceDiagnostics ?? flatDiagnostics?.performance,
-        matricesCoherent: statisticsInput?.matricesCoherent ?? flatDiagnostics?.matricesCoherent
-      }),
+      statistics: officialStatistics,
       technicalChecks: this.buildTechnicalChecks(paths, horizonYears, initialCapital, cagrValues, maxDrawdownValues, statisticsInput?.matricesCoherent ?? flatDiagnostics?.matricesCoherent),
       performanceMetrics: {
         totalTime: null,
         pathsPerSecond: null,
         monthsPerSecond: null,
         factorizationTime: null,
-        totalRedraw: statisticsInput?.performanceDiagnostics?.redrawCount ?? flatDiagnostics?.performance?.redrawCount ?? null,
-        rejectRate: statisticsInput?.performanceDiagnostics?.rejectRate ?? flatDiagnostics?.performance?.rejectRate ?? null
+        totalRedraw: canonicalRedrawCount,
+        rejectRate: canonicalRejectRate
       }
     };
   }
@@ -358,6 +377,7 @@ export class MonteCarloStatisticsEngine {
       correlationDiagnostics?: MonteCarloCorrelationDiagnostics;
       performanceDiagnostics?: { redrawCount?: number; rejectRate?: number };
       matricesCoherent?: boolean;
+      advancedStatisticsEnabled?: boolean;
     }
   ): Record<string, unknown> {
     const scenarioFrequencies: Record<MacroScenario, number> = {
@@ -439,10 +459,22 @@ export class MonteCarloStatisticsEngine {
     const intensityVolatility = this.calculateSampleStandardDeviation(intensityValues);
 
     const flatDiagnostics = statisticsInput && !statisticsInput.diagnostics && (('correlations' in statisticsInput) || ('generalBenchmark' in statisticsInput) || ('performance' in statisticsInput) || ('matricesCoherent' in statisticsInput)) ? (statisticsInput as any) : statisticsInput?.diagnostics;
-    const correlationDiagnostics = statisticsInput?.correlationDiagnostics ?? flatDiagnostics?.correlations ?? {};
-    const generalBenchmark = statisticsInput?.generalBenchmark ?? flatDiagnostics?.generalBenchmark;
+    const pathCorrelationDiagnostics = paths.reduce((accumulator, path) => {
+      const candidate = (path as any)?.correlationDiagnostics;
+      if (candidate && Object.keys(candidate).length > 0) {
+        return { ...accumulator, ...candidate };
+      }
+      return accumulator;
+    }, {} as MonteCarloCorrelationDiagnostics);
+    const pathGeneralBenchmark = paths.reduce<MonteCarloGeneralBenchmark | undefined>((accumulator, path) => {
+      const candidate = (path as any)?.generalBenchmark;
+      return accumulator ?? candidate;
+    }, undefined);
+    const correlationDiagnostics = statisticsInput?.correlationDiagnostics ?? flatDiagnostics?.correlations ?? pathCorrelationDiagnostics ?? {};
+    const generalBenchmark = statisticsInput?.generalBenchmark ?? flatDiagnostics?.generalBenchmark ?? pathGeneralBenchmark;
     const performance = statisticsInput?.performanceDiagnostics ?? flatDiagnostics?.performance;
-    const indicatorMatrix = {
+    const advancedStatisticsEnabled = statisticsInput?.advancedStatisticsEnabled ?? true;
+    const indicatorMatrix = advancedStatisticsEnabled ? {
       target: correlationDiagnostics.target ?? null,
       operational: correlationDiagnostics.operational ?? null,
       latent: correlationDiagnostics.latent ?? null,
@@ -457,10 +489,15 @@ export class MonteCarloStatisticsEngine {
       maeByScenario: correlationDiagnostics.maeByScenario ?? {},
       rmseByScenario: correlationDiagnostics.rmseByScenario ?? {},
       maxAbsoluteErrorByScenario: correlationDiagnostics.maxAbsoluteErrorByScenario ?? {}
+    } : {
+      skipped: true,
+      reason: 'advancedStatisticsEnabled=false'
     };
 
     const maxDrawdownValues = paths.map((path) => path.maxDrawdown);
     const drawdownPercentiles = this.buildPercentileSet(maxDrawdownValues);
+    const generalBenchmarkCAGR = generalBenchmark ? (generalBenchmark.simulatedLongTermReturn ?? meanReturn) : null;
+    const generalBenchmarkVolatility = generalBenchmark ? (generalBenchmark.simulatedVolatility ?? returnVolatility) : null;
     const returnGenerationAggregate = paths.reduce((aggregate, path) => {
       const range = (path as any).returnDiagnostics ?? null;
       if (!range) return aggregate;
@@ -470,6 +507,10 @@ export class MonteCarloStatisticsEngine {
       aggregate.physicalFloorRejectedVectors += range.physicalFloorRejectedVectors ?? 0;
       aggregate.oldRangeViolationCount += range.oldRangeViolationCount ?? 0;
       aggregate.effectiveRangeRejectedVectors += range.effectiveRangeRejectedVectors ?? 0;
+      const candidateReturnCountFromRange = range.byEtfScenario
+        ? Object.values(range.byEtfScenario as Record<string, any>).reduce((sum, value) => sum + (value?.candidateReturnCount ?? 0), 0)
+        : 0;
+      aggregate.candidateReturnCount += candidateReturnCountFromRange || (range.candidateVectors ?? 0);
       for (const [key, rawValue] of Object.entries(range.byEtfScenario ?? {})) {
         const value = rawValue as Record<string, any> | undefined;
         const current = aggregate.byEtfScenario[key] ?? {
@@ -495,6 +536,7 @@ export class MonteCarloStatisticsEngine {
       return aggregate;
     }, {
       candidateVectors: 0,
+      candidateReturnCount: 0,
       acceptedVectors: 0,
       rejectedVectors: 0,
       physicalFloorRejectedVectors: 0,
@@ -518,8 +560,17 @@ export class MonteCarloStatisticsEngine {
         p95Intensity: intensities.length > 0 ? this.calculateLinearPercentile(intensities, 95) : 0,
       };
     }
+    const observedEpisodeDurations = paths.flatMap((path) => path.scenarioPath?.years ?? []).map((entry) => entry.durationInCurrentScenario).filter((value) => Number.isFinite(value) && value >= 0);
+    const averageObservedMonthsPerScenario = observedEpisodeDurations.length > 0
+      ? observedEpisodeDurations.reduce((sum, value) => sum + value, 0) / observedEpisodeDurations.length
+      : (horizonYears * 12) / Math.max(1, MACRO_SCENARIOS.length);
+    const candidateReturnDenominator = returnGenerationAggregate.candidateReturnCount > 0 ? returnGenerationAggregate.candidateReturnCount : returnGenerationAggregate.candidateVectors;
+    const canonicalRedrawCount = returnGenerationAggregate.rejectedVectors;
+    const canonicalRejectRate = returnGenerationAggregate.candidateVectors > 0 ? returnGenerationAggregate.rejectedVectors / returnGenerationAggregate.candidateVectors : 0;
+    const canonicalPhysicalFloorRejectRate = returnGenerationAggregate.candidateVectors > 0 ? returnGenerationAggregate.physicalFloorRejectedVectors / returnGenerationAggregate.candidateVectors : 0;
 
     return {
+      advancedStatisticsEnabled,
       returnGeneration: {
         totalCandidateVectors: returnGenerationAggregate.candidateVectors,
         totalAcceptedVectors: returnGenerationAggregate.acceptedVectors,
@@ -527,15 +578,15 @@ export class MonteCarloStatisticsEngine {
         totalPhysicalFloorRejectedVectors: returnGenerationAggregate.physicalFloorRejectedVectors,
         totalOldRangeViolationCount: returnGenerationAggregate.oldRangeViolationCount,
         totalEffectiveRangeRejectedVectors: returnGenerationAggregate.effectiveRangeRejectedVectors,
-        totalRedrawCount: statisticsInput?.performanceDiagnostics?.redrawCount ?? flatDiagnostics?.performance?.redrawCount ?? paths.reduce((sum, path) => sum + ((path as any).performanceDiagnostics?.redrawCount ?? 0), 0),
-        rejectRate: statisticsInput?.performanceDiagnostics?.rejectRate ?? flatDiagnostics?.performance?.rejectRate ?? (returnGenerationAggregate.candidateVectors > 0 ? returnGenerationAggregate.rejectedVectors / returnGenerationAggregate.candidateVectors : 0),
-        physicalFloorRejectRate: returnGenerationAggregate.candidateVectors > 0 ? returnGenerationAggregate.physicalFloorRejectedVectors / returnGenerationAggregate.candidateVectors : 0,
-        oldRangeViolationRate: returnGenerationAggregate.candidateVectors > 0 ? returnGenerationAggregate.oldRangeViolationCount / returnGenerationAggregate.candidateVectors : 0,
+        totalRedrawCount: canonicalRedrawCount,
+        rejectRate: canonicalRejectRate,
+        physicalFloorRejectRate: canonicalPhysicalFloorRejectRate,
+        oldRangeViolationRate: candidateReturnDenominator > 0 ? returnGenerationAggregate.oldRangeViolationCount / candidateReturnDenominator : 0,
       },
       scenario: {
         frequencies: scenarioFrequencies,
         duration: {
-          averageMonthsPerScenario: (horizonYears * 12) / Math.max(1, MACRO_SCENARIOS.length),
+          averageMonthsPerScenario: averageObservedMonthsPerScenario,
           observed: observedDuration
         },
         transitions: {
@@ -593,7 +644,9 @@ export class MonteCarloStatisticsEngine {
       correlations: indicatorMatrix,
       generalComparison: {
         targetExpectedReturnDelta: generalBenchmark ? (generalBenchmark.simulatedLongTermReturn ?? meanReturn) - generalBenchmark.expectedReturn : null,
-        targetVolatilityDelta: generalBenchmark ? (generalBenchmark.simulatedVolatility ?? returnVolatility) - generalBenchmark.volatility : null
+        targetVolatilityDelta: generalBenchmark ? (generalBenchmark.simulatedVolatility ?? returnVolatility) - generalBenchmark.volatility : null,
+        generalBenchmarkCAGR: generalBenchmarkCAGR,
+        generalBenchmarkVolatility: generalBenchmarkVolatility
       },
       performance: performance ?? { redrawCount: null, rejectRate: null }
     };

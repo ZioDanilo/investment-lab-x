@@ -30,6 +30,17 @@
       ></app-dropdown>
     </div>
 
+    <label class="checkbox-row" [attr.aria-disabled]="executionState() === 'running' || executionState() === 'loadingSnapshot'">
+      <input
+        type="checkbox"
+        [checked]="advancedStatistics()"
+        [disabled]="executionState() === 'running' || executionState() === 'loadingSnapshot'"
+        (change)="onAdvancedStatisticsToggle($event)"
+      />
+      <span>Statistiche avanzate</span>
+      <small>Abilita diagnostica dettagliata della simulazione. Può aumentare il tempo di elaborazione.</small>
+    </label>
+
     <app-tasto-conferma
       label="▶"
       loadingText="⏳"
@@ -50,17 +61,23 @@
       Annulla
     </button>
 
-    <div class="top-loading-indicator" *ngIf="executionState() === 'running' || executionState() === 'loadingSnapshot' || executionState() === 'aggregating'">
+    <div class="top-loading-indicator" *ngIf="executionState() === 'loadingSnapshot' || executionState() === 'running' || executionState() === 'aggregating' || executionState() === 'completed'">
       <app-spinner
         size="sm"
-        [label]="executionState() === 'aggregating' ? 'Calcolo statistiche...' : 'Simulazione in corso...'"
-        [ariaLabel]="executionState() === 'aggregating' ? 'Calcolo statistiche Monte Carlo in corso' : 'Simulazione Montecarlo in esecuzione'"
+        [label]="getExecutionStatusLabel()"
+        [ariaLabel]="executionState() === 'loadingSnapshot'
+          ? 'Preparazione della simulazione Monte Carlo'
+          : executionState() === 'aggregating'
+            ? 'Finalizzazione dei risultati della simulazione Monte Carlo'
+            : executionState() === 'completed'
+              ? 'Simulazione Monte Carlo completata'
+              : 'Simulazione Monte Carlo in esecuzione'"
       ></app-spinner>
     </div>
 
-    <div class="progress-bar-wrap" *ngIf="executionState() === 'running' || executionState() === 'loadingSnapshot' || executionState() === 'aggregating'">
+    <div class="progress-bar-wrap" *ngIf="executionState() === 'running' || executionState() === 'loadingSnapshot'">
       <div class="progress-bar" [style.width.%]="progress()"></div>
-      <span class="progress-label">{{ progress() }}%</span>
+      <span class="progress-label">{{ executionState() === 'running' ? getProgressPathCount() + ' / 1000' : 'Preparazione…' }}</span>
     </div>
   </div>
 

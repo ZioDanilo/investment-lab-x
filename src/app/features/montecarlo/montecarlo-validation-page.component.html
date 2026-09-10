@@ -5,6 +5,12 @@
   </div>
 
   <div class="validation-actions">
+    <button type="button" (click)="runPortHandshakeDiagnostic()" [disabled]="running()">
+      {{ running() ? 'Running...' : 'Run MessageChannel Handshake Test' }}
+    </button>
+    <button type="button" (click)="runProductionAddBatchMicroTest()" [disabled]="running()">
+      {{ running() ? 'Running...' : 'Run Production ADD_BATCH Micro-Test' }}
+    </button>
     <button type="button" (click)="runDiagnosticDefaultWorkers()" [disabled]="running()">
       {{ running() ? 'Running...' : 'Run Diagnostic — Default Workers' }}
     </button>
@@ -29,6 +35,16 @@
 
   <div class="validation-log" *ngIf="log().length">
     <div *ngFor="let entry of log()">{{ entry }}</div>
+  </div>
+
+  <div class="report-block" *ngIf="portHandshakeDiagnostic() as portDiagnostic">
+    <h4>MessageChannel handshake diagnostic</h4>
+    <pre>{{ portDiagnostic | json }}</pre>
+  </div>
+
+  <div class="report-block" *ngIf="productionAddBatchMicroTest() as productionMicroTest">
+    <h4>Production ADD_BATCH micro-test</h4>
+    <pre>{{ productionMicroTest | json }}</pre>
   </div>
 
   <div class="report-block" *ngIf="diagnosticReport() as diagnostic">

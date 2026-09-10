@@ -29,6 +29,7 @@ export class MontecarloNewPageComponent implements OnInit {
   editorState = signal<MontecarloPortfolioEditorChange | null>(null);
   executionState = signal<'idle' | 'loadingSnapshot' | 'running' | 'aggregating' | 'completed' | 'failed' | 'cancelled'>('idle');
   progress = signal(0);
+  advancedStatistics = signal(false);
   officialResult = signal<MonteCarloResult | null>(null);
   errorMessage = signal<string | null>(null);
   copiedStatistics = signal(false);
@@ -69,9 +70,13 @@ export class MontecarloNewPageComponent implements OnInit {
     this.loadingPortafogli.set(true);
     this.apiService.getPortfolios().subscribe({
       next: (res: any) => {
-        if (res.success && Array.isArray(res.data)) {
-          this.portafogli.set(res.data);
-        }
+        const portfolios = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+            ? res.data
+            : [];
+
+        this.portafogli.set(portfolios);
         this.loadingPortafogli.set(false);
       },
       error: () => this.loadingPortafogli.set(false)
@@ -138,6 +143,7 @@ export class MontecarloNewPageComponent implements OnInit {
         input,
         snapshot,
         mode: 'COMPLETE',
+        advancedStatistics: this.advancedStatistics(),
         onProgress: (progress) => {
           this.progress.set(progress);
           if (progress >= 99 && this.executionState() !== 'completed' && this.executionState() !== 'failed' && this.executionState() !== 'cancelled') {
@@ -196,6 +202,14 @@ export class MontecarloNewPageComponent implements OnInit {
     this.errorMessage.set('Simulazione annullata.');
   }
 
+  onAdvancedStatisticsToggle(event: Event): void {
+    if (this.executionState() === 'running' || this.executionState() === 'loadingSnapshot') {
+      return;
+    }
+    const target = event.target as HTMLInputElement | null;
+    this.advancedStatistics.set(Boolean(target?.checked));
+  }
+
   buildOfficialKpiCards(result: MonteCarloResult | null): Array<{ name: string; value: number | null; format: string; sub: string }> | null {
     if (!result) return null;
     const { mainKpis } = result;
@@ -216,6 +230,26 @@ export class MontecarloNewPageComponent implements OnInit {
     void navigator.clipboard.writeText(JSON.stringify(stats, null, 2)).finally(() => {
       window.setTimeout(() => this.copiedStatistics.set(false), 1200);
     });
+  }
+
+  getProgressPathCount(): number {
+    const progressRatio = Math.max(0, Math.min(100, this.progress())) / 100;
+    return Math.round(progressRatio * 1000);
+  }
+
+  getExecutionStatusLabel(): string {
+    switch (this.executionState()) {
+      case 'loadingSnapshot':
+        return 'Preparazione simulazione…';
+      case 'running':
+        return `Simulazione: ${this.getProgressPathCount()} / 1000`;
+      case 'aggregating':
+        return 'Finalizzazione risultati…';
+      case 'completed':
+        return 'Completato';
+      default:
+        return 'Simulazione';
+    }
   }
 
   fmtPct(value: number | null | undefined): string {

@@ -69,6 +69,14 @@ export interface MonteCarloPrecomputation {
   correlationMatrices: Record<MonteCarloScenario, CorrelationMatrixPreparation>;
 }
 
+export interface MonteCarloPrecomputationCacheStats {
+  hits: number;
+  misses: number;
+  entries: number;
+  precomputationCacheHit: boolean;
+  precomputationMs: number;
+}
+
 interface EigenDecomposition {
   eigenvalues: number[];
   eigenvectors: number[][];
@@ -97,8 +105,7 @@ const buildDeterministicStudentTShockGrid = (sampleSize: number): number[] => {
   return shocks;
 };
 
-const conditionalLogGrowthExpectation = (muMonthly: number, sigmaMonthly: number): number => {
-  const shockGrid = buildDeterministicStudentTShockGrid(8193);
+const conditionalLogGrowthExpectation = (muMonthly: number, sigmaMonthly: number, shockGrid: number[] = buildDeterministicStudentTShockGrid(8193)): number => {
   let accepted = 0;
   let total = 0;
   for (const shock of shockGrid) {
@@ -113,25 +120,25 @@ const conditionalLogGrowthExpectation = (muMonthly: number, sigmaMonthly: number
   return total / accepted;
 };
 
-export const calibrateTargetLogAndSigma = (targetLogGrowthMonthly: number, sigmaMonthly: number): number => {
+export const calibrateTargetLogAndSigma = (targetLogGrowthMonthly: number, sigmaMonthly: number, shockGrid: number[] = buildDeterministicStudentTShockGrid(8193)): number => {
   if (!Number.isFinite(targetLogGrowthMonthly) || !Number.isFinite(sigmaMonthly)) {
     throw new Error('CALIBRATION_INVALID_INPUT');
   }
   let lower = -0.9999;
-  let lowerValue = conditionalLogGrowthExpectation(lower, sigmaMonthly);
+  let lowerValue = conditionalLogGrowthExpectation(lower, sigmaMonthly, shockGrid);
   while (Number.isFinite(lowerValue) && lowerValue > targetLogGrowthMonthly) {
     lower -= 0.5;
-    lowerValue = conditionalLogGrowthExpectation(lower, sigmaMonthly);
+    lowerValue = conditionalLogGrowthExpectation(lower, sigmaMonthly, shockGrid);
     if (!Number.isFinite(lowerValue)) {
       throw new Error('CALIBRATION_LOW_BRACKET_FAILED');
     }
   }
 
   let upper = 0.25;
-  let upperValue = conditionalLogGrowthExpectation(upper, sigmaMonthly);
+  let upperValue = conditionalLogGrowthExpectation(upper, sigmaMonthly, shockGrid);
   while (upperValue < targetLogGrowthMonthly) {
     upper *= 2;
-    upperValue = conditionalLogGrowthExpectation(upper, sigmaMonthly);
+    upperValue = conditionalLogGrowthExpectation(upper, sigmaMonthly, shockGrid);
     if (!Number.isFinite(upperValue) || upper > 10) {
       throw new Error('CALIBRATION_HIGH_BRACKET_FAILED');
     }
@@ -139,7 +146,7 @@ export const calibrateTargetLogAndSigma = (targetLogGrowthMonthly: number, sigma
 
   for (let iteration = 0; iteration < 100; iteration += 1) {
     const midpoint = (lower + upper) / 2;
-    const midpointValue = conditionalLogGrowthExpectation(midpoint, sigmaMonthly);
+    const midpointValue = conditionalLogGrowthExpectation(midpoint, sigmaMonthly, shockGrid);
     if (Math.abs(midpointValue - targetLogGrowthMonthly) <= 1e-10) {
       return midpoint;
     }
@@ -511,10 +518,53 @@ export const prepareCorrelationMatrix = (snapshot: MonteCarloSnapshot, scenario:
   };
 };
 
+const PRECOMPUTATION_CACHE = new Map<string, { value: MonteCarloPrecomputation; computedAt: number; elapsedMs: number }>();
+const PRECOMPUTATION_CACHE_STATS = {
+  hits: 0,
+  misses: 0,
+  lastCacheHit: false,
+  lastPrecomputationMs: 0
+};
+
+const normalizeScenarioStatistics = (statistics: MonteCarloEtfStatistics | undefined) => statistics ? {
+  expectedReturn: statistics.expectedReturn,
+  volatility: statistics.volatility,
+  returnRange: {
+    min: statistics.returnRange.min,
+    max: statistics.returnRange.max
+  }
+} : null;
+
+const buildPrecomputationFingerprint = (snapshot: MonteCarloSnapshot): string => {
+  const etfs = snapshot.etfs.map((etf) => ({
+    isin: etf.isin,
+    statistics: {
+      general: normalizeScenarioStatistics(etf.statistics.general),
+      expansion: normalizeScenarioStatistics(etf.statistics.expansion),
+      recession: normalizeScenarioStatistics(etf.statistics.recession),
+      stagflation: normalizeScenarioStatistics(etf.statistics.stagflation),
+      soft_landing: normalizeScenarioStatistics(etf.statistics.soft_landing)
+    }
+  }));
+  const correlations = [...snapshot.correlations]
+    .map((entry) => ({
+      isin1: entry.isin1,
+      isin2: entry.isin2,
+      expansion: entry.expansion,
+      recession: entry.recession,
+      stagflation: entry.stagflation,
+      soft_landing: entry.soft_landing
+    }))
+    .sort((left, right) => `${left.isin1}:${left.isin2}`.localeCompare(`${right.isin1}:${right.isin2}`));
+
+  return JSON.stringify({ etfs, correlations });
+};
+
 const buildMuCalibrationCurve = (
   generalParameters: PreparedEtfScenarioParameters,
   scenarioParameters: PreparedEtfScenarioParameters,
-  step: number
+  step: number,
+  shockGrid: number[]
 ): MuCalibrationNode[] => {
   const generalTargetLogGrowthMonthly = generalParameters.targetLogGrowthMonthly;
   const scenarioTargetLogGrowthMonthly = scenarioParameters.targetLogGrowthMonthly;
@@ -523,7 +573,7 @@ const buildMuCalibrationCurve = (
     const clampedIntensity = Math.min(1, Math.max(0, intensity));
     const targetLogGrowthMonthly = generalTargetLogGrowthMonthly + clampedIntensity * (scenarioTargetLogGrowthMonthly - generalTargetLogGrowthMonthly);
     const sigmaMonthly = generalParameters.monthlyVolatility + clampedIntensity * (scenarioParameters.monthlyVolatility - generalParameters.monthlyVolatility);
-    const muMonthly = calibrateTargetLogAndSigma(targetLogGrowthMonthly, sigmaMonthly);
+    const muMonthly = calibrateTargetLogAndSigma(targetLogGrowthMonthly, sigmaMonthly, shockGrid);
     const impliedAnnualCagr = Math.exp(12 * targetLogGrowthMonthly) - 1;
     if (curve.length > 0 && Math.abs(curve[curve.length - 1].intensity - clampedIntensity) <= 1e-12) {
       curve[curve.length - 1] = { intensity: clampedIntensity, targetLogGrowthMonthly, sigmaMonthly, muMonthly, impliedAnnualCagr };
@@ -534,7 +584,36 @@ const buildMuCalibrationCurve = (
   return curve;
 };
 
+export const clearMonteCarloPrecomputationCache = (): void => {
+  PRECOMPUTATION_CACHE.clear();
+  PRECOMPUTATION_CACHE_STATS.hits = 0;
+  PRECOMPUTATION_CACHE_STATS.misses = 0;
+  PRECOMPUTATION_CACHE_STATS.lastCacheHit = false;
+  PRECOMPUTATION_CACHE_STATS.lastPrecomputationMs = 0;
+};
+
+export const getMonteCarloPrecomputationCacheStats = (): MonteCarloPrecomputationCacheStats => ({
+  hits: PRECOMPUTATION_CACHE_STATS.hits,
+  misses: PRECOMPUTATION_CACHE_STATS.misses,
+  entries: PRECOMPUTATION_CACHE.size,
+  precomputationCacheHit: PRECOMPUTATION_CACHE_STATS.lastCacheHit,
+  precomputationMs: PRECOMPUTATION_CACHE_STATS.lastPrecomputationMs
+});
+
 export const prepareMonteCarloPrecomputation = (snapshot: MonteCarloSnapshot): MonteCarloPrecomputation => {
+  const fingerprint = buildPrecomputationFingerprint(snapshot);
+  const cached = PRECOMPUTATION_CACHE.get(fingerprint);
+  if (cached) {
+    PRECOMPUTATION_CACHE_STATS.hits += 1;
+    PRECOMPUTATION_CACHE_STATS.lastCacheHit = true;
+    PRECOMPUTATION_CACHE_STATS.lastPrecomputationMs = cached.elapsedMs;
+    return cached.value;
+  }
+
+  PRECOMPUTATION_CACHE_STATS.misses += 1;
+  PRECOMPUTATION_CACHE_STATS.lastCacheHit = false;
+  const startedAt = performance.now();
+  const shockGrid = buildDeterministicStudentTShockGrid(8193);
   const etfParameters = Object.fromEntries(snapshot.etfs.map((etf) => {
     const generalStatistics = etf.statistics.general;
     if (!generalStatistics) {
@@ -547,7 +626,7 @@ export const prepareMonteCarloPrecomputation = (snapshot: MonteCarloSnapshot): M
         fail('MISSING_SCENARIO_ETF_STATISTICS', 'scenario expectedReturn is required for all macro scenarios', { isin: etf.isin, scenario });
       }
       const scenarioBaseParameters = precomputeEtfScenarioParameters(scenarioStatistics);
-      const calibrationCurve = buildMuCalibrationCurve(generalParameters, scenarioBaseParameters, 0.01);
+      const calibrationCurve = buildMuCalibrationCurve(generalParameters, scenarioBaseParameters, 0.01, shockGrid);
       return [
         scenario,
         {
@@ -566,5 +645,9 @@ export const prepareMonteCarloPrecomputation = (snapshot: MonteCarloSnapshot): M
     prepareCorrelationMatrix(snapshot, scenario)
   ])) as MonteCarloPrecomputation['correlationMatrices'];
 
-  return { etfParameters, correlationMatrices };
+  const result: MonteCarloPrecomputation = { etfParameters, correlationMatrices };
+  const elapsedMs = performance.now() - startedAt;
+  PRECOMPUTATION_CACHE.set(fingerprint, { value: result, computedAt: Date.now(), elapsedMs });
+  PRECOMPUTATION_CACHE_STATS.lastPrecomputationMs = elapsedMs;
+  return result;
 };

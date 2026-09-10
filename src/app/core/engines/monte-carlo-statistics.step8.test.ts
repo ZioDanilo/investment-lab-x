@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { buildDeltaMatrix, buildScenarioErrorSummary } from './monte-carlo-worker';
 import { MonteCarloStatisticsEngine } from './monte-carlo-statistics.engine';
 
 const makePath = (simulationId: number, finalCapital: number, maxDrawdown: number, cagr: number, maxRecoveryTimeMonths: number | null, monthly: Array<{ month: number; year: number; portfolioReturn: number; endingCapital: number; capital?: number; intensity?: number; }> = []) => ({
@@ -162,6 +163,73 @@ const testRecoveryZeroIsAllowedOnlyForCompletedRecovery = () => {
   assert.equal(result.mainKpis.recoveryTimeMonths, 0);
 };
 
+const testDeltaMatrix = () => {
+  const empirical = [[1, 0.8, 0.2], [0.8, 1, 0.6], [0.2, 0.6, 1]];
+  const target = [[1, 0.5, 0.1], [0.5, 1, 0.3], [0.1, 0.3, 1]];
+  const deltas = buildDeltaMatrix(empirical, target);
+  assert.ok(Math.abs(deltas[0][1] - 0.3) < 1e-9);
+  assert.ok(Math.abs(deltas[1][0] - 0.3) < 1e-9);
+  assert.ok(Math.abs(deltas[0][0]) < 1e-9);
+  assert.ok(Math.abs(deltas[2][1] - 0.3) < 1e-9);
+};
+
+const testAbsoluteDeltaMatrix = () => {
+  const empirical = [[1, -0.2], [-0.2, 1]];
+  const target = [[1, 0.5], [0.5, 1]];
+  const absolute = buildDeltaMatrix(empirical, target, true);
+  assert.ok(Math.abs(absolute[0][1] - 0.7) < 1e-9);
+  assert.ok(Math.abs(absolute[1][0] - 0.7) < 1e-9);
+};
+
+const testScenarioErrorSummary = () => {
+  const target = [[1, 0.5, 0.2], [0.5, 1, 0.4], [0.2, 0.4, 1]];
+  const empirical = [[1, 0.8, 0.3], [0.8, 1, 0.1], [0.3, 0.1, 1]];
+  const summary = buildScenarioErrorSummary(target, empirical);
+  assert.ok(Math.abs(summary.mae - (0.3 + 0.1 + 0.3) / 3 / 1) < 1e-9);
+  assert.ok(Math.abs(summary.rmse - Math.sqrt((0.09 + 0.01 + 0.09) / 3)) < 1e-9);
+  assert.ok(Math.abs(summary.maxAbsoluteError - 0.3) < 1e-9);
+};
+
+const testUniqueOffDiagonalPairs = () => {
+  const target = [[1, 0.7, 0.4], [0.7, 1, 0.6], [0.4, 0.6, 1]];
+  const empirical = [[1, 0.9, 0.3], [0.9, 1, 0.2], [0.3, 0.2, 1]];
+  const summary = buildScenarioErrorSummary(target, empirical);
+  assert.ok(
+    Math.abs(summary.maxAbsoluteError - 0.4) <= 1e-12
+  );
+  assert.ok(summary.mae > 0);
+  assert.ok(summary.rmse > 0);
+};
+
+const testScenarioSeparation = () => {
+  const expansionTarget = [[1, 0.5, 0.2], [0.5, 1, 0.4], [0.2, 0.4, 1]];
+  const expansionEmpirical = [[1, 0.8, 0.3], [0.8, 1, 0.1], [0.3, 0.1, 1]];
+  const recessionTarget = [[1, 0.1, 0.2], [0.1, 1, 0.3], [0.2, 0.3, 1]];
+  const recessionEmpirical = [[1, 0.3, 0.1], [0.3, 1, 0.2], [0.1, 0.2, 1]];
+  const expansionSummary = buildScenarioErrorSummary(expansionTarget, expansionEmpirical);
+  const recessionSummary = buildScenarioErrorSummary(recessionTarget, recessionEmpirical);
+  assert.ok(expansionSummary.maxAbsoluteError > recessionSummary.maxAbsoluteError);
+};
+
+const testDiagnosticRngIsolation = () => {
+  const originalRandom = Math.random;
+  Math.random = () => {
+    throw new Error('random should not be consumed by diagnostics');
+  };
+  try {
+    const target = [[1, 0.5], [0.5, 1]];
+    const empirical = [[1, 0.8], [0.8, 1]];
+    const deltas = buildDeltaMatrix(empirical, target, false);
+    const absolute = buildDeltaMatrix(empirical, target, true);
+    const summary = buildScenarioErrorSummary(target, empirical);
+    assert.ok(Math.abs(deltas[0][1] - 0.3) < 1e-9);
+    assert.ok(Math.abs(absolute[0][1] - 0.3) < 1e-9);
+    assert.ok(summary.mae > 0);
+  } finally {
+    Math.random = originalRandom;
+  }
+};
+
 const testCorrelationDiagnosticsAndGeneralBenchmark = () => {
   const paths = [
     makePath(1, 110, 0.10, 0.10, 2),
@@ -206,6 +274,70 @@ const testMatricesCoherentFalseIsFalsifiable = () => {
   assert.equal(result.technicalChecks.passed, false);
 };
 
+const testOldRangeViolationRateUsesCandidateReturnCount = () => {
+  const path = makePath(1, 110, 0.10, 0.10, 2, [{ month: 1, year: 1, portfolioReturn: 0.01, endingCapital: 101, intensity: 0.5 }]);
+  path.returnDiagnostics = {
+    candidateVectors: 1,
+    acceptedVectors: 1,
+    rejectedVectors: 0,
+    physicalFloorRejectedVectors: 0,
+    oldRangeViolationCount: 3,
+    effectiveRangeRejectedVectors: 0,
+    byEtfScenario: {
+      'ETF-A|expansion': {
+        candidateReturnCount: 9,
+        belowEffectiveMinCount: 3,
+        aboveEffectiveMaxCount: 0,
+        lowerRejectRate: 0.3333333333333333,
+        upperRejectRate: 0,
+        totalOutOfRangeRate: 0.3333333333333333,
+        meanLowerDistanceSigma: 1,
+        meanUpperDistanceSigma: null
+      }
+    }
+  };
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 });
+  assert.ok(Math.abs(result.statistics.returnGeneration.oldRangeViolationRate - (3 / 9)) < 1e-9);
+};
+
+const testAverageMonthsPerScenarioUsesObservedDurations = () => {
+  const path = makePath(1, 110, 0.10, 0.10, 2, [{ month: 1, year: 1, portfolioReturn: 0.01, endingCapital: 101, intensity: 0.5 }]);
+  path.scenarioPath = {
+    years: [
+      { year: 1, scenario: 'expansion', durationInCurrentScenario: 12 },
+      { year: 2, scenario: 'expansion', durationInCurrentScenario: 18 },
+      { year: 3, scenario: 'recession', durationInCurrentScenario: 8 },
+      { year: 4, scenario: 'recession', durationInCurrentScenario: 10 },
+      { year: 5, scenario: 'stagflation', durationInCurrentScenario: 6 },
+      { year: 6, scenario: 'stagflation', durationInCurrentScenario: 14 },
+      { year: 7, scenario: 'soft_landing', durationInCurrentScenario: 20 },
+      { year: 8, scenario: 'soft_landing', durationInCurrentScenario: 4 }
+    ],
+    frequencies: { expansion: 2, recession: 2, stagflation: 2, soft_landing: 2 }
+  };
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 8, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 });
+  assert.ok(Math.abs(result.statistics.scenario.duration.averageMonthsPerScenario - 11.5) < 1e-9);
+};
+
+const testCorrelationDiagnosticsAndGeneralBenchmarkCanBeDerivedFromPathFallback = () => {
+  const path = makePath(1, 110, 0.10, 0.10, 2);
+  path.correlationDiagnostics = {
+    pearsonPrimary: [[1, 0.5], [0.5, 1]],
+    lowerTailDependence5: [[1, 0.2], [0.2, 1]],
+    upperTailDependence5: [[1, 0.3], [0.3, 1]]
+  };
+  path.generalBenchmark = {
+    expectedReturn: 0.08,
+    volatility: 0.12,
+    simulatedLongTermReturn: 0.09,
+    simulatedVolatility: 0.11
+  };
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 });
+  assert.ok(Math.abs(result.statistics.correlations.pearsonPrimary[0][1] - 0.5) < 1e-9);
+  assert.ok(Math.abs(result.statistics.generalComparison.targetExpectedReturnDelta - 0.01) < 1e-9);
+  assert.ok(Math.abs(result.statistics.generalComparison.targetVolatilityDelta + 0.01) < 1e-9);
+};
+
 const testLargeMonthlyArrayDoesNotOverflow = () => {
   const hugeMonthly = Array.from({ length: 500_000 }, (_, index) => ({
     month: index + 1,
@@ -236,8 +368,17 @@ const tests = [
   testIntensityStatsUseDecimalBandsAndMean,
   testMissingKpiInputAndInvalidMaxDrawdownFailFast,
   testRecoveryZeroIsAllowedOnlyForCompletedRecovery,
+  testDeltaMatrix,
+  testAbsoluteDeltaMatrix,
+  testScenarioErrorSummary,
+  testUniqueOffDiagonalPairs,
+  testScenarioSeparation,
+  testDiagnosticRngIsolation,
   testCorrelationDiagnosticsAndGeneralBenchmark,
-  testMatricesCoherentFalseIsFalsifiable
+  testMatricesCoherentFalseIsFalsifiable,
+  testOldRangeViolationRateUsesCandidateReturnCount,
+  testAverageMonthsPerScenarioUsesObservedDurations,
+  testCorrelationDiagnosticsAndGeneralBenchmarkCanBeDerivedFromPathFallback
 ];
 
 for (const test of tests) {

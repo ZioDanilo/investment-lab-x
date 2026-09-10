@@ -17,7 +17,7 @@ export interface MonteCarloWorkerMessageBase {
 
 export type MonteCarloWorkerMessage =
   | ({ type: 'INIT'; precompute: unknown; input: MonteCarloUserInput; snapshot: MonteCarloSnapshot; workerId: number; executionId: string; aggregationPort?: MessagePort })
-  | ({ type: 'RUN_BATCH'; batchStart: number; batchEnd: number; pathCount: number; input: MonteCarloUserInput; snapshot: MonteCarloSnapshot; precompute: unknown; workerId: number; executionId: string })
+  | ({ type: 'RUN_BATCH'; batchStart: number; batchEnd: number; pathCount: number; input: MonteCarloUserInput; snapshot: MonteCarloSnapshot; precompute: unknown; workerId: number; executionId: string; advancedStatistics?: boolean })
   | ({ type: 'CANCEL'; executionId: string; workerId: number })
   | ({ type: 'PROGRESS'; executionId: string; workerId: number; completedPaths: number; totalPaths: number })
   | ({ type: 'SIMULATION_COMPLETE'; executionId: string; workerId: number; completedPaths: number; totalPaths: number })
@@ -93,6 +93,7 @@ export interface MonteCarloCoordinatorOptions {
   input: MonteCarloUserInput;
   snapshot: MonteCarloSnapshot;
   mode?: MonteCarloExecutionMode;
+  advancedStatistics?: boolean;
   workerFactory?: (scriptPath: string) => WorkerLike;
   aggregationWorkerFactory?: (scriptPath: string) => WorkerLike;
   workerCountOverride?: number;
@@ -149,6 +150,7 @@ export class MonteCarloWorkerPool {
   private readonly batchSize: number;
   private readonly input: MonteCarloUserInput;
   private readonly snapshot: MonteCarloSnapshot;
+  private readonly advancedStatistics: boolean;
   private readonly onBatchResult: (payload: { batchStart: number; batchEnd: number; results: any[]; redrawCount?: number; rejectRate?: number }) => void;
   private readonly onProgress: (payload: { completedPaths: number; totalPaths: number; workerId: number }) => void;
   private readonly onSimulationComplete: (workerId: number) => void;
@@ -168,6 +170,7 @@ export class MonteCarloWorkerPool {
     input: MonteCarloUserInput;
     snapshot: MonteCarloSnapshot;
     precompute: unknown;
+    advancedStatistics?: boolean;
     onBatchResult: (payload: { batchStart: number; batchEnd: number; results: any[]; redrawCount?: number; rejectRate?: number }) => void;
     onProgress?: (payload: { completedPaths: number; totalPaths: number; workerId: number }) => void;
     onSimulationComplete?: (workerId: number) => void;
@@ -183,6 +186,7 @@ export class MonteCarloWorkerPool {
     this.input = options.input;
     this.snapshot = options.snapshot;
     this.precompute = options.precompute;
+    this.advancedStatistics = options.advancedStatistics ?? true;
     this.onBatchResult = options.onBatchResult;
     this.onProgress = options.onProgress ?? (() => undefined);
     this.onSimulationComplete = options.onSimulationComplete ?? (() => undefined);
@@ -305,7 +309,8 @@ export class MonteCarloWorkerPool {
       pathCount: this.totalPaths,
       input: this.input,
       snapshot: this.snapshot,
-      precompute: this.precompute
+      precompute: this.precompute,
+      advancedStatistics: this.advancedStatistics
     } satisfies MonteCarloWorkerMessage);
 
     this.nextBatchStart = batchEnd;
@@ -330,6 +335,7 @@ export class MonteCarloCoordinator {
   private readonly snapshot: MonteCarloSnapshot;
   private readonly executionId: string;
   private readonly mode: MonteCarloExecutionMode;
+  private readonly advancedStatistics: boolean;
   private readonly workerFactory: (scriptPath: string) => WorkerLike;
   private readonly aggregationWorkerFactory: (scriptPath: string) => WorkerLike;
   private readonly workerCount: number;
@@ -393,6 +399,7 @@ export class MonteCarloCoordinator {
     this.input = options.input;
     this.snapshot = options.snapshot;
     this.mode = options.mode ?? 'COMPLETE';
+    this.advancedStatistics = options.advancedStatistics ?? true;
     this.executionId = createExecutionId();
     this.workerFactory = options.workerFactory ?? this.defaultWorkerFactory;
     this.aggregationWorkerFactory = options.aggregationWorkerFactory ?? this.defaultAggregationWorkerFactory;
@@ -411,6 +418,7 @@ export class MonteCarloCoordinator {
       input: this.input,
       snapshot: this.snapshot,
       precompute: undefined,
+      advancedStatistics: this.advancedStatistics,
       onBatchResult: (payload) => this.handleBatchResult(payload),
       onProgress: (payload) => this.handleWorkerProgress(payload),
       onSimulationComplete: (workerId) => this.handleSimulationComplete(workerId),

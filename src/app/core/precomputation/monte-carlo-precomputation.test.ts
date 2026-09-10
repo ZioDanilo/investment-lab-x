@@ -1,6 +1,8 @@
 import {
   calibrateTargetLogAndSigma,
+  clearMonteCarloPrecomputationCache,
   CORRELATION_EPSILON,
+  getMonteCarloPrecomputationCacheStats,
   MAX_CORRELATION_CELL_DELTA,
   MonteCarloPrecomputationError,
   precomputeEtfScenarioParameters,
@@ -77,6 +79,8 @@ assertClose(parameters.monthlyRangeMax, parameters.monthlyExpectedReturn + 2 * p
 
 const calibratedTarget = calibrateTargetLogAndSigma(Math.log(1 + 0.12) / 12, 0.2 / Math.sqrt(12));
 assertClose(calibratedTarget, parameters.monthlyExpectedReturn, 1e-10);
+const repeatedCalibration = calibrateTargetLogAndSigma(Math.log(1 + 0.12) / 12, 0.2 / Math.sqrt(12));
+assertClose(repeatedCalibration, calibratedTarget, 1e-12);
 expectError(() => calibrateTargetLogAndSigma(Number.NaN, 0.2 / Math.sqrt(12)), 'CALIBRATION_INVALID_INPUT');
 
 const identitySnapshot = createSnapshot(['ETF-A', 'ETF-B'], [sameCorrelation('ETF-A', 'ETF-B', 0)]);
@@ -141,5 +145,30 @@ const excessiveCorrectionSnapshot = createSnapshot(['ETF-A', 'ETF-B', 'ETF-C'], 
   sameCorrelation('ETF-B', 'ETF-C', -0.9)
 ]);
 expectError(() => prepareCorrelationMatrix(excessiveCorrectionSnapshot, 'expansion'), 'CORRELATION_MATRIX_CORRECTION_TOO_LARGE');
+
+const repeatedPreparation = prepareMonteCarloPrecomputation(psdSnapshot);
+for (const scenario of MONTE_CARLO_SCENARIOS) {
+  const originalCurve = psdPrepared.correlationMatrices[scenario];
+  const rePreparedCurve = repeatedPreparation.correlationMatrices[scenario];
+  assertClose(originalCurve.factorReconstructionError, rePreparedCurve.factorReconstructionError, CORRELATION_EPSILON);
+  assertClose(originalCurve.minimumEigenvalueAfter, rePreparedCurve.minimumEigenvalueAfter, CORRELATION_EPSILON);
+}
+
+clearMonteCarloPrecomputationCache();
+const cachedFirst = prepareMonteCarloPrecomputation(psdSnapshot);
+const cachedSecond = prepareMonteCarloPrecomputation(psdSnapshot);
+if (cachedFirst !== cachedSecond) {
+  throw new Error('Expected identical snapshot to reuse the same in-memory precomputation instance');
+}
+const cacheStats = getMonteCarloPrecomputationCacheStats();
+if (cacheStats.misses < 1 || cacheStats.hits < 1) {
+  throw new Error(`Expected cache miss and hit counters to increment, got ${JSON.stringify(cacheStats)}`);
+}
+
+const beforeSnapshot = JSON.stringify(prepareMonteCarloPrecomputation(psdSnapshot));
+const afterRehydrate = prepareMonteCarloPrecomputation(psdSnapshot);
+if (JSON.stringify(afterRehydrate) !== beforeSnapshot) {
+  throw new Error('Cached precomputation was corrupted by a consumer path');
+}
 
 console.log('Monte Carlo Step 3 precomputation tests passed.');

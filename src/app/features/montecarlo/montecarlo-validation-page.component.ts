@@ -3,6 +3,7 @@ import { Component, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { MONTE_CARLO_EXECUTION_MODES, MonteCarloCoordinator } from '../../core/engines/monte-carlo-coordinator';
+import { prepareMonteCarloPrecomputation } from '../../core/precomputation/monte-carlo-precomputation';
 
 interface ValidationStageSummary {
   mode: 'SMOKE' | 'INTERMEDIATE' | 'COMPLETE';
@@ -107,6 +108,92 @@ interface DiagnosticRunReport {
   changeDetectionTriggerPerBatch: boolean;
 }
 
+interface PortHandshakeDiagnosticReport {
+  diagnosticRevision: string;
+  runtimeCheckpoints: Array<{
+    source: 'simulation' | 'aggregation';
+    checkpoint: string;
+    originalType: string | null;
+    testId: string | null;
+    executionId: string | null;
+    workerId: number | null;
+    hasAggregationPort?: boolean;
+  }>;
+  portRegisterCount: number;
+  portPingSentCount: number;
+  simPortPingReceivedCount: number;
+  portPongSentCount: number;
+  aggPortPongReceivedCount: number;
+  portReadyReceivedCount: number;
+  messageChannelHandshakePass: boolean;
+  addBatchTestReceived: boolean;
+  addBatchTestValue: number | null;
+  addBatchTestAckReceived: boolean;
+  syntheticAddBatchPass: boolean;
+  rootCauseRefined: string;
+}
+
+interface ProductionAddBatchMicroTestReport {
+  diagnosticRevision: string;
+  telemetryListenersSurviveReady: boolean;
+  telemetryListenersRemovedAtFinalCleanup: boolean;
+  finalCleanupExecuted: boolean;
+  productionAddBatchMessageType: string;
+  productionAddBatchPayloadField: string;
+  productionBatchPathCount: number;
+  productionBatchTopLevelKeys: string[];
+  prodPayloadStructuredClonePass: boolean;
+  prodAddBatchSendBeginSeen: boolean;
+  prodAddBatchSendDoneSeen: boolean;
+  prodAddBatchReceiveEnterSeen: boolean;
+  prodAddBatchAccountedSeen: boolean;
+  runBatchPostBeginSeen: boolean;
+  runBatchPostDoneSeen: boolean;
+  runBatchReceiveEnterSeen: boolean;
+  runBatchLoopBeginSeen: boolean;
+  firstPathBeginSeen: boolean;
+  firstPathDoneSeen: boolean;
+  runBatchLoopDoneSeen: boolean;
+  compactBeginSeen: boolean;
+  compactDoneSeen: boolean;
+  mainEventLoopAfterRunBatchSeen: boolean;
+  postRunBatchTimeoutSeen: boolean;
+  aggRegisterSentAt: number | null;
+  aggInitSentAt: number | null;
+  simInitSentAt: number | null;
+  aggFirstMessageAt: number | null;
+  simFirstMessageAt: number | null;
+  deltaPaths: number;
+  sentExecutionId: string | null;
+  registeredAggExecutionId: string | null;
+  receivedExecutionId: string | null;
+  executionIdMatch: boolean;
+  sentWorkerId: number | null;
+  registeredWorkerId: number | null;
+  receivedWorkerId: number | null;
+  workerIdMatch: boolean;
+  aggregationReady: boolean;
+  simulationReady: boolean;
+  aggErrorSeen: boolean;
+  aggMessageErrorSeen: boolean;
+  simErrorSeen: boolean;
+  simMessageErrorSeen: boolean;
+  nonTrivialCloneTypesFound: string[];
+  runtimeCheckpoints: Array<{
+    source: 'simulation' | 'aggregation';
+    checkpoint: string;
+    originalType: string | null;
+    testId: string | null;
+    executionId: string | null;
+    workerId: number | null;
+    hasAggregationPort?: boolean;
+  }>;
+  errorName: string | null;
+  errorMessage: string | null;
+  errorStack: string | null;
+  rootCauseRefined: string;
+}
+
 interface ValidationReport {
   environment: {
     browser: string;
@@ -177,6 +264,8 @@ export class MontecarloValidationPageComponent {
   readonly running = signal(false);
   readonly report = signal<ValidationReport | null>(null);
   readonly diagnosticReport = signal<DiagnosticRunReport | null>(null);
+  readonly portHandshakeDiagnostic = signal<PortHandshakeDiagnosticReport | null>(null);
+  readonly productionAddBatchMicroTest = signal<ProductionAddBatchMicroTestReport | null>(null);
   readonly log = signal<string[]>([]);
   readonly status = signal('Idle');
 
@@ -227,6 +316,253 @@ export class MontecarloValidationPageComponent {
       initialCapital: 100_000,
       horizonYears: 30
     };
+  }
+
+  async runPortHandshakeDiagnostic(): Promise<void> {
+    this.running.set(true);
+    this.status.set('Running MessageChannel handshake diagnostic');
+    this.portHandshakeDiagnostic.set(null);
+    this.log.set([]);
+
+    const result: PortHandshakeDiagnosticReport = {
+      diagnosticRevision: 'MC_PORT_RUNTIME_CHECKPOINT_V2',
+      runtimeCheckpoints: [],
+      portRegisterCount: 0,
+      portPingSentCount: 0,
+      simPortPingReceivedCount: 0,
+      portPongSentCount: 0,
+      aggPortPongReceivedCount: 0,
+      portReadyReceivedCount: 0,
+      messageChannelHandshakePass: false,
+      addBatchTestReceived: false,
+      addBatchTestValue: null,
+      addBatchTestAckReceived: false,
+      syntheticAddBatchPass: false,
+      rootCauseRefined: 'Waiting for MessagePort handshake confirmation in browser diagnostic'
+    };
+
+    const aggregationWorker = new Worker(new URL('../../core/engines/monte-carlo-aggregation.worker.ts', import.meta.url), { type: 'module' });
+    const simulationWorker = new Worker(new URL('../../core/engines/monte-carlo-worker.ts', import.meta.url), { type: 'module' });
+    const executionId = `port-test-${Date.now()}`;
+    const testId = `mc-port-test-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const expectedWorkers = 1;
+    const channel = new MessageChannel();
+    let syntheticTriggerSent = false;
+
+    const handshakePassCondition = () =>
+      result.portPingSentCount === expectedWorkers &&
+      result.simPortPingReceivedCount === expectedWorkers &&
+      result.portPongSentCount === expectedWorkers &&
+      result.aggPortPongReceivedCount === expectedWorkers &&
+      result.portReadyReceivedCount === expectedWorkers;
+
+    const ready = new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        reject(new Error('MC_PORT_TEST_TIMEOUT after handshake and synthetic batch'));
+      }, 5000);
+
+      const onAggregationMessage = (event: MessageEvent) => {
+        const data = event.data as any;
+        if (data?.type === 'MC_PORT_TEST_CHECKPOINT') {
+          result.runtimeCheckpoints.push({
+            source: 'aggregation',
+            checkpoint: data.checkpoint,
+            originalType: data.originalType ?? null,
+            testId: data.testId ?? null,
+            executionId: data.executionId ?? null,
+            workerId: typeof data.workerId === 'number' ? data.workerId : null,
+            hasAggregationPort: data.hasAggregationPort
+          });
+          this.appendLog(`[MC-PORT-TEST] CHECKPOINT aggregation ${data.checkpoint} originalType=${data.originalType ?? 'n/a'} testId=${data.testId ?? 'n/a'} executionId=${data.executionId ?? 'n/a'} workerId=${data.workerId ?? 'n/a'}`);
+        }
+        if (!data || !data.testId || data.testId !== testId) return;
+
+        if (data.type === 'MC_PORT_TEST_PING') {
+          result.portPingSentCount += 1;
+          this.appendLog(`[MC-PORT-TEST] PING_SENT testId=${data.testId} workerId=${data.workerId ?? 0}`);
+          return;
+        }
+
+        if (data.type === 'MC_PORT_TEST_PONG_RECEIVED') {
+          result.aggPortPongReceivedCount += 1;
+          this.appendLog(`[MC-PORT-TEST] PONG_RECEIVED testId=${data.testId} workerId=${data.workerId ?? 0}`);
+          return;
+        }
+
+        if (data.type === 'MC_PORT_TEST_READY') {
+          result.portReadyReceivedCount += 1;
+          this.appendLog(`[MC-PORT-TEST] TEST_READY_RECEIVED testId=${data.testId} workerId=${data.workerId ?? 0}`);
+          result.messageChannelHandshakePass = handshakePassCondition();
+          return;
+        }
+
+        if (data.type === 'MC_PORT_TEST_ADD_BATCH_ACK') {
+          this.appendLog(`[MC-PORT-TEST] ADD_BATCH_TEST_ACK_RECEIVED testId=${data.testId} workerId=${data.workerId ?? 0}`);
+        }
+      };
+
+      const onSimulationMessage = (event: MessageEvent) => {
+        const data = event.data as any;
+        if (data?.type === 'MC_PORT_TEST_CHECKPOINT') {
+          result.runtimeCheckpoints.push({
+            source: 'simulation',
+            checkpoint: data.checkpoint,
+            originalType: data.originalType ?? null,
+            testId: data.testId ?? null,
+            executionId: data.executionId ?? null,
+            workerId: typeof data.workerId === 'number' ? data.workerId : null,
+            hasAggregationPort: data.hasAggregationPort
+          });
+          this.appendLog(`[MC-PORT-TEST] CHECKPOINT simulation ${data.checkpoint} originalType=${data.originalType ?? 'n/a'} testId=${data.testId ?? 'n/a'} executionId=${data.executionId ?? 'n/a'} workerId=${data.workerId ?? 'n/a'}`);
+        }
+        if (data && typeof data.type === 'string' && data.type.startsWith('MC_PORT_TEST_')) {
+          console.info('[MC-PORT-TEST] HARNESS_RAW_WORKER_MESSAGE', {
+            type: data.type,
+            testId: data.testId,
+            workerId: data.workerId,
+            executionId: data.executionId
+          });
+        }
+        if (!data || !data.testId || data.testId !== testId) return;
+
+        if (data.type === 'MC_PORT_TEST_PING_RECEIVED') {
+          result.simPortPingReceivedCount += 1;
+          this.appendLog(`[MC-PORT-TEST] PING_RECEIVED testId=${data.testId} workerId=${data.workerId ?? 0}`);
+          return;
+        }
+
+        if (data.type === 'MC_PORT_TEST_PONG') {
+          result.portPongSentCount += 1;
+          this.appendLog(`[MC-PORT-TEST] PONG_SENT testId=${data.testId} workerId=${data.workerId ?? 0}`);
+          return;
+        }
+
+        if (data.type === 'MC_PORT_TEST_ADD_BATCH_RESULT') {
+          result.addBatchTestReceived = data.received === true;
+          result.addBatchTestValue = Number(data.value ?? 0);
+          result.addBatchTestAckReceived = data.ackReceived === true;
+          result.syntheticAddBatchPass = result.messageChannelHandshakePass && syntheticTriggerSent && result.addBatchTestReceived && result.addBatchTestValue === 123.456 && result.addBatchTestAckReceived;
+          console.info('[MC-PORT-TEST] HARNESS_RESULT_STATE_UPDATED', {
+            addBatchTestReceived: result.addBatchTestReceived,
+            addBatchTestValue: result.addBatchTestValue,
+            addBatchTestAckReceived: result.addBatchTestAckReceived,
+            syntheticAddBatchPass: result.syntheticAddBatchPass,
+            testId: data.testId,
+            workerId: data.workerId,
+            executionId: data.executionId
+          });
+          this.appendLog(`[MC-PORT-TEST] ADD_BATCH_TEST_RECEIVED testId=${data.testId} workerId=${data.workerId ?? 0} value=${Number(data.value ?? 0)}`);
+          this.appendLog(`[MC-PORT-TEST] ADD_BATCH_TEST_ACK_RECEIVED testId=${data.testId} workerId=${data.workerId ?? 0}`);
+          if (result.syntheticAddBatchPass) {
+            clearTimeout(timeout);
+            aggregationWorker.removeEventListener('message', onAggregationMessage);
+            simulationWorker.removeEventListener('message', onSimulationMessage);
+            resolve();
+          }
+        }
+      };
+
+      aggregationWorker.addEventListener('message', onAggregationMessage);
+      simulationWorker.addEventListener('message', onSimulationMessage);
+
+      const onReadyFromWorker = (event: MessageEvent) => {
+        const data = event.data as any;
+        if (!data || !data.testId || data.testId !== testId) return;
+        if (data.type === 'READY') {
+          result.portRegisterCount += 1;
+          this.appendLog(`[MC-PORT-TEST] REGISTER_SEND_DONE testId=${data.testId} workerId=${data.workerId ?? 0}`);
+        }
+      };
+
+      aggregationWorker.addEventListener('message', onReadyFromWorker);
+      simulationWorker.addEventListener('message', onReadyFromWorker);
+
+      const channelId = `${executionId}-channel-0`;
+      try {
+        console.info('[MC-PORT-TEST] REGISTER_SEND_BEGIN', { testId, executionId, workerId: 0, channelId, port: 'aggregationWorker' });
+        this.appendLog(`[MC-PORT-TEST] REGISTER_SEND_BEGIN testId=${testId} workerId=0`);
+        aggregationWorker.postMessage({
+          type: 'REGISTER_SIMULATION_PORT',
+          executionId,
+          testId,
+          workerId: 0,
+          simulationPort: channel.port2
+        }, [channel.port2]);
+        console.info('[MC-PORT-TEST] REGISTER_SEND_DONE', { testId, executionId, workerId: 0, channelId, port: 'aggregationWorker' });
+        this.appendLog(`[MC-PORT-TEST] REGISTER_SEND_DONE testId=${testId} workerId=0`);
+      } catch (error) {
+        console.error('[MC-PORT-TEST] REGISTER_SEND_ERROR', { testId, executionId, workerId: 0, channelId, error });
+      }
+
+      aggregationWorker.postMessage({ type: 'INIT', executionId, workerId: 0, expectedPathCount: 0 });
+      simulationWorker.postMessage({
+        type: 'INIT',
+        executionId,
+        workerId: 0,
+        precompute: undefined,
+        input: { positions: [], initialCapital: 0, horizonYears: 0 },
+        snapshot: { etfs: [], structuralProbabilities: {}, transitionMatrix: {}, inertiaConfigurations: {}, intensityConfigurations: {}, globalProperties: {}, correlations: [] },
+        aggregationPort: channel.port1
+      }, [channel.port1]);
+
+      const deliverSyntheticTrigger = () => {
+        if (syntheticTriggerSent) {
+          return;
+        }
+        syntheticTriggerSent = true;
+        console.info('[MC-PORT-TEST] ADD_BATCH_TEST_TRIGGER_SEND_BEGIN', { testId, workerId: 0, executionId });
+        this.appendLog(`[MC-PORT-TEST] ADD_BATCH_TEST_TRIGGER_SEND_BEGIN testId=${testId} workerId=0`);
+        simulationWorker.postMessage({
+          type: 'MC_PORT_TEST_SEND_ADD_BATCH',
+          executionId,
+          testId,
+          workerId: 0,
+          value: 123.456
+        });
+        console.info('[MC-PORT-TEST] ADD_BATCH_TEST_TRIGGER_SENT', { testId, workerId: 0, executionId, value: 123.456 });
+        this.appendLog(`[MC-PORT-TEST] ADD_BATCH_TEST_TRIGGER_SENT testId=${testId} workerId=0 value=123.456`);
+      };
+
+      const triggerCheck = setInterval(() => {
+        if (handshakePassCondition()) {
+          result.messageChannelHandshakePass = true;
+          if (!result.syntheticAddBatchPass) {
+            deliverSyntheticTrigger();
+          }
+          clearInterval(triggerCheck);
+        }
+      }, 25);
+
+      const finishListener = (event: MessageEvent) => {
+        const data = event.data as any;
+        if (!data || !data.testId || data.testId !== testId) return;
+        if (data.type === 'MC_PORT_TEST_READY' && handshakePassCondition()) {
+          result.messageChannelHandshakePass = true;
+          deliverSyntheticTrigger();
+        }
+      };
+
+      aggregationWorker.addEventListener('message', finishListener);
+    });
+
+    try {
+      await ready;
+      result.syntheticAddBatchPass = Boolean(result.messageChannelHandshakePass) && Boolean(syntheticTriggerSent) && Boolean(result.addBatchTestReceived) && result.addBatchTestValue === 123.456 && Boolean(result.addBatchTestAckReceived);
+      result.rootCauseRefined = 'Synthetic trigger is sent exactly once from the main thread after the verified handshake; the result is updated from the explicit MC_PORT_TEST_ADD_BATCH_RESULT event';
+      this.portHandshakeDiagnostic.set(result);
+      this.status.set('Synthetic add-batch diagnostic passed');
+      this.appendLog('Synthetic add-batch diagnostic passed');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Synthetic add-batch diagnostic failed';
+      result.rootCauseRefined = `Synthetic add-batch failed before final result: ${message}`;
+      this.portHandshakeDiagnostic.set(result);
+      this.status.set('Synthetic add-batch diagnostic failed');
+      this.appendLog(`Failure: ${message}`);
+    } finally {
+      this.running.set(false);
+      aggregationWorker.terminate();
+      simulationWorker.terminate();
+    }
   }
 
   private async runDiagnostic(mode: 'MODE_A' | 'MODE_B'): Promise<void> {
@@ -415,6 +751,401 @@ export class MontecarloValidationPageComponent {
   canRunComplete(): boolean {
     const current = this.report();
     return current !== null && current.regressionGate.smoke === 'PASS' && current.regressionGate.intermediate === 'PASS';
+  }
+
+  async runProductionAddBatchMicroTest(): Promise<void> {
+    this.running.set(true);
+    this.status.set('Running production ADD_BATCH micro-test');
+    this.productionAddBatchMicroTest.set(null);
+
+    const result: ProductionAddBatchMicroTestReport = {
+      diagnosticRevision: 'PROD_ADD_BATCH_MICRO_V6',
+      telemetryListenersSurviveReady: false,
+      telemetryListenersRemovedAtFinalCleanup: false,
+      finalCleanupExecuted: false,
+      productionAddBatchMessageType: 'ADD_BATCH',
+      productionAddBatchPayloadField: 'batch',
+      productionBatchPathCount: 0,
+      productionBatchTopLevelKeys: [],
+      prodPayloadStructuredClonePass: false,
+      prodAddBatchSendBeginSeen: false,
+      prodAddBatchSendDoneSeen: false,
+      prodAddBatchReceiveEnterSeen: false,
+      prodAddBatchAccountedSeen: false,
+      runBatchPostBeginSeen: false,
+      runBatchPostDoneSeen: false,
+      runBatchReceiveEnterSeen: false,
+      runBatchLoopBeginSeen: false,
+      firstPathBeginSeen: false,
+      firstPathDoneSeen: false,
+      runBatchLoopDoneSeen: false,
+      compactBeginSeen: false,
+      compactDoneSeen: false,
+      mainEventLoopAfterRunBatchSeen: false,
+      postRunBatchTimeoutSeen: false,
+      aggRegisterSentAt: null,
+      aggInitSentAt: null,
+      simInitSentAt: null,
+      aggFirstMessageAt: null,
+      simFirstMessageAt: null,
+      deltaPaths: 0,
+      sentExecutionId: null,
+      registeredAggExecutionId: null,
+      receivedExecutionId: null,
+      executionIdMatch: false,
+      sentWorkerId: null,
+      registeredWorkerId: null,
+      receivedWorkerId: null,
+      workerIdMatch: false,
+      aggregationReady: false,
+      simulationReady: false,
+      aggErrorSeen: false,
+      aggMessageErrorSeen: false,
+      simErrorSeen: false,
+      simMessageErrorSeen: false,
+      nonTrivialCloneTypesFound: [],
+      runtimeCheckpoints: [],
+      errorName: null,
+      errorMessage: null,
+      errorStack: null,
+      rootCauseRefined: 'Waiting for real production ADD_BATCH delivery confirmation'
+    };
+
+    const aggregationWorker = new Worker(new URL('../../core/engines/monte-carlo-aggregation.worker.ts', import.meta.url), { type: 'module' });
+    const simulationWorker = new Worker(new URL('../../core/engines/monte-carlo-worker.ts', import.meta.url), { type: 'module' });
+    const channel = new MessageChannel();
+    const executionId = `prod-add-batch-${Date.now()}`;
+    const testId = `prod-micro-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    let onWorkerMessage: ((event: MessageEvent) => void) | undefined;
+    let readyTimeout: number | undefined;
+    let postRunBatchInterval: number | undefined;
+    let postRunBatchTimeout: number | undefined;
+    let finalCleanupExecuted = false;
+
+    const onAggregationError = (event: ErrorEvent) => logWorkerError('aggregation', event, 'error');
+    const onSimulationError = (event: ErrorEvent) => logWorkerError('simulation', event, 'error');
+    const onAggregationMessageError = (event: MessageEvent) => logWorkerError('aggregation', event, 'messageerror');
+    const onSimulationMessageError = (event: MessageEvent) => logWorkerError('simulation', event, 'messageerror');
+
+    const finalCleanup = () => {
+      if (finalCleanupExecuted) {
+        return;
+      }
+      finalCleanupExecuted = true;
+      result.finalCleanupExecuted = true;
+      result.telemetryListenersRemovedAtFinalCleanup = !!onWorkerMessage;
+
+      if (readyTimeout !== undefined) {
+        window.clearTimeout(readyTimeout);
+        readyTimeout = undefined;
+      }
+      if (postRunBatchInterval !== undefined) {
+        window.clearInterval(postRunBatchInterval);
+        postRunBatchInterval = undefined;
+      }
+      if (postRunBatchTimeout !== undefined) {
+        window.clearTimeout(postRunBatchTimeout);
+        postRunBatchTimeout = undefined;
+      }
+
+      if (onWorkerMessage) {
+        aggregationWorker.removeEventListener('message', onWorkerMessage);
+        simulationWorker.removeEventListener('message', onWorkerMessage);
+      }
+      aggregationWorker.removeEventListener('error', onAggregationError);
+      simulationWorker.removeEventListener('error', onSimulationError);
+      aggregationWorker.removeEventListener('messageerror', onAggregationMessageError);
+      simulationWorker.removeEventListener('messageerror', onSimulationMessageError);
+    };
+
+    const logWorkerError = (source: 'aggregation' | 'simulation', event: ErrorEvent | MessageEvent, kind: 'error' | 'messageerror') => {
+      const errorDetails = event instanceof ErrorEvent ? event.error : undefined;
+      const rawMessage = event instanceof ErrorEvent
+        ? event.message
+        : event instanceof MessageEvent && typeof event.data === 'string'
+          ? event.data
+          : undefined;
+      const payload = {
+        source,
+        kind,
+        message: typeof rawMessage === 'string' ? rawMessage : undefined,
+        filename: event instanceof ErrorEvent && typeof event.filename === 'string' ? event.filename : undefined,
+        lineno: event instanceof ErrorEvent && typeof event.lineno === 'number' ? event.lineno : undefined,
+        colno: event instanceof ErrorEvent && typeof event.colno === 'number' ? event.colno : undefined,
+        errorName: errorDetails && typeof errorDetails === 'object' && 'name' in errorDetails ? String((errorDetails as any).name) : undefined,
+        errorMessage: errorDetails && typeof errorDetails === 'object' && 'message' in errorDetails ? String((errorDetails as any).message) : undefined,
+        errorStack: errorDetails && typeof errorDetails === 'object' && 'stack' in errorDetails && typeof (errorDetails as any).stack === 'string' ? (errorDetails as any).stack : undefined
+      };
+
+      if (source === 'aggregation') {
+        result.aggErrorSeen = result.aggErrorSeen || kind === 'error';
+        result.aggMessageErrorSeen = result.aggMessageErrorSeen || kind === 'messageerror';
+      }
+      if (source === 'simulation') {
+        result.simErrorSeen = result.simErrorSeen || kind === 'error';
+        result.simMessageErrorSeen = result.simMessageErrorSeen || kind === 'messageerror';
+      }
+
+      this.appendLog(`[MICRO-TEST] ${source.toUpperCase()}_${kind.toUpperCase()} ${JSON.stringify(payload)}`);
+    };
+
+    const ready = new Promise<void>((resolve, reject) => {
+      readyTimeout = window.setTimeout(() => {
+        const timeoutMessage = `[MICRO-TEST] PRODUCTION_ADD_BATCH_MICRO_TIMEOUT aggregationReady=${result.aggregationReady} simulationReady=${result.simulationReady} runBatchPostBeginSeen=${result.runBatchPostBeginSeen} runBatchPostDoneSeen=${result.runBatchPostDoneSeen} runBatchReceiveEnterSeen=${result.runBatchReceiveEnterSeen} runBatchLoopBeginSeen=${result.runBatchLoopBeginSeen} firstPathBeginSeen=${result.firstPathBeginSeen} firstPathDoneSeen=${result.firstPathDoneSeen} runBatchLoopDoneSeen=${result.runBatchLoopDoneSeen} compactBeginSeen=${result.compactBeginSeen} compactDoneSeen=${result.compactDoneSeen} aggErrorSeen=${result.aggErrorSeen} aggMessageErrorSeen=${result.aggMessageErrorSeen} simErrorSeen=${result.simErrorSeen} simMessageErrorSeen=${result.simMessageErrorSeen}`;
+        this.appendLog(timeoutMessage);
+        reject(new Error(`PRODUCTION_ADD_BATCH_MICRO_TIMEOUT aggregationReady=${result.aggregationReady} simulationReady=${result.simulationReady} runBatchPostBeginSeen=${result.runBatchPostBeginSeen} runBatchPostDoneSeen=${result.runBatchPostDoneSeen} runBatchReceiveEnterSeen=${result.runBatchReceiveEnterSeen} runBatchLoopBeginSeen=${result.runBatchLoopBeginSeen} firstPathBeginSeen=${result.firstPathBeginSeen} firstPathDoneSeen=${result.firstPathDoneSeen} runBatchLoopDoneSeen=${result.runBatchLoopDoneSeen} compactBeginSeen=${result.compactBeginSeen} compactDoneSeen=${result.compactDoneSeen}`));
+      }, 30_000);
+      const finalize = () => {
+        if (readyTimeout !== undefined) {
+          clearTimeout(readyTimeout);
+          readyTimeout = undefined;
+        }
+        resolve();
+      };
+
+      onWorkerMessage = (event: MessageEvent) => {
+        const data = event.data as any;
+        const source = event.target === simulationWorker ? 'simulation' : 'aggregation';
+
+        if (source === 'aggregation') {
+          if (result.aggFirstMessageAt === null) {
+            result.aggFirstMessageAt = performance.now();
+          }
+          this.appendLog(`[MICRO-TEST] AGG_RAW_MESSAGE type=${String(data?.type ?? 'unknown')}`);
+        }
+        if (source === 'simulation') {
+          if (result.simFirstMessageAt === null) {
+            result.simFirstMessageAt = performance.now();
+          }
+          this.appendLog(`[MICRO-TEST] SIM_RAW_MESSAGE type=${String(data?.type ?? 'unknown')}`);
+        }
+
+        if (data?.type === 'MC_PORT_TEST_CHECKPOINT') {
+          result.runtimeCheckpoints.push({
+            source,
+            checkpoint: data.checkpoint,
+            originalType: data.originalType ?? null,
+            testId: data.testId ?? null,
+            executionId: data.executionId ?? null,
+            workerId: typeof data.workerId === 'number' ? data.workerId : null,
+            hasAggregationPort: data.hasAggregationPort
+          });
+        }
+
+        if (!data || !data.executionId || data.executionId !== executionId) return;
+
+        if (data.type === 'READY') {
+          const source = event.target === simulationWorker ? 'simulation' : 'aggregation';
+          if (source === 'aggregation') {
+            result.aggregationReady = true;
+            this.appendLog(`[MICRO-TEST] AGG_READY workerId=${data.workerId ?? 'n/a'} executionId=${data.executionId}`);
+          } else {
+            result.simulationReady = true;
+            this.appendLog(`[MICRO-TEST] SIM_READY workerId=${data.workerId ?? 'n/a'} executionId=${data.executionId}`);
+          }
+
+          if (result.aggregationReady && result.simulationReady) {
+            result.telemetryListenersSurviveReady = true;
+            finalize();
+          }
+        }
+
+        if (data.type === 'MC_PORT_TEST_CHECKPOINT') {
+          if (data.checkpoint === 'PROD_RUN_BATCH_RECEIVE_ENTER') {
+            result.runBatchReceiveEnterSeen = true;
+          }
+          if (data.checkpoint === 'PROD_RUN_BATCH_LOOP_BEGIN') {
+            result.runBatchLoopBeginSeen = true;
+          }
+          if (data.checkpoint === 'PROD_FIRST_PATH_BEGIN') {
+            result.firstPathBeginSeen = true;
+          }
+          if (data.checkpoint === 'PROD_FIRST_PATH_DONE') {
+            result.firstPathDoneSeen = true;
+          }
+          if (data.checkpoint === 'PROD_RUN_BATCH_LOOP_DONE') {
+            result.runBatchLoopDoneSeen = true;
+          }
+          if (data.checkpoint === 'PROD_COMPACT_BEGIN') {
+            result.compactBeginSeen = true;
+          }
+          if (data.checkpoint === 'PROD_COMPACT_DONE') {
+            result.compactDoneSeen = true;
+          }
+          if (data.checkpoint === 'PROD_ADD_BATCH_SEND_BEGIN') {
+            result.prodAddBatchSendBeginSeen = true;
+            result.sentExecutionId = data.executionId ?? null;
+            result.sentWorkerId = typeof data.workerId === 'number' ? data.workerId : null;
+          }
+          if (data.checkpoint === 'PROD_ADD_BATCH_SEND_DONE') {
+            result.prodAddBatchSendDoneSeen = true;
+          }
+          if (data.checkpoint === 'PROD_ADD_BATCH_RECEIVE_ENTER') {
+            result.prodAddBatchReceiveEnterSeen = true;
+            result.receivedExecutionId = data.executionId ?? null;
+            result.receivedWorkerId = typeof data.workerId === 'number' ? data.workerId : null;
+          }
+          if (data.checkpoint === 'PROD_ADD_BATCH_ACCOUNTED') {
+            result.prodAddBatchAccountedSeen = true;
+            result.deltaPaths = Number(data.deltaPaths ?? 0);
+          }
+          if (data.checkpoint === 'PROD_PAYLOAD_STRUCTURED_CLONE_PASS') {
+            result.prodPayloadStructuredClonePass = data.pass === true;
+            result.nonTrivialCloneTypesFound = Array.isArray(data.nonTrivialCloneTypesFound) ? data.nonTrivialCloneTypesFound : [];
+          }
+        }
+      };
+
+      aggregationWorker.addEventListener('message', onWorkerMessage);
+      simulationWorker.addEventListener('message', onWorkerMessage);
+    });
+
+    aggregationWorker.addEventListener('error', onAggregationError);
+    simulationWorker.addEventListener('error', onSimulationError);
+    aggregationWorker.addEventListener('messageerror', onAggregationMessageError);
+    simulationWorker.addEventListener('messageerror', onSimulationMessageError);
+
+    const POST_RUN_BATCH_TIMEOUT_MS = 30_000;
+
+    try {
+      const snapshot = await this.loadRealSnapshot();
+      this.appendLog('[MICRO-TEST] PRECOMPUTE_BEGIN');
+      const precomputeStartedAt = performance.now();
+      const precompute = prepareMonteCarloPrecomputation(snapshot);
+      const precomputeDurationMs = performance.now() - precomputeStartedAt;
+      this.appendLog(`[MICRO-TEST] PRECOMPUTE_DONE durationMs=${precomputeDurationMs}`);
+
+      const input = {
+        positions: this.realPortfolio,
+        initialCapital: 100_000,
+        horizonYears: 1
+      };
+
+      aggregationWorker.postMessage({
+        type: 'REGISTER_SIMULATION_PORT',
+        executionId,
+        testId,
+        workerId: 0,
+        simulationPort: channel.port2
+      }, [channel.port2]);
+      result.aggRegisterSentAt = performance.now();
+      this.appendLog('[MICRO-TEST] AGG_REGISTER_PORT_SENT');
+
+      aggregationWorker.postMessage({
+        type: 'INIT',
+        executionId,
+        workerId: 0,
+        expectedPathCount: 1
+      });
+      result.aggInitSentAt = performance.now();
+      this.appendLog('[MICRO-TEST] AGG_INIT_SENT');
+
+      simulationWorker.postMessage({
+        type: 'INIT',
+        executionId,
+        workerId: 0,
+        precompute,
+        input,
+        snapshot,
+        aggregationPort: channel.port1
+      }, [channel.port1]);
+      result.simInitSentAt = performance.now();
+      this.appendLog(`[MICRO-TEST] SIM_INIT_SENT executionId=${executionId} workerId=0 hasPrecompute=${Boolean(precompute)}`);
+
+      await ready;
+
+      result.registeredAggExecutionId = executionId;
+      result.registeredWorkerId = 0;
+      this.appendLog(`[MICRO-TEST] Ready: starting real production ADD_BATCH dispatch for executionId=${executionId}`);
+      this.appendLog(`[MICRO-TEST] RUN_BATCH_POST_BEGIN executionId=${executionId} workerId=0 batchStart=0 batchEnd=1 pathCount=1 hasPrecompute=${Boolean(precompute)}`);
+      result.runBatchPostBeginSeen = true;
+      try {
+        simulationWorker.postMessage({
+          type: 'RUN_BATCH',
+          executionId,
+          workerId: 0,
+          batchStart: 0,
+          batchEnd: 1,
+          input,
+          snapshot,
+          precompute,
+          pathCount: 1
+        });
+        result.runBatchPostDoneSeen = true;
+        this.appendLog(`[MICRO-TEST] RUN_BATCH_POST_DONE executionId=${executionId} workerId=0 batchStart=0 batchEnd=1 pathCount=1 hasPrecompute=${Boolean(precompute)}`);
+        setTimeout(() => {
+          result.mainEventLoopAfterRunBatchSeen = true;
+          this.appendLog('[MICRO-TEST] MAIN_EVENT_LOOP_AFTER_RUN_BATCH');
+        }, 0);
+      } catch (error) {
+        const errorName = error instanceof Error ? error.name : 'UnknownError';
+        const errorMessage = error instanceof Error ? error.message : 'RUN_BATCH postMessage failed';
+        const errorStack = error instanceof Error && typeof error.stack === 'string' ? error.stack : null;
+        this.appendLog(`[MICRO-TEST] RUN_BATCH_POST_ERROR executionId=${executionId} workerId=0 errorName=${errorName} errorMessage=${errorMessage}`);
+        result.errorName = errorName;
+        result.errorMessage = errorMessage;
+        result.errorStack = errorStack;
+        throw error;
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        postRunBatchTimeout = window.setTimeout(() => {
+          result.postRunBatchTimeoutSeen = true;
+          const timeoutMessage = `[MICRO-TEST] PRODUCTION_ADD_BATCH_POST_RUN_BATCH_TIMEOUT runBatchPostBeginSeen=${result.runBatchPostBeginSeen} runBatchPostDoneSeen=${result.runBatchPostDoneSeen} runBatchReceiveEnterSeen=${result.runBatchReceiveEnterSeen} runBatchLoopBeginSeen=${result.runBatchLoopBeginSeen} firstPathBeginSeen=${result.firstPathBeginSeen} firstPathDoneSeen=${result.firstPathDoneSeen} runBatchLoopDoneSeen=${result.runBatchLoopDoneSeen} compactBeginSeen=${result.compactBeginSeen} compactDoneSeen=${result.compactDoneSeen} prodPayloadStructuredClonePass=${result.prodPayloadStructuredClonePass} prodAddBatchSendBeginSeen=${result.prodAddBatchSendBeginSeen} prodAddBatchSendDoneSeen=${result.prodAddBatchSendDoneSeen} prodAddBatchReceiveEnterSeen=${result.prodAddBatchReceiveEnterSeen} prodAddBatchAccountedSeen=${result.prodAddBatchAccountedSeen} aggregationReady=${result.aggregationReady} simulationReady=${result.simulationReady} runtimeCheckpoints=${JSON.stringify(result.runtimeCheckpoints)}`;
+          this.appendLog(timeoutMessage);
+          const timeoutErrorMessage = `PRODUCTION_ADD_BATCH_POST_RUN_BATCH_TIMEOUT runBatchPostBeginSeen=${result.runBatchPostBeginSeen} runBatchPostDoneSeen=${result.runBatchPostDoneSeen} runBatchReceiveEnterSeen=${result.runBatchReceiveEnterSeen} runBatchLoopBeginSeen=${result.runBatchLoopBeginSeen} firstPathBeginSeen=${result.firstPathBeginSeen} firstPathDoneSeen=${result.firstPathDoneSeen} runBatchLoopDoneSeen=${result.runBatchLoopDoneSeen} compactBeginSeen=${result.compactBeginSeen} compactDoneSeen=${result.compactDoneSeen} prodPayloadStructuredClonePass=${result.prodPayloadStructuredClonePass} prodAddBatchSendBeginSeen=${result.prodAddBatchSendBeginSeen} prodAddBatchSendDoneSeen=${result.prodAddBatchSendDoneSeen} prodAddBatchReceiveEnterSeen=${result.prodAddBatchReceiveEnterSeen} prodAddBatchAccountedSeen=${result.prodAddBatchAccountedSeen} aggregationReady=${result.aggregationReady} simulationReady=${result.simulationReady}`;
+          if (!result.errorName && !result.errorMessage) {
+            result.errorName = 'PRODUCTION_ADD_BATCH_POST_RUN_BATCH_TIMEOUT';
+            result.errorMessage = timeoutErrorMessage;
+          }
+          result.rootCauseRefined = timeoutErrorMessage;
+          clearInterval(check);
+          if (postRunBatchTimeout !== undefined) {
+            clearTimeout(postRunBatchTimeout);
+            postRunBatchTimeout = undefined;
+          }
+          reject(new Error(timeoutErrorMessage));
+        }, POST_RUN_BATCH_TIMEOUT_MS);
+
+        const check = setInterval(() => {
+          if (result.prodAddBatchReceiveEnterSeen && result.prodAddBatchAccountedSeen && result.prodAddBatchSendDoneSeen) {
+            clearInterval(check);
+            postRunBatchInterval = undefined;
+            if (postRunBatchTimeout !== undefined) {
+              clearTimeout(postRunBatchTimeout);
+              postRunBatchTimeout = undefined;
+            }
+            resolve();
+          }
+        }, 25);
+        postRunBatchInterval = check;
+      });
+
+      result.productionBatchPathCount = Array.isArray((this as any).realProductionBatchPayload) ? (this as any).realProductionBatchPayload.length : 0;
+      result.productionBatchTopLevelKeys = ['type', 'executionId', 'workerId', 'batch', 'expectedPathCount'];
+      result.executionIdMatch = result.sentExecutionId === result.receivedExecutionId && result.sentExecutionId === executionId && result.registeredAggExecutionId === executionId;
+      result.workerIdMatch = result.sentWorkerId === result.registeredWorkerId && result.registeredWorkerId === result.receivedWorkerId;
+      result.rootCauseRefined = 'Single real production ADD_BATCH delivery checked; result reflects send/receive accounting only.';
+      this.productionAddBatchMicroTest.set(result);
+      this.status.set('Production ADD_BATCH micro-test completed');
+      this.appendLog('Production ADD_BATCH micro-test completed');
+    } catch (error) {
+      const errorName = result.errorName ?? (error instanceof Error ? error.name : 'UnknownError');
+      const message = result.errorMessage ?? (error instanceof Error ? error.message : 'Production ADD_BATCH micro-test failed');
+      const errorStack = error instanceof Error && typeof error.stack === 'string' ? error.stack : null;
+      result.errorName = errorName;
+      result.errorMessage = message;
+      result.errorStack = result.errorStack ?? errorStack;
+      result.rootCauseRefined = `Production ADD_BATCH micro-test failed: ${message}`;
+      this.productionAddBatchMicroTest.set(result);
+      this.status.set('Production ADD_BATCH micro-test failed');
+      this.appendLog(`Failure: ${message}`);
+    } finally {
+      finalCleanup();
+      this.running.set(false);
+      aggregationWorker.terminate();
+      simulationWorker.terminate();
+    }
   }
 
   async runDiagnosticDefaultWorkers(): Promise<void> {
@@ -962,8 +1693,10 @@ export class MontecarloValidationPageComponent {
           throw new Error(`${mode} run failed: ${outcome.error?.message ?? 'unknown failure'}`);
         }
 
-        if (outcome.paths.length !== outcome.totalPaths) {
-          throw new Error(`${mode} returned a partial result: ${outcome.paths.length} / ${outcome.totalPaths}`);
+        const actualCompletedPaths = outcome.completedPaths;
+        const expectedPaths = outcome.totalPaths;
+        if (actualCompletedPaths !== expectedPaths) {
+          throw new Error(`${mode} returned a partial result: ${actualCompletedPaths} / ${expectedPaths}`);
         }
 
         if (mode === 'SMOKE') {

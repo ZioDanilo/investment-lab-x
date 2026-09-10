@@ -12,6 +12,14 @@ import {
 
 export const MAX_REDRAWS = 1000;
 
+const runtimeProcess = (
+  globalThis as typeof globalThis & {
+    process?: {
+      env?: Record<string, string | undefined>;
+    };
+  }
+).process;
+
 export interface EffectiveMonthlyParameters {
   effectiveMu: number;
   effectiveSigma: number;
@@ -241,7 +249,37 @@ const calculateCorrelation = (samples: number[][]): number[][] | null => {
   }));
 };
 
+export const calculateSpearmanCorrelation = (samples: number[][]): number[][] | null => {
+  if (samples.length < 2) return null;
+  const dimension = samples[0].length;
+  const ranked = Array.from({ length: samples.length }, () => Array<number>(dimension).fill(0));
+
+  for (let column = 0; column < dimension; column += 1) {
+    const values = samples.map((sample) => sample[column]);
+    const indexed = values.map((value, row) => ({ value, row }));
+    indexed.sort((left, right) => left.value - right.value);
+
+    let offset = 0;
+    while (offset < indexed.length) {
+      let cursor = offset + 1;
+      while (cursor < indexed.length && indexed[cursor].value === indexed[offset].value) {
+        cursor += 1;
+      }
+      const averageRank = (offset + 1 + cursor) / 2;
+      for (let index = offset; index < cursor; index += 1) {
+        ranked[indexed[index].row][column] = averageRank;
+      }
+      offset = cursor;
+    }
+  }
+
+  return calculateCorrelation(ranked);
+};
+
 const calculateTailDependence = (samples: number[][], upper: boolean): number[][] | null => {
+  if (typeof globalThis !== 'undefined' && (globalThis as any).__advancedDiagnosticsRuntime) {
+    (globalThis as any).__advancedDiagnosticsRuntime.calculateTailDependence += 1;
+  }
   if (samples.length < 2) return null;
   const dimension = samples[0].length;
   const thresholds = Array.from({ length: dimension }, (_, index) => {
@@ -300,7 +338,8 @@ export const generateMonthlyReturnVector = (
   precomputation: MonteCarloPrecomputation,
   scenario: MonteCarloScenario,
   intensity: number,
-  random: UniformRandomSource
+  random: UniformRandomSource,
+  advancedStatisticsEnabled = true
 ): MonthlyReturnVector => {
   if (!Number.isFinite(intensity) || intensity < 0 || intensity > 1) {
     fail('INVALID_INTENSITY', 'intensity must be finite and in [0, 1]', { intensity });
@@ -329,7 +368,18 @@ export const generateMonthlyReturnVector = (
     upperDistanceSigmaSum: number;
   }> = {};
 
+  if (!advancedStatisticsEnabled) {
+    // Keep only the essential acceptance tracking for the official KPI path.
+    // Advanced range diagnostics are skipped entirely when the toggle is off.
+  }
+
   const recordRangeCandidate = (isin: string, value: number, parameters: EffectiveMonthlyParameters): void => {
+    if (!advancedStatisticsEnabled) {
+      return;
+    }
+    if (typeof globalThis !== 'undefined' && (globalThis as any).__advancedDiagnosticsRuntime) {
+      (globalThis as any).__advancedDiagnosticsRuntime.recordRangeCandidate += 1;
+    }
     const key = `${isin}|${scenario}`;
     if (!rangeBucketState[key]) {
       rangeBucketState[key] = {
@@ -357,6 +407,9 @@ export const generateMonthlyReturnVector = (
   };
 
   const finalizeRangeDiagnostics = () => {
+    if (!advancedStatisticsEnabled) {
+      return {} as Record<string, any>;
+    }
     const byEtfScenario: Record<string, {
       candidateReturnCount: number;
       belowEffectiveMinCount: number;
@@ -393,7 +446,7 @@ export const generateMonthlyReturnVector = (
   let oldRangeViolationCount = 0;
   let effectiveRangeRejectedVectors = 0;
   let rejectVectorNumber = 0;
-  const debugRejectEnabled = typeof process !== 'undefined' && process.env && process.env.DEBUG_REJECT === '1';
+  const debugRejectEnabled = runtimeProcess?.env?.DEBUG_REJECT === '1';
   for (let attempt = 1; attempt <= MAX_REDRAWS; attempt += 1) {
     const independentNormals = assetIsins.map(() => sampleStandardNormal(random));
     const correlatedNormals = multiplyMatrixVector(factor, independentNormals);
@@ -413,7 +466,9 @@ export const generateMonthlyReturnVector = (
       const oldRangeViolation = candidateReturn < parameters.effectiveReturnRange.min || candidateReturn > parameters.effectiveReturnRange.max;
       const physicalFloorViolation = candidateReturn < -1;
       const accepted = isMonthlyReturnAccepted(candidateReturn, parameters.effectiveReturnRange);
-      recordRangeCandidate(isin, candidateReturn, parameters);
+      if (advancedStatisticsEnabled) {
+        recordRangeCandidate(isin, candidateReturn, parameters);
+      }
       if (oldRangeViolation) {
         oldRangeViolationCount += 1;
       }
@@ -477,7 +532,7 @@ export const generateMonthlyReturnVector = (
         });
       }
     }
-    const debugEnabled = typeof process !== 'undefined' && process.env && process.env.DEBUG_SHOCK === '1';
+    const debugEnabled = runtimeProcess?.env?.DEBUG_SHOCK === '1';
     const debugVectorNumber = debugEnabled ? (++debugVectorCounter) : 0;
     if (debugEnabled && debugVectorNumber <= 20) {
       assetIsins.forEach((isin, index) => {
@@ -559,10 +614,10 @@ export const generateMonthlyReturnVector = (
         rejectedAttempts: rejectedChiSquares.length,
         acceptedChiSquare: commonChiSquare,
         rejectedChiSquares,
-        targetCorrelation: cloneMatrix(originalMatrix),
-        operationalCorrelation: cloneMatrix(operationalMatrix),
-        latentCorrelation: cloneMatrix(operationalMatrix),
-        rangeDiagnostics: {
+        targetCorrelation: advancedStatisticsEnabled ? cloneMatrix(originalMatrix) : [],
+        operationalCorrelation: advancedStatisticsEnabled ? cloneMatrix(operationalMatrix) : [],
+        latentCorrelation: advancedStatisticsEnabled ? cloneMatrix(operationalMatrix) : [],
+        rangeDiagnostics: advancedStatisticsEnabled ? {
           candidateVectors,
           acceptedVectors,
           rejectedVectors,
@@ -570,7 +625,7 @@ export const generateMonthlyReturnVector = (
           oldRangeViolationCount,
           effectiveRangeRejectedVectors,
           byEtfScenario: finalizeRangeDiagnostics()
-        }
+        } : undefined
       }
     };
     return finalResult;
