@@ -43,20 +43,6 @@ const asWorkerScope = (typeof self !== 'undefined' ? self : globalThis) as typeo
   onmessage: ((event: MessageEvent) => void) | null;
 };
 
-const deriveWeightedAverageCorrelation = (snapshot: MonteCarloSnapshot): number => {
-  const pairValues = snapshot.correlations.flatMap((entry) => [entry.expansion, entry.recession, entry.stagflation, entry.soft_landing]);
-  if (pairValues.length === 0) return 0.25;
-  const average = pairValues.reduce((sum, value) => sum + value, 0) / pairValues.length;
-  return Number.isFinite(average) ? Math.max(0, Math.min(1, average)) : 0.25;
-};
-
-const deriveMaxCorrelation = (snapshot: MonteCarloSnapshot): number => {
-  const pairValues = snapshot.correlations.flatMap((entry) => [entry.expansion, entry.recession, entry.stagflation, entry.soft_landing]);
-  if (pairValues.length === 0) return 0.25;
-  const max = Math.max(...pairValues);
-  return Number.isFinite(max) ? Math.max(0, Math.min(1, max)) : 0.25;
-};
-
 const deriveLongTermExpectedReturn = (snapshot: MonteCarloSnapshot): number => {
   if (snapshot.etfs.length === 0) return 0.06;
   const average = snapshot.etfs.reduce((sum, etf) => sum + (etf.statistics.general?.expectedReturn ?? 0), 0) / snapshot.etfs.length;
@@ -169,11 +155,6 @@ const finalizeIfReady = (message: AggregationWorkerRequest, state: typeof aggreg
       input.horizonYears,
       input.initialCapital,
       {
-        weightedAverageScenarioCorrelation: deriveWeightedAverageCorrelation(snapshot),
-        maxScenarioCorrelation: deriveMaxCorrelation(snapshot),
-        longTermExpectedReturn: deriveLongTermExpectedReturn(snapshot)
-      },
-      {
         performanceDiagnostics: {
           redrawCount: 0,
           rejectRate: 0
@@ -183,7 +164,7 @@ const finalizeIfReady = (message: AggregationWorkerRequest, state: typeof aggreg
         modelMatrices: deriveModelCorrelationMatrices(snapshot),
         generalBenchmark: message.generalBenchmark ? {
           expectedReturn: deriveLongTermExpectedReturn(snapshot),
-          volatility: deriveWeightedAverageCorrelation(snapshot) > 0 ? Math.max(0.05, deriveWeightedAverageCorrelation(snapshot)) : 0.15,
+          volatility: 0.15,
           simulatedLongTermReturn: message.generalBenchmark.generalBenchmarkCAGR,
           simulatedVolatility: message.generalBenchmark.generalBenchmarkVolatility
         } : undefined,

@@ -193,9 +193,7 @@ const pathD = makePath(4, 'recession', [
 ]);
 
 const baseOptions = {
-  weightedAverageScenarioCorrelation: 0.3,
-  maxScenarioCorrelation: 0.5,
-  longTermExpectedReturn: 0.06
+  advancedStatisticsEnabled: true
 };
 
 const modelMatrices = {

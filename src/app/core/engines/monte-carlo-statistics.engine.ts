@@ -79,6 +79,17 @@ const buildDeltaMatrix = (empiricalReturn: number[][], target: number[][], absol
  * Computes aggregate statistics from multiple Monte Carlo simulation paths.
  */
 export class MonteCarloStatisticsEngine {
+  static readonly DRAWDOWN_REFERENCE_YEARS = 30;
+  static readonly DRAWDOWN_HORIZON_EXPONENT = 0.20;
+
+  static normalizeDrawdownTo30Years(drawdown: number, simulationYears: number): number {
+    if (!Number.isFinite(drawdown)) return 0;
+    if (simulationYears <= 0) return drawdown;
+    if (drawdown <= 0) return 0;
+    if (drawdown >= 1) return 1;
+    const factor = Math.pow(this.DRAWDOWN_REFERENCE_YEARS / simulationYears, this.DRAWDOWN_HORIZON_EXPONENT);
+    return 1 - Math.pow(1 - drawdown, factor);
+  }
 
   private static assertFiniteNumber(value: number, field: string): number {
     if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -104,34 +115,6 @@ export class MonteCarloStatisticsEngine {
       throw new Error('generalBenchmark.volatility must be a finite number');
     }
     return generalBenchmark;
-  }
-
-  private static coerceCorrelationInput(decorrelationInput?: {
-    weightedAverageScenarioCorrelation?: number;
-    maxScenarioCorrelation?: number;
-    longTermExpectedReturn?: number;
-  }): {
-    weightedAverageScenarioCorrelation: number;
-    maxScenarioCorrelation: number;
-    longTermExpectedReturn: number;
-  } {
-    if (!decorrelationInput) {
-      throw new Error('decorrelationInput is required for official Step 8 result');
-    }
-    const weightedAverageScenarioCorrelation = this.assertFiniteNumber(decorrelationInput.weightedAverageScenarioCorrelation as number, 'weightedAverageScenarioCorrelation');
-    const maxScenarioCorrelation = this.assertFiniteNumber(decorrelationInput.maxScenarioCorrelation as number, 'maxScenarioCorrelation');
-    const longTermExpectedReturn = this.assertFiniteNumber(decorrelationInput.longTermExpectedReturn as number, 'longTermExpectedReturn');
-    if (weightedAverageScenarioCorrelation < 0 || weightedAverageScenarioCorrelation > 1) {
-      throw new Error(`weightedAverageScenarioCorrelation must be in [0,1], got ${weightedAverageScenarioCorrelation}`);
-    }
-    if (maxScenarioCorrelation < 0 || maxScenarioCorrelation > 1) {
-      throw new Error(`maxScenarioCorrelation must be in [0,1], got ${maxScenarioCorrelation}`);
-    }
-    return {
-      weightedAverageScenarioCorrelation,
-      maxScenarioCorrelation,
-      longTermExpectedReturn
-    };
   }
 
   /**
@@ -793,11 +776,6 @@ export class MonteCarloStatisticsEngine {
     paths: MonteCarloPathResult[],
     horizonYears: number,
     initialCapital: number,
-    decorrelationInput?: {
-      weightedAverageScenarioCorrelation?: number;
-      maxScenarioCorrelation?: number;
-      longTermExpectedReturn?: number;
-    },
     statisticsInput?: {
       diagnostics?: MonteCarloPathDiagnostics;
       generalBenchmark?: MonteCarloGeneralBenchmark;
@@ -819,7 +797,6 @@ export class MonteCarloStatisticsEngine {
       this.assertValidMaxDrawdown(path);
     }
 
-    const correlation = this.coerceCorrelationInput(decorrelationInput);
     const officialResultStart = performance.now();
     profileEvent?.('BASE_PATH_STATS_START', performance.now(), { pathsLength: paths.length });
     const cagrValues = paths.map((path) => {
@@ -843,17 +820,14 @@ export class MonteCarloStatisticsEngine {
     });
 
     const robustCagr = this.calculateTrimmedMean5Percent(cagrValues);
-    const robustMaxDrawdown = this.calculateTrimmedMean5Percent(maxDrawdownValues);
+    const rawQ95MaxDrawdown = this.calculateLinearPercentile(maxDrawdownValues, 95);
+    const rawWorstMaxDrawdown = maxDrawdownValues.length > 0 ? Math.max(...maxDrawdownValues) : 0;
+    const normalizedQ95MaxDrawdown = this.normalizeDrawdownTo30Years(rawQ95MaxDrawdown, horizonYears);
+    const normalizedWorstMaxDrawdown = this.normalizeDrawdownTo30Years(rawWorstMaxDrawdown, horizonYears);
     const volatilityKpi = this.calculateTrimmedMean5Percent(pathVolatilities);
     const medianCagr = this.calculateMedian(cagrValues.length > 0 ? cagrValues : [0]);
     const recoveryTimeKpi = completedRecoveryTimes.length > 0 ? this.calculateTrimmedMean5Percent(completedRecoveryTimes) : null;
     profileEvent?.('BASE_PATH_STATS_END', performance.now(), { pathsLength: paths.length });
-
-    const rhoStar = 0.60 * correlation.weightedAverageScenarioCorrelation + 0.40 * correlation.maxScenarioCorrelation;
-    const decorrelationIndex = Math.max(0, Math.min(100, 100 * (0.90 - rhoStar) / 0.80));
-
-    const lantieriDenominator = robustMaxDrawdown > 0 ? robustMaxDrawdown : 0;
-    const lantieriIndex = lantieriDenominator > 0 ? correlation.longTermExpectedReturn / lantieriDenominator : 0;
 
     profileEvent?.('PERCENTILES_START', performance.now(), { pathsLength: paths.length });
     const finalCapitalPercentiles = this.buildPercentileSet(paths.map((path) => path.finalCapital));
@@ -913,10 +887,9 @@ export class MonteCarloStatisticsEngine {
     const officialResult = {
       mainKpis: {
         robustCagr,
-        robustMaxDrawdown,
+        robustMaxDrawdown: normalizedQ95MaxDrawdown,
+        worstCaseMaxDrawdown: normalizedWorstMaxDrawdown,
         volatility: volatilityKpi,
-        decorrelationIndex,
-        lantieriIndex,
         recoveryTimeMonths: recoveryTimeKpi
       },
       percentiles: {
@@ -1242,7 +1215,6 @@ export class MonteCarloStatisticsEngine {
         maximumMonthlyReturn: pathReturns.length > 0 ? this.computeMax(pathReturns) : 0,
       },
       drawdown: {
-        robustTrimmedMean: this.calculateTrimmedMean5Percent(maxDrawdownValues),
         p5: drawdownPercentiles.p5,
         p25: drawdownPercentiles.p25,
         p50: drawdownPercentiles.p50,

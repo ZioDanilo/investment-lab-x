@@ -40,9 +40,8 @@ interface ValidationStageAggregatedReport {
   kpis: {
     CAGRRobusto: number | null;
     MaxDDRobusto: number | null;
+    WorstCaseMaxDD: number | null;
     Volatility: number | null;
-    IndiceDecorrelazione: number | null;
-    IndiceLantieri: number | null;
     RecoveryTime: number | null;
     MedianCAGR: number | null;
     MedianFinalCapital: number | null;
@@ -72,6 +71,7 @@ interface MomentumCagrStageReport {
   medianFinalCapital: number | null;
   meanFinalCapital: number | null;
   robustMaxDrawdown: number | null;
+  worstCaseMaxDrawdown: number | null;
   medianMaxDrawdown: number | null;
   p95MaxDrawdown: number | null;
   maxObservedDrawdown: number | null;
@@ -683,9 +683,8 @@ export class MontecarloValidationPageComponent {
       kpis: {
         CAGRRobusto: Number.isFinite(mainKpis.robustCagr) ? mainKpis.robustCagr : null,
         MaxDDRobusto: Number.isFinite(mainKpis.robustMaxDrawdown) ? mainKpis.robustMaxDrawdown : null,
+        WorstCaseMaxDD: Number.isFinite(mainKpis.worstCaseMaxDrawdown) ? mainKpis.worstCaseMaxDrawdown : null,
         Volatility: Number.isFinite(mainKpis.volatility) ? mainKpis.volatility : null,
-        IndiceDecorrelazione: Number.isFinite(mainKpis.decorrelationIndex) ? mainKpis.decorrelationIndex : null,
-        IndiceLantieri: Number.isFinite(mainKpis.lantieriIndex) ? mainKpis.lantieriIndex : null,
         RecoveryTime: Number.isFinite(mainKpis.recoveryTimeMonths) ? mainKpis.recoveryTimeMonths : null,
         MedianCAGR: Number.isFinite(officialResult.percentiles?.cagr?.p50) ? officialResult.percentiles.cagr.p50 : null,
         MedianFinalCapital: Number.isFinite(officialResult.percentiles?.finalCapital?.p50) ? officialResult.percentiles.finalCapital.p50 : null
@@ -1258,6 +1257,7 @@ export class MontecarloValidationPageComponent {
           medianFinalCapital: Number.isFinite(resultAny?.percentiles?.finalCapital?.p50) ? resultAny.percentiles.finalCapital.p50 : null,
           meanFinalCapital: Number.isFinite(resultAny?.mainKpis?.meanFinalCapital) ? resultAny.mainKpis.meanFinalCapital : null,
           robustMaxDrawdown: Number.isFinite(mainKpis.robustMaxDrawdown) ? mainKpis.robustMaxDrawdown : null,
+          worstCaseMaxDrawdown: Number.isFinite(mainKpis.worstCaseMaxDrawdown) ? mainKpis.worstCaseMaxDrawdown : null,
           medianMaxDrawdown: Number.isFinite(resultAny?.percentiles?.maxDrawdown?.p50) ? resultAny.percentiles.maxDrawdown.p50 : null,
           p95MaxDrawdown: Number.isFinite(resultAny?.percentiles?.maxDrawdown?.p95) ? resultAny.percentiles.maxDrawdown.p95 : null,
           maxObservedDrawdown: Number.isFinite(resultAny?.maxObservedDrawdown) ? resultAny.maxObservedDrawdown : null,

@@ -383,11 +383,7 @@ async function runStep9Coverage(): Promise<void> {
     assert.equal(Array.isArray(compact.years), true);
     assert.equal(compact.scenarioPath.frequencies.expansion, 12);
 
-    const result = MonteCarloStatisticsEngine.buildOfficialResult([compact as any], 1, input.initialCapital, {
-      weightedAverageScenarioCorrelation: 0.35,
-      maxScenarioCorrelation: 0.42,
-      longTermExpectedReturn: 0.06
-    }, { matricesCoherent: true });
+    const result = MonteCarloStatisticsEngine.buildOfficialResult([compact as any], 1, input.initialCapital, { matricesCoherent: true, advancedStatisticsEnabled: true });
     assert.ok(Array.isArray(result.capitalFan));
     assert.ok(Number.isFinite(result.mainKpis.robustCagr));
   });

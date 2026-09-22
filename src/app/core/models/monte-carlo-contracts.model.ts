@@ -111,9 +111,8 @@ export interface MonteCarloResult {
 export interface MonteCarloMainKpis {
   robustCagr: number;
   robustMaxDrawdown: number;
+  worstCaseMaxDrawdown: number;
   volatility: number;
-  decorrelationIndex: number;
-  lantieriIndex: number;
   recoveryTimeMonths: number | null;
 }
 

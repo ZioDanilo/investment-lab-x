@@ -217,9 +217,8 @@ export class MontecarloNewPageComponent implements OnInit {
     const { mainKpis } = result;
     return [
       { name: 'CAGR robusto', value: mainKpis.robustCagr, format: 'percent', sub: `P5/P95: ${this.fmtPct(result.percentiles.cagr.p5)} / ${this.fmtPct(result.percentiles.cagr.p95)}` },
-      { name: 'Max Drawdown robusto', value: mainKpis.robustMaxDrawdown, format: 'percent', sub: `P95: ${this.fmtPct(result.percentiles.maxDrawdown.p95)}` },
+      { name: 'Max Drawdown', value: mainKpis.robustMaxDrawdown, format: 'percent', sub: `95° percentile · equivalente 30 anni · worst case: ${this.fmtPct(mainKpis.worstCaseMaxDrawdown)}` },
       { name: 'Volatilità', value: mainKpis.volatility, format: 'percent', sub: `P50 finale: ${this.fmtEur(result.percentiles.finalCapital.p50)}` },
-      { name: 'Decorrelation Index', value: mainKpis.decorrelationIndex, format: 'percent', sub: `Lantieri: ${this.fmtPct(mainKpis.lantieriIndex)}` },
       { name: 'Recovery Time', value: mainKpis.recoveryTimeMonths, format: 'count', sub: `P50: ${this.fmtCount(result.percentiles.recoveryTimeMonths?.p50 ?? null)}` },
       { name: 'Capitale finale mediano', value: result.percentiles.finalCapital.p50, format: 'currency', sub: `P5/P95: ${this.fmtEur(result.percentiles.finalCapital.p5)} / ${this.fmtEur(result.percentiles.finalCapital.p95)}` }
     ];

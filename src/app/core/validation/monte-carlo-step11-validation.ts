@@ -334,10 +334,9 @@ export const runStep11Validation = async (): Promise<void> => {
       mainKpis: {
         robustCagr: officialResult.mainKpis.robustCagr,
         robustMaxDrawdown: officialResult.mainKpis.robustMaxDrawdown,
+        worstCaseMaxDrawdown: officialResult.mainKpis.worstCaseMaxDrawdown,
         recoveryTimeMonths: officialResult.mainKpis.recoveryTimeMonths,
-        volatility: officialResult.mainKpis.volatility,
-        decorrelationIndex: officialResult.mainKpis.decorrelationIndex,
-        lantieriIndex: officialResult.mainKpis.lantieriIndex
+        volatility: officialResult.mainKpis.volatility
       }
     }, null, 2));
   } catch (error) {

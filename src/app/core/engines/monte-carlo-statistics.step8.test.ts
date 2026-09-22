@@ -86,9 +86,57 @@ const testRecoveryOnlyCompleted = () => {
     makePath(2, 110, 0.20, 0.10, null, [{ month: 1, year: 1, portfolioReturn: -0.2, endingCapital: 80 }, { month: 2, year: 1, portfolioReturn: 0.1, endingCapital: 88 }]),
     makePath(3, 130, 0.30, 0.20, 3, [{ month: 1, year: 1, portfolioReturn: -0.5, endingCapital: 50 }, { month: 2, year: 1, portfolioReturn: 0.4, endingCapital: 70 }, { month: 3, year: 1, portfolioReturn: 0.3, endingCapital: 91 }, { month: 4, year: 1, portfolioReturn: 0.4, endingCapital: 127.4 }])
   ];
-  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 });
+  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { advancedStatisticsEnabled: true });
   assert.equal(result.mainKpis.recoveryTimeMonths, trimMean([2, 3]));
   assert.equal(result.percentiles.recoveryTimeMonths?.p50, percentile([2, 3], 50));
+};
+
+const testNormalizeDrawdownTo30Years = () => {
+  const representativeValues = [0, 0.10, 0.25, 0.50, 0.80, 0.99, 1.00];
+  for (const dd of representativeValues) {
+    assert.ok(Math.abs(MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(dd, 30) - dd) < 1e-12, `30Y identity failed for ${dd}`);
+  }
+
+  for (const horizon of [10, 20, 30, 40, 50, 75, 100]) {
+    for (const dd of [0, 0.1, 0.25, 0.5, 0.8, 0.99, 1]) {
+      const normalized = MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(dd, horizon);
+      assert.ok(Number.isFinite(normalized));
+      assert.ok(normalized >= 0 && normalized <= 1, `boundedness failed for dd=${dd} horizon=${horizon} value=${normalized}`);
+      assert.ok(Math.abs(MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(0, horizon)) < 1e-12, `zero boundary failed for ${horizon}`);
+      assert.ok(Math.abs(MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(1, horizon) - 1) < 1e-12, `one boundary failed for ${horizon}`);
+    }
+  }
+
+  const dd = 0.25;
+  assert.ok(MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(dd, 10) > dd);
+  assert.ok(MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(dd, 20) > dd);
+  assert.ok(Math.abs(MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(dd, 30) - dd) < 1e-12);
+  assert.ok(MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(dd, 40) < dd);
+  assert.ok(MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(dd, 50) < dd);
+  assert.ok(MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(dd, 100) < dd);
+};
+
+const testQ95AndWorstCaseUseSevereTailForPositiveMagnitude = () => {
+  const drawdowns = [0.05, 0.08, 0.12, 0.17, 0.23, 0.31, 0.42, 0.64];
+  const q95 = MonteCarloStatisticsEngine.calculateLinearPercentile(drawdowns, 95);
+  const worst = Math.max(...drawdowns);
+  assert.ok(q95 < worst);
+  for (const horizon of [10, 20, 30, 40, 50, 75, 100]) {
+    const qNormalized = MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(q95, horizon);
+    const wNormalized = MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(worst, horizon);
+    assert.ok(wNormalized >= qNormalized, `ordering not preserved for horizon=${horizon}`);
+  }
+};
+
+const testPreviousLinearScalingWouldExceedOne = () => {
+  const rawWorst = 0.90;
+  const horizon = 10;
+  const oldResult = rawWorst * Math.pow(30 / horizon, 0.20);
+  const newResult = MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(rawWorst, horizon);
+  assert.ok(oldResult > 1, `old scaling should exceed 1, got ${oldResult}`);
+  assert.ok(newResult < 1, `new bounded normalization should stay below 1, got ${newResult}`);
+  assert.ok(Math.abs(newResult - (1 - Math.pow(1 - rawWorst, Math.pow(30 / horizon, 0.20)))) < 1e-12);
+  console.log(`Regression rawWorst=${rawWorst} horizon=${horizon} old=${oldResult.toFixed(6)} new=${newResult.toFixed(6)}`);
 };
 
 const testP50EqualsMedianCagr = () => {
@@ -110,7 +158,7 @@ const testCapitalFanAndRepresentativePath = () => {
   const worstB = makePath(2, 75, 0.75, -0.10, 4, Array.from({ length: 12 }, (_, i) => ({ month: i + 1, year: 1, portfolioReturn: -0.04, endingCapital: 96 - i * 2 })));
   const best = makePath(3, 140, 0.10, 0.40, 1, Array.from({ length: 12 }, (_, i) => ({ month: i + 1, year: 1, portfolioReturn: 0.02, endingCapital: 100 + i * 2 })));
   const median = makePath(4, 110, 0.20, 0.10, 2, Array.from({ length: 12 }, (_, i) => ({ month: i + 1, year: 1, portfolioReturn: 0.01, endingCapital: 100 + i })));
-  const result = MonteCarloStatisticsEngine.buildOfficialResult([worstA, worstB, best, median], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 });
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([worstA, worstB, best, median], 1, 100, { advancedStatisticsEnabled: true });
   assert.ok(result.capitalFan.length === 1);
   assert.ok(result.capitalFan[0].capitalP5 <= result.capitalFan[0].capitalP50);
   assert.equal(result.representativePath.simulationId, 2);
@@ -122,7 +170,7 @@ const testStatisticsAndTechnicalChecks = () => {
     makePath(2, 120, 0.20, 0.20, 3, [{ month: 1, year: 1, portfolioReturn: 0.02, endingCapital: 102, intensity: 40 }, { month: 2, year: 1, portfolioReturn: 0.02, endingCapital: 104, intensity: 50 }]),
     makePath(3, 0, 1.00, -1, null, [{ month: 1, year: 1, portfolioReturn: -1, endingCapital: 0, intensity: 90 }, { month: 2, year: 1, portfolioReturn: 0.00, endingCapital: 0, intensity: 95 }])
   ];
-  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }) as any;
+  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { advancedStatisticsEnabled: true }) as any;
   assert.ok('scenario' in result.statistics && 'intensity' in result.statistics && 'correlations' in result.statistics);
   assert.equal(result.technicalChecks.passed, true);
 };
@@ -133,7 +181,7 @@ const testIntensityStatsUseDecimalBandsAndMean = () => {
     makePath(2, 120, 0.20, 0.20, 3, [{ month: 1, year: 1, portfolioReturn: 0.02, endingCapital: 102, intensity: 0.5 }, { month: 2, year: 1, portfolioReturn: 0.02, endingCapital: 104, intensity: 0.7 }]),
     makePath(3, 0, 1.00, -1, null, [{ month: 1, year: 1, portfolioReturn: -1, endingCapital: 0, intensity: 0.9 }, { month: 2, year: 1, portfolioReturn: 0.00, endingCapital: 0, intensity: 1.0 }])
   ];
-  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }) as any;
+  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { advancedStatisticsEnabled: true }) as any;
   const distribution = result.statistics.intensity.distribution;
   const expectedMean = (0.1 + 0.3 + 0.5 + 0.7 + 0.9 + 1.0) / 6;
   assert.ok(Math.abs(distribution.mean - expectedMean) < 1e-9, `expected decimal mean ${expectedMean}, got ${distribution.mean}`);
@@ -148,10 +196,10 @@ const testIntensityStatsUseDecimalBandsAndMean = () => {
 
 const testMissingKpiInputAndInvalidMaxDrawdownFailFast = () => {
   const paths = [makePath(1, 110, 0.10, 0.10, 2)];
-  assert.throws(() => MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4 } as any), /longTermExpectedReturn/i);
+  assert.doesNotThrow(() => MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { advancedStatisticsEnabled: true } as any));
 
   const badPath = makePath(1, 110, 2.0, 0.10, 2);
-  assert.throws(() => MonteCarloStatisticsEngine.buildOfficialResult([badPath], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }), /invalid maxDrawdown/i);
+  assert.throws(() => MonteCarloStatisticsEngine.buildOfficialResult([badPath], 1, 100, { advancedStatisticsEnabled: true }), /invalid maxDrawdown/i);
 };
 
 const testRecoveryZeroIsAllowedOnlyForCompletedRecovery = () => {
@@ -159,7 +207,7 @@ const testRecoveryZeroIsAllowedOnlyForCompletedRecovery = () => {
     makePath(1, 100, 0.10, 0.00, null),
     makePath(2, 100, 0.20, 0.00, 0)
   ];
-  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }) as any;
+  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { advancedStatisticsEnabled: true }) as any;
   assert.equal(result.mainKpis.recoveryTimeMonths, 0);
 };
 
@@ -260,7 +308,7 @@ const testCorrelationDiagnosticsAndGeneralBenchmark = () => {
       simulatedVolatility: 0.11
     }
   };
-  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }, diagnostics as any);
+  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { advancedStatisticsEnabled: true, correlationDiagnostics: diagnostics.correlations as any, generalBenchmark: diagnostics.generalBenchmark as any }, undefined as any);
   assert.ok(Math.abs((result.statistics as any).correlations.pearsonPrimary[0][1] - 0.75) < 1e-9);
   assert.ok(Math.abs((result.statistics as any).correlations.lowerTailDependence5[0][1] - 0.2) < 1e-9);
   assert.ok(Math.abs((result.statistics as any).generalComparison.targetExpectedReturnDelta - 0.01) < 1e-9);
@@ -269,7 +317,7 @@ const testCorrelationDiagnosticsAndGeneralBenchmark = () => {
 
 const testMatricesCoherentFalseIsFalsifiable = () => {
   const paths = [makePath(1, 110, 0.10, 0.10, 2), makePath(2, 120, 0.20, 0.20, 3)];
-  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }, { matricesCoherent: false } as any);
+  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { advancedStatisticsEnabled: true, matricesCoherent: false } as any);
   assert.equal(result.technicalChecks.matricesCoherent, false);
   assert.equal(result.technicalChecks.passed, false);
 };
@@ -296,7 +344,7 @@ const testOldRangeViolationRateUsesCandidateReturnCount = () => {
       }
     }
   };
-  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 });
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { advancedStatisticsEnabled: true });
   assert.ok(Math.abs(result.statistics.returnGeneration.oldRangeViolationRate - (3 / 9)) < 1e-9);
 };
 
@@ -315,7 +363,7 @@ const testAverageMonthsPerScenarioUsesObservedDurations = () => {
     ],
     frequencies: { expansion: 2, recession: 2, stagflation: 2, soft_landing: 2 }
   };
-  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 8, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 });
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 8, 100, { advancedStatisticsEnabled: true });
   assert.ok(Math.abs(result.statistics.scenario.duration.averageMonthsPerScenario - 11.5) < 1e-9);
 };
 
@@ -332,7 +380,7 @@ const testCorrelationDiagnosticsAndGeneralBenchmarkCanBeDerivedFromPathFallback 
     simulatedLongTermReturn: 0.09,
     simulatedVolatility: 0.11
   };
-  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 });
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { advancedStatisticsEnabled: true, correlationDiagnostics: path.correlationDiagnostics as any, generalBenchmark: path.generalBenchmark as any });
   assert.ok(Math.abs(result.statistics.correlations.pearsonPrimary[0][1] - 0.5) < 1e-9);
   assert.ok(Math.abs(result.statistics.generalComparison.targetExpectedReturnDelta - 0.01) < 1e-9);
   assert.ok(Math.abs(result.statistics.generalComparison.targetVolatilityDelta + 0.01) < 1e-9);
@@ -348,7 +396,7 @@ const testLargeMonthlyArrayDoesNotOverflow = () => {
     intensity: 0.5
   }));
   const path = makePath(1, 100 + (hugeMonthly.length * 0.01), 0.2, 0.08, 2, hugeMonthly);
-  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 });
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { advancedStatisticsEnabled: true });
   assert.ok(Number.isFinite(result.mainKpis.robustCagr));
   assert.ok(Number.isFinite(result.statistics.returns.minimumMonthlyReturn));
   assert.ok(Number.isFinite(result.statistics.returns.maximumMonthlyReturn));
@@ -372,7 +420,7 @@ const testMacroEpisodeReconstruction = () => {
     ],
     frequencies: { expansion: 3, recession: 2, stagflation: 0, soft_landing: 0 }
   };
-  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }) as any;
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { advancedStatisticsEnabled: true }) as any;
   const macro = result.statistics.macro;
   assert.equal(macro.expansion.numberOfEpisodes, 2);
   assert.equal(macro.expansion.totalScenarioMonths, 3);
@@ -406,7 +454,7 @@ const testMacroIntensityIsScenarioConditioned = () => {
     ],
     frequencies: { expansion: 3, recession: 2, stagflation: 0, soft_landing: 0 }
   };
-  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }) as any;
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { advancedStatisticsEnabled: true }) as any;
   const macro = result.statistics.macro;
   assert.ok(Math.abs(macro.expansion.meanIntensity - 0.2) < 1e-9);
   assert.ok(Math.abs(macro.recession.meanIntensity - 0.75) < 1e-9);
@@ -431,7 +479,7 @@ const testMacroInvariantSumEpisodeDurationsEqualsScenarioMonths = () => {
     ],
     frequencies: { expansion: 3, recession: 2, stagflation: 0, soft_landing: 0 }
   };
-  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }) as any;
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { advancedStatisticsEnabled: true }) as any;
   const macro = result.statistics.macro;
   const totalScenarioMonths = Object.keys(macro).reduce((sum, scenario) => sum + macro[scenario].totalScenarioMonths, 0);
   assert.equal(totalScenarioMonths, 5);
@@ -442,6 +490,8 @@ const testMacroInvariantSumEpisodeDurationsEqualsScenarioMonths = () => {
 const tests = [
   testTrimmedMean,
   testPercentiles,
+  testNormalizeDrawdownTo30Years,
+  testQ95AndWorstCaseUseSevereTailForPositiveMagnitude,
   testCagrZero,
   testCagrTotalReturnIdentity,
   testRobustMaxDrawdownAndVolatility,
