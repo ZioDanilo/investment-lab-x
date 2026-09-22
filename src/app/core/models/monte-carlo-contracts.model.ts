@@ -21,6 +21,7 @@ export interface MonteCarloUserInput {
   positions: MonteCarloTargetPosition[];
   initialCapital: number;
   horizonYears: number;
+  seed?: number;
 }
 
 export interface MonteCarloTargetPosition {
@@ -102,9 +103,9 @@ export interface MonteCarloResult {
   percentiles: MonteCarloPercentiles;
   capitalFan: MonteCarloCapitalFanPoint[];
   representativePath: MonteCarloRepresentativePath;
-  statistics: unknown;
-  technicalChecks: unknown;
-  performanceMetrics: unknown;
+  statistics: any;
+  technicalChecks: any;
+  performanceMetrics: any;
 }
 
 export interface MonteCarloMainKpis {

@@ -6,7 +6,11 @@ import {
   PortfolioPosition,
   EtfContributionStats,
   ExtendedMonteCarloSummary,
-  PortfolioSimulationSnapshot
+  PortfolioSimulationSnapshot,
+  MonteCarloPathDiagnostics,
+  MonteCarloGeneralBenchmark,
+  MonteCarloCorrelationDiagnostics,
+  MonteCarloScenarioCorrelationDiagnostics
 } from '../models/monte-carlo.model';
 import {
   MonteCarloResult,
@@ -14,7 +18,62 @@ import {
   MonteCarloCapitalFanPoint,
   MonteCarloRepresentativePath
 } from '../models/monte-carlo-contracts.model';
-import { MonteCarloPathDiagnostics, MonteCarloGeneralBenchmark, MonteCarloCorrelationDiagnostics } from '../models/monte-carlo.model';
+
+type AdvancedV2TimingEntry = {
+  operation: string;
+  scope: string;
+  startMs: number;
+  endMs: number;
+  durationMs: number;
+  sampleCount: number;
+  dimension: number;
+};
+
+const ADV_TIMING_KEY = '__mcAdvTiming';
+
+const getAdvTimingStore = (): AdvancedV2TimingEntry[] => {
+  const scope = globalThis as typeof globalThis & { [ADV_TIMING_KEY]?: AdvancedV2TimingEntry[] };
+  if (!Array.isArray(scope[ADV_TIMING_KEY])) {
+    scope[ADV_TIMING_KEY] = [];
+  }
+  return scope[ADV_TIMING_KEY] as AdvancedV2TimingEntry[];
+};
+
+const recordAdvTiming = (
+  operation: string,
+  scope: string,
+  startMs: number,
+  endMs: number,
+  sampleCount: number,
+  dimension: number
+): void => {
+  getAdvTimingStore().push({
+    operation,
+    scope,
+    startMs,
+    endMs,
+    durationMs: endMs - startMs,
+    sampleCount,
+    dimension
+  });
+};
+
+const buildDeltaMatrix = (empiricalReturn: number[][], target: number[][], absolute = false): number[][] => {
+  const rows = Array.isArray(empiricalReturn) ? empiricalReturn.length : 0;
+  const columns = rows > 0 && Array.isArray(empiricalReturn[0]) ? empiricalReturn[0].length : 0;
+  if (rows === 0 || columns === 0 || !Array.isArray(target) || target.length !== rows || target[0]?.length !== columns) {
+    return [];
+  }
+
+  const matrix = Array.from({ length: rows }, () => Array<number>(columns).fill(0));
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      const delta = (Number(empiricalReturn[row]?.[column] ?? 0) - Number(target[row]?.[column] ?? 0));
+      matrix[row][column] = absolute ? Math.abs(delta) : delta;
+    }
+  }
+  return matrix;
+};
 
 /**
  * Computes aggregate statistics from multiple Monte Carlo simulation paths.
@@ -144,6 +203,491 @@ export class MonteCarloStatisticsEngine {
     return this.calculateLinearPercentile(values, p);
   }
 
+  private static computePearsonMatrix(samples: number[][]): number[][] {
+    if (!Array.isArray(samples) || samples.length < 2) return [];
+    const dimension = samples[0].length;
+    if (dimension === 0) return [];
+
+    const means = Array(dimension).fill(0);
+    for (const sample of samples) {
+      for (let i = 0; i < dimension; i += 1) {
+        means[i] += Number(sample[i] ?? 0);
+      }
+    }
+    for (let i = 0; i < dimension; i += 1) {
+      means[i] /= samples.length;
+    }
+
+    const covariance = Array.from({ length: dimension }, () => Array(dimension).fill(0));
+    for (const sample of samples) {
+      for (let row = 0; row < dimension; row += 1) {
+        for (let column = 0; column < dimension; column += 1) {
+          covariance[row][column] += (Number(sample[row] ?? 0) - means[row]) * (Number(sample[column] ?? 0) - means[column]);
+        }
+      }
+    }
+
+    return Array.from({ length: dimension }, (_, row) => Array.from({ length: dimension }, (_, column) => {
+      const varianceRow = covariance[row][row] / Math.max(1, samples.length - 1);
+      const varianceColumn = covariance[column][column] / Math.max(1, samples.length - 1);
+      if (varianceRow <= 0 || varianceColumn <= 0) return row === column ? 1 : 0;
+      return covariance[row][column] / Math.max(1, samples.length - 1) / Math.sqrt(varianceRow * varianceColumn);
+    }));
+  }
+
+  private static computeSpearmanMatrix(samples: number[][]): number[][] {
+    if (!Array.isArray(samples) || samples.length < 2) return [];
+    const dimension = samples[0].length;
+    if (dimension === 0) return [];
+    const ranked = Array.from({ length: samples.length }, () => Array(dimension).fill(0));
+
+    for (let column = 0; column < dimension; column += 1) {
+      const values = samples.map((sample) => Number(sample[column] ?? 0));
+      const indexed = values.map((value, row) => ({ value, row }));
+      indexed.sort((left, right) => left.value - right.value);
+      let offset = 0;
+      while (offset < indexed.length) {
+        let cursor = offset + 1;
+        while (cursor < indexed.length && indexed[cursor].value === indexed[offset].value) {
+          cursor += 1;
+        }
+        const averageRank = (offset + 1 + cursor) / 2;
+        for (let index = offset; index < cursor; index += 1) {
+          ranked[indexed[index].row][column] = averageRank;
+        }
+        offset = cursor;
+      }
+    }
+
+    return this.computePearsonMatrix(ranked);
+  }
+
+  private static computeTailDependenceMatrix(samples: number[][], upper: boolean): number[][] {
+    if (!Array.isArray(samples) || samples.length < 2) return [];
+    const dimension = samples[0].length;
+    if (dimension === 0) return [];
+    const thresholds = Array.from({ length: dimension }, (_, index) => {
+      const sorted = samples.map((sample) => Number(sample[index] ?? 0)).sort((left, right) => left - right);
+      const percentileIndex = upper ? Math.ceil(sorted.length * 0.95) - 1 : Math.floor(sorted.length * 0.05);
+      return sorted[Math.max(0, Math.min(sorted.length - 1, percentileIndex))];
+    });
+
+    return Array.from({ length: dimension }, (_, row) => Array.from({ length: dimension }, (_, column) => {
+      if (row === column) return 1;
+      let conditioningCount = 0;
+      let jointCount = 0;
+      for (const sample of samples) {
+        const rowValue = Number(sample[row] ?? 0);
+        const columnValue = Number(sample[column] ?? 0);
+        const rowInTail = upper ? rowValue >= thresholds[row] : rowValue <= thresholds[row];
+        const columnInTail = upper ? columnValue >= thresholds[column] : columnValue <= thresholds[column];
+        if (rowInTail) {
+          conditioningCount += 1;
+          if (columnInTail) jointCount += 1;
+        }
+      }
+      return conditioningCount === 0 ? 0 : jointCount / conditioningCount;
+    }));
+  }
+
+  private static computeMatrixMeanAbsoluteOffDiagonal(matrix: number[][]): number {
+    if (!Array.isArray(matrix) || matrix.length === 0) return 0;
+    const values: number[] = [];
+    for (let row = 0; row < matrix.length; row += 1) {
+      for (let column = 0; column < matrix[row].length; column += 1) {
+        if (row === column) continue;
+        values.push(Math.abs(Number(matrix[row]?.[column] ?? 0)));
+      }
+    }
+    if (values.length === 0) return 0;
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+  }
+
+  private static computeMatrixMaxAbsoluteOffDiagonal(matrix: number[][]): number {
+    if (!Array.isArray(matrix) || matrix.length === 0) return 0;
+    let max = 0;
+    for (let row = 0; row < matrix.length; row += 1) {
+      for (let column = 0; column < matrix[row].length; column += 1) {
+        if (row === column) continue;
+        max = Math.max(max, Math.abs(Number(matrix[row]?.[column] ?? 0)));
+      }
+    }
+    return max;
+  }
+
+  private static normalizeScenarioMatrix(matrix: unknown): number[][] {
+    if (!Array.isArray(matrix)) return [];
+    return matrix.map((row) => Array.isArray(row) ? row.map((value) => Number(value ?? 0)) : []);
+  }
+
+  private static resolveScenarioTargetMatrix(
+    scenario: MacroScenario,
+    paths: MonteCarloPathResult[],
+    modelMatrices?: Partial<Record<MacroScenario, { target?: number[][]; operational?: number[][]; latent?: number[][] }>>
+  ): number[][] {
+    const modelMatrix = modelMatrices?.[scenario]?.target ?? modelMatrices?.[scenario]?.operational ?? modelMatrices?.[scenario]?.latent;
+    if (Array.isArray(modelMatrix) && modelMatrix.length > 0) {
+      return this.normalizeScenarioMatrix(modelMatrix);
+    }
+
+    const scenarioPathCandidates = paths
+      .map((path) => Array.isArray((path as any)?.diagnostics?.targetCorrelation)
+        ? (path as any).diagnostics.targetCorrelation
+        : Array.isArray((path as any)?.correlationDiagnostics?.target)
+          ? (path as any).correlationDiagnostics.target
+          : Array.isArray((path as any)?.correlationDiagnostics?.byScenario?.[scenario]?.target)
+            ? (path as any).correlationDiagnostics.byScenario[scenario].target
+            : [])
+      .filter((matrix) => Array.isArray(matrix) && matrix.length > 0);
+
+    return scenarioPathCandidates.length > 0 ? this.normalizeScenarioMatrix(scenarioPathCandidates[0]) : [];
+  }
+
+  private static collectStableObservationSamples(paths: MonteCarloPathResult[]): {
+    overallSamples: number[][];
+    byScenario: Record<MacroScenario, number[][]>;
+    overallSampleCount: number;
+    sampleCountByScenario: Record<MacroScenario, number>;
+  } {
+    const byScenario: Record<MacroScenario, number[][]> = {
+      expansion: [],
+      recession: [],
+      stagflation: [],
+      soft_landing: []
+    };
+    const overallSamples: number[][] = [];
+    const sampleCountByScenario: Record<MacroScenario, number> = {
+      expansion: 0,
+      recession: 0,
+      stagflation: 0,
+      soft_landing: 0
+    };
+
+    const sortedPaths = [...paths].sort((left, right) => (left.simulationId ?? 0) - (right.simulationId ?? 0));
+    for (const path of sortedPaths) {
+      const observationEntries = Array.isArray((path as any).__advancedObservationSamples) ? (path as any).__advancedObservationSamples : [];
+      for (let monthIndex = 0; monthIndex < observationEntries.length; monthIndex += 1) {
+        const entry = observationEntries[monthIndex];
+        const vector = Array.isArray(entry?.etfReturns) ? entry.etfReturns.map((value: number) => Number(value ?? 0)) : [];
+        if (vector.length === 0) continue;
+        const scenario = entry?.scenario as MacroScenario | undefined;
+        if (!scenario || !byScenario[scenario]) continue;
+        const canonicalEntry = { ...entry, simulationId: path.simulationId, monthIndex, scenario };
+        const canonicalVector = canonicalEntry.etfReturns.map((value: number) => Number(value ?? 0));
+        overallSamples.push(canonicalVector);
+        byScenario[scenario].push(canonicalVector);
+        sampleCountByScenario[scenario] += 1;
+      }
+    }
+
+    return {
+      overallSamples,
+      byScenario,
+      overallSampleCount: overallSamples.length,
+      sampleCountByScenario
+    };
+  }
+
+  private static createScenarioCorrelationSummary(
+    scenario: MacroScenario,
+    samples: number[][],
+    targetMatrix: number[][],
+    sampleCount: number
+  ): MonteCarloScenarioCorrelationDiagnostics {
+    const pearsonStart = performance.now();
+    const empiricalReturn = samples.length > 0 ? this.computePearsonMatrix(samples) : [];
+    const pearsonEnd = performance.now();
+    recordAdvTiming('pearson', scenario, pearsonStart, pearsonEnd, sampleCount, samples[0]?.length ?? 0);
+
+    const spearmanStart = performance.now();
+    const spearmanDiagnostic = samples.length > 0 ? this.computeSpearmanMatrix(samples) : [];
+    const spearmanEnd = performance.now();
+    recordAdvTiming('spearman', scenario, spearmanStart, spearmanEnd, sampleCount, samples[0]?.length ?? 0);
+
+    const lowerTailStart = performance.now();
+    const lowerTailDependence5 = samples.length > 0 ? this.computeTailDependenceMatrix(samples, false) : [];
+    const lowerTailEnd = performance.now();
+    recordAdvTiming('tail_lower', scenario, lowerTailStart, lowerTailEnd, sampleCount, samples[0]?.length ?? 0);
+
+    const upperTailStart = performance.now();
+    const upperTailDependence5 = samples.length > 0 ? this.computeTailDependenceMatrix(samples, true) : [];
+    const upperTailEnd = performance.now();
+    recordAdvTiming('tail_upper', scenario, upperTailStart, upperTailEnd, sampleCount, samples[0]?.length ?? 0);
+
+    const deltas = empiricalReturn.length > 0 && targetMatrix.length > 0 ? buildDeltaMatrix(empiricalReturn, targetMatrix, false) : [];
+    const absoluteDeltas = empiricalReturn.length > 0 && targetMatrix.length > 0 ? buildDeltaMatrix(empiricalReturn, targetMatrix, true) : [];
+    const meanAbsoluteDelta = this.computeMatrixMeanAbsoluteOffDiagonal(absoluteDeltas);
+    const maxAbsoluteDelta = this.computeMatrixMaxAbsoluteOffDiagonal(absoluteDeltas);
+
+    return {
+      target: targetMatrix,
+      operational: targetMatrix,
+      latent: targetMatrix,
+      empiricalLatentShock: empiricalReturn,
+      empiricalReturn,
+      pearsonPrimary: empiricalReturn,
+      spearmanDiagnostic,
+      lowerTailDependence5,
+      upperTailDependence5,
+      deltas,
+      absoluteDeltas,
+      sampleCount,
+      meanAbsoluteDelta,
+      maxAbsoluteDelta
+    };
+  }
+
+  private static createCanonicalCorrelationBundle(
+    correlationDiagnostics?: MonteCarloCorrelationDiagnostics
+  ): MonteCarloCorrelationDiagnostics {
+    const overall = correlationDiagnostics?.overall ?? {
+      target: correlationDiagnostics?.target ?? null,
+      operational: correlationDiagnostics?.operational ?? null,
+      latent: correlationDiagnostics?.latent ?? null,
+      empiricalLatentShock: correlationDiagnostics?.empiricalLatentShock ?? null,
+      empiricalReturn: correlationDiagnostics?.empiricalReturn ?? null,
+      pearsonPrimary: correlationDiagnostics?.pearsonPrimary ?? null,
+      spearmanDiagnostic: correlationDiagnostics?.spearmanDiagnostic ?? null,
+      lowerTailDependence5: correlationDiagnostics?.lowerTailDependence5 ?? null,
+      upperTailDependence5: correlationDiagnostics?.upperTailDependence5 ?? null,
+      deltas: correlationDiagnostics?.deltas ?? null,
+      absoluteDeltas: correlationDiagnostics?.absoluteDeltas ?? null,
+      sampleCount: correlationDiagnostics?.sampleCount ?? 0,
+      meanAbsoluteDelta: 0,
+      maxAbsoluteDelta: 0
+    };
+
+    const byScenario = correlationDiagnostics?.byScenario ?? (() => {
+      const fallbackByScenario: Partial<Record<MacroScenario, MonteCarloScenarioCorrelationDiagnostics>> = {};
+      for (const scenario of MACRO_SCENARIOS) {
+        fallbackByScenario[scenario] = {
+          target: correlationDiagnostics?.target ?? null,
+          operational: correlationDiagnostics?.operational ?? null,
+          latent: correlationDiagnostics?.latent ?? null,
+          empiricalLatentShock: correlationDiagnostics?.empiricalLatentShock ?? null,
+          empiricalReturn: correlationDiagnostics?.empiricalReturn ?? null,
+          pearsonPrimary: correlationDiagnostics?.pearsonPrimary ?? null,
+          spearmanDiagnostic: correlationDiagnostics?.spearmanDiagnostic ?? null,
+          lowerTailDependence5: correlationDiagnostics?.lowerTailDependence5 ?? null,
+          upperTailDependence5: correlationDiagnostics?.upperTailDependence5 ?? null,
+          deltas: correlationDiagnostics?.deltas ?? null,
+          absoluteDeltas: correlationDiagnostics?.absoluteDeltas ?? null,
+          sampleCount: 0,
+          meanAbsoluteDelta: 0,
+          maxAbsoluteDelta: 0
+        };
+      }
+      return fallbackByScenario;
+    })();
+
+    const compatibility = {
+      target: overall.target ?? correlationDiagnostics?.target ?? null,
+      operational: overall.operational ?? correlationDiagnostics?.operational ?? null,
+      latent: overall.latent ?? correlationDiagnostics?.latent ?? null,
+      empiricalLatentShock: overall.empiricalLatentShock ?? correlationDiagnostics?.empiricalLatentShock ?? null,
+      empiricalReturn: overall.empiricalReturn ?? correlationDiagnostics?.empiricalReturn ?? null,
+      pearsonPrimary: overall.pearsonPrimary ?? correlationDiagnostics?.pearsonPrimary ?? null,
+      spearmanDiagnostic: overall.spearmanDiagnostic ?? correlationDiagnostics?.spearmanDiagnostic ?? null,
+      lowerTailDependence5: overall.lowerTailDependence5 ?? correlationDiagnostics?.lowerTailDependence5 ?? null,
+      upperTailDependence5: overall.upperTailDependence5 ?? correlationDiagnostics?.upperTailDependence5 ?? null,
+      deltas: overall.deltas ?? correlationDiagnostics?.deltas ?? null,
+      absoluteDeltas: overall.absoluteDeltas ?? correlationDiagnostics?.absoluteDeltas ?? null,
+      sampleCount: overall.sampleCount ?? correlationDiagnostics?.sampleCount ?? 0,
+      maeByScenario: correlationDiagnostics?.maeByScenario ?? Object.fromEntries(MACRO_SCENARIOS.map((scenario) => [scenario, byScenario[scenario]?.meanAbsoluteDelta ?? 0])),
+      rmseByScenario: correlationDiagnostics?.rmseByScenario ?? Object.fromEntries(MACRO_SCENARIOS.map((scenario) => [scenario, 0])),
+      maxAbsoluteErrorByScenario: correlationDiagnostics?.maxAbsoluteErrorByScenario ?? Object.fromEntries(MACRO_SCENARIOS.map((scenario) => [scenario, byScenario[scenario]?.maxAbsoluteDelta ?? 0]))
+    };
+
+    return {
+      overall: {
+        ...overall,
+        meanAbsoluteDelta: overall.meanAbsoluteDelta ?? 0,
+        maxAbsoluteDelta: overall.maxAbsoluteDelta ?? 0
+      },
+      byScenario,
+      ...compatibility
+    };
+  }
+
+  private static hasMeaningfulCorrelationDiagnostics(
+    correlationDiagnostics?: Partial<MonteCarloCorrelationDiagnostics> | null
+  ): boolean {
+    if (!correlationDiagnostics || typeof correlationDiagnostics !== 'object') return false;
+
+    const matrixKeys = [
+      'target',
+      'operational',
+      'latent',
+      'empiricalLatentShock',
+      'empiricalReturn',
+      'pearsonPrimary',
+      'spearmanDiagnostic',
+      'lowerTailDependence5',
+      'upperTailDependence5',
+      'deltas',
+      'absoluteDeltas'
+    ] as const;
+
+    for (const key of matrixKeys) {
+      const value = (correlationDiagnostics as Record<string, unknown>)[key];
+      if (Array.isArray(value) && value.length > 0) return true;
+    }
+
+    const byScenario = (correlationDiagnostics as { byScenario?: Record<string, unknown> }).byScenario;
+    if (byScenario && typeof byScenario === 'object') {
+      for (const scenarioDiagnostics of Object.values(byScenario)) {
+        if (!scenarioDiagnostics || typeof scenarioDiagnostics !== 'object') continue;
+        for (const key of matrixKeys) {
+          const value = (scenarioDiagnostics as Record<string, unknown>)[key];
+          if (Array.isArray(value) && value.length > 0) return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private static createRunLevelCorrelationDiagnostics(
+    paths: MonteCarloPathResult[],
+    modelMatrices?: Partial<Record<MacroScenario, { target?: number[][]; operational?: number[][]; latent?: number[][] }>>,
+    profileEvent?: (event: string, timestamp?: number, details?: Record<string, unknown>) => void
+  ): MonteCarloCorrelationDiagnostics {
+    const correlationStart = performance.now();
+    profileEvent?.('ADVANCED_CORRELATION_START', performance.now(), { pathsLength: paths.length });
+    profileEvent?.('ADV_SAMPLE_COLLECTION_START', performance.now(), { pathsLength: paths.length });
+    const sampleCollectionStart = performance.now();
+    const stableSamples = this.collectStableObservationSamples(paths);
+    const sampleCollectionEnd = performance.now();
+    recordAdvTiming('collectStableObservationSamples', 'overall', sampleCollectionStart, sampleCollectionEnd, stableSamples.overallSampleCount, 5);
+    profileEvent?.('ADV_SAMPLE_COLLECTION_END', performance.now(), {
+      pathsLength: paths.length,
+      advancedSampleCount: stableSamples.overallSampleCount,
+      dimension: stableSamples.overallSamples[0]?.length ?? 0
+    });
+    const targetByScenario: Record<MacroScenario, number[][]> = {
+      expansion: this.resolveScenarioTargetMatrix('expansion', paths, modelMatrices),
+      recession: this.resolveScenarioTargetMatrix('recession', paths, modelMatrices),
+      stagflation: this.resolveScenarioTargetMatrix('stagflation', paths, modelMatrices),
+      soft_landing: this.resolveScenarioTargetMatrix('soft_landing', paths, modelMatrices)
+    };
+
+    profileEvent?.('ADV_PEARSON_START', performance.now(), {
+      pathsLength: paths.length,
+      advancedSampleCount: stableSamples.overallSampleCount,
+      dimension: stableSamples.overallSamples[0]?.length ?? 0
+    });
+    const overallPearsonStart = performance.now();
+    const overallEmpiricalReturn = stableSamples.overallSamples.length > 0 ? this.computePearsonMatrix(stableSamples.overallSamples) : [];
+    const overallPearsonEnd = performance.now();
+    recordAdvTiming('pearson', 'overall', overallPearsonStart, overallPearsonEnd, stableSamples.overallSampleCount, stableSamples.overallSamples[0]?.length ?? 0);
+    profileEvent?.('ADV_PEARSON_END', performance.now(), {
+      pathsLength: paths.length,
+      advancedSampleCount: stableSamples.overallSampleCount,
+      dimension: stableSamples.overallSamples[0]?.length ?? 0
+    });
+    profileEvent?.('ADV_SPEARMAN_START', performance.now(), {
+      pathsLength: paths.length,
+      advancedSampleCount: stableSamples.overallSampleCount,
+      dimension: stableSamples.overallSamples[0]?.length ?? 0
+    });
+    const overallSpearmanStart = performance.now();
+    const overallSpearman = stableSamples.overallSamples.length > 0 ? this.computeSpearmanMatrix(stableSamples.overallSamples) : [];
+    const overallSpearmanEnd = performance.now();
+    recordAdvTiming('spearman', 'overall', overallSpearmanStart, overallSpearmanEnd, stableSamples.overallSampleCount, stableSamples.overallSamples[0]?.length ?? 0);
+    profileEvent?.('ADV_SPEARMAN_END', performance.now(), {
+      pathsLength: paths.length,
+      advancedSampleCount: stableSamples.overallSampleCount,
+      dimension: stableSamples.overallSamples[0]?.length ?? 0
+    });
+    profileEvent?.('ADV_LOWER_TAIL_START', performance.now(), {
+      pathsLength: paths.length,
+      advancedSampleCount: stableSamples.overallSampleCount,
+      dimension: stableSamples.overallSamples[0]?.length ?? 0
+    });
+    const overallLowerTailStart = performance.now();
+    const overallLowerTail = stableSamples.overallSamples.length > 0 ? this.computeTailDependenceMatrix(stableSamples.overallSamples, false) : [];
+    const overallLowerTailEnd = performance.now();
+    recordAdvTiming('tail_lower', 'overall', overallLowerTailStart, overallLowerTailEnd, stableSamples.overallSampleCount, stableSamples.overallSamples[0]?.length ?? 0);
+    profileEvent?.('ADV_LOWER_TAIL_END', performance.now(), {
+      pathsLength: paths.length,
+      advancedSampleCount: stableSamples.overallSampleCount,
+      dimension: stableSamples.overallSamples[0]?.length ?? 0
+    });
+    profileEvent?.('ADV_UPPER_TAIL_START', performance.now(), {
+      pathsLength: paths.length,
+      advancedSampleCount: stableSamples.overallSampleCount,
+      dimension: stableSamples.overallSamples[0]?.length ?? 0
+    });
+    const overallUpperTailStart = performance.now();
+    const overallUpperTail = stableSamples.overallSamples.length > 0 ? this.computeTailDependenceMatrix(stableSamples.overallSamples, true) : [];
+    const overallUpperTailEnd = performance.now();
+    recordAdvTiming('tail_upper', 'overall', overallUpperTailStart, overallUpperTailEnd, stableSamples.overallSampleCount, stableSamples.overallSamples[0]?.length ?? 0);
+    profileEvent?.('ADV_UPPER_TAIL_END', performance.now(), {
+      pathsLength: paths.length,
+      advancedSampleCount: stableSamples.overallSampleCount,
+      dimension: stableSamples.overallSamples[0]?.length ?? 0
+    });
+    const overallTarget = Object.values(targetByScenario).find((matrix) => Array.isArray(matrix) && matrix.length > 0) ?? [];
+    const overallDeltas = overallEmpiricalReturn.length > 0 && overallTarget.length > 0 ? buildDeltaMatrix(overallEmpiricalReturn, overallTarget, false) : [];
+    const overallAbsoluteDeltas = overallEmpiricalReturn.length > 0 && overallTarget.length > 0 ? buildDeltaMatrix(overallEmpiricalReturn, overallTarget, true) : [];
+
+    profileEvent?.('BY_SCENARIO_START', Date.now(), { pathsLength: paths.length, advancedSampleCount: stableSamples.overallSampleCount, dimension: stableSamples.overallSamples[0]?.length ?? 0 });
+    const byScenario: Partial<Record<MacroScenario, MonteCarloScenarioCorrelationDiagnostics>> = {};
+    for (const scenario of MACRO_SCENARIOS) {
+      const targetMatrix = targetByScenario[scenario] ?? [];
+      const sampleCount = stableSamples.sampleCountByScenario[scenario];
+      const scenarioStart = performance.now();
+      byScenario[scenario] = this.createScenarioCorrelationSummary(scenario, stableSamples.byScenario[scenario], targetMatrix, sampleCount);
+      const scenarioEnd = performance.now();
+      recordAdvTiming('createScenarioCorrelationSummary', scenario, scenarioStart, scenarioEnd, sampleCount, stableSamples.byScenario[scenario][0]?.length ?? 0);
+    }
+    profileEvent?.('BY_SCENARIO_END', Date.now(), { pathsLength: paths.length, advancedSampleCount: stableSamples.overallSampleCount, dimension: stableSamples.overallSamples[0]?.length ?? 0 });
+    profileEvent?.('ADVANCED_CORRELATION_END', performance.now(), { pathsLength: paths.length, advancedSampleCount: stableSamples.overallSampleCount, dimension: stableSamples.overallSamples[0]?.length ?? 0 });
+    const correlationEnd = performance.now();
+    recordAdvTiming('createRunLevelCorrelationDiagnostics', 'overall', correlationStart, correlationEnd, stableSamples.overallSampleCount, 5);
+
+    const overall: MonteCarloScenarioCorrelationDiagnostics = {
+      target: overallTarget,
+      operational: overallTarget,
+      latent: overallTarget,
+      empiricalLatentShock: overallEmpiricalReturn,
+      empiricalReturn: overallEmpiricalReturn,
+      pearsonPrimary: overallEmpiricalReturn,
+      spearmanDiagnostic: overallSpearman,
+      lowerTailDependence5: overallLowerTail,
+      upperTailDependence5: overallUpperTail,
+      deltas: overallDeltas,
+      absoluteDeltas: overallAbsoluteDeltas,
+      sampleCount: stableSamples.overallSampleCount,
+      meanAbsoluteDelta: this.computeMatrixMeanAbsoluteOffDiagonal(overallAbsoluteDeltas),
+      maxAbsoluteDelta: this.computeMatrixMaxAbsoluteOffDiagonal(overallAbsoluteDeltas)
+    };
+
+    const compatibility: MonteCarloCorrelationDiagnostics = {
+      target: overallTarget,
+      operational: overallTarget,
+      latent: overallTarget,
+      empiricalLatentShock: overall.empiricalLatentShock ?? null,
+      empiricalReturn: overall.empiricalReturn ?? null,
+      pearsonPrimary: overall.pearsonPrimary ?? null,
+      spearmanDiagnostic: overall.spearmanDiagnostic ?? null,
+      lowerTailDependence5: overall.lowerTailDependence5 ?? null,
+      upperTailDependence5: overall.upperTailDependence5 ?? null,
+      deltas: overall.deltas ?? null,
+      absoluteDeltas: overall.absoluteDeltas ?? null,
+      sampleCount: overall.sampleCount ?? 0,
+      maeByScenario: Object.fromEntries(MACRO_SCENARIOS.map((scenario) => [scenario, byScenario[scenario]?.meanAbsoluteDelta ?? 0])),
+      rmseByScenario: Object.fromEntries(MACRO_SCENARIOS.map((scenario) => [scenario, 0])),
+      maxAbsoluteErrorByScenario: Object.fromEntries(MACRO_SCENARIOS.map((scenario) => [scenario, byScenario[scenario]?.maxAbsoluteDelta ?? 0]))
+    };
+
+    return {
+      overall,
+      byScenario,
+      ...compatibility
+    };
+  }
+
   private static computeMin(values: number[], fallback = 0): number {
     if (values.length === 0) return fallback;
     let min = Number.POSITIVE_INFINITY;
@@ -261,8 +805,12 @@ export class MonteCarloStatisticsEngine {
       performanceDiagnostics?: { redrawCount?: number; rejectRate?: number };
       matricesCoherent?: boolean;
       advancedStatisticsEnabled?: boolean;
+      modelMatrices?: Partial<Record<MacroScenario, { target?: number[][]; operational?: number[][]; latent?: number[][] }>>;
+      profileEvent?: (event: string, timestamp?: number, details?: Record<string, unknown>) => void;
     }
   ): MonteCarloResult {
+    const profileEvent = statisticsInput?.profileEvent;
+    profileEvent?.('BUILD_OFFICIAL_START', performance.now(), { pathsLength: paths.length });
     if (!Array.isArray(paths) || paths.length === 0) {
       throw new Error('buildOfficialResult requires at least one path');
     }
@@ -272,6 +820,8 @@ export class MonteCarloStatisticsEngine {
     }
 
     const correlation = this.coerceCorrelationInput(decorrelationInput);
+    const officialResultStart = performance.now();
+    profileEvent?.('BASE_PATH_STATS_START', performance.now(), { pathsLength: paths.length });
     const cagrValues = paths.map((path) => {
       if (path.finalCapital === 0) return -1;
       return this.calculatePathCagr(path.initialCapital, path.finalCapital, horizonYears);
@@ -297,6 +847,7 @@ export class MonteCarloStatisticsEngine {
     const volatilityKpi = this.calculateTrimmedMean5Percent(pathVolatilities);
     const medianCagr = this.calculateMedian(cagrValues.length > 0 ? cagrValues : [0]);
     const recoveryTimeKpi = completedRecoveryTimes.length > 0 ? this.calculateTrimmedMean5Percent(completedRecoveryTimes) : null;
+    profileEvent?.('BASE_PATH_STATS_END', performance.now(), { pathsLength: paths.length });
 
     const rhoStar = 0.60 * correlation.weightedAverageScenarioCorrelation + 0.40 * correlation.maxScenarioCorrelation;
     const decorrelationIndex = Math.max(0, Math.min(100, 100 * (0.90 - rhoStar) / 0.80));
@@ -304,41 +855,62 @@ export class MonteCarloStatisticsEngine {
     const lantieriDenominator = robustMaxDrawdown > 0 ? robustMaxDrawdown : 0;
     const lantieriIndex = lantieriDenominator > 0 ? correlation.longTermExpectedReturn / lantieriDenominator : 0;
 
+    profileEvent?.('PERCENTILES_START', performance.now(), { pathsLength: paths.length });
     const finalCapitalPercentiles = this.buildPercentileSet(paths.map((path) => path.finalCapital));
     const cagrPercentiles = this.buildPercentileSet(cagrValues);
     const maxDrawdownPercentiles = this.buildPercentileSet(maxDrawdownValues);
     const recoveryPercentiles = completedRecoveryTimes.length > 0 ? this.buildPercentileSet(completedRecoveryTimes) : null;
+    profileEvent?.('PERCENTILES_END', performance.now(), { pathsLength: paths.length });
 
+    profileEvent?.('CAPITAL_FAN_START', performance.now(), { pathsLength: paths.length });
     const capitalFan = this.buildCapitalFan(paths, horizonYears);
+    profileEvent?.('CAPITAL_FAN_END', performance.now(), { pathsLength: paths.length });
+    profileEvent?.('REPRESENTATIVE_PATH_START', performance.now(), { pathsLength: paths.length });
     const representativePath = this.selectRepresentativePath(paths, medianCagr);
+    profileEvent?.('REPRESENTATIVE_PATH_END', performance.now(), { pathsLength: paths.length });
     const flatDiagnostics = statisticsInput && !statisticsInput.diagnostics && (('correlations' in statisticsInput) || ('generalBenchmark' in statisticsInput) || ('performance' in statisticsInput) || ('matricesCoherent' in statisticsInput)) ? (statisticsInput as any) : statisticsInput?.diagnostics;
-    const pathCorrelationDiagnostics = paths.reduce((accumulator, path) => {
+    const advancedStatisticsEnabled = statisticsInput?.advancedStatisticsEnabled ?? true;
+    profileEvent?.('ADVANCED_CORRELATION_START', performance.now(), { pathsLength: paths.length });
+    profileEvent?.('SCENARIO_STATISTICS_START', performance.now(), { pathsLength: paths.length });
+    const pooledCorrelationDiagnostics = advancedStatisticsEnabled
+      ? this.createRunLevelCorrelationDiagnostics(paths, statisticsInput?.modelMatrices, profileEvent)
+      : {} as MonteCarloCorrelationDiagnostics;
+    const pathCorrelationDiagnostics = advancedStatisticsEnabled ? paths.reduce((accumulator, path) => {
       const candidate = (path as any)?.correlationDiagnostics;
       if (candidate && Object.keys(candidate).length > 0) {
         return { ...accumulator, ...candidate };
       }
       return accumulator;
-    }, {} as MonteCarloCorrelationDiagnostics);
+    }, {} as MonteCarloCorrelationDiagnostics) : {} as MonteCarloCorrelationDiagnostics;
+    const chosenCorrelationDiagnostics = advancedStatisticsEnabled
+      ? (statisticsInput?.correlationDiagnostics ?? flatDiagnostics?.correlations
+        ?? (this.hasMeaningfulCorrelationDiagnostics(pooledCorrelationDiagnostics) ? pooledCorrelationDiagnostics : (
+          this.hasMeaningfulCorrelationDiagnostics(pathCorrelationDiagnostics) ? pathCorrelationDiagnostics : pooledCorrelationDiagnostics
+        )))
+      : {} as MonteCarloCorrelationDiagnostics;
     const pathGeneralBenchmark = paths.reduce<MonteCarloGeneralBenchmark | undefined>((accumulator, path) => {
       const candidate = (path as any)?.generalBenchmark;
       return accumulator ?? candidate;
     }, undefined);
     const generalBenchmark = this.coerceGeneralBenchmark(statisticsInput?.generalBenchmark ?? flatDiagnostics?.generalBenchmark ?? pathGeneralBenchmark ?? undefined);
-    const advancedStatisticsEnabled = statisticsInput?.advancedStatisticsEnabled ?? true;
     const officialStatistics = this.buildScenarioStatistics(paths, horizonYears, {
       diagnostics: flatDiagnostics,
       generalBenchmark,
-      correlationDiagnostics: statisticsInput?.correlationDiagnostics ?? flatDiagnostics?.correlations ?? pathCorrelationDiagnostics,
+      correlationDiagnostics: chosenCorrelationDiagnostics,
       performanceDiagnostics: statisticsInput?.performanceDiagnostics ?? flatDiagnostics?.performance,
       matricesCoherent: statisticsInput?.matricesCoherent ?? flatDiagnostics?.matricesCoherent,
       advancedStatisticsEnabled
     });
+    profileEvent?.('SCENARIO_STATISTICS_END', performance.now(), { pathsLength: paths.length });
     const officialReturnGeneration = (officialStatistics as any)?.returnGeneration ?? {};
     const canonicalRedrawCount = Number(officialReturnGeneration.totalRejectedVectors ?? 0);
     const canonicalRejectRate = Number(officialReturnGeneration.rejectRate ?? 0);
     (officialStatistics as Record<string, unknown>).advancedStatisticsEnabled = advancedStatisticsEnabled;
 
-    return {
+    profileEvent?.('TECHNICAL_CHECKS_START', performance.now(), { pathsLength: paths.length });
+    const technicalChecks = this.buildTechnicalChecks(paths, horizonYears, initialCapital, cagrValues, maxDrawdownValues, statisticsInput?.matricesCoherent ?? flatDiagnostics?.matricesCoherent);
+    profileEvent?.('TECHNICAL_CHECKS_END', performance.now(), { pathsLength: paths.length });
+    const officialResult = {
       mainKpis: {
         robustCagr,
         robustMaxDrawdown,
@@ -356,7 +928,7 @@ export class MonteCarloStatisticsEngine {
       capitalFan,
       representativePath,
       statistics: officialStatistics,
-      technicalChecks: this.buildTechnicalChecks(paths, horizonYears, initialCapital, cagrValues, maxDrawdownValues, statisticsInput?.matricesCoherent ?? flatDiagnostics?.matricesCoherent),
+      technicalChecks,
       performanceMetrics: {
         totalTime: null,
         pathsPerSecond: null,
@@ -366,6 +938,10 @@ export class MonteCarloStatisticsEngine {
         rejectRate: canonicalRejectRate
       }
     };
+    const officialResultEnd = performance.now();
+    profileEvent?.('BUILD_OFFICIAL_END', performance.now(), { pathsLength: paths.length });
+    recordAdvTiming('buildOfficialResult', 'official', officialResultStart, officialResultEnd, paths.length, 5);
+    return officialResult;
   }
 
   private static buildScenarioStatistics(
@@ -470,29 +1046,13 @@ export class MonteCarloStatisticsEngine {
       const candidate = (path as any)?.generalBenchmark;
       return accumulator ?? candidate;
     }, undefined);
-    const correlationDiagnostics = statisticsInput?.correlationDiagnostics ?? flatDiagnostics?.correlations ?? pathCorrelationDiagnostics ?? {};
+    const correlationDiagnostics = statisticsInput?.correlationDiagnostics ?? flatDiagnostics?.correlations
+      ?? (this.hasMeaningfulCorrelationDiagnostics(pathCorrelationDiagnostics) ? pathCorrelationDiagnostics : {});
     const generalBenchmark = statisticsInput?.generalBenchmark ?? flatDiagnostics?.generalBenchmark ?? pathGeneralBenchmark;
     const performance = statisticsInput?.performanceDiagnostics ?? flatDiagnostics?.performance;
     const advancedStatisticsEnabled = statisticsInput?.advancedStatisticsEnabled ?? true;
-    const indicatorMatrix = advancedStatisticsEnabled ? {
-      target: correlationDiagnostics.target ?? null,
-      operational: correlationDiagnostics.operational ?? null,
-      latent: correlationDiagnostics.latent ?? null,
-      empiricalLatentShock: correlationDiagnostics.empiricalLatentShock ?? null,
-      empiricalReturn: correlationDiagnostics.empiricalReturn ?? null,
-      pearsonPrimary: correlationDiagnostics.pearsonPrimary ?? null,
-      spearmanDiagnostic: correlationDiagnostics.spearmanDiagnostic ?? null,
-      lowerTailDependence5: correlationDiagnostics.lowerTailDependence5 ?? null,
-      upperTailDependence5: correlationDiagnostics.upperTailDependence5 ?? null,
-      deltas: correlationDiagnostics.deltas ?? null,
-      absoluteDeltas: correlationDiagnostics.absoluteDeltas ?? null,
-      maeByScenario: correlationDiagnostics.maeByScenario ?? {},
-      rmseByScenario: correlationDiagnostics.rmseByScenario ?? {},
-      maxAbsoluteErrorByScenario: correlationDiagnostics.maxAbsoluteErrorByScenario ?? {}
-    } : {
-      skipped: true,
-      reason: 'advancedStatisticsEnabled=false'
-    };
+    const canonicalCorrelationDiagnostics = advancedStatisticsEnabled ? this.createCanonicalCorrelationBundle(correlationDiagnostics) : undefined;
+    const indicatorMatrix = advancedStatisticsEnabled ? canonicalCorrelationDiagnostics : undefined;
 
     const maxDrawdownValues = paths.map((path) => path.maxDrawdown);
     const drawdownPercentiles = this.buildPercentileSet(maxDrawdownValues);
@@ -546,18 +1106,78 @@ export class MonteCarloStatisticsEngine {
     });
     const macroSummary: Record<string, unknown> = {};
     for (const scenario of MACRO_SCENARIOS) {
-      const episodes = paths.flatMap((path) => path.scenarioPath?.years ?? []).filter((entry) => entry.scenario === scenario);
-      const intensities = paths.flatMap((path) => path.monthly ?? []).filter((entry) => (entry as any)?.intensity !== undefined && Number.isFinite((entry as any)?.intensity)).map((entry) => (entry as any).intensity);
-      const episodeDurations = episodes.map((entry) => entry.durationInCurrentScenario);
+      const pathEpisodeDurations: number[] = [];
+      const pathScenarioMonthIntensities: number[] = [];
+
+      for (const path of paths) {
+        const scenarioStates = Array.isArray(path.scenarioPath?.years) ? path.scenarioPath.years : [];
+        const monthlyEntries = Array.isArray(path.monthly) ? path.monthly : [];
+        const monthsToInspect = Math.max(scenarioStates.length, monthlyEntries.length);
+        let currentEpisodeScenario: MacroScenario | null = null;
+        let currentEpisodeDuration = 0;
+
+        for (let monthIndex = 0; monthIndex < monthsToInspect; monthIndex += 1) {
+          const state = scenarioStates[monthIndex];
+          const nextScenario = state?.scenario as MacroScenario | undefined;
+          const monthIntensity = monthlyEntries[monthIndex]?.intensity;
+
+          if (nextScenario === scenario && Number.isFinite(monthIntensity)) {
+            pathScenarioMonthIntensities.push(Number(monthIntensity));
+          }
+
+          if (nextScenario === undefined) {
+            if (currentEpisodeScenario === scenario && currentEpisodeDuration > 0) {
+              pathEpisodeDurations.push(currentEpisodeDuration);
+            }
+            currentEpisodeScenario = null;
+            currentEpisodeDuration = 0;
+            continue;
+          }
+
+          if (currentEpisodeScenario === null) {
+            currentEpisodeScenario = nextScenario;
+            currentEpisodeDuration = 1;
+            continue;
+          }
+
+          if (nextScenario === currentEpisodeScenario) {
+            currentEpisodeDuration += 1;
+            continue;
+          }
+
+          if (currentEpisodeScenario === scenario) {
+            pathEpisodeDurations.push(currentEpisodeDuration);
+          }
+          currentEpisodeScenario = nextScenario;
+          currentEpisodeDuration = 1;
+        }
+
+        if (currentEpisodeScenario === scenario && currentEpisodeDuration > 0) {
+          pathEpisodeDurations.push(currentEpisodeDuration);
+        }
+      }
+
+      const validScenarioIntensities = pathScenarioMonthIntensities.filter((value) => Number.isFinite(value));
+      const episodeDurations = pathEpisodeDurations.filter((value) => Number.isFinite(value) && value > 0);
+      const totalScenarioMonths = episodeDurations.reduce((sum, value) => sum + value, 0);
+      const numberOfEpisodes = episodeDurations.length;
+      const averageEpisodeDuration = numberOfEpisodes > 0 ? totalScenarioMonths / numberOfEpisodes : 0;
+      const p50Duration = numberOfEpisodes > 0 ? this.calculateLinearPercentile(episodeDurations, 50) : 0;
+      const p95Duration = numberOfEpisodes > 0 ? this.calculateLinearPercentile(episodeDurations, 95) : 0;
+      const maxDuration = numberOfEpisodes > 0 ? this.computeMax(episodeDurations, 0) : 0;
+      const meanIntensity = validScenarioIntensities.length > 0 ? validScenarioIntensities.reduce((sum, value) => sum + value, 0) / validScenarioIntensities.length : 0;
+      const p95Intensity = validScenarioIntensities.length > 0 ? this.calculateLinearPercentile(validScenarioIntensities, 95) : 0;
+
       macroSummary[scenario] = {
         frequency: scenarioFrequencies[scenario],
-        numberOfEpisodes: episodes.length,
-        averageEpisodeDuration: episodes.length > 0 ? (episodes.reduce((sum, entry) => sum + entry.durationInCurrentScenario, 0) / episodes.length) : 0,
-        p50Duration: episodes.length > 0 ? this.calculateLinearPercentile(episodeDurations, 50) : 0,
-        p95Duration: episodes.length > 0 ? this.calculateLinearPercentile(episodeDurations, 95) : 0,
-        maxDuration: episodes.length > 0 ? this.computeMax(episodeDurations, 0) : 0,
-        meanIntensity: intensities.length > 0 ? intensities.reduce((sum, value) => sum + value, 0) / intensities.length : 0,
-        p95Intensity: intensities.length > 0 ? this.calculateLinearPercentile(intensities, 95) : 0,
+        totalScenarioMonths,
+        numberOfEpisodes,
+        averageEpisodeDuration,
+        p50Duration,
+        p95Duration,
+        maxDuration,
+        meanIntensity,
+        p95Intensity,
       };
     }
     const observedEpisodeDurations = paths.flatMap((path) => path.scenarioPath?.years ?? []).map((entry) => entry.durationInCurrentScenario).filter((value) => Number.isFinite(value) && value >= 0);
@@ -569,7 +1189,7 @@ export class MonteCarloStatisticsEngine {
     const canonicalRejectRate = returnGenerationAggregate.candidateVectors > 0 ? returnGenerationAggregate.rejectedVectors / returnGenerationAggregate.candidateVectors : 0;
     const canonicalPhysicalFloorRejectRate = returnGenerationAggregate.candidateVectors > 0 ? returnGenerationAggregate.physicalFloorRejectedVectors / returnGenerationAggregate.candidateVectors : 0;
 
-    return {
+    const baseStatistics = {
       advancedStatisticsEnabled,
       returnGeneration: {
         totalCandidateVectors: returnGenerationAggregate.candidateVectors,
@@ -641,15 +1261,28 @@ export class MonteCarloStatisticsEngine {
         effectiveRangeRejectedVectors: returnGenerationAggregate.effectiveRangeRejectedVectors,
         byEtfScenario: returnGenerationAggregate.byEtfScenario
       },
-      correlations: indicatorMatrix,
-      generalComparison: {
-        targetExpectedReturnDelta: generalBenchmark ? (generalBenchmark.simulatedLongTermReturn ?? meanReturn) - generalBenchmark.expectedReturn : null,
-        targetVolatilityDelta: generalBenchmark ? (generalBenchmark.simulatedVolatility ?? returnVolatility) - generalBenchmark.volatility : null,
-        generalBenchmarkCAGR: generalBenchmarkCAGR,
-        generalBenchmarkVolatility: generalBenchmarkVolatility
-      },
+      ...(advancedStatisticsEnabled ? {
+        correlations: indicatorMatrix,
+        generalComparison: {
+          targetExpectedReturnDelta: generalBenchmark ? (generalBenchmark.simulatedLongTermReturn ?? meanReturn) - generalBenchmark.expectedReturn : null,
+          targetVolatilityDelta: generalBenchmark ? (generalBenchmark.simulatedVolatility ?? returnVolatility) - generalBenchmark.volatility : null,
+          generalBenchmarkCAGR: generalBenchmarkCAGR,
+          generalBenchmarkVolatility: generalBenchmarkVolatility
+        }
+      } : {
+        correlations: {
+          skipped: true,
+          reason: 'advancedStatisticsEnabled=false'
+        },
+        generalComparison: {
+          skipped: true,
+          reason: 'advancedStatisticsEnabled=false'
+        }
+      }),
       performance: performance ?? { redrawCount: null, rejectRate: null }
     };
+
+    return baseStatistics;
   }
 
   private static buildTechnicalChecks(

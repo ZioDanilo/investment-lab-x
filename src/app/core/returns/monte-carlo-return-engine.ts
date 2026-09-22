@@ -287,7 +287,7 @@ const calculateTailDependence = (samples: number[][], upper: boolean): number[][
     const percentileIndex = upper ? Math.ceil(sorted.length * 0.95) - 1 : Math.floor(sorted.length * 0.05);
     return sorted[percentileIndex];
   });
-  return Array.from({ length: dimension }, (_, row) => Array.from({ length: dimension }, (_, column) => {
+return Array.from({ length: dimension }, (_, row) => Array.from({ length: dimension }, (_, column) => {
     if (row === column) return 1;
     let conditioningCount = 0;
     let jointCount = 0;

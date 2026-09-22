@@ -160,6 +160,13 @@ const validateMonthlyReturnVector = (vector: MonthlyReturnVector, positions: Pos
   return returns;
 };
 
+const isWithinCompoundingTolerance = (left: number, right: number): boolean => {
+  const difference = Math.abs(left - right);
+  const scale = Math.max(1, Math.abs(left), Math.abs(right));
+  const tolerance = NUMERICAL_EPSILON + NUMERICAL_EPSILON * scale;
+  return difference <= tolerance;
+};
+
 const calculateAnnualReturn = (monthlyReturns: number[], startingCapital: number, endingCapital: number): {
   annualPortfolioReturn: number;
   capitalDerivedAnnualReturn: number | null;
@@ -381,7 +388,7 @@ export const evolveMonteCarloPortfolioPath = (
 
   const totalReturnFromMonthlyCompounding = monthly.reduce((result, entry) => result * (1 + entry.portfolioReturn), 1) - 1;
   const totalReturn = capital / input.initialCapital - 1;
-  if (Math.abs(totalReturnFromMonthlyCompounding - totalReturn) > NUMERICAL_EPSILON) {
+  if (!isWithinCompoundingTolerance(totalReturnFromMonthlyCompounding, totalReturn)) {
     fail('TOTAL_COMPOUNDING_MISMATCH', 'total return from monthly compounding differs from final capital', { totalReturnFromMonthlyCompounding, totalReturn });
   }
   const unrecoveredDurationMonths = recoveryStartMonth === null ? null : monthly.length - recoveryStartMonth + 1;

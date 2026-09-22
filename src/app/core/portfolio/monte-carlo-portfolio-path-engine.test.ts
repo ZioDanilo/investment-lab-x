@@ -39,6 +39,28 @@ const vector = (returns: Record<string, number>): MonthlyReturnVector => ({
 
 const repeat = (months: number, returns: Record<string, number>): MonthlyReturnVector[] => Array.from({ length: months }, () => vector(returns));
 
+const compareCompoundingTolerance = (left: number, right: number): boolean => {
+  const difference = Math.abs(left - right);
+  const scale = Math.max(1, Math.abs(left), Math.abs(right));
+  const tolerance = 1e-9 + 1e-9 * scale;
+  return difference <= tolerance;
+};
+
+const expectTrue = (condition: boolean, label: string): void => {
+  if (!condition) throw new Error(`${label}: expected true`);
+};
+
+const expectFalse = (condition: boolean, label: string): void => {
+  if (condition) throw new Error(`${label}: expected false`);
+};
+
+expectTrue(compareCompoundingTolerance(1, 1), 'exact equality');
+expectTrue(compareCompoundingTolerance(0, 5e-10), 'tiny absolute difference near zero');
+expectTrue(compareCompoundingTolerance(695523.9465116037, 695523.9465116017), 'captured 100-year values');
+expectFalse(compareCompoundingTolerance(695523.9465116037, 695523.9465116037 + 0.01), 'large material mismatch');
+expectFalse(compareCompoundingTolerance(1.5, 1.51), 'normal material mismatch');
+expectTrue(compareCompoundingTolerance(0, 1e-9), 'zero-near-zero tolerance acceptance');
+
 const singlePath = evolveMonteCarloPortfolioPath(input([{ isin: 'A', targetWeight: 1 }]), [vector({ A: 0.1 }), ...repeat(11, { A: 0 })]);
 assertClose(singlePath.finalCapital, 110, 1e-12, '100% single ETF capital');
 assertClose(singlePath.monthly[0].portfolioReturn, 0.1, 1e-12, '100% single ETF return');

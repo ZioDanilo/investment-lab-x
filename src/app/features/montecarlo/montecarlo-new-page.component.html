@@ -38,7 +38,6 @@
         (change)="onAdvancedStatisticsToggle($event)"
       />
       <span>Statistiche avanzate</span>
-      <small>Abilita diagnostica dettagliata della simulazione. Può aumentare il tempo di elaborazione.</small>
     </label>
 
     <app-tasto-conferma
@@ -51,17 +50,7 @@
       [onConfirm]="runSimulation.bind(this)"
     ></app-tasto-conferma>
 
-    <button
-      type="button"
-      class="btn btn-secondary btn-small"
-      [disabled]="executionState() !== 'running' && executionState() !== 'loadingSnapshot'"
-      (click)="cancelSimulation()"
-      aria-label="Annulla simulazione Monte Carlo"
-    >
-      Annulla
-    </button>
-
-    <div class="top-loading-indicator" *ngIf="executionState() === 'loadingSnapshot' || executionState() === 'running' || executionState() === 'aggregating' || executionState() === 'completed'">
+    <div class="top-loading-indicator" *ngIf="executionState() === 'loadingSnapshot' || executionState() === 'running' || executionState() === 'aggregating'">
       <app-spinner
         size="sm"
         [label]="getExecutionStatusLabel()"
@@ -69,9 +58,7 @@
           ? 'Preparazione della simulazione Monte Carlo'
           : executionState() === 'aggregating'
             ? 'Finalizzazione dei risultati della simulazione Monte Carlo'
-            : executionState() === 'completed'
-              ? 'Simulazione Monte Carlo completata'
-              : 'Simulazione Monte Carlo in esecuzione'"
+            : 'Simulazione Monte Carlo in esecuzione'"
       ></app-spinner>
     </div>
 
@@ -134,7 +121,7 @@
     </ul>
   </div>
 
-  <div class="section-card" *ngIf="statistics() as stats">
+  <div class="section-card" *ngIf="advancedStatistics() && statistics() as stats">
     <div class="section-header-row">
       <h3>Statistics</h3>
       <button

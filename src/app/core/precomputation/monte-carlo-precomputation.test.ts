@@ -7,7 +7,9 @@ import {
   MonteCarloPrecomputationError,
   precomputeEtfScenarioParameters,
   prepareCorrelationMatrix,
-  prepareMonteCarloPrecomputation
+  prepareMonteCarloPrecomputation,
+  prepareMonteCarloPrecomputationAsync,
+  resolvePrecomputeWorkerCount
 } from './monte-carlo-precomputation';
 import {
   MONTE_CARLO_GLOBAL_PROPERTY_KEYS,
@@ -171,4 +173,14 @@ if (JSON.stringify(afterRehydrate) !== beforeSnapshot) {
   throw new Error('Cached precomputation was corrupted by a consumer path');
 }
 
-console.log('Monte Carlo Step 3 precomputation tests passed.');
+void (async () => {
+  const asyncFirst = await prepareMonteCarloPrecomputationAsync(psdSnapshot);
+  const asyncSecond = await prepareMonteCarloPrecomputationAsync(psdSnapshot);
+  if (asyncFirst !== asyncSecond) {
+    throw new Error('Expected async cache re-entry to preserve the same in-memory precomputation instance');
+  }
+  if (resolvePrecomputeWorkerCount(1) !== 1 || resolvePrecomputeWorkerCount(10) !== 4 || resolvePrecomputeWorkerCount(3) !== 3) {
+    throw new Error('Unexpected worker count resolution for the production precompute architecture');
+  }
+  console.log('Monte Carlo Step 3 precomputation tests passed.');
+})();

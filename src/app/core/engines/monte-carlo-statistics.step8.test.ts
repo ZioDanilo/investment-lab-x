@@ -354,6 +354,91 @@ const testLargeMonthlyArrayDoesNotOverflow = () => {
   assert.ok(Number.isFinite(result.statistics.returns.maximumMonthlyReturn));
 };
 
+const testMacroEpisodeReconstruction = () => {
+  const path = makePath(1, 100, 0.2, 0.0, 2, [
+    { month: 1, year: 1, portfolioReturn: 0.01, endingCapital: 101, intensity: 0.2 },
+    { month: 2, year: 1, portfolioReturn: 0.02, endingCapital: 103, intensity: 0.3 },
+    { month: 3, year: 1, portfolioReturn: -0.01, endingCapital: 102, intensity: 0.8 },
+    { month: 4, year: 1, portfolioReturn: 0.01, endingCapital: 103, intensity: 0.9 },
+    { month: 5, year: 1, portfolioReturn: 0.03, endingCapital: 106, intensity: 0.1 }
+  ]);
+  path.scenarioPath = {
+    years: [
+      { year: 1, scenario: 'expansion', durationInCurrentScenario: 99 },
+      { year: 1, scenario: 'expansion', durationInCurrentScenario: 99 },
+      { year: 1, scenario: 'recession', durationInCurrentScenario: 99 },
+      { year: 1, scenario: 'recession', durationInCurrentScenario: 99 },
+      { year: 1, scenario: 'expansion', durationInCurrentScenario: 99 }
+    ],
+    frequencies: { expansion: 3, recession: 2, stagflation: 0, soft_landing: 0 }
+  };
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }) as any;
+  const macro = result.statistics.macro;
+  assert.equal(macro.expansion.numberOfEpisodes, 2);
+  assert.equal(macro.expansion.totalScenarioMonths, 3);
+  assert.equal(macro.expansion.averageEpisodeDuration, 1.5);
+  assert.equal(macro.expansion.p50Duration, 1.5);
+  assert.ok(Math.abs(macro.expansion.p95Duration - 1.95) < 1e-9);
+  assert.equal(macro.expansion.maxDuration, 2);
+  assert.equal(macro.recession.numberOfEpisodes, 1);
+  assert.equal(macro.recession.totalScenarioMonths, 2);
+  assert.equal(macro.recession.averageEpisodeDuration, 2);
+  assert.equal(macro.recession.p50Duration, 2);
+  assert.equal(macro.recession.p95Duration, 2);
+  assert.equal(macro.recession.maxDuration, 2);
+};
+
+const testMacroIntensityIsScenarioConditioned = () => {
+  const path = makePath(1, 100, 0.2, 0.0, 2, [
+    { month: 1, year: 1, portfolioReturn: 0.01, endingCapital: 101, intensity: 0.1 },
+    { month: 2, year: 1, portfolioReturn: 0.02, endingCapital: 103, intensity: 0.2 },
+    { month: 3, year: 1, portfolioReturn: 0.00, endingCapital: 103, intensity: 0.7 },
+    { month: 4, year: 1, portfolioReturn: 0.02, endingCapital: 105, intensity: 0.8 },
+    { month: 5, year: 1, portfolioReturn: 0.01, endingCapital: 106, intensity: 0.3 }
+  ]);
+  path.scenarioPath = {
+    years: [
+      { year: 1, scenario: 'expansion', durationInCurrentScenario: 1 },
+      { year: 1, scenario: 'expansion', durationInCurrentScenario: 2 },
+      { year: 1, scenario: 'recession', durationInCurrentScenario: 1 },
+      { year: 1, scenario: 'recession', durationInCurrentScenario: 2 },
+      { year: 1, scenario: 'expansion', durationInCurrentScenario: 1 }
+    ],
+    frequencies: { expansion: 3, recession: 2, stagflation: 0, soft_landing: 0 }
+  };
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }) as any;
+  const macro = result.statistics.macro;
+  assert.ok(Math.abs(macro.expansion.meanIntensity - 0.2) < 1e-9);
+  assert.ok(Math.abs(macro.recession.meanIntensity - 0.75) < 1e-9);
+  assert.ok(macro.expansion.p95Intensity !== macro.recession.p95Intensity);
+};
+
+const testMacroInvariantSumEpisodeDurationsEqualsScenarioMonths = () => {
+  const path = makePath(1, 100, 0.2, 0.0, 2, [
+    { month: 1, year: 1, portfolioReturn: 0.01, endingCapital: 101, intensity: 0.1 },
+    { month: 2, year: 1, portfolioReturn: 0.02, endingCapital: 103, intensity: 0.2 },
+    { month: 3, year: 1, portfolioReturn: 0.00, endingCapital: 103, intensity: 0.7 },
+    { month: 4, year: 1, portfolioReturn: 0.02, endingCapital: 105, intensity: 0.8 },
+    { month: 5, year: 1, portfolioReturn: 0.01, endingCapital: 106, intensity: 0.3 }
+  ]);
+  path.scenarioPath = {
+    years: [
+      { year: 1, scenario: 'expansion', durationInCurrentScenario: 1 },
+      { year: 1, scenario: 'expansion', durationInCurrentScenario: 2 },
+      { year: 1, scenario: 'recession', durationInCurrentScenario: 1 },
+      { year: 1, scenario: 'recession', durationInCurrentScenario: 2 },
+      { year: 1, scenario: 'expansion', durationInCurrentScenario: 1 }
+    ],
+    frequencies: { expansion: 3, recession: 2, stagflation: 0, soft_landing: 0 }
+  };
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([path], 1, 100, { weightedAverageScenarioCorrelation: 0.2, maxScenarioCorrelation: 0.4, longTermExpectedReturn: 0.08 }) as any;
+  const macro = result.statistics.macro;
+  const totalScenarioMonths = Object.keys(macro).reduce((sum, scenario) => sum + macro[scenario].totalScenarioMonths, 0);
+  assert.equal(totalScenarioMonths, 5);
+  assert.equal(macro.expansion.totalScenarioMonths, 3);
+  assert.equal(macro.recession.totalScenarioMonths, 2);
+};
+
 const tests = [
   testTrimmedMean,
   testPercentiles,
@@ -378,7 +463,10 @@ const tests = [
   testMatricesCoherentFalseIsFalsifiable,
   testOldRangeViolationRateUsesCandidateReturnCount,
   testAverageMonthsPerScenarioUsesObservedDurations,
-  testCorrelationDiagnosticsAndGeneralBenchmarkCanBeDerivedFromPathFallback
+  testCorrelationDiagnosticsAndGeneralBenchmarkCanBeDerivedFromPathFallback,
+  testMacroEpisodeReconstruction,
+  testMacroIntensityIsScenarioConditioned,
+  testMacroInvariantSumEpisodeDurationsEqualsScenarioMonths
 ];
 
 for (const test of tests) {

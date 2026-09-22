@@ -179,6 +179,7 @@ export interface MonteCarloPathResult {
       meanUpperDistanceSigma: number | null;
     }>;
   };
+  __advancedObservationSamples?: Array<{ scenario: MacroScenario; etfReturns: number[] }>;
   correlationDiagnostics?: MonteCarloCorrelationDiagnostics;
   performanceDiagnostics?: {
     redrawCount?: number;
@@ -319,7 +320,7 @@ export interface MacroScenarioPath {
   frequencies: Record<MacroScenario, number>;
 }
 
-export interface MonteCarloCorrelationDiagnostics {
+export interface MonteCarloScenarioCorrelationDiagnostics {
   target?: number[][] | null;
   operational?: number[][] | null;
   latent?: number[][] | null;
@@ -331,6 +332,26 @@ export interface MonteCarloCorrelationDiagnostics {
   upperTailDependence5?: number[][] | null;
   deltas?: number[][] | null;
   absoluteDeltas?: number[][] | null;
+  sampleCount?: number;
+  meanAbsoluteDelta?: number;
+  maxAbsoluteDelta?: number;
+}
+
+export interface MonteCarloCorrelationDiagnostics {
+  overall?: MonteCarloScenarioCorrelationDiagnostics;
+  byScenario?: Partial<Record<MacroScenario, MonteCarloScenarioCorrelationDiagnostics>>;
+  target?: number[][] | null;
+  operational?: number[][] | null;
+  latent?: number[][] | null;
+  empiricalLatentShock?: number[][] | null;
+  empiricalReturn?: number[][] | null;
+  pearsonPrimary?: number[][] | null;
+  spearmanDiagnostic?: number[][] | null;
+  lowerTailDependence5?: number[][] | null;
+  upperTailDependence5?: number[][] | null;
+  deltas?: number[][] | null;
+  absoluteDeltas?: number[][] | null;
+  sampleCount?: number;
   maeByScenario?: Record<string, number>;
   rmseByScenario?: Record<string, number>;
   maxAbsoluteErrorByScenario?: Record<string, number>;

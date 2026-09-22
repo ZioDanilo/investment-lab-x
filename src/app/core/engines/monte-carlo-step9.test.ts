@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { MonteCarloCoordinator, MONTE_CARLO_EXECUTION_MODES, MonteCarloWorkerPool, type WorkerLike, type MonteCarloWorkerMessage } from './monte-carlo-coordinator';
 import { MonteCarloStatisticsEngine } from './monte-carlo-statistics.engine';
-import { toCompactPathResult } from './monte-carlo-worker';
+import { derivePathSeed, toCompactPathResult } from './monte-carlo-worker';
 import { validateMonteCarloRunContract } from '../validation/monte-carlo-contract.validator';
 import { MonteCarloSnapshot, MonteCarloUserInput } from '../models/monte-carlo-contracts.model';
 
@@ -188,12 +188,98 @@ const createCoordinator = (mode: keyof typeof MONTE_CARLO_EXECUTION_MODES, worke
   return { coordinator, factory };
 };
 
+const completionLedgerTests = (): void => {
+  const makeCoordinator = () => new MonteCarloCoordinator({
+    input: makeInput(1000),
+    snapshot: makeSnapshot(),
+    mode: 'COMPLETE',
+    workerFactory: () => new MockWorker('mock-worker.ts'),
+    batchSize: 250,
+    onProgress: () => undefined
+  });
+
+  const applyProgress = (coordinator: MonteCarloCoordinator, batchStart: number, batchEnd: number, workerId = 0): number => {
+    (coordinator as any).handleWorkerProgress({
+      executionId: 'ledger-test',
+      workerId,
+      batchStart,
+      batchEnd,
+      batchId: `${batchStart}-${batchEnd}`,
+      completedPaths: batchEnd,
+      totalPaths: 1000
+    });
+    return (coordinator as any).completedPaths;
+  };
+
+  const ledger = makeCoordinator();
+  const first = applyProgress(ledger, 0, 250);
+  assert.equal(first, 250);
+  assert.equal((ledger as any).completedPaths, 250);
+  assert.equal((ledger as any).completedBatchIds.has('0-250'), true);
+
+  const normalOrder = makeCoordinator();
+  applyProgress(normalOrder, 0, 250);
+  applyProgress(normalOrder, 250, 500);
+  applyProgress(normalOrder, 500, 750);
+  applyProgress(normalOrder, 750, 1000);
+  assert.equal((normalOrder as any).completedPaths, 1000);
+  assert.equal((normalOrder as any).finalizing, false);
+  assert.equal((normalOrder as any).completedBatchIds.size, 4);
+
+  const historicalOrder = makeCoordinator();
+  applyProgress(historicalOrder, 0, 250);
+  applyProgress(historicalOrder, 500, 750);
+  applyProgress(historicalOrder, 750, 1000);
+  assert.equal((historicalOrder as any).completedPaths, 750, 'historical order should not overcount missing 250-500');
+  assert.equal((historicalOrder as any).completedPaths >= 1000, false);
+
+  const afterMissingRange = makeCoordinator();
+  applyProgress(afterMissingRange, 0, 250);
+  applyProgress(afterMissingRange, 500, 750);
+  applyProgress(afterMissingRange, 750, 1000);
+  applyProgress(afterMissingRange, 250, 500);
+  assert.equal((afterMissingRange as any).completedPaths, 1000);
+
+  const reverseOrder = makeCoordinator();
+  applyProgress(reverseOrder, 750, 1000);
+  applyProgress(reverseOrder, 500, 750);
+  applyProgress(reverseOrder, 250, 500);
+  applyProgress(reverseOrder, 0, 250);
+  assert.equal((reverseOrder as any).completedPaths, 1000);
+
+  const duplicate = makeCoordinator();
+  applyProgress(duplicate, 0, 250);
+  const duplicateCount = applyProgress(duplicate, 0, 250);
+  assert.equal(duplicateCount, 250);
+  assert.equal((duplicate as any).completedBatchIds.size, 1);
+
+  const workerReuse = makeCoordinator();
+  applyProgress(workerReuse, 0, 250, 0);
+  applyProgress(workerReuse, 500, 750, 1);
+  applyProgress(workerReuse, 750, 1000, 2);
+  applyProgress(workerReuse, 250, 500, 0);
+  assert.equal((workerReuse as any).completedPaths, 1000);
+
+  const malformed = makeCoordinator();
+  applyProgress(malformed, 0, 250);
+  applyProgress(malformed, 200, 400);
+  assert.equal((malformed as any).completedPaths, 400);
+  applyProgress(malformed, 250, 250);
+  assert.equal((malformed as any).completedPaths, 400);
+  assert.ok((malformed as any).completedPaths <= 1000);
+  assert.ok((malformed as any).completedPaths >= 0);
+};
+
 const runNamedStep9Test = async (name: string, fn: () => Promise<void>): Promise<void> => {
   await fn();
   console.log(`PASS ${name}`);
 };
 
 async function runStep9Coverage(): Promise<void> {
+  await runNamedStep9Test('completion-ledger-regression', async () => {
+    completionLedgerTests();
+  });
+
   await runNamedStep9Test('smoke-100-paths', async () => {
     const { coordinator } = createCoordinator('SMOKE');
     const outcome = await coordinator.run();
@@ -423,6 +509,29 @@ async function runStep9Coverage(): Promise<void> {
     assert.ok(Array.isArray(outcome.result.capitalFan));
     assert.ok(outcome.result.representativePath.simulationId >= 0);
     assert.ok(Number.isFinite(outcome.result.mainKpis.robustCagr));
+  });
+
+  await runNamedStep9Test('worker-independent-path-seed-regression', async () => {
+    const runSeedA = 0x12345678 >>> 0;
+    const runSeedB = 0x9abcdef0 >>> 0;
+    const sameA = derivePathSeed(runSeedA, 42);
+    const sameAAgain = derivePathSeed(runSeedA, 42);
+    assert.equal(sameA, sameAAgain);
+    assert.equal(sameA >>> 0, sameA);
+    assert.notEqual(derivePathSeed(runSeedA, 41), sameA);
+    assert.notEqual(derivePathSeed(runSeedB, 42), sameA);
+
+    const seen = new Set<number>();
+    for (let simulationId = 0; simulationId < 100000; simulationId += 1) {
+      const candidate = derivePathSeed(runSeedA, simulationId);
+      assert.equal(candidate >>> 0, candidate);
+      assert.ok(!seen.has(candidate), `duplicate pathSeed for runSeed=${runSeedA} and simulationId=${simulationId}`);
+      seen.add(candidate);
+    }
+
+    const workerIndependent = derivePathSeed(runSeedA, 123);
+    const samePathWithDifferentWorkerId = derivePathSeed(runSeedA, 123);
+    assert.equal(workerIndependent, samePathWithDifferentWorkerId);
   });
 
   const validationCoordinator = new MonteCarloCoordinator({

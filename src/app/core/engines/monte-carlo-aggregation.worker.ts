@@ -1,21 +1,30 @@
 import { MonteCarloStatisticsEngine } from './monte-carlo-statistics.engine';
+import { decodeTransportBatch } from './monte-carlo-worker';
 import { MonteCarloResult, MonteCarloUserInput, MonteCarloSnapshot } from '../models/monte-carlo-contracts.model';
+import { aggregationState as sharedAggregationState, processAddBatchMessage as processSharedAddBatchMessage } from './monte-carlo-aggregation-handler';
 
 interface AggregationWorkerRequest {
   executionId: string;
   workerId: number;
   type: 'INIT' | 'REGISTER_SIMULATION_PORT' | 'ADD_BATCH' | 'FINALIZE' | 'AGGREGATE' | 'RESULT' | 'ERROR' | 'AGG_ALL_PATHS_RECEIVED' | 'MC_PORT_TEST_PING' | 'MC_PORT_TEST_PONG' | 'MC_PORT_TEST_ADD_BATCH' | 'MC_PORT_TEST_ADD_BATCH_ACK' | 'MC_PORT_TEST_READY';
+  batchId?: string;
   paths?: any[];
   batch?: any[];
+  arrays?: Record<string, unknown>;
   input?: MonteCarloUserInput;
   snapshot?: MonteCarloSnapshot;
   expectedPathCount?: number;
   simulationPort?: MessagePort;
   testId?: string;
   value?: number;
+  advancedStatistics?: boolean;
+  generalBenchmark?: {
+    generalBenchmarkCAGR: number;
+    generalBenchmarkVolatility: number;
+  };
 }
 
-const aggregationState: {
+export const aggregationState = sharedAggregationState as {
   executionId: string | null;
   input: MonteCarloUserInput | null;
   snapshot: MonteCarloSnapshot | null;
@@ -25,19 +34,11 @@ const aggregationState: {
   readyToFinalize: boolean;
   registeredPorts: MessagePort[];
   pendingFinalize: AggregationWorkerRequest | null;
-} = {
-  executionId: null,
-  input: null,
-  snapshot: null,
-  paths: [],
-  expectedPathCount: 0,
-  receivedPathCount: 0,
-  readyToFinalize: false,
-  registeredPorts: [],
-  pendingFinalize: null
 };
 
-const asWorkerScope = self as typeof globalThis & {
+export const processAddBatchMessage = processSharedAddBatchMessage;
+
+const asWorkerScope = (typeof self !== 'undefined' ? self : globalThis) as typeof globalThis & {
   postMessage: (message: any) => void;
   onmessage: ((event: MessageEvent) => void) | null;
 };
@@ -62,77 +63,107 @@ const deriveLongTermExpectedReturn = (snapshot: MonteCarloSnapshot): number => {
   return Number.isFinite(average) ? average : 0.06;
 };
 
-const handleBatchMessage = (batch: any[]): void => {
-  const handleBatchStartedAt = performance.now();
-  const nextPaths = Array.isArray(batch) ? batch : [];
-  aggregationState.paths.push(...nextPaths);
-  aggregationState.receivedPathCount += nextPaths.length;
-  console.info('[MC-PERF] AGG_BATCH', {
-    workerId: 0,
-    batchStart: 0,
-    batchEnd: nextPaths.length,
-    batchPathCount: nextPaths.length,
-    receivedPaths: aggregationState.receivedPathCount,
-    expectedPaths: aggregationState.expectedPathCount
-  });
-  asWorkerScope.postMessage({
-    type: 'AGGREGATION_COUNTS',
-    executionId: aggregationState.executionId,
-    workerId: 0,
-    receivedPathCount: aggregationState.receivedPathCount,
-    expectedPathCount: aggregationState.expectedPathCount,
-    handleBatchMs: performance.now() - handleBatchStartedAt
-  });
+const deriveModelCorrelationMatrices = (snapshot: MonteCarloSnapshot): Partial<Record<'expansion' | 'recession' | 'stagflation' | 'soft_landing', { target: number[][]; operational: number[][]; latent: number[][] }>> => {
+  const scenarios = ['expansion', 'recession', 'stagflation', 'soft_landing'] as const;
+  const indexByIsin = new Map(snapshot.etfs.map((etf, index) => [etf.isin, index]));
+  const matrixForScenario = (scenario: typeof scenarios[number]): number[][] => {
+    const matrix = Array.from({ length: snapshot.etfs.length }, () => Array<number>(snapshot.etfs.length).fill(0));
+    for (let row = 0; row < snapshot.etfs.length; row += 1) {
+      matrix[row][row] = 1;
+    }
+    for (const pair of snapshot.correlations) {
+      const rowIndex = indexByIsin.get(pair.isin1);
+      const columnIndex = indexByIsin.get(pair.isin2);
+      if (rowIndex === undefined || columnIndex === undefined) continue;
+      const value = Number(pair[scenario] ?? 0);
+      matrix[rowIndex][columnIndex] = value;
+      matrix[columnIndex][rowIndex] = value;
+    }
+    return matrix;
+  };
 
-  if (aggregationState.receivedPathCount === aggregationState.expectedPathCount && aggregationState.expectedPathCount > 0) {
-    console.info('[MC-PERF] AGG_ALL_PATHS_RECEIVED', {
-      receivedPaths: aggregationState.receivedPathCount,
-      expectedPaths: aggregationState.expectedPathCount
-    });
-    asWorkerScope.postMessage({
-      type: 'AGG_ALL_PATHS_RECEIVED',
-      executionId: aggregationState.executionId,
-      workerId: 0,
-      receivedPathCount: aggregationState.receivedPathCount,
-      expectedPathCount: aggregationState.expectedPathCount
-    });
-  }
-
-  if (aggregationState.pendingFinalize && aggregationState.receivedPathCount === aggregationState.expectedPathCount) {
-    const pendingMessage = aggregationState.pendingFinalize;
-    aggregationState.pendingFinalize = null;
-    finalizeIfReady(pendingMessage);
-  }
+  return Object.fromEntries(scenarios.map((scenario) => [scenario, {
+    target: matrixForScenario(scenario),
+    operational: matrixForScenario(scenario),
+    latent: matrixForScenario(scenario)
+  }])) as Partial<Record<'expansion' | 'recession' | 'stagflation' | 'soft_landing', { target: number[][]; operational: number[][]; latent: number[][] }>>;
 };
 
-const finalizeIfReady = (message: AggregationWorkerRequest): void => {
+const emitLifecycleEvent = (executionId: string | null, workerId: number, event: string, details: Record<string, unknown> = {}, runStartMs?: number): void => {
+  if (!executionId) return;
+  const relativeMs = Number.isFinite(runStartMs) ? Number((performance.now() - Number(runStartMs)).toFixed(2)) : Number(performance.now().toFixed(2));
+  asWorkerScope.postMessage({
+    type: 'LIFECYCLE_EVENT',
+    executionId,
+    workerId,
+    event,
+    relativeMs,
+    ...details
+  });
+};
+
+const emitDiagnosticLifecycleEvent = (executionId: string | null, workerId: number, event: string, details: Record<string, unknown> = {}): void => {
+  if (!executionId) return;
+  const payload: Record<string, unknown> = {
+    type: 'LIFECYCLE_EVENT',
+    executionId,
+    workerId,
+    event,
+    ...details
+  };
+  if (typeof payload.mcChannelId === 'undefined') {
+    payload.mcChannelId = `${executionId}:${workerId}`;
+  }
+  asWorkerScope.postMessage(payload);
+};
+
+const emitFinalizationStageEvent = (event: string, additional: Record<string, unknown> = {}): void => {
+  const details = {
+    pathsLength: aggregationState.paths.length,
+    ...additional
+  };
+  emitLifecycleEvent(aggregationState.executionId, 0, event, details, (globalThis as any).__mcLifecycleTrace?.runStartMs ?? undefined);
+};
+
+const finalizeIfReady = (message: AggregationWorkerRequest, state: typeof aggregationState = aggregationState): void => {
   const finalizeStartedAt = performance.now();
-  if (aggregationState.receivedPathCount !== aggregationState.expectedPathCount) {
-    aggregationState.readyToFinalize = false;
-    aggregationState.pendingFinalize = message;
+  if (state.receivedPathCount !== state.expectedPathCount) {
+    state.readyToFinalize = false;
+    state.pendingFinalize = message;
     return;
   }
 
-  aggregationState.readyToFinalize = true;
-  aggregationState.pendingFinalize = null;
+  state.readyToFinalize = true;
+  state.pendingFinalize = null;
   try {
-    const paths = aggregationState.paths;
-    const input = message.input ?? aggregationState.input;
-    const snapshot = message.snapshot ?? aggregationState.snapshot;
+    emitLifecycleEvent(state.executionId, 0, 'AGG_FINALIZATION_START', {
+      receivedPathCount: state.receivedPathCount,
+      expectedPathCount: state.expectedPathCount
+    }, (globalThis as any).__mcLifecycleTrace?.runStartMs ?? undefined);
+    emitFinalizationStageEvent('PREBUILD_STATE_READ_START');
+    const paths = state.paths;
+    const input = message.input ?? state.input;
+    const snapshot = message.snapshot ?? state.snapshot;
 
     if (!input || !snapshot) {
       throw new Error('Aggregation worker requires input and snapshot');
     }
+    emitFinalizationStageEvent('PREBUILD_STATE_READ_END');
 
-    console.info('[MC-PERF] AGG_FINALIZE_RECEIVED', {
-      expectedPaths: aggregationState.expectedPathCount,
-      receivedPaths: aggregationState.receivedPathCount
-    });
-    console.info('[MC-PERF] STATISTICS_START', {
-      expectedPaths: aggregationState.expectedPathCount,
-      receivedPaths: aggregationState.receivedPathCount
-    });
+    emitFinalizationStageEvent('PREBUILD_DECORRELATION_START');
+    emitFinalizationStageEvent('PREBUILD_DECORRELATION_END');
+
+    emitFinalizationStageEvent('PREBUILD_MODEL_MATRICES_START');
+    emitFinalizationStageEvent('PREBUILD_MODEL_MATRICES_END');
+
+    emitFinalizationStageEvent('PREBUILD_GENERAL_BENCHMARK_START');
+    emitFinalizationStageEvent('PREBUILD_GENERAL_BENCHMARK_END');
+
     const statisticsStartedAt = performance.now();
+    const profileEvent = (event: string, _timestamp?: number, details: Record<string, unknown> = {}) => {
+      emitFinalizationStageEvent(event, details);
+    };
+    emitFinalizationStageEvent('PREBUILD_CALL_START');
     const result = MonteCarloStatisticsEngine.buildOfficialResult(
       paths,
       input.horizonYears,
@@ -147,11 +178,19 @@ const finalizeIfReady = (message: AggregationWorkerRequest): void => {
           redrawCount: 0,
           rejectRate: 0
         },
-        matricesCoherent: true
+        matricesCoherent: true,
+        advancedStatisticsEnabled: message.advancedStatistics ?? true,
+        modelMatrices: deriveModelCorrelationMatrices(snapshot),
+        generalBenchmark: message.generalBenchmark ? {
+          expectedReturn: deriveLongTermExpectedReturn(snapshot),
+          volatility: deriveWeightedAverageCorrelation(snapshot) > 0 ? Math.max(0.05, deriveWeightedAverageCorrelation(snapshot)) : 0.15,
+          simulatedLongTermReturn: message.generalBenchmark.generalBenchmarkCAGR,
+          simulatedVolatility: message.generalBenchmark.generalBenchmarkVolatility
+        } : undefined,
+        profileEvent
       }
     ) as MonteCarloResult;
     const statisticsMs = performance.now() - statisticsStartedAt;
-    console.info('[MC-PERF] STATISTICS_DONE', { elapsedMs: statisticsMs });
 
     asWorkerScope.postMessage({
       type: 'AGGREGATION_METRICS',
@@ -165,11 +204,10 @@ const finalizeIfReady = (message: AggregationWorkerRequest): void => {
       buildMs: 0
     });
 
-    console.info('[MC-PERF] AGG_RESULT_SENT', {
-      executionId: message.executionId,
-      workerId: message.workerId,
-      resultCount: Array.isArray(result?.pathStats) ? result.pathStats.length : 0
-    });
+    emitLifecycleEvent(state.executionId, 0, 'AGG_FINALIZATION_END', {
+      receivedPathCount: state.receivedPathCount,
+      expectedPathCount: state.expectedPathCount
+    }, (globalThis as any).__mcLifecycleTrace?.runStartMs ?? undefined);
     asWorkerScope.postMessage({
       type: 'RESULT',
       executionId: message.executionId,
@@ -177,6 +215,10 @@ const finalizeIfReady = (message: AggregationWorkerRequest): void => {
       result
     });
   } catch (error) {
+    emitFinalizationStageEvent('AGG_FINALIZATION_EXCEPTION', {
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+      errorMessage: error instanceof Error ? error.message : String(error)
+    });
     const messageText = error instanceof Error ? error.message : 'Aggregation worker failed';
     const details = error instanceof Error && 'details' in error ? (error as any).details : {};
     asWorkerScope.postMessage({
@@ -225,6 +267,12 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
   }
 
   if (message.type === 'REGISTER_SIMULATION_PORT') {
+    const registeredMcChannelId = typeof message.mcChannelId === 'string' ? message.mcChannelId : `${message.executionId}:${message.workerId}`;
+    emitDiagnosticLifecycleEvent(message.executionId, message.workerId, 'AGG_REGISTER_RECEIVED', {
+      mcChannelId: registeredMcChannelId,
+      workerId: message.workerId,
+      executionId: message.executionId
+    });
     console.info('[MC-PORT-TEST] AGG_REGISTER_BRANCH_ENTER', {
       testId: message.testId,
       executionId: message.executionId,
@@ -243,8 +291,96 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
       });
       port.onmessage = (portEvent: MessageEvent) => {
         const portMessage = portEvent.data as AggregationWorkerRequest;
+        const receivedExecutionId = portMessage && typeof portMessage === 'object' ? portMessage.executionId ?? null : null;
+        const receivedWorkerId = portMessage && typeof portMessage === 'object' ? portMessage.workerId ?? null : null;
+        const receivedType = portMessage && typeof portMessage === 'object' ? portMessage.type ?? null : null;
 
-        if (!portMessage || !portMessage.executionId) return;
+        emitDiagnosticLifecycleEvent(message.executionId, message.workerId, 'AGG_PORT_CALLBACK_RAW', {
+          registeredExecutionId: message.executionId,
+          registeredWorkerId: message.workerId,
+          registeredMcChannelId,
+          receivedExecutionId,
+          receivedWorkerId,
+          receivedType
+        });
+
+        if (!portMessage || !portMessage.executionId) {
+          emitDiagnosticLifecycleEvent(message.executionId, message.workerId, 'AGG_PORT_GUARD_REJECT', {
+            registeredExecutionId: message.executionId,
+            registeredWorkerId: message.workerId,
+            registeredMcChannelId,
+            receivedExecutionId,
+            receivedWorkerId,
+            receivedType,
+            reason: 'MISSING_MESSAGE'
+          });
+          return;
+        }
+
+        if (!portMessage.executionId) {
+          emitDiagnosticLifecycleEvent(message.executionId, message.workerId, 'AGG_PORT_GUARD_REJECT', {
+            registeredExecutionId: message.executionId,
+            registeredWorkerId: message.workerId,
+            registeredMcChannelId,
+            receivedExecutionId,
+            receivedWorkerId,
+            receivedType,
+            reason: 'MISSING_EXECUTION_ID'
+          });
+          return;
+        }
+
+        if (portMessage.executionId !== message.executionId) {
+          emitDiagnosticLifecycleEvent(message.executionId, message.workerId, 'AGG_PORT_GUARD_REJECT', {
+            registeredExecutionId: message.executionId,
+            registeredWorkerId: message.workerId,
+            registeredMcChannelId,
+            receivedExecutionId,
+            receivedWorkerId,
+            receivedType,
+            reason: 'EXECUTION_ID_MISMATCH'
+          });
+          return;
+        }
+
+        if (typeof portMessage.type !== 'string') {
+          emitDiagnosticLifecycleEvent(message.executionId, message.workerId, 'AGG_PORT_GUARD_REJECT', {
+            registeredExecutionId: message.executionId,
+            registeredWorkerId: message.workerId,
+            registeredMcChannelId,
+            receivedExecutionId,
+            receivedWorkerId,
+            receivedType,
+            reason: 'MISSING_TYPE'
+          });
+          return;
+        }
+
+        if (portMessage.type.startsWith('MC_PORT_TEST_')) {
+          emitDiagnosticLifecycleEvent(message.executionId, message.workerId, 'AGG_PORT_GUARD_REJECT', {
+            registeredExecutionId: message.executionId,
+            registeredWorkerId: message.workerId,
+            registeredMcChannelId,
+            receivedExecutionId,
+            receivedWorkerId,
+            receivedType,
+            reason: 'MC_PORT_TEST_BRANCH'
+          });
+          return;
+        }
+
+        if (portMessage.type !== 'ADD_BATCH') {
+          emitDiagnosticLifecycleEvent(message.executionId, message.workerId, 'AGG_PORT_GUARD_REJECT', {
+            registeredExecutionId: message.executionId,
+            registeredWorkerId: message.workerId,
+            registeredMcChannelId,
+            receivedExecutionId,
+            receivedWorkerId,
+            receivedType,
+            reason: 'UNEXPECTED_TYPE'
+          });
+          return;
+        }
 
         if (typeof portMessage.type === 'string' && portMessage.type.startsWith('MC_PORT_TEST_')) {
           asWorkerScope.postMessage({
@@ -255,7 +391,6 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
             executionId: portMessage.executionId ?? null,
             workerId: portMessage.workerId ?? null
           });
-
           if (portMessage.testId === message.testId) {
             console.info('[MC-PORT-TEST] AGG_PORT_RAW_MESSAGE', {
               type: portMessage.type,
@@ -265,9 +400,7 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
               value: portMessage.value ?? null
             });
           }
-
           if (!portMessage.testId || portMessage.testId !== message.testId) return;
-
           if (portMessage.type === 'MC_PORT_TEST_PONG') {
             console.info('[MC-PORT-TEST] PONG_RECEIVED', {
               testId: portMessage.testId,
@@ -293,7 +426,6 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
             });
             return;
           }
-
           if (portMessage.type === 'MC_PORT_TEST_ADD_BATCH') {
             asWorkerScope.postMessage({
               type: 'MC_PORT_TEST_CHECKPOINT',
@@ -379,7 +511,6 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
             }
             return;
           }
-
           return;
         }
 
@@ -395,7 +526,14 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
             pathCountInBatch: batch.length,
             receivedTopLevelKeys: Object.keys(portMessage)
           });
-          handleBatchMessage(batch);
+          processAddBatchMessage(
+            { ...portMessage, batch },
+            aggregationState,
+            asWorkerScope.postMessage.bind(asWorkerScope),
+            emitLifecycleEvent,
+            finalizeIfReady,
+            (globalThis as any).__mcLifecycleTrace?.runStartMs ?? undefined
+          );
           const receivedAfter = aggregationState.receivedPathCount;
           asWorkerScope.postMessage({
             type: 'MC_PORT_TEST_CHECKPOINT',
@@ -415,7 +553,13 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
         workerId: message.workerId,
         channelId: `${message.executionId}-sim-${message.workerId}`
       });
+      emitDiagnosticLifecycleEvent(message.executionId, message.workerId, 'AGG_PORT_LISTENER_INSTALLED', {
+        mcChannelId: typeof message.mcChannelId === 'string' ? message.mcChannelId : `${message.executionId}:${message.workerId}`
+      });
       port.start();
+      emitDiagnosticLifecycleEvent(message.executionId, message.workerId, 'AGG_PORT_STARTED', {
+        mcChannelId: typeof message.mcChannelId === 'string' ? message.mcChannelId : `${message.executionId}:${message.workerId}`
+      });
       console.info('[MC-PORT-TEST] AGG_REGISTER_PORT_STARTED', {
         testId: message.testId,
         executionId: message.executionId,
@@ -459,33 +603,16 @@ asWorkerScope.onmessage = (event: MessageEvent) => {
   }
 
   if (message.type === 'ADD_BATCH') {
-    const batch = Array.isArray(message.batch) ? message.batch : [];
-    const receivedBefore = aggregationState.receivedPathCount;
-    asWorkerScope.postMessage({
-      type: 'MC_PORT_TEST_CHECKPOINT',
-      checkpoint: 'PROD_ADD_BATCH_RECEIVE_ENTER',
-      originalType: message.type,
-      executionId: message.executionId ?? null,
-      workerId: message.workerId ?? null,
-      pathCountInBatch: batch.length,
-      receivedTopLevelKeys: Object.keys(message)
-    });
-    handleBatchMessage(batch);
-    const receivedAfter = aggregationState.receivedPathCount;
-    asWorkerScope.postMessage({
-      type: 'MC_PORT_TEST_CHECKPOINT',
-      checkpoint: 'PROD_ADD_BATCH_ACCOUNTED',
-      originalType: message.type,
-      executionId: message.executionId ?? null,
-      workerId: message.workerId ?? null,
-      pathsReceivedBefore: receivedBefore,
-      pathsReceivedAfter: receivedAfter,
-      deltaPaths: receivedAfter - receivedBefore
-    });
+    processAddBatchMessage(message, aggregationState, asWorkerScope.postMessage.bind(asWorkerScope), emitLifecycleEvent, finalizeIfReady, (globalThis as any).__mcLifecycleTrace?.runStartMs ?? undefined);
     return;
   }
 
   if (message.type === 'FINALIZE') {
+    emitLifecycleEvent(message.executionId, message.workerId ?? 0, 'AGG_FINALIZE_ENTER', {
+      receivedPathCount: aggregationState.receivedPathCount,
+      expectedPathCount: aggregationState.expectedPathCount,
+      hasPendingFinalize: aggregationState.pendingFinalize !== null
+    }, (globalThis as any).__mcLifecycleTrace?.runStartMs ?? undefined);
     aggregationState.expectedPathCount = typeof message.expectedPathCount === 'number' ? message.expectedPathCount : aggregationState.expectedPathCount;
     aggregationState.input = message.input ?? aggregationState.input;
     aggregationState.snapshot = message.snapshot ?? aggregationState.snapshot;

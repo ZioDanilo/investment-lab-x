@@ -59,7 +59,7 @@ export class MontecarloNewPageComponent implements OnInit {
   readonly officialKpiCards = computed(() => this.buildOfficialKpiCards(this.officialResult()));
   readonly capitalFan = computed(() => this.officialResult()?.capitalFan ?? []);
   readonly representativePath = computed(() => this.officialResult()?.representativePath ?? null);
-  readonly statistics = computed(() => this.officialResult()?.statistics ?? null);
+  readonly statistics = computed(() => this.advancedStatistics() ? this.officialResult()?.statistics ?? null : null);
   readonly technicalChecks = computed(() => this.officialResult()?.technicalChecks ?? null);
 
   ngOnInit(): void {
@@ -139,11 +139,13 @@ export class MontecarloNewPageComponent implements OnInit {
       validateMonteCarloRunContract(input, snapshot);
 
       this.executionState.set('running');
+      const profilingEnabled = Boolean((globalThis as any).__MONTE_CARLO_PROFILING__ === true);
       const coordinator = new MonteCarloCoordinator({
         input,
         snapshot,
         mode: 'COMPLETE',
         advancedStatistics: this.advancedStatistics(),
+        profilingEnabled,
         onProgress: (progress) => {
           this.progress.set(progress);
           if (progress >= 99 && this.executionState() !== 'completed' && this.executionState() !== 'failed' && this.executionState() !== 'cancelled') {
