@@ -1,0 +1,46 @@
+<div class="portfolio-selector" [class.is-open]="isOpen">
+  <button
+    type="button"
+    class="selector-trigger"
+    (click)="toggle()"
+    aria-haspopup="listbox"
+    [attr.aria-expanded]="isOpen"
+    [disabled]="loading() || hasError()"
+  >
+    <span class="selector-label selector-label--placeholder" [title]="selectedLabel()">
+      {{ loading() ? 'Caricamento portafogli…' : hasError() ? 'Portafogli non disponibili' : selectedLabel() }}
+    </span>
+    <span class="material-symbols-rounded selector-chevron" *ngIf="!loading() && !hasError()">{{ isOpen ? 'expand_less' : 'expand_more' }}</span>
+  </button>
+
+  <div class="selector-menu" role="listbox" *ngIf="isOpen && !loading() && !hasError()">
+    <button
+      type="button"
+      class="selector-option selector-option--placeholder"
+      role="option"
+      [attr.aria-selected]="selectedPortfolio() === null"
+      [class.is-selected]="selectedPortfolio() === null"
+      (click)="selectPortfolio(null)"
+    >
+      <span class="selector-option__check material-symbols-rounded" aria-hidden="true">
+        {{ selectedPortfolio() === null ? 'check' : '' }}
+      </span>
+      <span class="selector-option__label selector-option__label--placeholder" [title]="triggerPlaceholder">{{ triggerPlaceholder }}</span>
+    </button>
+
+    <button
+      *ngFor="let option of options()"
+      type="button"
+      class="selector-option"
+      role="option"
+      [attr.aria-selected]="selectedPortfolio()?.id === option.id"
+      [class.is-selected]="selectedPortfolio()?.id === option.id"
+      (click)="selectPortfolio(option.id)"
+    >
+      <span class="selector-option__check material-symbols-rounded" aria-hidden="true">
+        {{ selectedPortfolio()?.id === option.id ? 'check' : '' }}
+      </span>
+      <span class="selector-option__label" [title]="option.label">{{ option.label }}</span>
+    </button>
+  </div>
+</div>

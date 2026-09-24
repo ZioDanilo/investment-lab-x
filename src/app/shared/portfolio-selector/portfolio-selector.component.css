@@ -1,0 +1,126 @@
+.portfolio-selector {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.selector-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: clamp(190px, 16vw, 280px);
+  max-width: min(30vw, 280px);
+  height: 38px;
+  padding: 0 14px 0 16px;
+  border: 1px solid rgba(133, 176, 226, 0.24);
+  border-radius: 10px;
+  background: rgba(12, 18, 26, 0.72);
+  color: #edf6ff;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.selector-trigger:hover {
+  border-color: rgba(108, 201, 255, 0.4);
+  background: rgba(14, 22, 32, 0.84);
+}
+
+.selector-trigger:disabled {
+  cursor: not-allowed;
+}
+
+.selector-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.selector-label--placeholder {
+  color: rgba(191, 214, 235, 0.8);
+}
+
+.selector-chevron {
+  font-size: 1rem;
+  color: rgba(200, 222, 240, 0.8);
+  cursor: pointer;
+}
+
+.selector-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 100%;
+  width: clamp(190px, 16vw, 280px);
+  border: 1px solid rgba(133, 176, 226, 0.22);
+  border-radius: 10px;
+  background: rgba(8, 14, 20, 0.98);
+  box-shadow: 0 18px 28px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+
+.selector-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: rgba(228, 238, 248, 0.9);
+  text-align: left;
+  cursor: pointer;
+}
+
+.selector-option--placeholder {
+  border-bottom: 1px solid rgba(146, 177, 214, 0.12);
+}
+
+.selector-option:hover {
+  background: rgba(22, 131, 204, 0.12);
+}
+
+.selector-option.is-selected {
+  background: rgba(23, 139, 210, 0.08);
+}
+
+.selector-option__check {
+  width: 18px;
+  min-width: 18px;
+  color: #7fcfff;
+  font-size: 1rem;
+}
+
+.selector-option__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.selector-option__label--placeholder {
+  color: rgba(191, 214, 235, 0.8);
+}
+
+@media (max-width: 1040px) {
+  .selector-trigger,
+  .selector-menu {
+    width: clamp(170px, 44vw, 250px);
+    min-width: 170px;
+  }
+}
+
+@media (max-width: 760px) {
+  .selector-trigger,
+  .selector-menu {
+    width: clamp(150px, 52vw, 220px);
+    min-width: 150px;
+  }
+}

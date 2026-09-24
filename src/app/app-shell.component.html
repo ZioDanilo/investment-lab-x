@@ -1,0 +1,39 @@
+<div class="app-shell">
+  <header class="global-navbar" aria-label="Navigazione principale">
+    <div class="brand-group" aria-label="Investment Lab brand">
+      <div class="brand-mark">
+        <span class="brand-mark__dot"></span>
+        <span class="brand-mark__dot brand-mark__dot--small"></span>
+      </div>
+      <div class="brand-copy">
+        <span class="brand-name">INVESTMENT LAB</span>
+        <span class="brand-tag">BUILD • TEST • EVOLVE</span>
+      </div>
+    </div>
+
+    <nav class="nav-links" aria-label="Menu principale">
+      <a routerLink="/home" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="goHome($event)">Home</a>
+      <app-portfolio-selector></app-portfolio-selector>
+      <button type="button" class="nav-cta">
+        <span class="material-symbols-rounded">add</span>
+        <span>Nuovo ETF</span>
+      </button>
+    </nav>
+
+    <div class="nav-actions" aria-label="Azioni rapide">
+      <button type="button" class="icon-button" aria-label="Ricerca">
+        <span class="material-symbols-rounded">search</span>
+      </button>
+      <button type="button" class="icon-button" aria-label="Impostazioni">
+        <span class="material-symbols-rounded">settings</span>
+      </button>
+      <button type="button" class="avatar-button" aria-label="Profilo utente">
+        <span>DL</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="route-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>
