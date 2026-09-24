@@ -1,344 +1,447 @@
-﻿import { Component, signal, computed, OnInit, inject } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+﻿import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
-import { MonteCarloStateService } from '../../core/services/monte-carlo-state.service';
-import { PortfolioStateService } from '../../core/services/portfolio-state.service';
-import { TastoConfermaComponent } from '../../shared/components/tasto-conferma/tasto-conferma.component';
-import { DropdownComponent, DropdownOption } from '../../shared/components/dropdown/dropdown.component';
-import { SpinnerComponent } from '../../shared/components/spinner/spinner.component';
-import { MontecarloPortfolioEditorComponent, MontecarloPortfolioEditorChange } from '../../shared/components/montecarlo-portfolio-editor/montecarlo-portfolio-editor.component';
-import { MontecarloContributionChartComponent } from '../../shared/components/montecarlo-contribution-chart/montecarlo-contribution-chart.component';
-import { MontecarloPortfolioReturnChartComponent } from '../../shared/components/montecarlo-portfolio-return-chart/montecarlo-portfolio-return-chart.component';
+import { MonteCarloCoordinator } from '../../core/engines/monte-carlo-coordinator';
+import { buildMonteCarloSnapshotRequest, buildMonteCarloUserInput } from '../../core/monte-carlo-ui-flow';
+import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import {
-  MacroScenario,
-  MACRO_SCENARIOS,
-  SCENARIO_LABELS,
-  ExtendedMonteCarloSummary,
-  MonteCarloPathResult,
-  MonteCarloGeneralValidation
-} from '../../core/models/monte-carlo.model';
+  demoFinalReturnDistribution,
+  demoMacroScenarioDistribution,
+  demoMaxDrawdownDistribution,
+  demoPortfolioTrajectories,
+  demoTargetProbabilities
+} from './monte-carlo-demo-data';
 
-interface MonteCarloHistoryEntry {
-  id: string;
+interface MacroDonutSegment {
+  key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation';
   label: string;
-  createdAt: string;
-  summary: ExtendedMonteCarloSummary;
+  value: number;
+  percent: number;
+  color: string;
+}
+
+interface KpiCard {
+  id: string;
+  title: string;
+  value: string;
+  description: string;
+  tone: 'cyan' | 'violet' | 'blue' | 'amber' | 'red' | 'teal';
 }
 
 @Component({
   selector: 'app-montecarlo-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, DecimalPipe, TastoConfermaComponent, DropdownComponent, SpinnerComponent, MontecarloPortfolioEditorComponent, MontecarloContributionChartComponent, MontecarloPortfolioReturnChartComponent],
+  imports: [CommonModule],
   templateUrl: './montecarlo-page.component.html',
   styleUrls: ['./montecarlo-page.component.css']
 })
-export class MontecarloPageComponent implements OnInit {
-  private apiService = inject(ApiService);
-  readonly mc = inject(MonteCarloStateService);
-  private portfolioState = inject(PortfolioStateService);
+export class MontecarloPageComponent {
+  private readonly portfolioSelectionService = inject(PortfolioSelectionService);
+  private readonly apiService = inject(ApiService);
 
-  // --- Portafogli dal backend ---
-  portafogli = signal<any[]>([]);
-  selectedPortfolio = signal<any | null>(null);
-  loadingPortafogli = signal(false);
-  editorState = signal<MontecarloPortfolioEditorChange | null>(null);
-  readonly resultHistory = signal<MonteCarloHistoryEntry[]>([]);
+  readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
+  readonly finalReturnDistribution = demoFinalReturnDistribution;
+  readonly portfolioTrajectories = demoPortfolioTrajectories;
+  readonly targetProbabilities = demoTargetProbabilities;
+  readonly maxDrawdownDistribution = demoMaxDrawdownDistribution;
+  macroScenarioDistribution: Array<{ label: string; percent: number; color: string; value: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> = [...demoMacroScenarioDistribution.map((segment) => ({
+    key: this.mapLabelToScenarioKey(segment.label),
+    label: segment.label,
+    value: this.normalizeScenarioValue(segment.percent),
+    percent: segment.percent,
+    color: segment.color
+  }))];
+  donutSegments: Array<{ path: string; color: string; percent: number; label: string; displayPercent: number; labelX: number; labelY: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> = this.buildDonutSegments();
 
-  // --- Scenari esposti al template ---
-  readonly scenarios = MACRO_SCENARIOS;
-  readonly scenarioLabels = SCENARIO_LABELS;
-
-  // --- Dettaglio simulazione selezionata ---
-  readonly selectedPathLabel = computed(() => {
-    const id = this.mc.selectedSimId();
-    if (id === null) return '-';
-    return `Simulazione #${id}`;
-  });
-
-  // --- Params locali per i binding del form ---
-  get params() { return this.mc.params(); }
-
-  readonly horizonYearsOptions = [5, 10, 20, 30, 50, 100];
-  readonly initialCapitalOptions = [10_000, 50_000, 100_000, 250_000, 1_000_000];
-  readonly simulationCountOptions = [
-    { value: 1,       label: '1' },
-    { value: 1_000,   label: '1.000' },
-    { value: 10_000,  label: '10.000' },
+  private readonly defaultKpis: KpiCard[] = [
+    { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: '—', description: 'CAGR annuo', tone: 'cyan' },
+    { id: 'volatility', title: 'VOLATILITÀ', value: '—', description: 'Deviazione standard annua', tone: 'violet' },
+    { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: '—', description: 'Scenari con rendimento > 0', tone: 'blue' },
+    { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: '—', description: 'Tempo medio al break-even', tone: 'amber' },
+    { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: '—', description: 'Perdita massima media', tone: 'red' },
+    { id: 'recoveryTime', title: 'RECOVERY TIME', value: '—', description: 'Tempo medio di recupero', tone: 'teal' }
   ];
 
-  readonly portfolioDropdownOptions = computed<DropdownOption[]>(() =>
-    this.portafogli().map((portfolio) => ({
-      value: portfolio.id,
-      label: portfolio.name ?? portfolio.nome ?? portfolio.id
-    }))
-  );
-
-  readonly horizonDropdownOptions: DropdownOption[] = this.horizonYearsOptions.map((years) => ({
-    value: String(years),
-    label: `${years} anni`
-  }));
-
-  readonly initialCapitalDropdownOptions: DropdownOption[] = this.initialCapitalOptions.map((value) => ({
-    value: String(value),
-    label: `${value.toLocaleString('it-IT')} €`
-  }));
-
-  readonly simulationDropdownOptions: DropdownOption[] = this.simulationCountOptions.map((option) => ({
-    value: String(option.value),
-    label: option.label
-  }));
-
-  onHorizonYearsChange(event: Event): void {
-    const v = parseInt((event.target as HTMLSelectElement).value, 10);
-    if (!isNaN(v)) this.mc.updateParam('horizonYears', v);
-  }
-
-  onSimulationCountChange(event: Event): void {
-    const v = parseInt((event.target as HTMLSelectElement).value, 10);
-    if (!isNaN(v)) this.mc.updateParam('simulationCount', v);
-  }
-
-  onHorizonYearsSelected(value: string): void {
-    const parsed = parseInt(value, 10);
-    if (!isNaN(parsed)) {
-      this.mc.updateParam('horizonYears', parsed);
-    }
-  }
-
-  onInitialCapitalSelected(value: string): void {
-    const parsed = parseInt(value, 10);
-    if (!isNaN(parsed)) {
-      this.mc.updateParam('initialCapital', parsed);
-    }
-  }
-
-  onSimulationCountSelected(value: string): void {
-    const parsed = parseInt(value, 10);
-    if (!isNaN(parsed)) {
-      this.mc.updateParam('simulationCount', parsed);
-    }
-  }
-
-  // --- KPI risultato (dal summary) ---
-  readonly summary = this.mc.summary;
-  readonly displayedSummary = computed<ExtendedMonteCarloSummary | null>(() => this.resultHistory()[0]?.summary ?? this.mc.summary());
-  readonly historicalResults = computed(() => this.resultHistory().slice(1, 3));
-  readonly representativeContributionAnalysis = computed(() => this.displayedSummary()?.representativeContributionAnalysis ?? null);
-
-  readonly generalValidation = computed<MonteCarloGeneralValidation | null>(() =>
-    this.mc.summary()?.generalValidation ?? null
-  );
-
-  readonly etfsMissingGeneralStats = computed<string[]>(() =>
-    this.mc.summary()?.etfsMissingGeneralStats ?? []
-  );
-
-  readonly generalValidationStatusClass = computed(() => {
-    const v = this.generalValidation();
-    if (!v) return '';
-    return v.status === 'CALIBRATED' ? 'status-calibrated'
-         : v.status === 'WARNING'    ? 'status-warning'
-         : 'status-not-calibrated';
-  });
-  readonly kpiCards = computed(() => this.buildKpiCards(this.displayedSummary()));
-
-  ngOnInit(): void {
-    this.loadPortafogli();
-  }
-
-  loadPortafogli(): void {
-    this.loadingPortafogli.set(true);
-    this.apiService.getPortfolios().subscribe({
-      next: (res: any) => {
-        if (res.success && Array.isArray(res.data)) {
-          this.portafogli.set(res.data);
-        }
-        this.loadingPortafogli.set(false);
-      },
-      error: () => this.loadingPortafogli.set(false)
-    });
-  }
-
-  onPortfolioSelected(portfolioId: string): void {
-    const portfolio = this.portafogli().find(p => p.id === portfolioId);
-    this.selectedPortfolio.set(portfolio ?? null);
-    this.editorState.set(null);
-    this.mc.hasValidPortfolio.set(false);
-
-    if (portfolio) {
-      this.portfolioState.loadPortfolioEtfs(portfolio.id, (etfs) => {
-        this.mc.setPortfolioSelected(etfs);
-      });
-    }
-  }
-
-  onEditorStateChange(change: MontecarloPortfolioEditorChange): void {
-    this.editorState.set(change);
-    this.mc.hasValidPortfolio.set(change.state.isValid && change.effectiveEtfs.every((etf) => !!etf.macroStatistics));
-  }
+  isRunning = false;
+  kpis: KpiCard[] = [...this.defaultKpis];
+  draggedKpiId: string | null = null;
+  swapTargetId: string | null = null;
+  insertTargetIndex: number | null = null;
+  readonly macroTotal = 360000;
 
   async runSimulation(): Promise<void> {
-    const composition = this.editorState()?.effectiveEtfs ?? [];
-    if (composition.length === 0) {
+    const portfolio = this.selectedPortfolio();
+    if (!portfolio || this.isRunning) {
       return;
     }
 
-    await this.mc.run(composition);
+    this.isRunning = true;
+    this.resetKpis();
 
-    const latestSummary = this.mc.summary();
-    if (latestSummary) {
-      this.addResultToHistory(latestSummary);
-    }
-  }
+    try {
+      const portfolioResponse = await firstValueFrom(this.apiService.getPortfolioById(portfolio.id));
+      const rawHoldings = Array.isArray(portfolioResponse?.data?.holdings)
+        ? portfolioResponse.data.holdings
+        : Array.isArray(portfolioResponse?.holdings)
+          ? portfolioResponse.holdings
+          : [];
 
-  updateStructural(scenario: MacroScenario, event: Event): void {
-    const v = parseFloat((event.target as HTMLInputElement).value) / 100;
-    this.mc.updateStructuralProb(scenario, isNaN(v) ? 0 : v);
-  }
-
-  updateTransition(from: MacroScenario, to: MacroScenario, event: Event): void {
-    const v = parseFloat((event.target as HTMLInputElement).value) / 100;
-    this.mc.updateTransitionCell(from, to, isNaN(v) ? 0 : v);
-  }
-
-  updateParam(key: string, event: Event): void {
-    const v = parseFloat((event.target as HTMLInputElement).value);
-    if (!isNaN(v)) {
-      this.mc.updateParam(key as any, key === 'seed' ? (v || undefined) : v);
-    }
-  }
-
-  updateTargetCagr(event: Event): void {
-    const v = parseFloat((event.target as HTMLInputElement).value) / 100;
-    this.mc.updateParam('targetCagr', isNaN(v) ? 0.07 : v);
-  }
-
-  structuralDisplayPct(scenario: MacroScenario): number {
-    return Math.round(this.mc.structuralProbabilities()[scenario] * 1000) / 10;
-  }
-
-  transitionDisplayPct(from: MacroScenario, to: MacroScenario): number {
-    return Math.round(this.mc.transitionMatrix()[from][to] * 1000) / 10;
-  }
-
-  transitionRowSumPct(row: MacroScenario): number {
-    return Math.round(this.mc.transitionRowSums()[row] * 100);
-  }
-
-  rowValid(row: MacroScenario): boolean {
-    return Math.abs(this.mc.transitionRowSums()[row] - 1) < 0.001;
-  }
-
-  selectPath(id: number): void {
-    this.mc.selectedSimId.set(id);
-    this.expandedYears.clear();
-  }
-
-  // --- Espansione righe anno ---
-  expandedYears = new Set<number>();
-
-  toggleYear(year: number): void {
-    if (this.expandedYears.has(year)) {
-      this.expandedYears.delete(year);
-    } else {
-      this.expandedYears.add(year);
-    }
-    // Forza re-render di Angular (il Set non è reactive di default)
-    this.expandedYears = new Set(this.expandedYears);
-  }
-
-  getDetailedPathLabel(path: MonteCarloPathResult): string {
-    const sorted = [...this.mc.detailedPaths()].sort((a, b) => a.finalCapital - b.finalCapital);
-    if (sorted.length === 0) return `#${path.simulationId}`;
-    const ids = {
-      worst: sorted[0].simulationId,
-      best: sorted[sorted.length - 1].simulationId,
-      median: sorted[Math.floor(sorted.length / 2)].simulationId,
-      maxDd: this.mc.detailedPaths().reduce((p, c) => c.maxDrawdown < p.maxDrawdown ? c : p).simulationId
-    };
-    if (path.simulationId === ids.best) return 'Migliore';
-    if (path.simulationId === ids.worst) return 'Peggiore';
-    if (path.simulationId === ids.median) return 'Mediana';
-    if (path.simulationId === ids.maxDd) return 'Max Drawdown';
-    return `Prima (#${path.simulationId})`;
-  }
-
-  // --- Formattatori ---
-  buildKpiCards(summary: ExtendedMonteCarloSummary | null): Array<{ name: string; value: number | null; format: string; description?: string; sub: string }> | null {
-    if (!summary) return null;
-    return [
-      {
-        name: 'CAGR mediano',
-        value: summary.medianCagr,
-        format: 'percent',
-        description: 'Rendimento annuo composto del percorso centrale tra tutte le simulazioni valide.',
-        sub: `P5: ${this.fmtPct(summary.percentile5Cagr)} | P25: ${this.fmtPct(summary.percentile25Cagr)} | P75: ${this.fmtPct(summary.percentile75Cagr)} | P95: ${this.fmtPct(summary.percentile95Cagr)}`
-      },
-      {
-        name: 'Capitale Finale Mediano',
-        value: summary.medianFinalCapital,
-        format: 'currency',
-        sub: `P5: ${this.fmtEur(summary.percentile5FinalCapital)} – P95: ${this.fmtEur(summary.percentile95FinalCapital)}`
-      },
-      {
-        name: 'Media 5% Peggiori Drawdown',
-        value: summary.averageWorst5PercentMaxDrawdown,
-        format: 'percent',
-        sub: `Peggior: ${this.fmtPct(summary.worstMaxDrawdown)}`
-      },
-      {
-        name: 'Prob. Perdita',
-        value: summary.probabilityOfLoss,
-        format: 'percent',
-        sub: `P(CAGR≥${this.fmtPct(this.params.targetCagr)}): ${this.fmtPct(summary.probabilityCagrAboveTarget)}`
-      },
-      {
-        name: 'Simulazioni valide',
-        value: summary.validSimulationCount,
-        format: 'count',
-        sub: `${summary.validSimulationCount} / ${summary.simulationCount}${summary.failedPathCount > 0 ? ` (${summary.failedPathCount} fallite)` : ''}`
+      if (rawHoldings.length === 0) {
+        throw new Error('Portfolio senza holding disponibili.');
       }
-    ];
+
+      const positions: Array<{ isin: string; weight: number }> = rawHoldings
+        .map((holding: any): { isin: string; weight: number } | null => {
+          const isin = holding?.isin ?? holding?.etfId ?? holding?.id ?? holding?.ticker;
+          const weight = Number(holding?.weight ?? holding?.targetWeight ?? 0);
+          if (!isin || !Number.isFinite(weight) || weight <= 0) {
+            return null;
+          }
+          return { isin: String(isin), weight };
+        })
+        .filter((position: { isin: string; weight: number } | null): position is { isin: string; weight: number } => position !== null);
+
+      if (positions.length === 0) {
+        throw new Error('Nessuna posizione valida nel portafoglio selezionato.');
+      }
+
+      const normalizedPositions = positions.map((position: { isin: string; weight: number }) => ({
+        isin: position.isin,
+        weight: position.weight
+      }));
+
+      const snapshotRequest = buildMonteCarloSnapshotRequest(normalizedPositions);
+      const snapshotResponse = await firstValueFrom(this.apiService.getMonteCarloSnapshot(snapshotRequest));
+      const snapshot = snapshotResponse?.data ?? snapshotResponse;
+
+      if (!snapshot || !Array.isArray(snapshot.etfs) || snapshot.etfs.length === 0) {
+        throw new Error('Snapshot Monte Carlo non disponibile.');
+      }
+
+      const input = buildMonteCarloUserInput(normalizedPositions, 100000, 30);
+      const coordinator = new MonteCarloCoordinator({
+        input,
+        snapshot,
+        mode: 'COMPLETE',
+        onProgress: () => undefined
+      });
+
+      const outcome = await coordinator.run();
+
+      if (outcome.status !== 'success' || !outcome.result) {
+        throw new Error(outcome.error?.message ?? 'Simulazione Monte Carlo fallita.');
+      }
+
+      const result = outcome.result;
+      this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
+      this.updateDonutSegments();
+      this.kpis = [
+        { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
+        { id: 'volatility', title: 'VOLATILITÀ', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
+        { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: '—', description: 'Scenari con rendimento > 0', tone: 'blue' },
+        { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
+        { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' },
+        { id: 'recoveryTime', title: 'RECOVERY TIME', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio di recupero', tone: 'teal' }
+      ];
+    } catch (error) {
+      this.kpis = [...this.defaultKpis];
+    } finally {
+      this.isRunning = false;
+    }
   }
 
-  private addResultToHistory(summary: ExtendedMonteCarloSummary): void {
-    const entry: MonteCarloHistoryEntry = {
-      id: `${Date.now()}-${this.resultHistory().length}`,
-      label: `Simulazione ${this.resultHistory().length + 1}`,
-      createdAt: new Date().toLocaleString('it-IT'),
-      summary
+  private resetKpis(): void {
+    this.kpis = [...this.defaultKpis];
+    this.draggedKpiId = null;
+    this.swapTargetId = null;
+    this.insertTargetIndex = null;
+  }
+
+  onKpiDragStart(kpiId: string, event: DragEvent): void {
+    this.draggedKpiId = kpiId;
+    this.swapTargetId = null;
+    this.insertTargetIndex = null;
+
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', kpiId);
+    }
+  }
+
+  onKpiDragOver(kpiId: string, event: DragEvent): void {
+    if (!this.draggedKpiId || this.draggedKpiId === kpiId) {
+      return;
+    }
+
+    event.preventDefault();
+    this.swapTargetId = kpiId;
+    this.insertTargetIndex = null;
+  }
+
+  onKpiDrop(kpiId: string, event: DragEvent): void {
+    event.preventDefault();
+    if (!this.draggedKpiId || this.draggedKpiId === kpiId) {
+      this.finishDragState();
+      return;
+    }
+
+    this.swapKpis(this.draggedKpiId, kpiId);
+    this.finishDragState();
+  }
+
+  onGapDragOver(index: number, event: DragEvent): void {
+    if (!this.draggedKpiId) {
+      return;
+    }
+
+    event.preventDefault();
+    this.insertTargetIndex = index;
+    this.swapTargetId = null;
+  }
+
+  onGapDrop(index: number, event: DragEvent): void {
+    event.preventDefault();
+    if (!this.draggedKpiId) {
+      return;
+    }
+
+    this.insertKpi(this.draggedKpiId, index);
+    this.finishDragState();
+  }
+
+  onKpiDragEnd(): void {
+    this.finishDragState();
+  }
+
+  private finishDragState(): void {
+    this.draggedKpiId = null;
+    this.swapTargetId = null;
+    this.insertTargetIndex = null;
+  }
+
+  private swapKpis(sourceId: string, targetId: string): void {
+    const sourceIndex = this.kpis.findIndex((kpi) => kpi.id === sourceId);
+    const targetIndex = this.kpis.findIndex((kpi) => kpi.id === targetId);
+
+    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) {
+      return;
+    }
+
+    const next = [...this.kpis];
+    [next[sourceIndex], next[targetIndex]] = [next[targetIndex], next[sourceIndex]];
+    this.kpis = next;
+  }
+
+  private insertKpi(kpiId: string, insertIndex: number): void {
+    const sourceIndex = this.kpis.findIndex((kpi) => kpi.id === kpiId);
+    if (sourceIndex === -1) {
+      return;
+    }
+
+    const next = [...this.kpis];
+    const [moved] = next.splice(sourceIndex, 1);
+    let targetIndex = insertIndex;
+
+    if (sourceIndex < targetIndex) {
+      targetIndex -= 1;
+    }
+
+    next.splice(targetIndex, 0, moved);
+    this.kpis = next;
+  }
+
+  private updateDonutSegments(): void {
+    this.donutSegments = this.buildDonutSegments();
+  }
+
+  private buildMacroSegmentsFromFrequencies(frequencies?: Record<string, number> | null): Array<{ label: string; percent: number; color: string; value: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> {
+    const palette: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', string> = {
+      expansion: '#4DE3C6',
+      soft_landing: '#5DA7FF',
+      recession: '#FF6B7F',
+      stagflation: '#FFB454'
     };
 
-    this.resultHistory.update((items) => [entry, ...items].slice(0, 3));
+    const labelMap: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', string> = {
+      expansion: 'Espansione',
+      soft_landing: 'Soft Landing',
+      recession: 'Recessione',
+      stagflation: 'Stagflazione'
+    };
+
+    const source = frequencies ?? {};
+    const orderedKeys: Array<'expansion' | 'soft_landing' | 'recession' | 'stagflation'> = ['expansion', 'soft_landing', 'recession', 'stagflation'];
+
+    return orderedKeys.map((key) => {
+      const rawValue = Number(source[key] ?? 0);
+      const normalizedValue = this.normalizeScenarioValue(rawValue);
+      const displayPercent = Math.round(this.toDisplayPercent(normalizedValue));
+
+      return {
+        key,
+        label: labelMap[key],
+        value: normalizedValue,
+        percent: displayPercent,
+        color: palette[key]
+      };
+    });
   }
 
-  trackByHistoryEntry(index: number, entry: MonteCarloHistoryEntry): string {
-    return entry.id;
-  }
-
-  fmtPct(v: number | null | undefined): string {
-    if (v === null || v === undefined) return '-';
-    return `${(v * 100).toFixed(2)}%`;
-  }
-
-  fmtEur(v: number | null | undefined): string {
-    if (v === null || v === undefined) return '-';
-    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
-  }
-
-  fmtKpiValue(value: number | null, format: string): string {
-    if (value === null || value === undefined) return '-';
-    if (format === 'percent') return this.fmtPct(value);
-    if (format === 'currency') {
-      return new Intl.NumberFormat('it-IT', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(value);
+  private normalizeScenarioValue(value: number): number {
+    if (!Number.isFinite(value)) {
+      return 0;
     }
-    if (format === 'count') {
-      return Math.round(value).toLocaleString('it-IT');
+
+    return value > 1 ? value / 100 : value;
+  }
+
+  private toDisplayPercent(value: number): number {
+    const normalizedValue = this.normalizeScenarioValue(value);
+    return normalizedValue * 100;
+  }
+
+  private mapLabelToScenarioKey(label: string): 'expansion' | 'soft_landing' | 'recession' | 'stagflation' {
+    const labelMap: Record<string, 'expansion' | 'soft_landing' | 'recession' | 'stagflation'> = {
+      Espansione: 'expansion',
+      'Soft Landing': 'soft_landing',
+      Recessione: 'recession',
+      Stagflazione: 'stagflation'
+    };
+
+    return labelMap[label] ?? 'expansion';
+  }
+
+  private formatPercent(value: number | null | undefined): string {
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+      return '—';
     }
-    return value.toFixed(2);
+
+    return `${(value * 100).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  }
+
+  private formatMonths(value: number | null | undefined): string {
+    if (!Number.isFinite(value)) {
+      return '—';
+    }
+
+    return `${Number(value).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mesi`;
+  }
+
+  buildHistogramBars(data: { label: string; value: number }[], height = 170, width = 420): Array<{ x: number; y: number; width: number; height: number; opacity: number }> {
+    const maxValue = Math.max(...data.map((item) => item.value), 1);
+    const barWidth = width / data.length;
+
+    return data.map((item, index) => {
+      const h = (item.value / maxValue) * height;
+      const x = index * barWidth + 6;
+      const y = height - h + 4;
+      return {
+        x,
+        y,
+        width: barWidth - 10,
+        height: h,
+        opacity: index === 4 ? 1 : 0.8
+      };
+    });
+  }
+
+  buildLinePath(values: number[], width = 510, height = 150, padding = 18): string {
+    const max = Math.max(...values, 1);
+    const min = Math.min(...values, 0);
+    const span = Math.max(max - min, 1);
+
+    return values
+      .map((value, index) => {
+        const x = padding + (index / (values.length - 1)) * (width - padding * 2);
+        const y = height - padding - ((value - min) / span) * (height - padding * 2);
+        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+      })
+      .join(' ');
+  }
+
+  buildDonutSegments(): Array<{ path: string; color: string; percent: number; label: string; displayPercent: number; labelX: number; labelY: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation'; gradientId: string }> {
+    const cx = 200;
+    const cy = 200;
+    const innerRadius = 77;
+    const outerRadius = 170;
+
+    const normalizedSegments = this.macroScenarioDistribution.map((segment) => ({
+      ...segment,
+      normalizedValue: this.normalizeScenarioValue(segment.value)
+    }));
+
+    const total = normalizedSegments.reduce((sum, segment) => sum + segment.normalizedValue, 0) || 1;
+    let currentStartAngle = -90;
+
+    return normalizedSegments.map((segment) => {
+      const share = segment.normalizedValue / total;
+      const startAngle = currentStartAngle;
+      const endAngle = currentStartAngle + share * 360;
+      const path = this.buildAnnularSectorPath(cx, cy, innerRadius, outerRadius, startAngle, endAngle);
+      const midAngle = (startAngle + endAngle) / 2;
+      const labelRadius = innerRadius + ((outerRadius - innerRadius) * 0.50);
+      const labelX = cx + Math.cos(this.toRadians(midAngle)) * labelRadius;
+      const labelY = cy + Math.sin(this.toRadians(midAngle)) * labelRadius;
+      const result = {
+        key: segment.key,
+        color: segment.color,
+        percent: segment.percent,
+        label: segment.label,
+        displayPercent: Math.round(this.toDisplayPercent(segment.value)),
+        labelX,
+        labelY,
+        path,
+        gradientId: this.getGradientId(segment.key)
+      };
+      currentStartAngle = endAngle;
+      return result;
+    });
+  }
+
+  private getGradientId(key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation'): string {
+    const gradientMap: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', string> = {
+      expansion: 'expansionGradient',
+      soft_landing: 'softLandingGradient',
+      recession: 'recessionGradient',
+      stagflation: 'stagflationGradient'
+    };
+
+    return gradientMap[key];
+  }
+
+  private buildAnnularSectorPath(
+    cx: number,
+    cy: number,
+    innerRadius: number,
+    outerRadius: number,
+    startAngle: number,
+    endAngle: number
+  ): string {
+    const outerStart = this.polarToCartesian(cx, cy, outerRadius, startAngle);
+    const outerEnd = this.polarToCartesian(cx, cy, outerRadius, endAngle);
+    const innerStart = this.polarToCartesian(cx, cy, innerRadius, startAngle);
+    const innerEnd = this.polarToCartesian(cx, cy, innerRadius, endAngle);
+    const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
+
+    return [
+      `M ${outerStart.x} ${outerStart.y}`,
+      `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y}`,
+      `L ${innerEnd.x} ${innerEnd.y}`,
+      `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${innerStart.x} ${innerStart.y}`,
+      'Z'
+    ].join(' ');
+  }
+
+  private polarToCartesian(cx: number, cy: number, radius: number, angleInDegrees: number): { x: number; y: number } {
+    const angleInRadians = this.toRadians(angleInDegrees);
+    return {
+      x: cx + radius * Math.cos(angleInRadians),
+      y: cy + radius * Math.sin(angleInRadians)
+    };
+  }
+
+  private toRadians(angleInDegrees: number): number {
+    return (angleInDegrees * Math.PI) / 180;
   }
 }

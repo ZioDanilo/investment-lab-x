@@ -1,215 +1,281 @@
 <section class="montecarlo-page">
-  <!-- ===== SELEZIONE PORTAFOGLIO + AVVIA ===== -->
-  <div class="section-card top-controls">
-
-    <div class="param-group">
-      <label>Portafoglio</label>
-      <app-dropdown
-        [items]="portfolioDropdownOptions()"
-        [value]="selectedPortfolio()?.id || null"
-        [disabled]="loadingPortafogli()"
-        placeholder="Seleziona Portafoglio"
-        emptyText="Nessun portafoglio disponibile"
-        (valueChange)="onPortfolioSelected($event)"
-      ></app-dropdown>
+  <header class="page-header">
+    <div class="header-copy">
+      <p class="eyebrow">MONTE CARLO</p>
+      <h2>Simula il futuro del tuo portafoglio</h2>
+      <p class="header-subtitle">Analizza migliaia di scenari per valutare la distribuzione dei possibili risultati.</p>
     </div>
+  </header>
 
-    <div class="param-group">
-      <label>Orizzonte temporale</label>
-      <app-dropdown
-        [items]="horizonDropdownOptions"
-        [value]="params.horizonYears.toString()"
-        (valueChange)="onHorizonYearsSelected($event)"
-      ></app-dropdown>
-    </div>
-
-    <div class="param-group">
-      <label>Numero simulazioni</label>
-      <app-dropdown
-        [items]="simulationDropdownOptions"
-        [value]="params.simulationCount.toString()"
-        (valueChange)="onSimulationCountSelected($event)"
-      ></app-dropdown>
-    </div>
-    
-    <div class="param-group">
-      <label>Capitale iniziale</label>
-      <app-dropdown
-        [items]="initialCapitalDropdownOptions"
-        [value]="params.initialCapital.toString()"
-        (valueChange)="onInitialCapitalSelected($event)"
-      ></app-dropdown>
-    </div>
-
-    <app-tasto-conferma
-      label="▶"
-      loadingText="⏳"
-      variant="primary"
-      size="small"
-      [disabled]="!mc.canRun() || !editorState()?.state?.isValid"
-      [loading]="mc.running()"
-      [onConfirm]="runSimulation.bind(this)"
-    ></app-tasto-conferma>
-
-    <div class="top-loading-indicator" *ngIf="mc.running()">
-      <app-spinner
-        size="sm"
-        label="Simulazione in corso..."
-        ariaLabel="Simulazione Montecarlo in esecuzione"
-      ></app-spinner>
-    </div>
-
-    <div class="progress-bar-wrap" *ngIf="mc.running()">
-      <div class="progress-bar" [style.width.%]="mc.progress()"></div>
-      <span class="progress-label">{{ mc.progress() }}%</span>
-    </div>
-
+  <div class="cta-row">
+    <button type="button" class="run-button" [disabled]="!selectedPortfolio() || isRunning" (click)="runSimulation()" aria-label="Avvia simulazione">
+      <span class="material-symbols-rounded">play_arrow</span>
+      <span>{{ isRunning ? 'SIMULAZIONE...' : 'AVVIA SIMULAZIONE' }}</span>
+    </button>
   </div>
 
-  <!-- ===== D. KPI RISULTATI ===== -->
-  <div class="section-card results-section" *ngIf="displayedSummary()" [class.results-section--loading]="mc.running()">
-    <div class="results-loading-overlay" *ngIf="mc.running()">
-      <app-spinner
-        size="md"
-        label="Aggiornamento risultati in corso..."
-        ariaLabel="Aggiornamento risultati Montecarlo"
-      ></app-spinner>
-    </div>
-    <div class="sim-meta sim-meta--top">{{ displayedSummary()!.validSimulationCount | number }} / {{ displayedSummary()!.simulationCount | number }} simulazioni · {{ displayedSummary()!.horizonYears }} anni</div>
-    <div class="kpi-grid">
-      <div *ngFor="let card of kpiCards()" class="kpi-card" [class.kpi-card--range]="card!.format === 'range'">
-        <div class="kpi-name">{{ card!.name }}</div>
-        <div class="kpi-value">
-          <ng-container *ngIf="card!.format === 'range'; else normalKpiTop">
-            <span class="kpi-range">{{ card!.sub }}</span>
-          </ng-container>
-          <ng-template #normalKpiTop>
-            {{ fmtKpiValue(card!.value, card!.format) }}
-          </ng-template>
-        </div>
-        <div class="kpi-sub" *ngIf="card!.format !== 'range'">{{ card!.sub }}</div>
-      </div>
-    </div>
+  <div class="kpi-grid" [class.kpi-grid--dragging]="draggedKpiId !== null">
+    <ng-container *ngFor="let kpi of kpis; let i = index">
+      <div
+        class="kpi-drop-slot"
+        [class.is-active]="insertTargetIndex === i"
+        (dragover)="onGapDragOver(i, $event)"
+        (drop)="onGapDrop(i, $event)"
+      ></div>
 
-    <ng-container *ngFor="let entry of historicalResults(); trackBy: trackByHistoryEntry">
-      <div class="kpi-grid kpi-grid--history">
-        <div *ngFor="let card of buildKpiCards(entry.summary)" class="kpi-card kpi-card--history">
-          <div class="kpi-value">{{ fmtKpiValue(card!.value, card!.format) }}</div>
-        </div>
-      </div>
+      <article
+        class="kpi-card"
+        [ngClass]="'kpi-card--' + kpi.tone"
+        [class.is-dragging]="draggedKpiId === kpi.id"
+        [class.is-swap-target]="swapTargetId === kpi.id"
+        draggable="true"
+        (dragstart)="onKpiDragStart(kpi.id, $event)"
+        (dragover)="onKpiDragOver(kpi.id, $event)"
+        (drop)="onKpiDrop(kpi.id, $event)"
+        (dragend)="onKpiDragEnd()"
+      >
+        <span class="kpi-title">{{ kpi.title }}</span>
+        <strong class="kpi-value">{{ kpi.value }}</strong>
+        <span class="kpi-description">{{ kpi.description }}</span>
+      </article>
     </ng-container>
+
+    <div
+      class="kpi-drop-slot kpi-drop-slot--end"
+      [class.is-active]="insertTargetIndex === kpis.length"
+      (dragover)="onGapDragOver(kpis.length, $event)"
+      (drop)="onGapDrop(kpis.length, $event)"
+    ></div>
   </div>
 
-  <div class="section-card" *ngIf="representativeContributionAnalysis() as analysis">
-    <app-montecarlo-contribution-chart [analysis]="analysis"></app-montecarlo-contribution-chart>
-  </div>
-
-  <div class="section-card" *ngIf="mc.selectedPath() as path">
-    <app-montecarlo-portfolio-return-chart [path]="path"></app-montecarlo-portfolio-return-chart>
-  </div>
-
-  <div class="section-card">
-    <app-montecarlo-portfolio-editor
-      [portfolioId]="selectedPortfolio()?.id || null"
-      (stateChange)="onEditorStateChange($event)"
-    ></app-montecarlo-portfolio-editor>
-  </div>
-
-  <!-- Spinner while service is computing and before results are available -->
-  <div class="section-card simulation-loading" *ngIf="mc.running() && !summary()">
-    <app-spinner
-      size="md"
-      label="Simulazione in corso, attendo i risultati del servizio..."
-      ariaLabel="Simulazione Montecarlo in corso"
-    ></app-spinner>
-  </div>
-
-  <div class="section-card scenario-freq-section" *ngIf="displayedSummary()">
-    <div class="freq-grid">
-      <div *ngFor="let sc of scenarios" class="freq-item">
-        <span class="freq-label">{{ scenarioLabels[sc] }}</span>
-        <div class="freq-bar-wrap">
-          <div class="freq-bar" [style.width.%]="displayedSummary()!.scenarioFrequencies[sc] * 100"
-            [class]="'freq-bar--' + sc"></div>
+  <div class="chart-grid chart-grid--top">
+    <article class="panel panel-chart panel-chart--large">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Distribuzione dei rendimenti finali</p>
+          <h3>Distribuzione dei rendimenti finali</h3>
         </div>
-        <span class="freq-pct">{{ (displayedSummary()!.scenarioFrequencies[sc] * 100).toFixed(1) }}%</span>
+        <button type="button" class="panel-action">Vista</button>
       </div>
-    </div>
+
+      <div class="panel-subtitle">Distribuzione simulata a 30 anni</div>
+
+      <svg viewBox="0 0 520 180" class="svg-chart" role="img" aria-label="Distribuzione dei rendimenti finali">
+        <line x1="30" y1="150" x2="490" y2="150" class="axis" />
+        <line x1="30" y1="20" x2="30" y2="150" class="axis" />
+
+        <g *ngFor="let bar of buildHistogramBars(finalReturnDistribution.bins, 120, 440); let i = index">
+          <rect [attr.x]="bar.x" [attr.y]="bar.y" [attr.width]="bar.width" [attr.height]="bar.height" [attr.opacity]="bar.opacity" fill="#5da7ff" rx="3"></rect>
+        </g>
+
+        <line x1="210" x2="210" y1="25" y2="150" class="marker marker--red" />
+        <line x1="285" x2="285" y1="25" y2="150" class="marker marker--white" />
+        <line x1="358" x2="358" y1="25" y2="150" class="marker marker--green" />
+
+        <text x="200" y="168" class="tick-label">-25%</text>
+        <text x="279" y="168" class="tick-label">0%</text>
+        <text x="350" y="168" class="tick-label">25%</text>
+        <text x="420" y="168" class="tick-label">50%</text>
+      </svg>
+
+      <div class="legend-inline">
+        <span><i class="dot dot--red"></i>5° percentile</span>
+        <span><i class="dot dot--white"></i>Mediana</span>
+        <span><i class="dot dot--green"></i>95° percentile</span>
+      </div>
+    </article>
+
+    <article class="panel panel-chart panel-chart--large">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Traiettorie del valore del portafoglio</p>
+          <h3>Traiettorie del valore del portafoglio</h3>
+        </div>
+        <button type="button" class="panel-action">Vista</button>
+      </div>
+
+      <div class="panel-subtitle">Esempio delle traiettorie simulate</div>
+
+      <svg viewBox="0 0 520 180" class="svg-chart" role="img" aria-label="Traiettorie del valore del portafoglio">
+        <line x1="30" y1="150" x2="490" y2="150" class="axis" />
+        <line x1="30" y1="20" x2="30" y2="150" class="axis" />
+
+        <g *ngFor="let trajectory of portfolioTrajectories">
+          <path [attr.d]="buildLinePath(trajectory.values, 520, 170, 24)" class="trajectory" [ngClass]="{'trajectory--median': trajectory.id === 'median'}"></path>
+        </g>
+
+        <text x="30" y="168" class="tick-label">0</text>
+        <text x="110" y="168" class="tick-label">5</text>
+        <text x="194" y="168" class="tick-label">10</text>
+        <text x="278" y="168" class="tick-label">15</text>
+        <text x="362" y="168" class="tick-label">20</text>
+        <text x="448" y="168" class="tick-label">30</text>
+      </svg>
+    </article>
   </div>
 
-  <!-- ===== E. DETTAGLIO SIMULAZIONE ===== -->  <div class="section-card detail-section" *ngIf="mc.detailedPaths().length > 0">
-    <ng-container *ngIf="mc.selectedPath() as path">
-      <div class="path-meta">
-        Capitale finale: <strong>{{ fmtEur(path.finalCapital) }}</strong> ·
-        CAGR: <strong>{{ fmtPct(path.cagr) }}</strong> ·
-        Max Drawdown: <strong class="text-danger">{{ fmtPct(path.maxDrawdown) }}</strong>
+  <div class="chart-grid chart-grid--bottom">
+    <article class="panel panel-chart panel-chart--small">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Probabilità di raggiungere obiettivi</p>
+          <h3>Probabilità di raggiungere obiettivi</h3>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table class="detail-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Anno</th>
-              <th>Scenario</th>
-              <th>Intens.</th>
-              <th>Rend. Port.</th>
-              <th>Cap. Inizio</th>
-              <th>Cap. Fine</th>
-              <th>Drawdown</th>
-            </tr>
-          </thead>
-          <tbody>
-            <ng-container *ngFor="let yr of path.years">
-              <!-- Riga anno -->
-              <tr class="year-row"
-                [class.row-negative]="yr.portfolioReturn < 0"
-                [class.row-dd]="yr.drawdown < -0.1"
-                (click)="toggleYear(yr.year)">
-                <td class="expand-toggle">{{ expandedYears.has(yr.year) ? '▾' : '▸' }}</td>
-                <td>{{ yr.year }}</td>
-                <td><span class="scenario-badge" [class]="'scenario-badge--' + yr.scenario">{{ scenarioLabels[yr.scenario] }}</span></td>
-                  <td>{{ yr.durationInCurrentScenario }}</td>
-                <td [class.text-positive]="yr.portfolioReturn >= 0" [class.text-danger]="yr.portfolioReturn < 0">
-                  {{ fmtPct(yr.portfolioReturn) }}
-                </td>
-                <td>{{ fmtEur(yr.startingCapital) }}</td>
-                <td>{{ fmtEur(yr.endingCapital) }}</td>
-                <td [class.text-danger]="yr.drawdown < -0.05">{{ fmtPct(yr.drawdown) }}</td>
-              </tr>
-              <!-- Righe ETF espanse -->
-              <ng-container *ngIf="expandedYears.has(yr.year)">
-                <tr class="etf-header-row">
-                  <td></td>
-                  <td colspan="2" class="etf-header-label">ETF</td>
-                  <td class="etf-header-label">Peso</td>
-                  <td class="etf-header-label">E[R] Scenario</td>
-                  <td class="etf-header-label">R Simulato</td>
-                  <td class="etf-header-label">Contributo</td>
-                  <td class="etf-header-label">Dir.</td>
-                </tr>
-                <tr *ngFor="let etf of yr.etfReturns" class="etf-row">
-                  <td></td>
-                  <td colspan="2" class="etf-name">{{ etf.name }}</td>
-                  <td>{{ fmtPct(etf.weight) }}</td>
-                  <td class="muted">{{ fmtPct(etf.expectedReturn) }}</td>
-                  <td [class.text-positive]="etf.annualReturn >= 0" [class.text-danger]="etf.annualReturn < 0">
-                    {{ fmtPct(etf.annualReturn) }}
-                  </td>
-                  <td [class.text-positive]="etf.contribution >= 0" [class.text-danger]="etf.contribution < 0">
-                    {{ fmtPct(etf.contribution) }}
-                  </td>
-                  <td>
-                    <span class="dir-badge" [class.dir-above]="etf.deviationDirection === 'above_expected'" [class.dir-below]="etf.deviationDirection === 'below_expected'">
-                      {{ etf.deviationDirection === 'above_expected' ? '↑' : '↓' }}
-                    </span>
-                  </td>
-                </tr>
-              </ng-container>
-            </ng-container>
-          </tbody>
-        </table>
-      </div>
-    </ng-container>
-  </div>
 
+      <div class="panel-subtitle">Probabilità di raggiungere determinati target di valore a 30 anni</div>
+
+      <div class="target-list">
+        <div *ngFor="let item of targetProbabilities" class="target-row">
+          <span class="target-label">{{ item.label }}</span>
+          <div class="target-track">
+            <span [style.width.%]="item.value"></span>
+          </div>
+          <strong>{{ item.value }}%</strong>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel panel-chart panel-chart--small">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Drawdown massimo</p>
+          <h3>Drawdown massimo</h3>
+        </div>
+      </div>
+
+      <div class="panel-subtitle">Distribuzione del drawdown massimo nei 30 anni</div>
+
+      <svg viewBox="0 0 420 175" class="svg-chart svg-chart--compact" role="img" aria-label="Distribuzione drawdown massimo">
+        <line x1="30" y1="145" x2="390" y2="145" class="axis" />
+        <line x1="30" y1="20" x2="30" y2="145" class="axis" />
+
+        <g *ngFor="let bar of buildHistogramBars(maxDrawdownDistribution.bins, 100, 350); let i = index">
+          <rect [attr.x]="bar.x + 20" [attr.y]="bar.y + 12" [attr.width]="bar.width" [attr.height]="bar.height" fill="#ff6b7f" opacity="0.82" rx="2"></rect>
+        </g>
+
+        <line x1="190" x2="190" y1="20" y2="145" class="marker marker--red" />
+      </svg>
+    </article>
+
+    <article class="panel panel-chart panel-chart--small panel-chart--donut">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Distribuzione degli scenari macro</p>
+          <h3>Distribuzione degli scenari macro</h3>
+        </div>
+      </div>
+
+      <div class="panel-subtitle">Frequenza degli scenari osservati nelle simulazioni</div>
+
+      <div class="donut-wrap">
+        <svg viewBox="0 0 400 400" class="donut-chart" role="img" aria-label="Distribuzione degli scenari macro">
+          <defs>
+            <radialGradient id="expansionGradient" cx="200" cy="200" r="170" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#007F70" />
+              <stop offset="22%" stop-color="#009F88" />
+              <stop offset="48%" stop-color="#00CFAE" />
+              <stop offset="80%" stop-color="#22E7C5" />
+              <stop offset="100%" stop-color="#4CF2D5" />
+            </radialGradient>
+
+            <radialGradient id="softLandingGradient" cx="200" cy="200" r="170" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#064EB9" />
+              <stop offset="22%" stop-color="#075FD8" />
+              <stop offset="48%" stop-color="#087BFF" />
+              <stop offset="80%" stop-color="#2498FF" />
+              <stop offset="100%" stop-color="#53B5FF" />
+            </radialGradient>
+
+            <radialGradient id="recessionGradient" cx="200" cy="200" r="170" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#A90035" />
+              <stop offset="22%" stop-color="#D00043" />
+              <stop offset="48%" stop-color="#F21F52" />
+              <stop offset="80%" stop-color="#FF4165" />
+              <stop offset="100%" stop-color="#FF7185" />
+            </radialGradient>
+
+            <radialGradient id="stagflationGradient" cx="200" cy="200" r="170" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#B85B00" />
+              <stop offset="22%" stop-color="#DA7600" />
+              <stop offset="48%" stop-color="#FF9800" />
+              <stop offset="80%" stop-color="#FFB11A" />
+              <stop offset="100%" stop-color="#FFD04B" />
+            </radialGradient>
+
+            <filter id="donutShadow" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.16" />
+              <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000000" flood-opacity="0.13" />
+            </filter>
+
+            <filter id="donutInnerDepth" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur" />
+              <feColorMatrix
+                in="blur"
+                type="matrix"
+                values="0 0 0 0 0
+                        0 0 0 0 0
+                        0 0 0 0 0
+                        0 0 0 0.12 0" />
+            </filter>
+
+            <radialGradient id="donutSurfaceShading" cx="200" cy="200" r="170" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#000000" stop-opacity="0.24" />
+              <stop offset="22%" stop-color="#000000" stop-opacity="0.10" />
+              <stop offset="48%" stop-color="#000000" stop-opacity="0.00" />
+              <stop offset="75%" stop-color="#FFFFFF" stop-opacity="0.06" />
+              <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.10" />
+            </radialGradient>
+
+            <linearGradient id="donutDirectionalLight" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.04" />
+              <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.01" />
+              <stop offset="100%" stop-color="#000000" stop-opacity="0.06" />
+            </linearGradient>
+
+            <clipPath id="donutClip">
+              <path *ngFor="let segment of donutSegments" [attr.d]="segment.path"></path>
+            </clipPath>
+          </defs>
+
+          <g class="donut-segment-group" filter="url(#donutShadow)">
+            <path
+              *ngFor="let segment of donutSegments"
+              [attr.d]="segment.path"
+              [attr.fill]="'url(#' + segment.gradientId + ')'"
+              class="donut-segment"
+            ></path>
+          </g>
+
+          <g clip-path="url(#donutClip)">
+            <rect x="0" y="0" width="400" height="400" fill="url(#donutSurfaceShading)" />
+          </g>
+
+          <g clip-path="url(#donutClip)">
+            <rect x="0" y="0" width="400" height="400" fill="url(#donutDirectionalLight)" opacity="0.9" />
+          </g>
+
+          <g clip-path="url(#donutClip)">
+            <ellipse cx="200" cy="200" rx="108" ry="108" fill="#000000" opacity="0.18" filter="url(#donutInnerDepth)" />
+            <ellipse cx="168" cy="165" rx="118" ry="118" fill="#FFFFFF" opacity="0.03" />
+            <ellipse cx="200" cy="200" rx="104" ry="104" fill="#FFFFFF" opacity="0.02" />
+          </g>
+
+          <g class="donut-label-group">
+            <text
+              *ngFor="let segment of donutSegments"
+              [attr.x]="segment.labelX"
+              [attr.y]="segment.labelY"
+              class="donut-label"
+              text-anchor="middle"
+              dominant-baseline="middle"
+            >
+              <tspan [attr.x]="segment.labelX" dy="-6" class="donut-label--title">{{ segment.label }}</tspan>
+              <tspan [attr.x]="segment.labelX" dy="20" class="donut-label--value">{{ segment.displayPercent }}%</tspan>
+            </text>
+          </g>
+        </svg>
+      </div>
+    </article>
+  </div>
 </section>

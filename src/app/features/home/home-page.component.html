@@ -1,0 +1,209 @@
+<div class="home-shell">
+  <header class="top-nav">
+    <div class="brand-group" aria-label="Investment Lab brand">
+      <div class="brand-mark">
+        <span class="brand-mark__dot"></span>
+        <span class="brand-mark__dot brand-mark__dot--small"></span>
+      </div>
+      <div class="brand-copy">
+        <span class="brand-name">INVESTMENT LAB</span>
+        <span class="brand-tag">BUILD • TEST • EVOLVE</span>
+      </div>
+    </div>
+
+    <nav class="primary-nav" aria-label="Menu principale">
+      <button *ngFor="let item of navItems" type="button" class="nav-item" [class.is-active]="item.active">
+        <span class="material-symbols-rounded">{{ item.icon }}</span>
+        <span>{{ item.label }}</span>
+      </button>
+      <button type="button" class="nav-item nav-item--cta">
+        <span class="material-symbols-rounded">add</span>
+        <span>Nuovo ETF</span>
+      </button>
+    </nav>
+
+    <div class="header-actions" aria-label="Azioni rapide">
+      <button type="button" class="icon-button" aria-label="Ricerca">
+        <span class="material-symbols-rounded">search</span>
+      </button>
+      <button type="button" class="icon-button" aria-label="Impostazioni">
+        <span class="material-symbols-rounded">settings</span>
+      </button>
+      <button type="button" class="avatar-button" aria-label="Profilo utente">
+        <span>DL</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="home-main">
+    <section class="workspace-header" aria-label="Header workspace">
+      <div class="workspace-copy">
+        <p class="welcome-label">Bentornato, Danilo</p>
+        <h1>Cosa vuoi costruire oggi?</h1>
+        <p class="workspace-subtitle">Costruisci, confronta e testa i tuoi portafogli.</p>
+      </div>
+    </section>
+
+    <section class="shortcut-row" aria-label="Azioni principali">
+      <article
+        *ngFor="let item of shortcuts; let i = index"
+        class="shortcut-card"
+        [ngClass]="'shortcut-card--' + item.accent"
+        [routerLink]="item.title === 'Monte Carlo' ? ['/monte-carlo'] : null"
+        [attr.aria-label]="item.title"
+        tabindex="0"
+        role="button"
+      >
+        <div class="shortcut-card__top">
+          <span class="shortcut-icon material-symbols-rounded">{{ item.icon }}</span>
+        </div>
+        <div class="shortcut-card__body">
+          <h2>{{ item.title }}</h2>
+          <p>{{ item.description }}</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="dashboard-grid" aria-label="Portafogli recenti e sintesi">
+      <article class="panel recent-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Portafogli recenti</p>
+            <h3>Portafogli recenti</h3>
+          </div>
+          <button type="button" class="panel-link">Vedi tutti <span class="material-symbols-rounded">arrow_forward</span></button>
+        </div>
+
+        <div class="recent-list">
+          <div *ngFor="let row of portfolios.slice(0, 5)" class="recent-item">
+            <div class="recent-item__meta">
+              <strong>{{ row.name }}</strong>
+              <small>{{ row.modified }}</small>
+            </div>
+            <div class="recent-item__stats">
+              <span>{{ row.etfCount }} ETF</span>
+              <strong>{{ row.expectedReturn }}</strong>
+              <span>{{ row.volatility }}</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel summary-panel">
+        <div class="panel-header compact">
+          <div>
+            <p class="panel-kicker">Sintesi</p>
+            <h3>I miei portafogli in sintesi</h3>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div *ngFor="let metric of summaryMetrics" class="summary-metric summary-metric--{{ metric.tone }}">
+            <strong>{{ metric.value }}</strong>
+            <span>{{ metric.label }}</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel asset-panel">
+        <div class="panel-header compact">
+          <div>
+            <p class="panel-kicker">Asset class</p>
+            <h3>Distribuzione asset class</h3>
+          </div>
+        </div>
+
+        <div class="asset-layout">
+          <div class="asset-donut" aria-label="Distribuzione asset class">
+            <div class="asset-donut__center">
+              <strong>312</strong>
+              <span>ETF disponibili</span>
+            </div>
+          </div>
+
+          <ul class="asset-legend">
+            <li *ngFor="let item of assetMix">
+              <span class="legend-dot" [style.background]="item.color"></span>
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <section class="dashboard-grid dashboard-grid--lower" aria-label="Scenari e attività">
+      <article class="panel scenario-panel">
+        <div class="panel-header compact">
+          <div>
+            <p class="panel-kicker">Scenari macro</p>
+            <h3>Scenari macro</h3>
+          </div>
+        </div>
+
+        <div class="scenario-grid">
+          <div *ngFor="let scenario of scenarios" class="scenario-card scenario-card--{{ scenario.tone }}">
+            <strong>{{ scenario.name }}</strong>
+            <div class="scenario-row">
+              <span>Rendimento medio</span>
+              <b class="positive" *ngIf="scenario.returnClass === 'positive'">{{ scenario.returnValue }}</b>
+              <b class="negative" *ngIf="scenario.returnClass !== 'positive'">{{ scenario.returnValue }}</b>
+            </div>
+            <div class="scenario-row">
+              <span>Drawdown medio</span>
+              <b>{{ scenario.drawdown }}</b>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel activity-panel">
+        <div class="panel-header compact">
+          <div>
+            <p class="panel-kicker">Attività recenti</p>
+            <h3>Attività recenti</h3>
+          </div>
+        </div>
+
+        <ul class="activity-list">
+          <li *ngFor="let item of activity" class="activity-item">
+            <span class="activity-bullet"><span class="material-symbols-rounded">{{ item.icon }}</span></span>
+            <div class="activity-copy">
+              <strong>{{ item.label }}</strong>
+              <span>{{ item.detail }}</span>
+            </div>
+            <time>{{ item.date }}</time>
+          </li>
+        </ul>
+      </article>
+
+      <article class="panel lab-panel">
+        <div class="panel-header compact">
+          <div>
+            <p class="panel-kicker">Laboratorio</p>
+            <h3>Investment Lab</h3>
+          </div>
+        </div>
+
+        <div class="lab-grid">
+          <div class="lab-stat">
+            <strong>312</strong>
+            <span>ETF</span>
+          </div>
+          <div class="lab-stat">
+            <strong>5</strong>
+            <span>Portafogli</span>
+          </div>
+          <div class="lab-stat">
+            <strong>4</strong>
+            <span>Scenari</span>
+          </div>
+          <div class="lab-stat">
+            <strong>3</strong>
+            <span>Simulazioni</span>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>

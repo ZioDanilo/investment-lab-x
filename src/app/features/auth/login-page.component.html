@@ -1,0 +1,106 @@
+<div class="login-page">
+  <header class="top-nav landing-nav" aria-label="Navigation landing">
+    <div class="brand-group" aria-label="Investment Lab brand">
+      <div class="brand-mark">
+        <span class="brand-mark__dot"></span>
+        <span class="brand-mark__dot brand-mark__dot--small"></span>
+      </div>
+      <div class="brand-copy">
+        <span class="brand-name">INVESTMENT LAB</span>
+      </div>
+    </div>
+
+    <nav class="landing-links" aria-label="Link landing">
+      <a href="javascript:void(0)">Funzionalità</a>
+      <a href="javascript:void(0)">Metodo</a>
+    </nav>
+
+    <button type="button" class="login-pill" (click)="onLogin()">Accedi</button>
+  </header>
+
+  <main class="landing-shell">
+    <section class="hero-panel" aria-label="Hero landing">
+      <div class="hero-copy-wrap">
+        <p class="eyebrow">INVESTMENT LAB X</p>
+        <h1>
+          Costruisci oggi<br />
+          i portafogli di <span>domani.</span>
+        </h1>
+        <p class="subtitle">Dati. Scenari. Simulazioni. Decisioni migliori.</p>
+      </div>
+
+      <aside class="login-card" aria-label="Form di login">
+        <h2>Accedi a Investment Lab</h2>
+        <label class="field">
+          <span>Email</span>
+          <input type="email" value="danilo@investmentlab.it" aria-label="Email" />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" value="••••••••" aria-label="Password" />
+        </label>
+
+        <label class="remember-row">
+          <input type="checkbox" />
+          <span>Ricordami</span>
+        </label>
+
+        <button type="button" class="primary-login" (click)="onLogin()">Entra</button>
+        <p class="helper-text">Accedi al tuo laboratorio di investimento.</p>
+      </aside>
+
+      <div class="quote-block" aria-label="Frase promozionale">
+        <span class="quote-bar"></span>
+        <p>“Better portfolios<br />for a more certain tomorrow.”</p>
+      </div>
+    </section>
+
+    <section class="stats-panel" aria-label="Statistiche generiche">
+      <h3>Investment Lab in numeri</h3>
+      <div class="stats-grid">
+        <article>
+          <strong>312</strong>
+          <span>ETF disponibili</span>
+        </article>
+        <article>
+          <strong>4</strong>
+          <span>Scenari macro</span>
+        </article>
+        <article>
+          <strong>100 anni</strong>
+          <span>Orizzonte massimo Monte Carlo</span>
+        </article>
+        <article>
+          <strong>100.000+</strong>
+          <span>Percorsi simulabili</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="workflow-panel" aria-label="Workflow del prodotto">
+      <h3>Dal dato al portafoglio</h3>
+      <div class="workflow-grid">
+        <article>
+          <span class="step">01</span>
+          <h4>Costruisci</h4>
+          <p>Combina ETF e definisci l'allocazione.</p>
+        </article>
+        <article>
+          <span class="step">02</span>
+          <h4>Valuta</h4>
+          <p>Analizza rendimento, rischio, drawdown, correlazioni e scenari ADB.</p>
+        </article>
+        <article>
+          <span class="step">03</span>
+          <h4>Simula</h4>
+          <p>Sottoponi i portafogli selezionati al Monte Carlo.</p>
+        </article>
+        <article>
+          <span class="step">04</span>
+          <h4>Ribilancia</h4>
+          <p>Trasforma il portafoglio target in operazioni concrete.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</div>
