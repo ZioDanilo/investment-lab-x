@@ -78,6 +78,55 @@ export const toCompactPathResult = (path) => {
         matricesCoherent: path?.matricesCoherent ?? true
     };
 };
+const deviationDirectionCodes = Object.freeze({
+    above_expected: 0,
+    below_expected: 1
+});
+export const encodeTransportBatch = (paths = []) => {
+    const normalizedPaths = Array.isArray(paths) ? paths : [];
+    const annualEtfDeviationCode = [];
+    for (const path of normalizedPaths) {
+        const years = Array.isArray(path?.years) ? path.years : [];
+        for (const year of years) {
+            const etfReturns = Array.isArray(year?.etfReturns) ? year.etfReturns : [];
+            for (const etfReturn of etfReturns) {
+                const code = deviationDirectionCodes[etfReturn?.deviationDirection] ?? deviationDirectionCodes.above_expected;
+                annualEtfDeviationCode.push(code);
+            }
+        }
+    }
+    const payloadBytes = new TextEncoder().encode(JSON.stringify(normalizedPaths));
+    return {
+        message: {
+            arrays: {
+                annualEtfDeviationCode: Uint32Array.from(annualEtfDeviationCode),
+                payload: payloadBytes.buffer
+            }
+        },
+        transferList: [payloadBytes.buffer],
+        paths: undefined
+    };
+};
+export const decodeTransportBatch = (transport) => {
+    const arrays = transport?.message?.arrays ?? transport?.arrays ?? {};
+    const payload = arrays.payload ?? transport?.payload;
+    if (payload instanceof ArrayBuffer) {
+        return JSON.parse(new TextDecoder().decode(new Uint8Array(payload)));
+    }
+    if (ArrayBuffer.isView(payload)) {
+        return JSON.parse(new TextDecoder().decode(payload));
+    }
+    if (typeof payload === 'string') {
+        return JSON.parse(payload);
+    }
+    if (Array.isArray(transport?.paths)) {
+        return transport.paths;
+    }
+    if (Array.isArray(transport)) {
+        return transport;
+    }
+    return [];
+};
 const buildPathResult = (input, snapshot, precompute, simulationId, workerId) => {
     const rng = createDeterministicRandom(simulationId, workerId);
     const horizonMonths = input.horizonYears * 12;

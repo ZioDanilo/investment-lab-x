@@ -3,6 +3,7 @@ import { AppShellComponent } from './app-shell.component';
 import { HomePageComponent } from './features/home/home-page.component';
 import { LoginPageComponent } from './features/auth/login-page.component';
 import { MontecarloPageComponent } from './features/montecarlo/montecarlo-page.component';
+import { MarketUniversePageComponent } from './features/market-universe/market-universe-page.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginPageComponent },
@@ -12,7 +13,8 @@ export const appRoutes: Routes = [
     component: AppShellComponent,
     children: [
       { path: 'home', component: HomePageComponent },
-      { path: 'monte-carlo', component: MontecarloPageComponent }
+      { path: 'monte-carlo', component: MontecarloPageComponent },
+      { path: 'market-universe', component: MarketUniversePageComponent }
     ]
   },
   { path: '**', redirectTo: '/login' }

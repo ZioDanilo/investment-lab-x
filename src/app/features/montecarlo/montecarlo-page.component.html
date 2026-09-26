@@ -8,10 +8,21 @@
   </header>
 
   <div class="cta-row">
+    <div class="cta-side-spacer"></div>
     <button type="button" class="run-button" [disabled]="!selectedPortfolio() || isRunning" (click)="runSimulation()" aria-label="Avvia simulazione">
       <span class="material-symbols-rounded">play_arrow</span>
       <span>{{ isRunning ? 'SIMULAZIONE...' : 'AVVIA SIMULAZIONE' }}</span>
     </button>
+    <div class="cta-side-spacer cta-side-spacer--right">
+      <button type="button" class="secondary-button" [disabled]="isRegeneratingMarketUniverse" (click)="regenerateMarketUniverse()" aria-label="Rigenera Market Universe">
+        <span class="material-symbols-rounded">autorenew</span>
+        <span>{{ isRegeneratingMarketUniverse ? 'RIGENERAZIONE...' : 'RIGENERA MARKET UNIVERSE' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="market-universe-status" *ngIf="marketUniverseStatusMessage">
+    {{ marketUniverseStatusMessage }}
   </div>
 
   <div class="kpi-grid" [class.kpi-grid--dragging]="draggedKpiId !== null">
@@ -52,42 +63,6 @@
     <article class="panel panel-chart panel-chart--large">
       <div class="panel-header">
         <div>
-          <p class="panel-kicker">Distribuzione dei rendimenti finali</p>
-          <h3>Distribuzione dei rendimenti finali</h3>
-        </div>
-        <button type="button" class="panel-action">Vista</button>
-      </div>
-
-      <div class="panel-subtitle">Distribuzione simulata a 30 anni</div>
-
-      <svg viewBox="0 0 520 180" class="svg-chart" role="img" aria-label="Distribuzione dei rendimenti finali">
-        <line x1="30" y1="150" x2="490" y2="150" class="axis" />
-        <line x1="30" y1="20" x2="30" y2="150" class="axis" />
-
-        <g *ngFor="let bar of buildHistogramBars(finalReturnDistribution.bins, 120, 440); let i = index">
-          <rect [attr.x]="bar.x" [attr.y]="bar.y" [attr.width]="bar.width" [attr.height]="bar.height" [attr.opacity]="bar.opacity" fill="#5da7ff" rx="3"></rect>
-        </g>
-
-        <line x1="210" x2="210" y1="25" y2="150" class="marker marker--red" />
-        <line x1="285" x2="285" y1="25" y2="150" class="marker marker--white" />
-        <line x1="358" x2="358" y1="25" y2="150" class="marker marker--green" />
-
-        <text x="200" y="168" class="tick-label">-25%</text>
-        <text x="279" y="168" class="tick-label">0%</text>
-        <text x="350" y="168" class="tick-label">25%</text>
-        <text x="420" y="168" class="tick-label">50%</text>
-      </svg>
-
-      <div class="legend-inline">
-        <span><i class="dot dot--red"></i>5° percentile</span>
-        <span><i class="dot dot--white"></i>Mediana</span>
-        <span><i class="dot dot--green"></i>95° percentile</span>
-      </div>
-    </article>
-
-    <article class="panel panel-chart panel-chart--large">
-      <div class="panel-header">
-        <div>
           <p class="panel-kicker">Traiettorie del valore del portafoglio</p>
           <h3>Traiettorie del valore del portafoglio</h3>
         </div>
@@ -111,6 +86,53 @@
         <text x="362" y="168" class="tick-label">20</text>
         <text x="448" y="168" class="tick-label">30</text>
       </svg>
+    </article>
+
+    <article class="panel panel-chart panel-chart--large">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">Distribuzione dei rendimenti finali</p>
+          <h3>Distribuzione dei rendimenti finali</h3>
+        </div>
+        <button type="button" class="panel-action">Vista</button>
+      </div>
+
+      <div class="panel-subtitle">Distribuzione simulata a 30 anni</div>
+
+      <div class="histogram-plot">
+        <svg viewBox="0 0 520 180" class="svg-chart" role="img" aria-label="Distribuzione dei rendimenti finali" (pointerleave)="onHistogramPlotPointerLeave()">
+          <line x1="40" y1="150" x2="490" y2="150" class="axis" />
+          <line x1="40" y1="20" x2="40" y2="150" class="axis" />
+
+          <g *ngFor="let bar of buildHistogramBars(finalReturnDistribution.bins, 120, 440, 40, 8); let i = index">
+            <rect
+              [attr.x]="bar.x"
+              [attr.y]="bar.y"
+              [attr.width]="bar.width"
+              [attr.height]="bar.height"
+              [attr.opacity]="bar.opacity"
+              [attr.data-center-x]="bar.centerX"
+              [attr.data-bin-index]="i"
+              class="histogram-bar"
+              [class.is-hovered]="hoveredHistogramBin === finalReturnDistribution.bins[i]"
+              fill="#5da7ff"
+              rx="3"
+              (pointerenter)="onHistogramBarPointerEnter(finalReturnDistribution.bins[i], $event)"
+              (pointerleave)="onHistogramBarPointerLeave()"
+            ></rect>
+          </g>
+
+          <g *ngFor="let tick of getHistogramXAxisTicks()">
+            <text [attr.x]="tick.x" y="168" class="tick-label" text-anchor="middle">{{ tick.label }}</text>
+          </g>
+
+          <text x="240" y="178" class="tick-label" text-anchor="middle">Rendimento annuo</text>
+        </svg>
+
+        <div *ngIf="histogramTooltipPercentage !== null && histogramTooltipPercentage !== undefined" class="histogram-tooltip" [style.left.px]="histogramTooltipPosition.left" [style.top.px]="histogramTooltipPosition.top">
+          {{ histogramTooltipPercentage }}
+        </div>
+      </div>
     </article>
   </div>
 
@@ -146,16 +168,39 @@
 
       <div class="panel-subtitle">Distribuzione del drawdown massimo nei 30 anni</div>
 
-      <svg viewBox="0 0 420 175" class="svg-chart svg-chart--compact" role="img" aria-label="Distribuzione drawdown massimo">
-        <line x1="30" y1="145" x2="390" y2="145" class="axis" />
-        <line x1="30" y1="20" x2="30" y2="145" class="axis" />
+      <div class="histogram-plot histogram-plot--compact">
+        <svg viewBox="0 0 420 175" class="svg-chart svg-chart--compact" role="img" aria-label="Distribuzione drawdown massimo" (pointerleave)="onMaxDrawdownPlotPointerLeave()">
+          <line x1="30" y1="145" x2="360" y2="145" class="axis" />
+          <line x1="30" y1="20" x2="30" y2="145" class="axis" />
 
-        <g *ngFor="let bar of buildHistogramBars(maxDrawdownDistribution.bins, 100, 350); let i = index">
-          <rect [attr.x]="bar.x + 20" [attr.y]="bar.y + 12" [attr.width]="bar.width" [attr.height]="bar.height" fill="#ff6b7f" opacity="0.82" rx="2"></rect>
-        </g>
+          <g *ngFor="let bar of buildMaxDrawdownHistogramBars(maxDrawdownDistribution.bins, 100, 350); let i = index">
+            <rect
+              [attr.x]="bar.x"
+              [attr.y]="bar.y"
+              [attr.width]="bar.width"
+              [attr.height]="bar.height"
+              [attr.data-center-x]="bar.centerX"
+              class="drawdown-histogram-bar"
+              [class.is-hovered]="hoveredMaxDrawdownBin === maxDrawdownDistribution.bins[i]"
+              fill="#ff6b7f"
+              opacity="0.82"
+              rx="2"
+              (pointerenter)="onMaxDrawdownBarPointerEnter(maxDrawdownDistribution.bins[i], $event)"
+              (pointerleave)="onMaxDrawdownBarPointerLeave()"
+            ></rect>
+          </g>
 
-        <line x1="190" x2="190" y1="20" y2="145" class="marker marker--red" />
-      </svg>
+          <g *ngFor="let tick of getMaxDrawdownXAxisTicks(); let i = index">
+            <text [attr.x]="tick.x" y="162" class="tick-label" text-anchor="middle">{{ tick.label }}</text>
+          </g>
+
+          <line x1="190" x2="190" y1="20" y2="145" class="marker marker--red" />
+        </svg>
+
+        <div *ngIf="maxDrawdownTooltipPercentage !== null && maxDrawdownTooltipPercentage !== undefined" class="histogram-tooltip histogram-tooltip--drawdown" [style.left.px]="maxDrawdownTooltipPosition.left" [style.top.px]="maxDrawdownTooltipPosition.top">
+          {{ maxDrawdownTooltipPercentage }}
+        </div>
+      </div>
     </article>
 
     <article class="panel panel-chart panel-chart--small panel-chart--donut">

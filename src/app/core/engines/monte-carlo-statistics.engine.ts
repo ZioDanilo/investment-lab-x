@@ -807,7 +807,6 @@ export class MonteCarloStatisticsEngine {
     const completedRecoveryTimes = paths.flatMap((path) => {
       const value = path.maxRecoveryTimeMonths;
       if (value === null || value === undefined || !Number.isFinite(value) || value < 0) return [];
-      if (path.unrecovered === true) return [];
       return [value];
     });
     const pathVolatilities = paths.map((path) => {
