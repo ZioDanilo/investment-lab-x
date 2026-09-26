@@ -49,7 +49,7 @@
         *ngFor="let item of shortcuts; let i = index"
         class="shortcut-card"
         [ngClass]="'shortcut-card--' + item.accent"
-        [routerLink]="item.title === 'Monte Carlo' ? ['/monte-carlo'] : null"
+        [routerLink]="item.title === 'Monte Carlo' ? ['/monte-carlo'] : item.title === 'ETF & Mercati' ? ['/market-universe'] : null"
         [attr.aria-label]="item.title"
         tabindex="0"
         role="button"

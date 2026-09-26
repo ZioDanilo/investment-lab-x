@@ -1,9 +1,12 @@
 import {
+  assessCorrelationMatrixDistortion,
   calibrateTargetLogAndSigma,
   clearMonteCarloPrecomputationCache,
   CORRELATION_EPSILON,
   getMonteCarloPrecomputationCacheStats,
   MAX_CORRELATION_CELL_DELTA,
+  MAX_CORRELATION_P95_DELTA,
+  MAX_CORRELATION_RMS_DELTA,
   MonteCarloPrecomputationError,
   precomputeEtfScenarioParameters,
   prepareCorrelationMatrix,
@@ -66,6 +69,26 @@ const reconstructFromFactor = (factor: number[][]): number[][] => factor.map((ro
   factor.map((column) => row.reduce((total, value, index) => total + value * column[index], 0))
 );
 
+const buildSymmetricDeltaMatrix = (size: number, peakDelta: number, activeCellCount: number | null = null): number[][] => {
+  const base = Array.from({ length: size }, () => Array(size).fill(0));
+  let cellsAssigned = 0;
+  for (let row = 0; row < size; row += 1) {
+    for (let column = row + 1; column < size; column += 1) {
+      if (activeCellCount !== null && cellsAssigned >= activeCellCount) {
+        break;
+      }
+      base[row][column] = peakDelta;
+      base[column][row] = peakDelta;
+      cellsAssigned += 1;
+    }
+    if (activeCellCount !== null && cellsAssigned >= activeCellCount) {
+      break;
+    }
+  }
+  for (let index = 0; index < size; index += 1) base[index][index] = 1;
+  return base;
+};
+
 const parameters = precomputeEtfScenarioParameters({
   expectedReturn: 0.12,
   volatility: 0.2,
@@ -114,10 +137,32 @@ const corrected = prepareCorrelationMatrix(correctibleSnapshot, 'expansion');
 if (!corrected.correctionApplied || corrected.correctedMatrix === null) {
   throw new Error('Near-PSD matrix must be corrected');
 }
-if (corrected.maxCellDelta > MAX_CORRELATION_CELL_DELTA || corrected.minimumEigenvalueAfter < -CORRELATION_EPSILON) {
+if (corrected.maxCellDelta > MAX_CORRELATION_CELL_DELTA || corrected.p95CorrelationDelta > MAX_CORRELATION_P95_DELTA || corrected.rmsCorrelationDelta > MAX_CORRELATION_RMS_DELTA || corrected.minimumEigenvalueAfter < -CORRELATION_EPSILON) {
   throw new Error('Corrected matrix failed correction constraints');
 }
 assertClose(corrected.factorReconstructionError, 0, CORRELATION_EPSILON);
+
+const rmsGuardMatrix = buildSymmetricDeltaMatrix(5, 0.03, 10);
+const rmsGuard = assessCorrelationMatrixDistortion(buildSymmetricDeltaMatrix(5, 0, 0), rmsGuardMatrix);
+if (rmsGuard.pass || !rmsGuard.failedCriteria.includes('RMS')) {
+  throw new Error('RMS distortion threshold must reject 0.03 off-diagonal drift');
+}
+if (rmsGuard.max > MAX_CORRELATION_CELL_DELTA || rmsGuard.p95 > MAX_CORRELATION_P95_DELTA) {
+  throw new Error('RMS-only rejection must not violate the max or p95 guard thresholds');
+}
+
+const p95GuardMatrix = buildSymmetricDeltaMatrix(20, 0.045, 18);
+const p95Guard = assessCorrelationMatrixDistortion(buildSymmetricDeltaMatrix(20, 0, 0), p95GuardMatrix);
+if (p95Guard.pass || !p95Guard.failedCriteria.includes('P95')) {
+  throw new Error('P95 distortion threshold must reject a high-tail off-diagonal drift');
+}
+if (p95Guard.max > MAX_CORRELATION_CELL_DELTA || p95Guard.rms > MAX_CORRELATION_RMS_DELTA) {
+  throw new Error('P95-only rejection must not violate the max or RMS guard thresholds');
+}
+
+if (MAX_CORRELATION_CELL_DELTA !== 0.08 || MAX_CORRELATION_P95_DELTA !== 0.04 || MAX_CORRELATION_RMS_DELTA !== 0.02) {
+  throw new Error('Approved guard thresholds are not the canonical values');
+}
 
 const nearPsdSnapshot = createSnapshot(['ETF-A', 'ETF-B', 'ETF-C'], [
   sameCorrelation('ETF-A', 'ETF-B', 0.9),

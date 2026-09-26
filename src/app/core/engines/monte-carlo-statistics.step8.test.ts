@@ -91,6 +91,29 @@ const testRecoveryOnlyCompleted = () => {
   assert.equal(result.percentiles.recoveryTimeMonths?.p50, percentile([2, 3], 50));
 };
 
+const testRecoveryIncludesPreviousCompletedRecoveryBeforeOpenFinalDrawdown = () => {
+  const previousCompletedRecovery = makePath(1, 100, 0.20, 0.00, 41, [{ month: 1, year: 1, portfolioReturn: -0.2, endingCapital: 80 }, { month: 2, year: 1, portfolioReturn: 0.15, endingCapital: 92 }, { month: 3, year: 1, portfolioReturn: 0.10, endingCapital: 101 }]);
+  previousCompletedRecovery.unrecovered = true;
+  previousCompletedRecovery.unrecoveredDurationMonths = 14;
+
+  const noCompletedRecovery = makePath(2, 90, 0.25, -0.10, null, [{ month: 1, year: 1, portfolioReturn: -0.4, endingCapital: 60 }, { month: 2, year: 1, portfolioReturn: -0.1, endingCapital: 54 }]);
+  noCompletedRecovery.unrecovered = true;
+  noCompletedRecovery.unrecoveredDurationMonths = 18;
+
+  const result = MonteCarloStatisticsEngine.buildOfficialResult([previousCompletedRecovery, noCompletedRecovery], 1, 100, { advancedStatisticsEnabled: true });
+  assert.equal(result.mainKpis.recoveryTimeMonths, 41);
+  assert.equal(result.percentiles.recoveryTimeMonths?.p50, 41);
+};
+
+const testRecoveryExcludesPathsWithZeroCompletedRecovery = () => {
+  const paths = [
+    makePath(1, 90, 0.25, -0.10, null, [{ month: 1, year: 1, portfolioReturn: -0.25, endingCapital: 75 }, { month: 2, year: 1, portfolioReturn: -0.05, endingCapital: 71 }]),
+    makePath(2, 115, 0.20, 0.15, 12, [{ month: 1, year: 1, portfolioReturn: -0.2, endingCapital: 80 }, { month: 2, year: 1, portfolioReturn: 0.25, endingCapital: 100 }, { month: 3, year: 1, portfolioReturn: 0.15, endingCapital: 115 }])
+  ];
+  const result = MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100, { advancedStatisticsEnabled: true });
+  assert.equal(result.mainKpis.recoveryTimeMonths, 12);
+};
+
 const testNormalizeDrawdownTo30Years = () => {
   const representativeValues = [0, 0.10, 0.25, 0.50, 0.80, 0.99, 1.00];
   for (const dd of representativeValues) {
