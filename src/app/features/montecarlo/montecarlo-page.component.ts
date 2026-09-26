@@ -2,11 +2,19 @@
 import { Component, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
-import { MonteCarloCoordinator } from '../../core/engines/monte-carlo-coordinator';
-import { buildMonteCarloSnapshotRequest, buildMonteCarloUserInput } from '../../core/monte-carlo-ui-flow';
+import { MonteCarloStatisticsEngine } from '../../core/engines/monte-carlo-statistics.engine';
+import { MonteCarloResult } from '../../core/models/monte-carlo-contracts.model';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import {
-  demoFinalReturnDistribution,
+  buildCagrHistogramFromPaths,
+  buildDrawdownDisplayGeometry,
+  buildHistogramGeometry,
+  buildMaxDrawdownHistogramFromPaths,
+  computeHistogramTooltipPercentage,
+  formatHistogramPercentage,
+  resolveHistogramHoverIndex
+} from './monte-carlo-cagr-histogram';
+import {
   demoMacroScenarioDistribution,
   demoMaxDrawdownDistribution,
   demoPortfolioTrajectories,
@@ -41,10 +49,13 @@ export class MontecarloPageComponent {
   private readonly apiService = inject(ApiService);
 
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
-  readonly finalReturnDistribution = demoFinalReturnDistribution;
+  finalReturnDistribution: { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } = {
+    label: 'Distribuzione dei rendimenti finali',
+    subtitle: 'Distribuzione simulata a 30 anni',
+    bins: []
+  };
   readonly portfolioTrajectories = demoPortfolioTrajectories;
   readonly targetProbabilities = demoTargetProbabilities;
-  readonly maxDrawdownDistribution = demoMaxDrawdownDistribution;
   macroScenarioDistribution: Array<{ label: string; percent: number; color: string; value: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> = [...demoMacroScenarioDistribution.map((segment) => ({
     key: this.mapLabelToScenarioKey(segment.label),
     label: segment.label,
@@ -58,17 +69,396 @@ export class MontecarloPageComponent {
     { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: '—', description: 'CAGR annuo', tone: 'cyan' },
     { id: 'volatility', title: 'VOLATILITÀ', value: '—', description: 'Deviazione standard annua', tone: 'violet' },
     { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: '—', description: 'Scenari con rendimento > 0', tone: 'blue' },
-    { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: '—', description: 'Tempo medio al break-even', tone: 'amber' },
     { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: '—', description: 'Perdita massima media', tone: 'red' },
     { id: 'recoveryTime', title: 'RECOVERY TIME', value: '—', description: 'Tempo medio di recupero', tone: 'teal' }
   ];
 
   isRunning = false;
+  isRegeneratingMarketUniverse = false;
+  marketUniverseStatusMessage: string | null = null;
   kpis: KpiCard[] = [...this.defaultKpis];
   draggedKpiId: string | null = null;
   swapTargetId: string | null = null;
   insertTargetIndex: number | null = null;
   readonly macroTotal = 360000;
+  hoveredHistogramBin: { label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number } | null = null;
+  histogramTooltipPercentage: string | null = null;
+  histogramTooltipPosition = { left: 0, top: 0 };
+  maxDrawdownDistribution: { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } = {
+    label: 'Distribuzione Max Drawdown',
+    subtitle: 'Distribuzione del drawdown massimo nei 30 anni',
+    bins: demoMaxDrawdownDistribution.bins.map((bin) => ({
+      label: bin.label,
+      value: bin.value,
+      lowerBoundPercent: Number.parseFloat(bin.label.replace('%', '')),
+      upperBoundPercent: Number.parseFloat(bin.label.replace('%', '')) + 10
+    }))
+  };
+  hoveredMaxDrawdownBin: { label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number } | null = null;
+  maxDrawdownTooltipPercentage: string | null = null;
+  maxDrawdownTooltipPosition = { left: 0, top: 0 };
+
+  getHistogramTotalPaths(): number {
+    return this.finalReturnDistribution.bins.reduce((sum, bin) => sum + Number(bin.value ?? 0), 0) || 0;
+  }
+
+  private getHistogramTooltipText(bin: { label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number } | null): string | null {
+    if (!bin) {
+      return null;
+    }
+
+    const count = Number(bin.value ?? 0);
+    const total = this.getHistogramTotalPaths();
+
+    if (!Number.isFinite(count) || total <= 0) {
+      return null;
+    }
+
+    const percentage = (count / total) * 100;
+    return percentage.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+  }
+
+  private clearHistogramHover(): void {
+    this.hoveredHistogramBin = null;
+    this.histogramTooltipPercentage = null;
+  }
+
+  onHistogramBarPointerEnter(bin: { label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }, event: PointerEvent): void {
+    this.hoveredHistogramBin = bin;
+    this.histogramTooltipPercentage = this.getHistogramTooltipText(bin);
+    this.updateHistogramTooltipPosition(event);
+  }
+
+  onHistogramBarPointerLeave(): void {
+    this.clearHistogramHover();
+  }
+
+  onHistogramPlotPointerLeave(): void {
+    this.clearHistogramHover();
+  }
+
+  private updateHistogramTooltipPosition(event: PointerEvent): void {
+    const target = event.currentTarget as SVGRectElement | null;
+    const svg = target?.ownerSVGElement;
+    const plot = svg?.closest('.histogram-plot') as HTMLElement | null;
+    if (!svg || !plot) {
+      return;
+    }
+
+    const centerX = Number(target?.dataset.centerX ?? 0);
+    const viewBoxWidth = Number(svg.viewBox.baseVal.width || 520);
+    const plotWidth = plot.clientWidth || 520;
+    const left = ((centerX / viewBoxWidth) * plotWidth);
+    const clampedLeft = Math.min(Math.max(left, 54), plotWidth - 54);
+
+    this.histogramTooltipPosition = {
+      left: clampedLeft,
+      top: 20
+    };
+  }
+
+  async regenerateMarketUniverse(): Promise<void> {
+    if (this.isRegeneratingMarketUniverse) {
+      return;
+    }
+
+    this.isRegeneratingMarketUniverse = true;
+    this.marketUniverseStatusMessage = 'RIGENERAZIONE...';
+
+    try {
+      const response = await firstValueFrom(this.apiService.regenerateMarketUniverse());
+      const payload = response?.data ?? response;
+      const assetCount = Number(payload?.assetCount ?? payload?.assets?.length ?? 0);
+      const incompleteCount = Number(payload?.incompleteAssetCount ?? 0);
+
+      if (!payload?.success) {
+        throw new Error(payload?.error || 'Market Universe regeneration failed');
+      }
+
+      this.marketUniverseStatusMessage = incompleteCount > 0
+        ? `Market Universe rigenerato — ${assetCount} strumenti, ${incompleteCount} incompleti`
+        : `Market Universe rigenerato — ${assetCount} strumenti`;
+    } catch (error: any) {
+      this.marketUniverseStatusMessage = error?.error?.error || error?.message || 'Errore nella rigenerazione del Market Universe';
+    } finally {
+      this.isRegeneratingMarketUniverse = false;
+    }
+  }
+
+  private buildScenarioPathFromMonthEntries(
+    monthEntries: Array<{ month?: number; year?: number; scenario?: string }>,
+    horizonYears: number
+  ): { years: Array<{ year: number; scenario: 'expansion' | 'soft_landing' | 'recession' | 'stagflation'; durationInCurrentScenario: number }>; frequencies: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', number> } {
+    const frequencies: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', number> = {
+      expansion: 0,
+      recession: 0,
+      stagflation: 0,
+      soft_landing: 0
+    };
+    const yearBuckets = new Map<number, Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', number>>();
+
+    for (const entry of [...monthEntries].sort((left: any, right: any) => Number(left?.month ?? 0) - Number(right?.month ?? 0))) {
+      const month = Number(entry?.month ?? 0);
+      const year = Number(entry?.year ?? (month > 0 ? Math.floor((month - 1) / 12) + 1 : 1));
+      const scenario = this.normalizeScenarioKey(entry?.scenario ?? 'expansion');
+      frequencies[scenario] += 1;
+
+      const bucket = yearBuckets.get(year) ?? { expansion: 0, recession: 0, stagflation: 0, soft_landing: 0 };
+      bucket[scenario] += 1;
+      yearBuckets.set(year, bucket);
+    }
+
+    const years = [] as Array<{ year: number; scenario: 'expansion' | 'soft_landing' | 'recession' | 'stagflation'; durationInCurrentScenario: number }>;
+    for (let yearIndex = 1; yearIndex <= horizonYears; yearIndex += 1) {
+      const bucket = yearBuckets.get(yearIndex) ?? { expansion: 0, recession: 0, stagflation: 0, soft_landing: 0 };
+      const candidate = (Object.entries(bucket) as Array<[ 'expansion' | 'soft_landing' | 'recession' | 'stagflation', number ]>)
+        .sort((left, right) => right[1] - left[1])[0];
+      const scenario = candidate?.[0] ?? 'expansion';
+      const duration = Math.max(candidate?.[1] ?? 0, 1);
+      years.push({ year: yearIndex, scenario, durationInCurrentScenario: duration });
+    }
+
+    return { years, frequencies };
+  }
+
+  private normalizeScenarioKey(scenario: string | null | undefined): 'expansion' | 'soft_landing' | 'recession' | 'stagflation' {
+    const normalized = String(scenario ?? 'expansion').trim().toLowerCase();
+    if (normalized === 'softlanding' || normalized === 'soft_landing' || normalized === 'soft landing') {
+      return 'soft_landing';
+    }
+    if (normalized === 'recessione' || normalized === 'recession') {
+      return 'recession';
+    }
+    if (normalized === 'stagflazione' || normalized === 'stagflation') {
+      return 'stagflation';
+    }
+    return 'expansion';
+  }
+
+  private buildPathResultFromProjection(rawPath: any, pathIndex: number, initialCapital: number, horizonYears: number): { cagr: number; simulationId: number; maxDrawdown: number } {
+    const monthlyReturns = Array.isArray(rawPath?.monthlyReturns)
+      ? rawPath.monthlyReturns.map((value: any) => Number(value) || 0)
+      : [];
+    const monthEntries = Array.isArray(rawPath?.months) ? rawPath.months : [];
+    const normalizedMonths = monthEntries.length > 0
+      ? monthEntries
+          .slice()
+          .sort((left: any, right: any) => Number(left?.monthIndex ?? 0) - Number(right?.monthIndex ?? 0))
+          .map((entry: any, monthIndex: number) => ({
+            month: Number(entry?.monthIndex ?? monthIndex + 1),
+            monthWithinYear: ((Number(entry?.monthIndex ?? monthIndex + 1) - 1) % 12) + 1,
+            year: Math.floor((Number(entry?.monthIndex ?? monthIndex + 1) - 1) / 12) + 1,
+            portfolioReturn: Number(entry?.weightedReturn ?? entry?.return ?? 0),
+            endingCapital: 0,
+            capital: 0,
+            runningPeak: 0,
+            drawdown: 0,
+            intensity: Number(entry?.intensity ?? 0),
+            scenario: entry?.scenario ?? 'expansion'
+          }))
+      : monthlyReturns.map((weightedReturn: number, monthIndex: number) => {
+          const month = monthIndex + 1;
+          const year = Math.floor((month - 1) / 12) + 1;
+          return {
+            month,
+            monthWithinYear: ((month - 1) % 12) + 1,
+            year,
+            portfolioReturn: weightedReturn,
+            endingCapital: 0,
+            capital: 0,
+            runningPeak: 0,
+            drawdown: 0,
+            intensity: 0,
+            scenario: 'expansion'
+          };
+        });
+
+    let runningCapital = initialCapital;
+    let runningPeak = initialCapital;
+    let maxDrawdown = 0;
+
+    for (const monthEntry of normalizedMonths) {
+      const portfolioReturn = Number(monthEntry.portfolioReturn ?? 0);
+      runningCapital = runningCapital * (1 + portfolioReturn);
+      runningPeak = Math.max(runningPeak, runningCapital);
+      const drawdown = runningPeak > 0 ? (runningPeak - runningCapital) / runningPeak : 0;
+      maxDrawdown = Math.max(maxDrawdown, drawdown);
+    }
+
+    const finalCapital = runningCapital;
+    const cagr = Math.pow(Math.max(finalCapital / initialCapital, Number.EPSILON), 1 / Math.max(horizonYears, 1)) - 1;
+    return { cagr, simulationId: Number(rawPath?.pathId ?? pathIndex + 1), maxDrawdown };
+  }
+
+  private buildOfficialResultFromProjection(projection: any, initialCapital: number, horizonYears: number): MonteCarloResult {
+    const pathEntries = Array.isArray(projection?.paths) ? projection.paths : [];
+    if (pathEntries.length === 0) {
+      throw new Error('Nessun percorso disponibile nel Market Universe attivo.');
+    }
+
+    const buildPathResult = (rawPath: any, pathIndex: number) => {
+      const monthlyReturns = Array.isArray(rawPath?.monthlyReturns)
+        ? rawPath.monthlyReturns.map((value: any) => Number(value) || 0)
+        : [];
+      const monthEntries = Array.isArray(rawPath?.months) ? rawPath.months : [];
+      const normalizedMonths = monthEntries.length > 0
+        ? monthEntries
+            .slice()
+            .sort((left: any, right: any) => Number(left?.monthIndex ?? 0) - Number(right?.monthIndex ?? 0))
+            .map((entry: any, monthIndex: number) => {
+              const weightedReturn = Number(entry?.weightedReturn ?? entry?.return ?? 0);
+              const month = Number(entry?.monthIndex ?? monthIndex + 1);
+              const year = Math.floor((month - 1) / 12) + 1;
+              const monthWithinYear = ((month - 1) % 12) + 1;
+              return {
+                month,
+                monthWithinYear,
+                year,
+                portfolioReturn: weightedReturn,
+                endingCapital: 0,
+                capital: 0,
+                runningPeak: 0,
+                drawdown: 0,
+                intensity: Number(entry?.intensity ?? 0),
+                scenario: entry?.scenario ?? 'expansion'
+              };
+            })
+        : monthlyReturns.map((weightedReturn: number, monthIndex: number) => {
+            const month = monthIndex + 1;
+            const year = Math.floor((month - 1) / 12) + 1;
+            return {
+              month,
+              monthWithinYear: ((month - 1) % 12) + 1,
+              year,
+              portfolioReturn: weightedReturn,
+              endingCapital: 0,
+              capital: 0,
+              runningPeak: 0,
+              drawdown: 0,
+              intensity: 0,
+              scenario: 'expansion'
+            };
+          });
+
+      const persistedMaxRecoveryTimeMonths = Number.isFinite(Number(rawPath?.maxRecoveryTimeMonths)) ? Number(rawPath.maxRecoveryTimeMonths) : null;
+      const persistedUnrecovered = rawPath?.unrecovered === true;
+      const persistedUnrecoveredDurationMonths = Number.isFinite(Number(rawPath?.unrecoveredDurationMonths)) ? Number(rawPath.unrecoveredDurationMonths) : null;
+
+      let runningCapital = initialCapital;
+      let runningPeak = initialCapital;
+      let maxDrawdown = 0;
+      let recoveryStartMonth: number | null = null;
+      let maxRecoveryTimeMonths = persistedMaxRecoveryTimeMonths ?? null;
+      let unrecovered = persistedUnrecovered ?? false;
+      let unrecoveredDurationMonths = persistedUnrecoveredDurationMonths ?? null;
+
+      const monthly = normalizedMonths.map((monthEntry: any) => {
+        const portfolioReturn = Number(monthEntry.portfolioReturn ?? 0);
+        runningCapital = runningCapital * (1 + portfolioReturn);
+        const priorPeak = runningPeak;
+        runningPeak = Math.max(runningPeak, runningCapital);
+        const drawdown = runningPeak > 0 ? (runningPeak - runningCapital) / runningPeak : 0;
+        maxDrawdown = Math.max(maxDrawdown, drawdown);
+
+        if (runningCapital < priorPeak && recoveryStartMonth === null) {
+          recoveryStartMonth = Number(monthEntry.month ?? 0);
+        } else if (runningCapital >= priorPeak && recoveryStartMonth !== null) {
+          const recoveryDuration = Number(monthEntry.month ?? 0) - recoveryStartMonth + 1;
+          maxRecoveryTimeMonths = Math.max(maxRecoveryTimeMonths ?? 0, recoveryDuration);
+          recoveryStartMonth = null;
+        }
+
+        const endingCapital = runningCapital;
+
+        return {
+          month: Number(monthEntry.month ?? 0),
+          year: Number(monthEntry.year ?? 1),
+          endingCapital,
+          capital: endingCapital,
+          portfolioReturn,
+          runningPeak,
+          drawdown,
+          intensity: Number(monthEntry.intensity ?? 0),
+          positions: [],
+          scenario: monthEntry.scenario ?? 'expansion'
+        };
+      });
+
+      if (recoveryStartMonth !== null) {
+        unrecovered = true;
+        unrecoveredDurationMonths = monthly.length - recoveryStartMonth + 1;
+      } else {
+        unrecovered = false;
+        unrecoveredDurationMonths = null;
+      }
+
+      const years: any[] = [];
+      let previousEndingCapital = initialCapital;
+      for (let yearIndex = 1; yearIndex <= horizonYears; yearIndex += 1) {
+        const year = yearIndex;
+        const entries = monthly.filter((entry: any) => Number(entry.year) === year);
+        const startingCapital = year === 1 ? initialCapital : previousEndingCapital;
+        const endingCapital = entries.length > 0 ? entries[entries.length - 1].endingCapital : startingCapital;
+        const portfolioReturn = startingCapital > 0 ? (endingCapital / startingCapital) - 1 : 0;
+        const annualYear = {
+          year,
+          scenario: entries[0]?.scenario ?? 'expansion',
+          durationInCurrentScenario: entries.length || 1,
+          etfReturns: [],
+          portfolioReturn,
+          startingCapital,
+          endingCapital,
+          runningPeak: Math.max(startingCapital, endingCapital),
+          drawdown: Math.max(0, (Math.max(startingCapital, endingCapital) - endingCapital) / Math.max(startingCapital, endingCapital, 1))
+        };
+        years.push(annualYear);
+        previousEndingCapital = endingCapital;
+      }
+
+      const scenarioPath = this.buildScenarioPathFromMonthEntries(normalizedMonths, horizonYears);
+      const finalCapital = monthly.length > 0 ? monthly[monthly.length - 1].endingCapital : initialCapital;
+      const totalReturn = finalCapital / initialCapital - 1;
+      const cagr = Math.pow(Math.max(finalCapital / initialCapital, Number.EPSILON), 1 / Math.max(horizonYears, 1)) - 1;
+
+      return {
+        simulationId: Number(rawPath?.pathId ?? pathIndex + 1),
+        dominantEtfIsin: '',
+        dominantEtfName: '',
+        initialCapital,
+        finalCapital,
+        totalReturn,
+        cagr,
+        maxDrawdown,
+        maxRecoveryTimeMonths,
+        unrecovered,
+        unrecoveredDurationMonths,
+        monthly,
+        scenarioPath,
+        years,
+        portfolioSnapshot: {
+          generatedAt: new Date().toISOString(),
+          positions: [],
+          totalWeightBeforeNormalization: 1,
+          normalized: true
+        },
+        diagnostics: {
+          scenario: {
+            frequencies: { ...scenarioPath.frequencies }
+          },
+          performance: { redrawCount: 0, rejectRate: 0 }
+        },
+        performanceDiagnostics: { redrawCount: 0, rejectRate: 0 },
+        matricesCoherent: true
+      } as any;
+    };
+
+    const paths = pathEntries.map(buildPathResult);
+    return MonteCarloStatisticsEngine.buildOfficialResult(paths, horizonYears, initialCapital, {
+      performanceDiagnostics: { redrawCount: 0, rejectRate: 0 },
+      matricesCoherent: true,
+      advancedStatisticsEnabled: false
+    });
+  }
 
   async runSimulation(): Promise<void> {
     const portfolio = this.selectedPortfolio();
@@ -78,6 +468,7 @@ export class MontecarloPageComponent {
 
     this.isRunning = true;
     this.resetKpis();
+    this.marketUniverseStatusMessage = 'Caricamento Market Universe attivo...';
 
     try {
       const portfolioResponse = await firstValueFrom(this.apiService.getPortfolioById(portfolio.id));
@@ -111,40 +502,36 @@ export class MontecarloPageComponent {
         weight: position.weight
       }));
 
-      const snapshotRequest = buildMonteCarloSnapshotRequest(normalizedPositions);
-      const snapshotResponse = await firstValueFrom(this.apiService.getMonteCarloSnapshot(snapshotRequest));
-      const snapshot = snapshotResponse?.data ?? snapshotResponse;
+      const projectionResponse = await firstValueFrom(this.apiService.buildPortfolioProjectionFromActiveMarketUniverse({
+        holdings: normalizedPositions
+      }));
 
-      if (!snapshot || !Array.isArray(snapshot.etfs) || snapshot.etfs.length === 0) {
-        throw new Error('Snapshot Monte Carlo non disponibile.');
+      const projection = projectionResponse?.data ?? projectionResponse;
+      if (!projection || !Array.isArray(projection?.paths) || projection.paths.length === 0) {
+        throw new Error('Active Market Universe non disponibile o senza percorsi validi.');
       }
 
-      const input = buildMonteCarloUserInput(normalizedPositions, 100000, 30);
-      const coordinator = new MonteCarloCoordinator({
-        input,
-        snapshot,
-        mode: 'COMPLETE',
-        onProgress: () => undefined
-      });
-
-      const outcome = await coordinator.run();
-
-      if (outcome.status !== 'success' || !outcome.result) {
-        throw new Error(outcome.error?.message ?? 'Simulazione Monte Carlo fallita.');
-      }
-
-      const result = outcome.result;
+      this.marketUniverseStatusMessage = `Market Universe attivo • ${projection?.run?.pathCount ?? projection.paths.length} percorsi • ${projection?.run?.monthCount ?? 360} mesi`;
+      const projectedPaths = Array.isArray(projection?.paths) ? projection.paths.map((rawPath: any, index: number) => this.buildPathResultFromProjection(rawPath, index, 100000, 30)) : [];
+      const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
+      this.finalReturnDistribution = this.buildFinalReturnDistribution(projectedPaths);
+      this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(projectedPaths);
+      console.info('Final return histogram buckets', this.finalReturnDistribution.bins.slice(0, 12).map((bin) => ({
+        lowerBound: bin.lowerBoundPercent,
+        upperBound: bin.upperBoundPercent,
+        count: bin.value
+      })));
       this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
       this.updateDonutSegments();
       this.kpis = [
         { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
         { id: 'volatility', title: 'VOLATILITÀ', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
         { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: '—', description: 'Scenari con rendimento > 0', tone: 'blue' },
-        { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
         { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' },
         { id: 'recoveryTime', title: 'RECOVERY TIME', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio di recupero', tone: 'teal' }
       ];
-    } catch (error) {
+    } catch (error: any) {
+      this.marketUniverseStatusMessage = error?.error?.error || error?.message || 'Errore nella lettura del Market Universe attivo';
       this.kpis = [...this.defaultKpis];
     } finally {
       this.isRunning = false;
@@ -255,6 +642,56 @@ export class MontecarloPageComponent {
     this.donutSegments = this.buildDonutSegments();
   }
 
+  private buildFinalReturnDistribution(paths: Array<{ cagr?: number | null }>): { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } {
+    const cagrValues = paths.map((path) => Number(path?.cagr ?? 0));
+
+    if (cagrValues.length === 0) {
+      return {
+        label: 'Distribuzione dei rendimenti finali',
+        subtitle: 'Distribuzione simulata a 30 anni',
+        bins: []
+      };
+    }
+
+    const histogram = buildCagrHistogramFromPaths(cagrValues.map((cagr) => ({ cagr })));
+    const bins = histogram.bins.map((bin) => ({
+      label: `${bin.lowerBoundPercent}`,
+      value: bin.value,
+      lowerBoundPercent: bin.lowerBoundPercent,
+      upperBoundPercent: bin.upperBoundPercent
+    }));
+
+    return {
+      label: 'Distribuzione dei rendimenti finali',
+      subtitle: 'Distribuzione simulata a 30 anni',
+      bins
+    };
+  }
+
+  private buildMaxDrawdownDistribution(paths: Array<{ maxDrawdown?: number | null }>): { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } {
+    if (paths.length === 0) {
+      return {
+        label: 'Distribuzione Max Drawdown',
+        subtitle: 'Distribuzione del drawdown massimo nei 30 anni',
+        bins: []
+      };
+    }
+
+    const histogram = buildMaxDrawdownHistogramFromPaths(paths);
+    const bins = histogram.bins.map((bin) => ({
+      label: `${bin.upperBoundPercent}`,
+      value: bin.value,
+      lowerBoundPercent: bin.lowerBoundPercent,
+      upperBoundPercent: bin.upperBoundPercent
+    }));
+
+    return {
+      label: 'Distribuzione Max Drawdown',
+      subtitle: 'Distribuzione del drawdown massimo nei 30 anni',
+      bins
+    };
+  }
+
   private buildMacroSegmentsFromFrequencies(frequencies?: Record<string, number> | null): Array<{ label: string; percent: number; color: string; value: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> {
     const palette: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', string> = {
       expansion: '#4DE3C6',
@@ -325,25 +762,139 @@ export class MontecarloPageComponent {
       return '—';
     }
 
-    return `${Number(value).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mesi`;
+    const totalMonths = Math.round(Number(value));
+    const years = Math.floor(Math.abs(totalMonths) / 12);
+    const months = Math.abs(totalMonths) % 12;
+
+    if (totalMonths === 0) {
+      return '0 mesi';
+    }
+
+    const yearLabel = years === 1 ? 'anno' : 'anni';
+    const monthLabel = months === 1 ? 'mese' : 'mesi';
+
+    if (years > 0 && months > 0) {
+      return `${years} ${yearLabel} e ${months} ${monthLabel}`;
+    }
+
+    if (years > 0) {
+      return `${years} ${yearLabel}`;
+    }
+
+    return `${months} ${monthLabel}`;
   }
 
-  buildHistogramBars(data: { label: string; value: number }[], height = 170, width = 420): Array<{ x: number; y: number; width: number; height: number; opacity: number }> {
-    const maxValue = Math.max(...data.map((item) => item.value), 1);
-    const barWidth = width / data.length;
+  getHistogramXAxisTicks(): Array<{ label: string; x: number; lowerBoundPercent: number; upperBoundPercent: number }> {
+    const bins = this.finalReturnDistribution.bins;
+    if (!bins.length) {
+      return [];
+    }
 
-    return data.map((item, index) => {
-      const h = (item.value / maxValue) * height;
-      const x = index * barWidth + 6;
-      const y = height - h + 4;
+    return buildHistogramGeometry(bins).map((geometry) => ({
+      label: `${geometry.bin.lowerBoundPercent}`,
+      x: geometry.centerX,
+      lowerBoundPercent: geometry.bin.lowerBoundPercent,
+      upperBoundPercent: geometry.bin.upperBoundPercent
+    }));
+  }
+
+  getMaxDrawdownXAxisTicks(): Array<{ label: string; x: number; lowerBoundPercent: number; upperBoundPercent: number }> {
+    const bins = this.maxDrawdownDistribution.bins;
+    if (!bins.length) {
+      return [];
+    }
+
+    const geometry = buildDrawdownDisplayGeometry(bins, 30, 330, 0);
+    return geometry.ticks.map((tick) => ({
+      label: `${tick.upperBoundPercent}`,
+      x: tick.x,
+      lowerBoundPercent: tick.lowerBoundPercent,
+      upperBoundPercent: tick.upperBoundPercent
+    }));
+  }
+
+  buildHistogramBars(data: Array<{ label: string; value: number; lowerBoundPercent?: number; upperBoundPercent?: number }>, height = 120, width = 440, plotLeft = 40, barGap = 8): Array<{ x: number; y: number; width: number; height: number; opacity: number; centerX: number; index: number }> {
+    const maxValue = Math.max(...data.map((item) => item.value), 1);
+    const geometry = buildHistogramGeometry(data.map((item) => ({
+      label: item.label,
+      value: item.value,
+      lowerBoundPercent: Number(item.lowerBoundPercent ?? 0),
+      upperBoundPercent: Number(item.upperBoundPercent ?? 0),
+      lowerInclusive: true,
+      upperInclusive: false
+    })), plotLeft, width, barGap);
+
+    return geometry.map((entry) => {
+      const h = (entry.bin.value / maxValue) * height;
+      const baselineY = 150;
+      const y = baselineY - h;
       return {
-        x,
+        x: entry.x,
         y,
-        width: barWidth - 10,
+        width: entry.width,
         height: h,
-        opacity: index === 4 ? 1 : 0.8
+        opacity: 0.82,
+        centerX: entry.centerX,
+        index: entry.index
       };
     });
+  }
+
+  buildMaxDrawdownHistogramBars(data: Array<{ label: string; value: number; lowerBoundPercent?: number; upperBoundPercent?: number }>, height = 100, width = 350, plotLeft = 30, barGap = 0): Array<{ x: number; y: number; width: number; height: number; opacity: number; centerX: number; index: number }> {
+    if (data.length === 0) {
+      return [];
+    }
+
+    const maxValue = Math.max(...data.map((item) => item.value), 1);
+    const geometry = buildDrawdownDisplayGeometry(data.map((item) => ({
+      label: item.label,
+      value: item.value,
+      lowerBoundPercent: Number(item.lowerBoundPercent ?? 0),
+      upperBoundPercent: Number(item.upperBoundPercent ?? 0),
+      lowerInclusive: true,
+      upperInclusive: false
+    })), plotLeft, 330, barGap);
+
+    return geometry.bars.map((entry) => {
+      const h = (Number(entry.bin.value ?? 0) / maxValue) * height;
+      const baselineY = 145;
+      const y = baselineY - h;
+      return {
+        x: entry.x,
+        y,
+        width: entry.width,
+        height: h,
+        opacity: 0.82,
+        centerX: entry.centerX,
+        index: entry.index
+      };
+    });
+  }
+
+  getMaxDrawdownTotalPaths(): number {
+    return this.maxDrawdownDistribution.bins.reduce((sum, bin) => sum + Number(bin.value ?? 0), 0) || 0;
+  }
+
+  private clearMaxDrawdownHover(): void {
+    this.hoveredMaxDrawdownBin = null;
+    this.maxDrawdownTooltipPercentage = null;
+  }
+
+  onMaxDrawdownBarPointerEnter(bin: { label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }, event: PointerEvent): void {
+    this.hoveredMaxDrawdownBin = bin;
+    this.maxDrawdownTooltipPercentage = computeHistogramTooltipPercentage(bin.value, this.getMaxDrawdownTotalPaths());
+    this.maxDrawdownTooltipPosition = {
+      left: Number((event.currentTarget as SVGRectElement | null)?.dataset?.centerX ?? 0),
+      top: 20
+    };
+  }
+
+  onMaxDrawdownBarPointerLeave(): void {
+    this.clearMaxDrawdownHover();
+  }
+
+  onMaxDrawdownPlotPointerLeave(): void {
+    this.clearMaxDrawdownHover();
   }
 
   buildLinePath(values: number[], width = 510, height = 150, padding = 18): string {

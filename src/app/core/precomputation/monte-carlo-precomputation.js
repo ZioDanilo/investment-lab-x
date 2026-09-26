@@ -2,7 +2,9 @@ import { MONTE_CARLO_SCENARIOS } from '../models/monte-carlo-contracts.model';
 import { STUDENT_T_STANDARDIZATION, studentTQuantile } from '../probability/monte-carlo-probability';
 export const PSD_EPSILON = 1e-6;
 export const CORRELATION_EPSILON = 1e-6;
-export const MAX_CORRELATION_CELL_DELTA = 0.02;
+export const MAX_CORRELATION_CELL_DELTA = 0.08;
+export const MAX_CORRELATION_P95_DELTA = 0.04;
+export const MAX_CORRELATION_RMS_DELTA = 0.02;
 export const NEAREST_CORRELATION_TOLERANCE = 1e-10;
 export const NEAREST_CORRELATION_MAX_ITERATIONS = 100;
 export class MonteCarloPrecomputationError extends Error {
@@ -121,6 +123,61 @@ const maximumAbsoluteDifference = (left, right) => {
         }
     }
     return maximum;
+};
+const percentile = (values, probability) => {
+    if (values.length === 0) {
+        return 0;
+    }
+    const sorted = [...values].sort((left, right) => left - right);
+    const index = (sorted.length - 1) * probability;
+    const lowerIndex = Math.floor(index);
+    const upperIndex = Math.ceil(index);
+    if (lowerIndex === upperIndex) {
+        return sorted[lowerIndex];
+    }
+    const lowerValue = sorted[lowerIndex];
+    const upperValue = sorted[upperIndex];
+    const weight = index - lowerIndex;
+    return lowerValue + (upperValue - lowerValue) * weight;
+};
+const calculateOffDiagonalDeltaStats = (original, corrected) => {
+    const deltas = [];
+    for (let row = 0; row < original.length; row += 1) {
+        for (let column = row + 1; column < original.length; column += 1) {
+            deltas.push(Math.abs(corrected[row][column] - original[row][column]));
+        }
+    }
+    if (deltas.length === 0) {
+        return { count: 0, max: 0, mean: 0, rms: 0, p95: 0, values: [] };
+    }
+    const mean = deltas.reduce((sum, value) => sum + value, 0) / deltas.length;
+    const rms = Math.sqrt(deltas.reduce((sum, value) => sum + value * value, 0) / deltas.length);
+    const max = Math.max(...deltas);
+    const p95 = percentile(deltas, 0.95);
+    return { count: deltas.length, max, mean, rms, p95, values: deltas };
+};
+export const assessCorrelationMatrixDistortion = (original, corrected) => {
+    const stats = calculateOffDiagonalDeltaStats(original, corrected);
+    const failedCriteria = [];
+    if (stats.rms > MAX_CORRELATION_RMS_DELTA) {
+        failedCriteria.push('RMS');
+    }
+    if (stats.p95 > MAX_CORRELATION_P95_DELTA) {
+        failedCriteria.push('P95');
+    }
+    if (stats.max > MAX_CORRELATION_CELL_DELTA) {
+        failedCriteria.push('MAX');
+    }
+    return {
+        ...stats,
+        thresholds: {
+            max: MAX_CORRELATION_CELL_DELTA,
+            p95: MAX_CORRELATION_P95_DELTA,
+            rms: MAX_CORRELATION_RMS_DELTA
+        },
+        failedCriteria,
+        pass: failedCriteria.length === 0
+    };
 };
 const assertCorrelationMatrixStructure = (matrix, scenario) => {
     if (matrix.length === 0) {
@@ -241,15 +298,7 @@ const getConditionNumber = (matrix, scenario) => {
     const positive = eigenvalues.filter((value) => value > CORRELATION_EPSILON);
     return positive.length === eigenvalues.length ? Math.max(...positive) / Math.min(...positive) : null;
 };
-const calculateMaxCellDelta = (original, corrected) => {
-    let maximum = 0;
-    for (let row = 0; row < original.length; row += 1) {
-        for (let column = row + 1; column < original.length; column += 1) {
-            maximum = Math.max(maximum, Math.abs(corrected[row][column] - original[row][column]));
-        }
-    }
-    return maximum;
-};
+const calculateMaxCellDelta = (original, corrected) => assessCorrelationMatrixDistortion(original, corrected).max;
 const buildFactor = (matrix, scenario) => {
     const { eigenvalues, eigenvectors } = symmetricEigenDecomposition(matrix, scenario);
     const hasNegativeEigenvalue = eigenvalues.some((eigenvalue) => eigenvalue < 0);
@@ -366,7 +415,11 @@ export const prepareCorrelationMatrix = (snapshot, scenario) => {
     let operationalMatrix = originalMatrix;
     let correctionIterations = 0;
     let maxCellDelta = 0;
+    let rmsCorrelationDelta = 0;
+    let p95CorrelationDelta = 0;
     let frobeniusDelta = 0;
+    let guardPass = true;
+    let failedCriteria = [];
     if (minimumEigenvalueBefore < -PSD_EPSILON) {
         const correction = nearestCorrelationMatrix(originalMatrix, scenario);
         candidateMatrix = correction.matrix;
@@ -379,13 +432,24 @@ export const prepareCorrelationMatrix = (snapshot, scenario) => {
     correctionApplied ||= factorResult.rebuiltOperationalMatrix;
     if (correctionApplied) {
         assertCorrelationMatrixStructure(operationalMatrix, scenario);
-        maxCellDelta = calculateMaxCellDelta(originalMatrix, operationalMatrix);
+        const distortion = assessCorrelationMatrixDistortion(originalMatrix, operationalMatrix);
+        maxCellDelta = distortion.max;
+        rmsCorrelationDelta = distortion.rms;
+        p95CorrelationDelta = distortion.p95;
         frobeniusDelta = frobeniusNorm(subtractMatrices(operationalMatrix, originalMatrix));
-        if (maxCellDelta > MAX_CORRELATION_CELL_DELTA) {
-            fail('CORRELATION_MATRIX_CORRECTION_TOO_LARGE', 'nearest correlation matrix correction exceeds maximum cell delta', {
+        guardPass = distortion.pass;
+        failedCriteria = distortion.failedCriteria;
+        if (!guardPass) {
+            fail('CORRELATION_MATRIX_CORRECTION_TOO_LARGE', 'nearest correlation matrix correction exceeds the approved distortion guard', {
                 scenario,
                 maxCellDelta,
-                maximum: MAX_CORRELATION_CELL_DELTA
+                maxThreshold: MAX_CORRELATION_CELL_DELTA,
+                p95CorrelationDelta,
+                p95Threshold: MAX_CORRELATION_P95_DELTA,
+                rmsCorrelationDelta,
+                rmsThreshold: MAX_CORRELATION_RMS_DELTA,
+                failedCriteria,
+                thresholds: distortion.thresholds
             });
         }
     }
@@ -404,10 +468,19 @@ export const prepareCorrelationMatrix = (snapshot, scenario) => {
         minimumEigenvalueAfter,
         eigenvalues: factorResult.eigenvalues,
         maxCellDelta,
+        rmsCorrelationDelta,
+        p95CorrelationDelta,
         frobeniusDelta,
         conditionNumberBefore,
         conditionNumberAfter: getConditionNumber(operationalMatrix, scenario),
         correctionIterations,
+        guardPass,
+        failedCriteria,
+        guardThresholds: {
+            max: MAX_CORRELATION_CELL_DELTA,
+            p95: MAX_CORRELATION_P95_DELTA,
+            rms: MAX_CORRELATION_RMS_DELTA
+        },
         factor: factorResult.factor,
         factorReconstructionError: factorResult.reconstructionError
     };

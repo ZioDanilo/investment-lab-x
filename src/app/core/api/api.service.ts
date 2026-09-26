@@ -126,6 +126,27 @@ export class ApiService {
     return this.http.post<MonteCarloSnapshotResponse>(`${this.apiUrl}/monte-carlo/snapshot`, request);
   }
 
+  // Market Universe endpoints
+  getMarketUniverseAssets(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/assets`);
+  }
+
+  getMarketUniverseAssetByIsin(isin: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/assets/isin/${encodeURIComponent(isin)}`);
+  }
+
+  getActiveMarketUniverse(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/active`);
+  }
+
+  buildPortfolioProjectionFromActiveMarketUniverse(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/market-universe/portfolio/projection`, payload);
+  }
+
+  regenerateMarketUniverse(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/market-universe/regenerate`, {});
+  }
+
   // Health check
   healthCheck(): Observable<any> {
     return this.http.get(`${this.apiUrl}/health`);

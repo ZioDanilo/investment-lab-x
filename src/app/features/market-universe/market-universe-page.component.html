@@ -1,0 +1,256 @@
+<div class="market-page">
+  <header class="page-header">
+    <div class="title-block">
+      <p class="eyebrow">Market Universe</p>
+      <h1>Market Universe</h1>
+      <p class="page-subtitle">Gestione degli strumenti finanziari disponibili in Investment Lab X</p>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="ghost-button" (click)="resetFilters()">Reset filters</button>
+      <button type="button" class="primary-button" disabled title="Add Asset disponibile in una fase successiva">Add Asset</button>
+    </div>
+  </header>
+
+  <div *ngIf="legacyFallbackActive()" class="legacy-banner">
+    Legacy fallback active: alcuni asset stanno usando dati storici legacy invece della source backend.
+  </div>
+
+  <section class="stats-grid" aria-label="KPI Market Universe">
+    <article class="stat-card">
+      <span class="stat-label">Totale strumenti</span>
+      <strong>{{ summary().total }}</strong>
+    </article>
+    <article class="stat-card">
+      <span class="stat-label">Asset class</span>
+      <strong>{{ summary().assetClasses }}</strong>
+    </article>
+    <article class="stat-card">
+      <span class="stat-label">TER medio</span>
+      <strong>{{ summary().averageTer ? (summary().averageTer * 100).toFixed(2) + '%' : '—' }}</strong>
+    </article>
+    <article class="stat-card">
+      <span class="stat-label">Statistiche complete</span>
+      <strong>{{ summary().completeStats }}</strong>
+    </article>
+  </section>
+
+  <section class="toolbar" aria-label="Toolbar Market Universe">
+    <label class="search-field" aria-label="Cerca asset">
+      <span class="material-symbols-rounded">search</span>
+      <input type="text" [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Cerca per nome, ticker, ISIN..." />
+    </label>
+
+    <div class="filter-grid">
+      <label class="filter-field">
+        <span>Asset Class</span>
+        <select [ngModel]="assetClassFilter()" (ngModelChange)="assetClassFilter.set($event)">
+          <option value="">Tutte</option>
+          <option *ngFor="let option of uniqueAssetClasses()" [value]="option">{{ option }}</option>
+        </select>
+      </label>
+
+      <label class="filter-field">
+        <span>Category</span>
+        <select [ngModel]="categoryFilter()" (ngModelChange)="categoryFilter.set($event)">
+          <option value="">Tutte</option>
+          <option *ngFor="let option of uniqueCategories()" [value]="option">{{ option }}</option>
+        </select>
+      </label>
+
+      <label class="filter-field">
+        <span>Currency</span>
+        <select [ngModel]="currencyFilter()" (ngModelChange)="currencyFilter.set($event)">
+          <option value="">Tutte</option>
+          <option *ngFor="let option of uniqueCurrencies()" [value]="option">{{ option }}</option>
+        </select>
+      </label>
+
+      <label class="filter-field">
+        <span>Provider</span>
+        <select [ngModel]="providerFilter()" (ngModelChange)="providerFilter.set($event)">
+          <option value="">Tutti</option>
+          <option *ngFor="let option of uniqueProviders()" [value]="option">{{ option }}</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <div *ngIf="loading()" class="loading-state">
+    <div class="spinner"></div>
+    <span>Caricamento Market Universe...</span>
+  </div>
+
+  <div *ngIf="!loading() && error()" class="error-state">
+    {{ error() }}
+  </div>
+
+  <div *ngIf="!loading() && !error() && filteredAssets().length === 0" class="empty-state">
+    Nessun asset trovato con i filtri attuali.
+  </div>
+
+  <div *ngIf="!loading() && !error() && filteredAssets().length > 0" class="content-grid">
+    <section class="table-panel">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" (click)="setSortField('name')">Name</th>
+              <th class="sortable" (click)="setSortField('ticker')">Ticker</th>
+              <th>ISIN</th>
+              <th class="sortable" (click)="setSortField('assetClass')">Asset Class</th>
+              <th>Category</th>
+              <th>Currency</th>
+              <th class="sortable" (click)="setSortField('ter')">TER</th>
+              <th class="sortable" (click)="setSortField('expectedReturn')">Expected Return</th>
+              <th class="sortable" (click)="setSortField('volatility')">Volatility</th>
+              <th class="sortable" (click)="setSortField('maxDrawdown')">Max Drawdown</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let asset of filteredAssets()" [class.is-selected]="selectedAsset()?.isin === asset.isin" (click)="selectAsset(asset)">
+              <td>
+                <div class="asset-cell">
+                  <strong>{{ asset.name || '—' }}</strong>
+                  <small>{{ asset.nickname || '—' }}</small>
+                </div>
+              </td>
+              <td>{{ asset.ticker || '—' }}</td>
+              <td>{{ asset.isin || '—' }}</td>
+              <td>{{ asset.assetClass || '—' }}</td>
+              <td>{{ asset.category || '—' }}</td>
+              <td>{{ asset.currency || '—' }}</td>
+              <td>{{ formatTer(asset.ter) }}</td>
+              <td>{{ formatPercent(asset.expectedReturn) }}</td>
+              <td>{{ formatPercent(asset.volatility) }}</td>
+              <td>{{ formatSignedPercent(asset.maxDrawdown) }}</td>
+              <td>
+                <span class="status-pill" [ngClass]="{
+                  'status-pill--complete': getStatus(asset) === 'COMPLETE',
+                  'status-pill--incomplete': getStatus(asset) === 'INCOMPLETE',
+                  'status-pill--legacy': getStatus(asset) === 'LEGACY'
+                }">{{ getStatus(asset) }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside *ngIf="selectedAsset() as asset" class="detail-panel">
+      <div class="detail-header">
+        <div>
+          <p class="eyebrow">Asset detail</p>
+          <h2>{{ asset.name || 'Unnamed asset' }}</h2>
+        </div>
+        <div class="detail-header-actions">
+          <button type="button" class="secondary-button" disabled title="Editing ETF in una fase successiva">Edit</button>
+          <span class="source-pill" [class.source-pill--fallback]="asset.source === 'legacy-fallback'">
+            {{ asset.source === 'legacy-fallback' ? 'Legacy fallback' : 'Backend source' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="status-row">
+        <span class="status-pill" [ngClass]="{
+          'status-pill--complete': getStatus(asset) === 'COMPLETE',
+          'status-pill--incomplete': getStatus(asset) === 'INCOMPLETE',
+          'status-pill--legacy': getStatus(asset) === 'LEGACY'
+        }">{{ getStatus(asset) }}</span>
+      </div>
+
+      <section class="detail-section">
+        <h3>Identity</h3>
+        <div class="kv-grid">
+          <div class="kv-box"><span>Name</span><strong>{{ asset.name || '—' }}</strong></div>
+          <div class="kv-box"><span>Ticker</span><strong>{{ asset.ticker || '—' }}</strong></div>
+          <div class="kv-box"><span>ISIN</span><strong>{{ asset.isin || '—' }}</strong></div>
+          <div class="kv-box"><span>ID</span><strong>{{ asset.id || '—' }}</strong></div>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>Classification</h3>
+        <div class="kv-grid">
+          <div class="kv-box"><span>Asset Class</span><strong>{{ asset.assetClass || '—' }}</strong></div>
+          <div class="kv-box"><span>Sub Asset Class</span><strong>{{ asset.subAssetClass || '—' }}</strong></div>
+          <div class="kv-box"><span>Category</span><strong>{{ asset.category || '—' }}</strong></div>
+          <div class="kv-box"><span>Geography</span><strong>{{ asset.geography || '—' }}</strong></div>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>Instrument</h3>
+        <div class="kv-grid">
+          <div class="kv-box"><span>Currency</span><strong>{{ asset.currency || '—' }}</strong></div>
+          <div class="kv-box"><span>Instrument Type</span><strong>{{ asset.instrumentType || '—' }}</strong></div>
+          <div class="kv-box"><span>Provider</span><strong>{{ asset.provider || '—' }}</strong></div>
+          <div class="kv-box"><span>TER</span><strong>{{ formatTer(asset.ter) }}</strong></div>
+          <div class="kv-box"><span>Distribution</span><strong>{{ asset.distributing == null ? '—' : (asset.distributing ? 'Yes' : 'No') }}</strong></div>
+          <div class="kv-box"><span>Hedged</span><strong>{{ asset.hedged == null ? '—' : (asset.hedged ? 'Yes' : 'No') }}</strong></div>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>General statistics</h3>
+        <div class="kv-grid kv-grid--metrics">
+          <div class="kv-box"><span>Expected Return</span><strong>{{ formatSignedPercent(asset.expectedReturn) }}</strong></div>
+          <div class="kv-box"><span>Volatility</span><strong>{{ formatSignedPercent(asset.volatility) }}</strong></div>
+          <div class="kv-box"><span>Max Drawdown</span><strong>{{ formatSignedPercent(asset.maxDrawdown) }}</strong></div>
+          <div class="kv-box"><span>Return Range Min</span><strong>{{ formatSignedPercent(asset.returnRangeMin) }}</strong></div>
+          <div class="kv-box"><span>Return Range Max</span><strong>{{ formatSignedPercent(asset.returnRangeMax) }}</strong></div>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>Macro scenarios</h3>
+        <div class="scenario-grid detail-scenario-grid">
+          <article *ngFor="let key of scenarioOrder" class="scenario-card" [class.scenario-card--empty]="!scenarioStats(asset, key)">
+            <h4>{{ scenarioLabels[key] }}</h4>
+            <ng-container *ngIf="scenarioStats(asset, key) as stats; else emptyScenario">
+              <div class="scenario-row"><span>Expected Return</span><strong>{{ formatSignedPercent(stats.expectedReturn) }}</strong></div>
+              <div class="scenario-row"><span>Volatility</span><strong>{{ formatSignedPercent(stats.volatility) }}</strong></div>
+              <div class="scenario-row"><span>Max Drawdown</span><strong>{{ formatSignedPercent(stats.maxDrawdown) }}</strong></div>
+              <div class="scenario-row"><span>Range</span><strong>{{ formatSignedPercent(stats.returnRange?.min) }} / {{ formatSignedPercent(stats.returnRange?.max) }}</strong></div>
+            </ng-container>
+            <ng-template #emptyScenario>
+              <div class="scenario-row"><span>Data</span><strong>—</strong></div>
+            </ng-template>
+          </article>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>Correlations</h3>
+
+        <div *ngIf="correlationsLoading()" class="inline-message">Loading correlations...</div>
+        <div *ngIf="!correlationsLoading() && correlationError()" class="inline-message inline-message--error">{{ correlationError() }}</div>
+        <div *ngIf="!correlationsLoading() && !correlationError() && correlationRows().length === 0" class="inline-message">No correlation data available.</div>
+
+        <div *ngIf="!correlationsLoading() && correlationRows().length > 0" class="correlation-table-wrap">
+          <table class="correlation-table">
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Expansion</th>
+                <th>Soft Landing</th>
+                <th>Recession</th>
+                <th>Stagflation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of correlationRows()">
+                <td>{{ row.targetName || row.targetIsin }}</td>
+                <td>{{ formatValue(row.expansion) }}</td>
+                <td>{{ formatValue(row.softLanding) }}</td>
+                <td>{{ formatValue(row.recession) }}</td>
+                <td>{{ formatValue(row.stagflation) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
