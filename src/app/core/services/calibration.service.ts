@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Etf } from '../models/etf.model';
+import { environment } from '../../../environments/environment';
 
 export interface CalibrationRequest {
   longTermExpectedReturn: number;
@@ -22,7 +22,7 @@ export interface CalibrationResponse {
   providedIn: 'root'
 })
 export class CalibrationService {
-  private apiUrl = '/api/etf';
+  private readonly apiUrl = `${environment.apiUrl}/etf`;
 
   constructor(private http: HttpClient) {}
 
