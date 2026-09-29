@@ -452,6 +452,16 @@
   padding: 6px;
 }
 
+.kpi-row.target-success .kpi-row__metric,
+.kpi-row.target-success .kpi-row__target {
+  border-color: rgba(52, 211, 153, 0.48);
+}
+
+.kpi-row.target-failure .kpi-row__metric,
+.kpi-row.target-failure .kpi-row__target {
+  border-color: rgba(248, 113, 113, 0.48);
+}
+
 .kpi-compact-list,
 .kpi-compact-list * {
   cursor: grab !important;
