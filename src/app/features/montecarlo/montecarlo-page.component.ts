@@ -745,12 +745,18 @@ export class MontecarloPageComponent {
       const maxDrawdownSamples = Array.isArray(result.distributionSamples?.maxDrawdown) ? result.distributionSamples.maxDrawdown : [];
       this.finalReturnDistribution = this.buildFinalReturnDistribution(cagrSamples.map((cagr) => ({ cagr })));
       this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(maxDrawdownSamples.map((maxDrawdown) => ({ maxDrawdown })));
+      const representativeCapital = Array.isArray(result.representativePath?.capital)
+        ? result.representativePath.capital
+        : [];
       this.portfolioEvolution = [
         { year: 0, capital: 100000 },
-        ...(Array.isArray(result.capitalFan) ? result.capitalFan : []).map((point) => ({
-          year: Number(point.year),
-          capital: Number(point.capitalP50)
-        })).filter((point) => Number.isFinite(point.year) && Number.isFinite(point.capital))
+        ...representativeCapital
+          .filter((point) => Number(point.month) > 0 && Number(point.month) % 12 === 0)
+          .map((point) => ({
+            year: Number(point.month) / 12,
+            capital: Number(point.capital)
+          }))
+          .filter((point) => Number.isFinite(point.year) && point.year <= 30 && Number.isFinite(point.capital))
       ];
       this.clearHistogramHover();
       this.clearMaxDrawdownHover();
