@@ -100,7 +100,8 @@ export class MontecarloPageComponent {
   maxDrawdownTooltipPercentage: string | null = null;
   maxDrawdownTooltipPosition = { left: 0, top: 0 };
   portfolioEvolution: Array<{ year: number; annualReturn: number }> = [];
-  hoveredPortfolioEvolutionPoint: { year: number; annualReturn: number } | null = null;
+  portfolioEvolutionHistory: Array<Array<{ year: number; annualReturn: number }>> = [];
+  hoveredPortfolioEvolutionYear: number | null = null;
   portfolioEvolutionTooltipPosition = { left: 0, top: 0 };
 
   getHistogramTotalPaths(): number {
@@ -757,11 +758,15 @@ export class MontecarloPageComponent {
         }))
         .filter((point) => Number.isFinite(point.year) && point.year <= 30 && Number.isFinite(point.capital));
       let previousCapital = 100000;
-      this.portfolioEvolution = annualCapital.map((point) => {
+      const currentEvolution = annualCapital.map((point) => {
         const annualReturn = previousCapital > 0 ? (point.capital / previousCapital) - 1 : 0;
         previousCapital = point.capital;
         return { year: point.year, annualReturn };
       });
+      if (this.portfolioEvolution.length > 0) {
+        this.portfolioEvolutionHistory = [this.portfolioEvolution, ...this.portfolioEvolutionHistory].slice(0, 2);
+      }
+      this.portfolioEvolution = currentEvolution;
       this.clearHistogramHover();
       this.clearMaxDrawdownHover();
       this.kpis = [
@@ -787,7 +792,7 @@ export class MontecarloPageComponent {
   private resetKpis(): void {
     this.kpis = [...this.defaultKpis];
     this.portfolioEvolution = [];
-    this.hoveredPortfolioEvolutionPoint = null;
+    this.hoveredPortfolioEvolutionYear = null;
     this.draggedKpiId = null;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
@@ -1186,20 +1191,26 @@ export class MontecarloPageComponent {
     this.clearMaxDrawdownHover();
   }
 
+  getPortfolioEvolutionSeries(): Array<{ label: string; className: string; points: Array<{ year: number; annualReturn: number }> }> {
+    const series = [
+      { label: 'T0', className: 'evolution-line--t0', points: this.portfolioEvolution },
+      { label: 'T-1', className: 'evolution-line--t1', points: this.portfolioEvolutionHistory[0] ?? [] },
+      { label: 'T-2', className: 'evolution-line--t2', points: this.portfolioEvolutionHistory[1] ?? [] }
+    ];
+    return series.filter((item) => item.points.length > 0);
+  }
+
   getPortfolioAnnualReturnScale(): number {
-    const maxAbsoluteReturn = Math.max(
-      ...this.portfolioEvolution.map((point) => Math.abs(point.annualReturn)),
-      0.1
-    );
+    const allPoints = this.getPortfolioEvolutionSeries().flatMap((series) => series.points);
+    const maxAbsoluteReturn = Math.max(...allPoints.map((point) => Math.abs(point.annualReturn)), 0.1);
     return Math.ceil((maxAbsoluteReturn * 1.12) / 0.05) * 0.05;
   }
 
-  buildPortfolioEvolutionPoints(width = 640, height = 250, left = 68, right = 18, top = 18, bottom = 38): string {
-    if (this.portfolioEvolution.length < 2) {
+  buildPortfolioEvolutionPoints(points: Array<{ year: number; annualReturn: number }>): string {
+    if (points.length < 2) {
       return '';
     }
-
-    return this.portfolioEvolution
+    return points
       .map((point) => `${this.getPortfolioEvolutionX(point.year).toFixed(2)},${this.getPortfolioEvolutionY(point.annualReturn).toFixed(2)}`)
       .join(' ');
   }
@@ -1223,8 +1234,24 @@ export class MontecarloPageComponent {
     return top + ((scale - annualReturn) / (scale * 2)) * plotHeight;
   }
 
-  onPortfolioEvolutionPointEnter(point: { year: number; annualReturn: number }, event: MouseEvent): void {
-    this.hoveredPortfolioEvolutionPoint = point;
+  getPortfolioEvolutionHoverX(year: number): number {
+    const plotLeft = 68;
+    const plotRight = 622;
+    const step = (plotRight - plotLeft) / 29;
+    return Math.max(plotLeft, this.getPortfolioEvolutionX(year) - step / 2);
+  }
+
+  getPortfolioEvolutionHoverWidth(year: number): number {
+    const plotLeft = 68;
+    const plotRight = 622;
+    const step = (plotRight - plotLeft) / 29;
+    const left = this.getPortfolioEvolutionHoverX(year);
+    const right = Math.min(plotRight, this.getPortfolioEvolutionX(year) + step / 2);
+    return right - left;
+  }
+
+  onPortfolioEvolutionYearEnter(year: number, event: MouseEvent): void {
+    this.hoveredPortfolioEvolutionYear = year;
     this.updatePortfolioEvolutionTooltipPosition(event);
   }
 
@@ -1233,7 +1260,17 @@ export class MontecarloPageComponent {
   }
 
   onPortfolioEvolutionPointLeave(): void {
-    this.hoveredPortfolioEvolutionPoint = null;
+    this.hoveredPortfolioEvolutionYear = null;
+  }
+
+  getPortfolioEvolutionTooltipRows(year: number): Array<{ label: string; className: string; value: number }> {
+    return this.getPortfolioEvolutionSeries()
+      .map((series) => ({
+        label: series.label,
+        className: series.className.replace('evolution-line--', 'evolution-tooltip-row--'),
+        value: series.points.find((point) => point.year === year)?.annualReturn
+      }))
+      .filter((row): row is { label: string; className: string; value: number } => Number.isFinite(row.value));
   }
 
   private updatePortfolioEvolutionTooltipPosition(event: MouseEvent): void {
