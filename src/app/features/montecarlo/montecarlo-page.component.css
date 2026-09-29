@@ -1743,3 +1743,40 @@
   box-shadow: 0 18px 42px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08) !important;
   filter: none !important;
 }
+
+
+/* KPI icons: larger, free-standing and more vivid like the approved render */
+.kpi-row__metric {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  column-gap: .6rem;
+}
+.kpi-metric-icon {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  font-size: 25px;
+  font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 100, 'opsz' 24;
+}
+.kpi-metric-icon[data-kpi-icon="expectedReturn"] {
+  color: #38f0cf;
+  filter: drop-shadow(0 0 7px rgba(56,240,207,.38));
+}
+.kpi-metric-icon[data-kpi-icon="volatility"] {
+  color: #b58cff;
+  filter: drop-shadow(0 0 7px rgba(181,140,255,.40));
+}
+.kpi-metric-icon[data-kpi-icon="positiveReturnProbability"] {
+  color: #4fb3ff;
+  filter: drop-shadow(0 0 7px rgba(79,179,255,.40));
+}
+.kpi-metric-icon[data-kpi-icon="recoveryPeriod"] {
+  color: #ffd05a;
+  filter: drop-shadow(0 0 7px rgba(255,208,90,.40));
+}
+.kpi-metric-icon[data-kpi-icon="averageMaxDrawdown"] {
+  color: #ff5975;
+  filter: drop-shadow(0 0 7px rgba(255,89,117,.40));
+}
