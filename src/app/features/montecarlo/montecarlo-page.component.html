@@ -324,6 +324,7 @@
       <span
         *ngFor="let segment of macroScenarioDistribution"
         class="macro-segment"
+        [attr.data-scenario]="segment.key"
         [style.width.%]="segment.percent"
         [style.background]="segment.color"
         [attr.title]="segment.label + ' ' + segment.percent + '%'"
