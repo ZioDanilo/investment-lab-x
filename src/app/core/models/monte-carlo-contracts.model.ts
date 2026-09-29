@@ -106,8 +106,11 @@ export interface MonteCarloResult {
   statistics: any;
   technicalChecks: any;
   performanceMetrics: any;
-  /** Optional path-level data used by result visualizations (histograms). */
-  paths?: MonteCarloPathResult[];
+  /** Compact path-level samples used by result histograms without transporting full paths. */
+  distributionSamples?: {
+    cagr: number[];
+    maxDrawdown: number[];
+  };
 }
 
 export interface MonteCarloMainKpis {
