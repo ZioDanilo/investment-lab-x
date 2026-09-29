@@ -23,12 +23,7 @@
         <span>{{ runButtonLabel }}</span>
       </span>
     </button>
-    <div class="cta-side-spacer cta-side-spacer--right">
-      <button type="button" class="secondary-button" [disabled]="isRegeneratingMarketUniverse" (click)="regenerateMarketUniverse()" aria-label="Rigenera Market Universe">
-        <span class="material-symbols-rounded">autorenew</span>
-        <span>{{ isRegeneratingMarketUniverse ? 'RIGENERAZIONE...' : 'RIGENERA MARKET UNIVERSE' }}</span>
-      </button>
-    </div>
+    <div class="cta-side-spacer cta-side-spacer--right"></div>
   </div>
 
   <app-toast></app-toast>
