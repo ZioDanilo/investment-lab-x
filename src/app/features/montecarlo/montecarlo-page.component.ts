@@ -745,13 +745,14 @@ export class MontecarloPageComponent {
       this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(maxDrawdownSamples.map((maxDrawdown) => ({ maxDrawdown })));
       this.clearHistogramHover();
       this.clearMaxDrawdownHover();
-      this.kpis = [
-        { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
-        { id: 'volatility', title: 'VOLATILITÀ', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
-        { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: this.formatPercent(cagrSamples.length > 0 ? cagrSamples.filter((value) => Number(value) > 0).length / cagrSamples.length : null), description: 'Scenari con rendimento > 0', tone: 'blue' },
-        { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
-        { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' }
-      ];
+      const valuesById: Record<string, string> = {
+        expectedReturn: this.formatPercent(result.mainKpis?.robustCagr),
+        volatility: this.formatPercent(result.mainKpis?.volatility),
+        positiveReturnProbability: this.formatPercent(cagrSamples.length > 0 ? cagrSamples.filter((value) => Number(value) > 0).length / cagrSamples.length : null),
+        recoveryPeriod: this.formatMonths(result.mainKpis?.recoveryTimeMonths),
+        averageMaxDrawdown: this.formatPercent(result.mainKpis?.robustMaxDrawdown)
+      };
+      this.kpis = this.kpis.map((kpi) => ({ ...kpi, value: valuesById[kpi.id] ?? kpi.value }));
       this.advanceProgressStage(97);
       await this.completeProgressAnimation();
     } catch (error) {
@@ -766,7 +767,8 @@ export class MontecarloPageComponent {
   }
 
   private resetKpis(): void {
-    this.kpis = [...this.defaultKpis];
+    // Keep the user's current KPI ordering for the whole lifetime of this page.
+    this.kpis = this.kpis.map((kpi) => ({ ...kpi, value: '—' }));
     this.draggedKpiId = null;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
@@ -824,6 +826,33 @@ export class MontecarloPageComponent {
     this.finishDragState();
   }
 
+  onKpiOuterDragOver(position: 'top' | 'bottom', event: DragEvent): void {
+    if (!this.draggedKpiId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+
+    const targetIndex = position === 'top' ? 0 : this.kpis.length;
+    this.insertTargetIndex = targetIndex;
+    this.moveKpiLive(this.draggedKpiId, targetIndex);
+  }
+
+  onKpiOuterDrop(position: 'top' | 'bottom', event: DragEvent): void {
+    if (!this.draggedKpiId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.moveKpiLive(this.draggedKpiId, position === 'top' ? 0 : this.kpis.length);
+    this.finishDragState();
+  }
+
   onKpiListDragOver(event: DragEvent): void {
     if (!this.draggedKpiId) {
       return;
@@ -856,7 +885,7 @@ export class MontecarloPageComponent {
     // a thin insertion marker.
     if (this.insertTargetIndex !== insertIndex) {
       this.insertTargetIndex = insertIndex;
-      this.insertKpi(this.draggedKpiId, insertIndex);
+      this.moveKpiLive(this.draggedKpiId, insertIndex);
     }
   }
 
@@ -892,6 +921,19 @@ export class MontecarloPageComponent {
 
     const next = [...this.kpis];
     [next[sourceIndex], next[targetIndex]] = [next[targetIndex], next[sourceIndex]];
+    this.kpis = next;
+  }
+
+  private moveKpiLive(kpiId: string, insertIndex: number): void {
+    const sourceIndex = this.kpis.findIndex((kpi) => kpi.id === kpiId);
+    if (sourceIndex === -1) {
+      return;
+    }
+
+    const next = [...this.kpis];
+    const [moved] = next.splice(sourceIndex, 1);
+    const targetIndex = Math.max(0, Math.min(insertIndex > sourceIndex ? insertIndex - 1 : insertIndex, next.length));
+    next.splice(targetIndex, 0, moved);
     this.kpis = next;
   }
 
