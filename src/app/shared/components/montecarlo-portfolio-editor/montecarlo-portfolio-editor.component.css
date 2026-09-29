@@ -82,7 +82,7 @@
   background:
     linear-gradient(to right,
       #315fba 0,
-      #477fd6 48%,
+      #477fd6 calc(var(--slider-value) * 0.55),
       #6a8fe0 var(--slider-value),
       transparent var(--slider-value),
       transparent 100%
