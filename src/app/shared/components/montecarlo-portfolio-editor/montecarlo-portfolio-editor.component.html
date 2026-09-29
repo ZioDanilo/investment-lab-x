@@ -12,7 +12,7 @@
   <div class="items-list" *ngIf="items().length > 0; else emptyState">
     <div class="item-row" *ngFor="let item of items(); let i = index; trackBy: trackByEtfId">
       <div class="item-name" [title]="item.fullName + ' · ' + item.ticker + ' · ' + item.isin">{{ item.nickname || item.ticker || item.isin }}</div>
-      <div class="slider-shell">
+      <div class="slider-shell" [style.--slider-value.%]="item.weight">
         <div class="slider-segments" aria-hidden="true"></div>
         <input
           class="slider"
