@@ -1,0 +1,4 @@
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+@Component({selector:'app-ui-button',standalone:true,template:`<button type="button" [class.secondary]="variant==='secondary'" [disabled]="disabled" (click)="pressed.emit()"><span *ngIf="icon" class="material-symbols-rounded">{{icon}}</span><ng-content></ng-content></button>`,styles:[`
+button{min-height:32px;border:1px solid rgba(73,133,205,.42);border-radius:8px;padding:5px 14px;background:linear-gradient(180deg,#145ea9,#0b417c);color:#fff;font-weight:800;cursor:pointer}button.secondary{background:linear-gradient(180deg,#172536,#0b1521);color:#c8d7e8}button:disabled{opacity:.48;cursor:not-allowed}.material-symbols-rounded{font-size:18px;vertical-align:middle;margin-right:5px}
+`]}) export class UiButtonComponent{@Input() variant:'primary'|'secondary'='primary';@Input() icon='';@Input() disabled=false;@Output() pressed=new EventEmitter<void>();}
