@@ -13,7 +13,7 @@
       type="button"
       class="run-button"
       [class.is-running]="isRunning || completionHoldActive"
-      [disabled]="!selectedPortfolio() || isRunning || completionHoldActive"
+      [disabled]="!selectedPortfolio() || editorState()?.state?.isValid !== true || isRunning || completionHoldActive"
       (click)="runSimulation()"
       aria-label="Avvia simulazione"
     >
