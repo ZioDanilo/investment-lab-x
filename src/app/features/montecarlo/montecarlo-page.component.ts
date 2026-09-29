@@ -50,6 +50,7 @@ export class MontecarloPageComponent {
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
   readonly editorState = signal<MontecarloPortfolioEditorChange | null>(null);
   private kpiConfigLoadVersion = 0;
+  private loadedKpiPortfolioId: string | null = null;
   finalReturnDistribution: { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } = {
     label: 'Distribuzione dei rendimenti finali',
     subtitle: 'Distribuzione simulata a 30 anni',
@@ -123,6 +124,7 @@ export class MontecarloPageComponent {
   private async loadPortfolioKpiConfiguration(portfolioId: string | null): Promise<void> {
     const loadVersion = ++this.kpiConfigLoadVersion;
     if (!portfolioId) {
+      this.loadedKpiPortfolioId = null;
       this.resetPortfolioKpiConfiguration();
       return;
     }
@@ -152,6 +154,7 @@ export class MontecarloPageComponent {
         })
       );
       this.openKpiTargetId = null;
+      this.loadedKpiPortfolioId = portfolioId;
     } catch (error) {
       if (loadVersion === this.kpiConfigLoadVersion && this.selectedPortfolio()?.id === portfolioId) {
         console.error('[KPI target load]', error);
@@ -161,9 +164,9 @@ export class MontecarloPageComponent {
   }
 
   private async saveCurrentPortfolioKpiConfiguration(): Promise<void> {
-    const portfolioId = this.selectedPortfolio()?.id;
+    const portfolioId = this.editorState()?.state?.selectedPortfolioId ?? this.selectedPortfolio()?.id ?? null;
     if (!portfolioId) {
-      return;
+      throw new Error('Impossibile salvare i KPI: nessun portafoglio selezionato.');
     }
 
     const payload = this.kpis.map((kpi, index) => ({
@@ -797,6 +800,11 @@ export class MontecarloPageComponent {
 
   onEditorStateChange(change: MontecarloPortfolioEditorChange): void {
     this.editorState.set(change);
+
+    const portfolioId = change?.state?.selectedPortfolioId ?? null;
+    if (portfolioId && portfolioId !== this.loadedKpiPortfolioId) {
+      void this.loadPortfolioKpiConfiguration(portfolioId);
+    }
   }
 
   async runSimulation(): Promise<void> {
