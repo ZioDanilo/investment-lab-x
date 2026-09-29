@@ -75,11 +75,24 @@
               [class.shift-up]="getKpiDragShift(i) === 'up'"
               [class.shift-down]="getKpiDragShift(i) === 'down'"
               (dragstart)="onKpiDragStart(kpi.id, $event)"
+              (drag)="onKpiDrag($event)"
               (dragend)="onKpiDragEnd()"
             >
               <span class="kpi-row__label">{{ kpi.title }}</span>
               <strong class="kpi-row__value">{{ kpi.value }}</strong>
             </div>
+          </div>
+
+          <div
+            *ngIf="draggedKpiPreview"
+            class="kpi-row kpi-row--drag-preview"
+            [style.left.px]="draggedKpiPreviewPosition.left"
+            [style.top.px]="draggedKpiPreviewPosition.top"
+            [style.width.px]="draggedKpiPreviewPosition.width"
+            [style.height.px]="draggedKpiPreviewPosition.height"
+          >
+            <span class="kpi-row__label">{{ draggedKpiPreview.title }}</span>
+            <strong class="kpi-row__value">{{ draggedKpiPreview.value }}</strong>
           </div>
         </article>
 
