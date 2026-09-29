@@ -579,3 +579,24 @@
   box-sizing: border-box;
   border-radius: 4px;
 }
+
+
+/* Normalize the full blue-to-ETF gradient inside the active allocation only */
+.slider-segments {
+  background:
+    linear-gradient(to right,
+      #4b45d8 0%,
+      #326fe5 42%,
+      var(--etf-accent) 100%
+    ),
+    linear-gradient(to bottom,
+      rgba(255,255,255,.20) 0,
+      rgba(255,255,255,.055) 38%,
+      rgba(5,14,29,.20) 100%
+    );
+  background-size:
+    var(--slider-value) 100%,
+    var(--slider-value) 100%;
+  background-repeat: no-repeat;
+  clip-path: inset(0 calc(100% - var(--slider-value)) 0 0 round 4px);
+}
