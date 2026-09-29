@@ -1058,6 +1058,11 @@ export class MontecarloPageComponent {
     this.openKpiTargetId = this.openKpiTargetId === kpiId ? null : kpiId;
   }
 
+  @HostListener('document:click')
+  closeKpiTargetOnOutsideClick(): void {
+    this.openKpiTargetId = null;
+  }
+
   selectKpiTarget(kpiId: string, value: string, event: MouseEvent): void {
     event.stopPropagation();
     this.kpiTargets[kpiId] = value;
