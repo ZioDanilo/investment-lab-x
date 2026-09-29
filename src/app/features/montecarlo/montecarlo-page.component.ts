@@ -869,6 +869,33 @@ export class MontecarloPageComponent {
     this.finishDragState();
   }
 
+  getKpiDragShift(index: number): 'up' | 'down' | null {
+    if (!this.draggedKpiId || this.insertTargetIndex === null) {
+      return null;
+    }
+
+    const sourceIndex = this.kpis.findIndex((kpi) => kpi.id === this.draggedKpiId);
+    if (sourceIndex === -1) {
+      return null;
+    }
+
+    let targetIndex = this.insertTargetIndex;
+    if (sourceIndex < targetIndex) {
+      targetIndex -= 1;
+    }
+    targetIndex = Math.max(0, Math.min(this.kpis.length - 1, targetIndex));
+
+    if (targetIndex > sourceIndex && index > sourceIndex && index <= targetIndex) {
+      return 'up';
+    }
+
+    if (targetIndex < sourceIndex && index >= targetIndex && index < sourceIndex) {
+      return 'down';
+    }
+
+    return null;
+  }
+
   private finishDragState(): void {
     this.draggedKpiId = null;
     this.swapTargetId = null;
