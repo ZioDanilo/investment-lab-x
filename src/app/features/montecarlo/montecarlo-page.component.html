@@ -45,21 +45,21 @@
 
         <article class="panel evolution-panel">
           <div class="panel-header compact-header">
-            <h3>Evoluzione del portafoglio</h3>
+            <h3>Rendimenti annuali</h3>
             <span class="panel-badge">30 anni</span>
           </div>
 
           <div class="portfolio-evolution-chart">
-            <svg *ngIf="portfolioEvolution.length > 1; else evolutionEmpty" viewBox="0 0 640 250" class="portfolio-evolution-svg" role="img" aria-label="Evoluzione mediana del valore del portafoglio in 30 anni">
+            <svg *ngIf="portfolioEvolution.length > 1; else evolutionEmpty" viewBox="0 0 640 250" class="portfolio-evolution-svg" role="img" aria-label="Rendimenti annuali del percorso simulato rappresentativo in 30 anni">
               <g *ngFor="let tick of getPortfolioEvolutionYTicks()">
                 <line x1="68" [attr.y1]="tick.y" x2="622" [attr.y2]="tick.y" class="evolution-grid-line" />
-                <text x="58" [attr.y]="tick.y + 4" text-anchor="end" class="evolution-axis-label">{{ formatEuroAxis(tick.value) }}</text>
+                <text x="58" [attr.y]="tick.y + 4" text-anchor="end" class="evolution-axis-label">{{ formatAnnualReturn(tick.value) }}</text>
               </g>
 
-              <line x1="68" y1="212" x2="622" y2="212" class="evolution-axis" />
+              <line x1="68" [attr.y1]="getPortfolioEvolutionY(0)" x2="622" [attr.y2]="getPortfolioEvolutionY(0)" class="evolution-zero-axis" />
               <line x1="68" y1="18" x2="68" y2="212" class="evolution-axis" />
 
-              <g *ngFor="let year of [0, 5, 10, 15, 20, 25, 30]">
+              <g *ngFor="let year of [1, 5, 10, 15, 20, 25, 30]">
                 <line [attr.x1]="getPortfolioEvolutionX(year)" y1="212" [attr.x2]="getPortfolioEvolutionX(year)" y2="217" class="evolution-axis" />
                 <text [attr.x]="getPortfolioEvolutionX(year)" y="235" text-anchor="middle" class="evolution-axis-label">{{ year }}</text>
               </g>
@@ -69,7 +69,7 @@
               <g *ngFor="let point of portfolioEvolution">
                 <circle
                   [attr.cx]="getPortfolioEvolutionX(point.year)"
-                  [attr.cy]="getPortfolioEvolutionY(point.capital)"
+                  [attr.cy]="getPortfolioEvolutionY(point.annualReturn)"
                   r="8"
                   class="evolution-hit-point"
                   (mouseenter)="onPortfolioEvolutionPointEnter(point)"
@@ -80,7 +80,7 @@
               <g *ngIf="hoveredPortfolioEvolutionPoint as point" class="evolution-tooltip" pointer-events="none">
                 <rect
                   [attr.x]="Math.min(Math.max(getPortfolioEvolutionX(point.year) - 58, 72), 502)"
-                  [attr.y]="Math.max(getPortfolioEvolutionY(point.capital) - 52, 8)"
+                  [attr.y]="Math.max(getPortfolioEvolutionY(point.annualReturn) - 52, 8)"
                   width="116"
                   height="38"
                   rx="7"
@@ -88,21 +88,21 @@
                 ></rect>
                 <text
                   [attr.x]="Math.min(Math.max(getPortfolioEvolutionX(point.year), 130), 560)"
-                  [attr.y]="Math.max(getPortfolioEvolutionY(point.capital) - 37, 23)"
+                  [attr.y]="Math.max(getPortfolioEvolutionY(point.annualReturn) - 37, 23)"
                   text-anchor="middle"
                   class="evolution-tooltip-year"
                 >Anno {{ point.year }}</text>
                 <text
                   [attr.x]="Math.min(Math.max(getPortfolioEvolutionX(point.year), 130), 560)"
-                  [attr.y]="Math.max(getPortfolioEvolutionY(point.capital) - 23, 37)"
+                  [attr.y]="Math.max(getPortfolioEvolutionY(point.annualReturn) - 23, 37)"
                   text-anchor="middle"
                   class="evolution-tooltip-value"
-                >{{ formatEuroTooltip(point.capital) }}</text>
+                >{{ formatAnnualReturn(point.annualReturn) }}</text>
               </g>
             </svg>
 
             <ng-template #evolutionEmpty>
-              <div class="evolution-empty">Avvia la simulazione per visualizzare l'evoluzione del portafoglio.</div>
+              <div class="evolution-empty">Avvia la simulazione per visualizzare i rendimenti annuali.</div>
             </ng-template>
           </div>
         </article>
