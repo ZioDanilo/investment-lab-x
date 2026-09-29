@@ -2629,3 +2629,11 @@ html, body {
   right: 10% !important;
   margin-top: 0 !important;
 }
+
+
+/* Use the freed right gutter for the annual-returns legend. */
+.evolution-legend {
+  right: 0 !important;
+  top: 0 !important;
+  margin: 0 !important;
+}
