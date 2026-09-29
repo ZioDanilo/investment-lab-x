@@ -1933,3 +1933,12 @@
 .kpi-target-trigger * {
   cursor: pointer !important;
 }
+
+
+/* KPI drag final: keep the source painted so the browser native drag image remains visible.
+   No extra Angular preview is rendered, so dragging cannot add height to the KPI panel. */
+.kpi-row.is-dragging {
+  visibility: visible !important;
+  opacity: 1 !important;
+  cursor: grabbing !important;
+}
