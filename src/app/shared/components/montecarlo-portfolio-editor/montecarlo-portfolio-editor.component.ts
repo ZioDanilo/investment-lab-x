@@ -6,6 +6,7 @@ import { ApiService } from '../../../core/api/api.service';
 import { Etf } from '../../../core/models/etf.model';
 import { EtfMacroStatistics } from '../../../core/models/monte-carlo.model';
 import { DialogInputComponent } from '../dialog-input/dialog-input.component';
+import { PortfolioSelectionService } from '../../../core/services/portfolio-selection.service';
 
 export interface MontecarloPortfolioItem {
   etfId: string;
@@ -62,6 +63,7 @@ interface EtfSearchItem {
 })
 export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy {
   private readonly apiService = inject(ApiService);
+  private readonly portfolioSelectionService = inject(PortfolioSelectionService);
 
   @Input() portfolioId: string | null = null;
   @Output() stateChange = new EventEmitter<MontecarloPortfolioEditorChange>();
@@ -272,15 +274,44 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     this.loading.set(true);
     this.emitState();
 
+    const existingSessionPortfolio = this.portfolioSelectionService.workingPortfolio();
+    if (this.portfolioSelectionService.currentWorkingPortfolioId() === portfolioId && existingSessionPortfolio) {
+      const mapped = existingSessionPortfolio.holdings.map((holding: any) => this.mapWorkingHoldingToItem(holding));
+
+      this.items.set(mapped);
+      this.originalItems.set(mapped.map((item: MontecarloPortfolioItem) => ({ ...item })));
+      this.currentWeightValues.set(Object.fromEntries(mapped.map((item: MontecarloPortfolioItem) => [String(item.etfId), item.weight])));
+      this.selectedPortfolioName.set(existingSessionPortfolio.name || '');
+      this.searchQuery.set('');
+      this.searchResults.set([]);
+      this.showSearchResults.set(false);
+      this.loading.set(false);
+      this.emitState();
+      return;
+    }
+
     this.apiService.getPortfolioById(portfolioId).subscribe({
       next: (response: any) => {
         const holdings = response?.data?.holdings || [];
-        const mapped = holdings.map((holding: any) => this.mapHoldingToItem(holding));
+        const mapped = holdings.map((holding: any) => this.mapDbHoldingToItem(holding));
+        const snapshot = {
+          id: portfolioId,
+          name: response?.data?.name || response?.name || response?.data?.nome || response?.nome || '',
+          holdings: mapped.map((item: MontecarloPortfolioItem) => ({
+            etfId: item.etfId,
+            isin: item.isin,
+            ticker: item.ticker,
+            nickname: item.nickname,
+            fullName: item.fullName,
+            weight: item.weight
+          }))
+        };
 
+        this.portfolioSelectionService.restoreWorkingPortfolio(portfolioId, snapshot);
         this.items.set(mapped);
         this.originalItems.set(mapped.map((item: MontecarloPortfolioItem) => ({ ...item })));
         this.currentWeightValues.set(Object.fromEntries(mapped.map((item: MontecarloPortfolioItem) => [String(item.etfId), item.weight])));
-        this.selectedPortfolioName.set(response?.data?.name || response?.name || response?.data?.nome || response?.nome || '');
+        this.selectedPortfolioName.set(snapshot.name || '');
         this.searchQuery.set('');
         this.searchResults.set([]);
         this.showSearchResults.set(false);
@@ -438,6 +469,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       }
       return next;
     });
+    this.persistSessionPortfolio();
     this.emitState();
   }
 
@@ -459,6 +491,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       return next;
     });
 
+    this.persistSessionPortfolio();
     this.emitState();
   }
 
@@ -480,6 +513,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       };
       return next;
     });
+    this.persistSessionPortfolio();
     this.emitState();
   }
 
@@ -510,6 +544,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       return next;
     });
 
+    this.persistSessionPortfolio();
     this.emitState();
   }
 
@@ -519,6 +554,62 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     }
 
     return Number(weight) * 100;
+  }
+
+  private mapDbHoldingToItem(holding: any): MontecarloPortfolioItem {
+    const rawWeight = holding.weight ?? holding.weightPercentage ?? holding.percentage ?? holding.targetWeight ?? holding.allocation ?? 0;
+    const weight = this.clampWeight(this.toPercentWeight(rawWeight));
+    const nickname = holding.nickname || holding.name || holding.description || holding.ticker || holding.isin || 'ETF';
+    const fullName = holding.fullName || holding.name || holding.description || holding.nickname || holding.ticker || holding.isin || nickname;
+
+    return {
+      etfId: holding.etfId || holding.id || holding.isin,
+      isin: holding.isin || '',
+      ticker: holding.ticker || '',
+      nickname,
+      fullName,
+      description: holding.description || fullName,
+      weight,
+      originalWeight: weight,
+      macroStatistics: holding.macroStatistics,
+      expectedReturn: holding.expectedReturn || 0,
+      volatility: holding.volatility || 0,
+      maxDrawdown: holding.maxDrawdown || 0,
+      ter: holding.ter || holding.expense || 0,
+      liquidity: holding.liquidity || 5,
+      recession: holding.recession || 0,
+      stagflation: holding.stagflation || 0,
+      isAddedTemporarily: false,
+      displayValue: this.formatWeight(weight)
+    };
+  }
+
+  private mapWorkingHoldingToItem(holding: any): MontecarloPortfolioItem {
+    const rawWeight = holding.weight ?? holding.weightPercentage ?? holding.percentage ?? holding.targetWeight ?? holding.allocation ?? 0;
+    const weight = this.clampWeight(Number(rawWeight));
+    const nickname = holding.nickname || holding.name || holding.description || holding.ticker || holding.isin || 'ETF';
+    const fullName = holding.fullName || holding.name || holding.description || holding.nickname || holding.ticker || holding.isin || nickname;
+
+    return {
+      etfId: holding.etfId || holding.id || holding.isin,
+      isin: holding.isin || '',
+      ticker: holding.ticker || '',
+      nickname,
+      fullName,
+      description: holding.description || fullName,
+      weight,
+      originalWeight: weight,
+      macroStatistics: holding.macroStatistics,
+      expectedReturn: holding.expectedReturn || 0,
+      volatility: holding.volatility || 0,
+      maxDrawdown: holding.maxDrawdown || 0,
+      ter: holding.ter || holding.expense || 0,
+      liquidity: holding.liquidity || 5,
+      recession: holding.recession || 0,
+      stagflation: holding.stagflation || 0,
+      isAddedTemporarily: false,
+      displayValue: this.formatWeight(weight)
+    };
   }
 
   trackByEtfId(index: number, item: MontecarloPortfolioItem): string {
@@ -558,32 +649,6 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       }));
   }
 
-  private mapHoldingToItem(holding: any): MontecarloPortfolioItem {
-    const weight = this.clampWeight(this.toPercentWeight(holding.weight));
-    const nickname = holding.nickname || holding.name || holding.description || holding.ticker || holding.isin || 'ETF';
-    const fullName = holding.fullName || holding.name || holding.description || holding.nickname || holding.ticker || holding.isin || nickname;
-
-    return {
-      etfId: holding.etfId || holding.id || holding.isin,
-      isin: holding.isin || '',
-      ticker: holding.ticker || '',
-      nickname,
-      fullName,
-      description: holding.description || fullName,
-      weight,
-      originalWeight: weight,
-      macroStatistics: holding.macroStatistics,
-      expectedReturn: holding.expectedReturn || 0,
-      volatility: holding.volatility || 0,
-      maxDrawdown: holding.maxDrawdown || 0,
-      ter: holding.ter || holding.expense || 0,
-      liquidity: holding.liquidity || 5,
-      recession: holding.recession || 0,
-      stagflation: holding.stagflation || 0,
-      isAddedTemporarily: false,
-      displayValue: this.formatWeight(weight)
-    };
-  }
 
   private parseWeightInput(value: string | number): number | null {
     const normalized = String(value ?? '').trim().replace(',', '.');
@@ -622,6 +687,27 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       state: this.getState(),
       effectiveEtfs: this.effectiveEtfs()
     });
+  }
+
+  private persistSessionPortfolio(): void {
+    if (!this.portfolioId) {
+      return;
+    }
+
+    const snapshot = {
+      id: this.portfolioId,
+      name: this.selectedPortfolioName(),
+      holdings: this.items().map((item) => ({
+        etfId: item.etfId,
+        isin: item.isin,
+        ticker: item.ticker,
+        nickname: item.nickname,
+        fullName: item.fullName,
+        weight: item.weight
+      }))
+    };
+
+    this.portfolioSelectionService.preserveWorkingPortfolio(this.portfolioId, snapshot);
   }
 
   private resetEditor(): void {

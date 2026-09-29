@@ -18,7 +18,7 @@ Production:
 // src/environments/environment.prod.ts
 export const environment = {
   production: true,
-  apiUrl: 'https://api.investment-lab.com/api'
+  apiUrl: 'https://investment-lab-service.onrender.com/api'
 };
 ```
 

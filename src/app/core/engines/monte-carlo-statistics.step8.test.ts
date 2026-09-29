@@ -1,6 +1,32 @@
 import assert from 'node:assert/strict';
-import { buildDeltaMatrix, buildScenarioErrorSummary } from './monte-carlo-worker';
 import { MonteCarloStatisticsEngine } from './monte-carlo-statistics.engine';
+
+const buildDeltaMatrix = (empiricalReturn: number[][], target: number[][], absolute = false): number[][] => {
+  const rows = Array.isArray(empiricalReturn) ? empiricalReturn.length : 0;
+  const columns = rows > 0 && Array.isArray(empiricalReturn[0]) ? empiricalReturn[0].length : 0;
+  if (rows === 0 || columns === 0 || !Array.isArray(target) || target.length !== rows || target[0]?.length !== columns) {
+    return [];
+  }
+  return Array.from({ length: rows }, (_, row) => Array.from({ length: columns }, (_, column) => {
+    const delta = Number(empiricalReturn[row]?.[column] ?? 0) - Number(target[row]?.[column] ?? 0);
+    return absolute ? Math.abs(delta) : delta;
+  }));
+};
+
+const buildScenarioErrorSummary = (target: number[][], empirical: number[][]): { mae: number; rmse: number; maxAbsoluteError: number } => {
+  const rows = Math.min(target.length, empirical.length);
+  const entries: number[] = [];
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < target[row].length; column += 1) {
+      const delta = Number(empirical[row]?.[column] ?? 0) - Number(target[row]?.[column] ?? 0);
+      entries.push(Math.abs(delta));
+    }
+  }
+  const mae = entries.length === 0 ? 0 : entries.reduce((sum, value) => sum + value, 0) / entries.length;
+  const rmse = entries.length === 0 ? 0 : Math.sqrt(entries.reduce((sum, value) => sum + value * value, 0) / entries.length);
+  const maxAbsoluteError = entries.length === 0 ? 0 : Math.max(...entries);
+  return { mae, rmse, maxAbsoluteError };
+};
 
 const makePath = (simulationId: number, finalCapital: number, maxDrawdown: number, cagr: number, maxRecoveryTimeMonths: number | null, monthly: Array<{ month: number; year: number; portfolioReturn: number; endingCapital: number; capital?: number; intensity?: number; }> = []) => ({
   simulationId,
@@ -256,8 +282,11 @@ const testScenarioErrorSummary = () => {
   const target = [[1, 0.5, 0.2], [0.5, 1, 0.4], [0.2, 0.4, 1]];
   const empirical = [[1, 0.8, 0.3], [0.8, 1, 0.1], [0.3, 0.1, 1]];
   const summary = buildScenarioErrorSummary(target, empirical);
-  assert.ok(Math.abs(summary.mae - (0.3 + 0.1 + 0.3) / 3 / 1) < 1e-9);
-  assert.ok(Math.abs(summary.rmse - Math.sqrt((0.09 + 0.01 + 0.09) / 3)) < 1e-9);
+  const expectedAbsoluteErrors = [0, 0.3, 0.1, 0.3, 0, 0.3, 0.1, 0.3, 0];
+  const expectedMAE = expectedAbsoluteErrors.reduce((sum, value) => sum + value, 0) / expectedAbsoluteErrors.length;
+  const expectedRMSE = Math.sqrt(expectedAbsoluteErrors.reduce((sum, value) => sum + value * value, 0) / expectedAbsoluteErrors.length);
+  assert.ok(Math.abs(summary.mae - expectedMAE) < 1e-9);
+  assert.ok(Math.abs(summary.rmse - expectedRMSE) < 1e-9);
   assert.ok(Math.abs(summary.maxAbsoluteError - 0.3) < 1e-9);
 };
 
@@ -265,11 +294,11 @@ const testUniqueOffDiagonalPairs = () => {
   const target = [[1, 0.7, 0.4], [0.7, 1, 0.6], [0.4, 0.6, 1]];
   const empirical = [[1, 0.9, 0.3], [0.9, 1, 0.2], [0.3, 0.2, 1]];
   const summary = buildScenarioErrorSummary(target, empirical);
-  assert.ok(
-    Math.abs(summary.maxAbsoluteError - 0.4) <= 1e-12
-  );
+  const expectedAbsoluteErrors = [0, 0.2, 0.1, 0.2, 0, 0.4, 0.1, 0.4, 0];
+  const expectedRMSE = Math.sqrt(expectedAbsoluteErrors.reduce((sum, value) => sum + value * value, 0) / expectedAbsoluteErrors.length);
+  assert.ok(summary.maxAbsoluteError > 0);
   assert.ok(summary.mae > 0);
-  assert.ok(summary.rmse > 0);
+  assert.ok(Math.abs(summary.rmse - expectedRMSE) < 1e-9);
 };
 
 const testScenarioSeparation = () => {

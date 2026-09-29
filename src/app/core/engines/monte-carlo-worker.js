@@ -1,5 +1,5 @@
 import { generateMonthlyMacroTimeline } from '../macro/monte-carlo-macro-engine';
-import { generateMonthlyReturnVector } from '../returns/monte-carlo-return-engine';
+import { beginReturnVectorBatchProfile, endReturnVectorBatchProfile, generateMonthlyReturnVector } from '../returns/monte-carlo-return-engine';
 import { evolveMonteCarloPortfolioPath } from '../portfolio/monte-carlo-portfolio-path-engine';
 import { SeededRandom } from './seeded-random';
 const asWorkerScope = self;
@@ -572,6 +572,7 @@ asWorkerScope.onmessage = (event) => {
     if (message.type === 'RUN_BATCH') {
         const batchStartedAt = performance.now();
         const { batchStart = 0, batchEnd = 0, input, snapshot, precompute, pathCount = 0 } = message;
+        beginReturnVectorBatchProfile(message.workerId);
         asWorkerScope.postMessage({
             type: 'MC_PORT_TEST_CHECKPOINT',
             checkpoint: 'PROD_RUN_BATCH_RECEIVE_ENTER',
@@ -772,6 +773,7 @@ asWorkerScope.onmessage = (event) => {
             completedPaths: batchEnd,
             totalPaths: pathCount
         });
+        endReturnVectorBatchProfile(message.workerId, batchEnd - batchStart);
         asWorkerScope.postMessage({
             type: 'WORKER_BATCH_METRICS',
             executionId: message.executionId,

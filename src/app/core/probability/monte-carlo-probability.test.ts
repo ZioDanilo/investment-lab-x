@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import {
   COPULA_EPSILON,
   sampleChiSquare5,
@@ -84,7 +85,10 @@ const impossibleSoftThresholdParameters = {
   quantile: 0.95,
   targetValue: 0.7
 };
-const clampedMean = solveTruncatedNormalMeanForQuantile(impossibleSoftThresholdParameters);
-assert.ok(clampedMean >= impossibleSoftThresholdParameters.lower && clampedMean <= impossibleSoftThresholdParameters.upper, 'Clamped mean must still respect the truncation support');
+assert.throws(
+  () => solveTruncatedNormalMeanForQuantile(impossibleSoftThresholdParameters),
+  /INVALID_TRUNCATED_NORMAL_TARGET|targetValue must be strictly inside the truncation interval/i,
+  'Out-of-support truncated-normal target must fail fast instead of silently clamping'
+);
 
 console.log('Monte Carlo Step 4 probability tests passed.');
