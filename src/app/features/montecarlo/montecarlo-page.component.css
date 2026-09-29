@@ -2616,3 +2616,16 @@ html, body {
   max-width: none !important;
   align-self: stretch;
 }
+
+
+/* Annual returns: keep a 10% lateral breathing room and pin legend to the top edge. */
+.portfolio-evolution-svg {
+  width: 80% !important;
+  margin-inline: 10% !important;
+}
+
+.evolution-legend {
+  top: 0 !important;
+  right: 10% !important;
+  margin-top: 0 !important;
+}
