@@ -413,6 +413,23 @@
   border: 1px solid rgba(136, 170, 214, 0.14);
   background: rgba(14, 20, 30, 0.62);
   min-width: 0;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.kpi-row--placeholder {
+  min-height: 41px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.kpi-compact-list,
+.kpi-compact-list * {
+  cursor: grab;
+}
+
+.kpi-compact-list--dragging,
+.kpi-compact-list--dragging * {
+  cursor: grabbing !important;
 }
 
 .kpi-row[draggable="true"] {
