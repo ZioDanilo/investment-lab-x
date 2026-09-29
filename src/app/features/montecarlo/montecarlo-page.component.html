@@ -88,14 +88,30 @@
                 <strong class="kpi-row__value">{{ kpi.value }}</strong>
               </div>
               <div class="kpi-row__target">
-                <select
-                  class="kpi-target-select"
-                  [(ngModel)]="kpiTargets[kpi.id]"
-                  (mousedown)="$event.stopPropagation()"
-                  (dragstart)="$event.preventDefault(); $event.stopPropagation()"
-                >
-                  <option *ngFor="let option of kpiTargetOptions[kpi.id]" [value]="option">{{ option }}</option>
-                </select>
+                <div class="kpi-target-dropdown" [class.is-open]="openKpiTargetId === kpi.id">
+                  <button
+                    type="button"
+                    class="kpi-target-trigger"
+                    (mousedown)="$event.stopPropagation()"
+                    (click)="toggleKpiTarget(kpi.id, $event)"
+                    (dragstart)="$event.preventDefault(); $event.stopPropagation()"
+                    aria-haspopup="listbox"
+                    [attr.aria-expanded]="openKpiTargetId === kpi.id"
+                  >
+                    <span>{{ kpiTargets[kpi.id] }}</span>
+                    <span class="material-symbols-rounded kpi-target-chevron">{{ openKpiTargetId === kpi.id ? 'expand_less' : 'expand_more' }}</span>
+                  </button>
+                  <div class="kpi-target-menu" role="listbox" *ngIf="openKpiTargetId === kpi.id">
+                    <button type="button" class="kpi-target-option" [class.is-selected]="kpiTargets[kpi.id] === '–'" (click)="selectKpiTarget(kpi.id, '–', $event)">–</button>
+                    <button
+                      *ngFor="let option of kpiTargetOptions[kpi.id]"
+                      type="button"
+                      class="kpi-target-option"
+                      [class.is-selected]="kpiTargets[kpi.id] === option"
+                      (click)="selectKpiTarget(kpi.id, option, $event)"
+                    >{{ option }}</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
