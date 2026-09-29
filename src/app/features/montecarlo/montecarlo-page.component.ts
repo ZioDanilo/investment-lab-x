@@ -99,6 +99,7 @@ export class MontecarloPageComponent {
     averageMaxDrawdown: '–'
   };
   openKpiTargetId: string | null = null;
+  kpiResultValues: Record<string, number | null> = {};
   draggedKpiId: string | null = null;
   draggedKpiPreview: KpiCard | null = null;
   draggedKpiPreviewPosition = { left: 0, top: 0, width: 0, height: 0 };
@@ -715,6 +716,7 @@ export class MontecarloPageComponent {
   }
 
   async runSimulation(): Promise<void> {
+    this.kpiResultValues = {};
     const portfolio = this.selectedPortfolio();
     if (!portfolio || this.isRunning) {
       return;
@@ -764,10 +766,20 @@ export class MontecarloPageComponent {
       this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(maxDrawdownSamples.map((maxDrawdown) => ({ maxDrawdown })));
       this.clearHistogramHover();
       this.clearMaxDrawdownHover();
+      const positiveReturnProbability = cagrSamples.length > 0
+        ? cagrSamples.filter((value) => Number(value) > 0).length / cagrSamples.length
+        : null;
+      this.kpiResultValues = {
+        expectedReturn: Number.isFinite(result.mainKpis?.robustCagr) ? Number(result.mainKpis.robustCagr) : null,
+        volatility: Number.isFinite(result.mainKpis?.volatility) ? Number(result.mainKpis.volatility) : null,
+        positiveReturnProbability,
+        recoveryPeriod: Number.isFinite(result.mainKpis?.recoveryTimeMonths) ? Number(result.mainKpis.recoveryTimeMonths) : null,
+        averageMaxDrawdown: Number.isFinite(result.mainKpis?.robustMaxDrawdown) ? Math.abs(Number(result.mainKpis.robustMaxDrawdown)) : null
+      };
       const updatedKpis: KpiCard[] = [
         { id: 'expectedReturn', title: 'Rendimento annuo', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
         { id: 'volatility', title: 'Volatilità', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
-        { id: 'positiveReturnProbability', title: 'Rendimento positivo (30 anni)', value: this.formatPercent(cagrSamples.length > 0 ? cagrSamples.filter((value) => Number(value) > 0).length / cagrSamples.length : null), description: 'Scenari con rendimento > 0', tone: 'blue' },
+        { id: 'positiveReturnProbability', title: 'Rendimento positivo (30 anni)', value: this.formatPercent(positiveReturnProbability), description: 'Scenari con rendimento > 0', tone: 'blue' },
         { id: 'recoveryPeriod', title: 'Periodo di recupero', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
         { id: 'averageMaxDrawdown', title: 'Drawdown', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' }
       ];
@@ -977,6 +989,24 @@ export class MontecarloPageComponent {
     }
 
     return null;
+  }
+
+  getKpiTargetStatus(kpiId: string): 'success' | 'failure' | null {
+    const target = this.kpiTargets[kpiId];
+    const result = this.kpiResultValues[kpiId];
+    if (!target || target === '–' || result === null || result === undefined || !Number.isFinite(result)) {
+      return null;
+    }
+
+    const targetNumber = Number.parseFloat(target.replace(',', '.'));
+    if (!Number.isFinite(targetNumber)) {
+      return null;
+    }
+
+    const targetValue = kpiId === 'recoveryPeriod' ? targetNumber * 12 : targetNumber / 100;
+    const higherIsBetter = kpiId === 'expectedReturn' || kpiId === 'positiveReturnProbability';
+    const passed = higherIsBetter ? result >= targetValue : result <= targetValue;
+    return passed ? 'success' : 'failure';
   }
 
   trackKpiById(_index: number, kpi: KpiCard): string {
