@@ -54,7 +54,11 @@
       </div>
 
       <div class="right-column">
-        <article class="panel kpi-panel">
+        <article
+          class="panel kpi-panel"
+          (dragover)="onKpiOuterDragOver('top', $event)"
+          (drop)="onKpiOuterDrop('top', $event)"
+        >
           <div class="panel-header compact-header">
             <h3>KPI</h3>
           </div>
@@ -72,8 +76,6 @@
               draggable="true"
               [attr.data-kpi-index]="i"
               [class.is-dragging]="draggedKpiId === kpi.id"
-              [class.is-drop-before]="insertTargetIndex === i"
-              [class.is-drop-after]="insertTargetIndex === i + 1"
               (dragstart)="onKpiDragStart(kpi.id, $event)"
               (dragend)="onKpiDragEnd()"
             >
@@ -84,7 +86,11 @@
           </div>
         </article>
 
-        <article class="panel suggestions-panel">
+        <article
+          class="panel suggestions-panel"
+          (dragover)="onKpiOuterDragOver('bottom', $event)"
+          (drop)="onKpiOuterDrop('bottom', $event)"
+        >
           <div class="panel-header compact-header">
             <h3>Suggerimenti</h3>
           </div>
