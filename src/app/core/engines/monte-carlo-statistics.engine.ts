@@ -901,7 +901,10 @@ export class MonteCarloStatisticsEngine {
       representativePath,
       statistics: officialStatistics,
       technicalChecks,
-      paths,
+      distributionSamples: {
+        cagr: cagrValues,
+        maxDrawdown: maxDrawdownValues
+      },
       performanceMetrics: {
         totalTime: null,
         pathsPerSecond: null,
