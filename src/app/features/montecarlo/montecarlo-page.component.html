@@ -218,20 +218,21 @@
             </div>
 
             <div class="histogram-plot compact-histogram">
-              <svg *ngIf="finalReturnDistribution.bins.length > 0" viewBox="0 0 520 180" class="svg-chart" role="img" aria-label="Distribuzione dei rendimenti finali" (pointerleave)="onHistogramPlotPointerLeave()">
+              <svg *ngIf="finalReturnDistribution.bins.length > 0" viewBox="0 0 520 230" class="svg-chart svg-chart--returns" role="img" aria-label="Distribuzione dei rendimenti finali" (pointerleave)="onHistogramPlotPointerLeave()">
                 <defs>
-                  <linearGradient id="returnsBarGradient" x1="0" y1="150" x2="0" y2="20" gradientUnits="userSpaceOnUse">
+                  <linearGradient id="returnsBarGradient" x1="0" y1="195" x2="0" y2="20" gradientUnits="userSpaceOnUse">
                     <stop offset="0%" stop-color="#063a9f"></stop>
-                    <stop offset="38%" stop-color="#0757d8"></stop>
-                    <stop offset="68%" stop-color="#1687f2"></stop>
-                    <stop offset="86%" stop-color="#66bdf8"></stop>
-                    <stop offset="100%" stop-color="#b9dcf3"></stop>
+                    <stop offset="28%" stop-color="#0757d8"></stop>
+                    <stop offset="52%" stop-color="#1687f2"></stop>
+                    <stop offset="70%" stop-color="#69c1fa"></stop>
+                    <stop offset="84%" stop-color="#b7e1fb"></stop>
+                    <stop offset="100%" stop-color="#eef9ff"></stop>
                   </linearGradient>
                 </defs>
-                <line x1="40" y1="150" x2="490" y2="150" class="axis" />
-                <line x1="40" y1="20" x2="40" y2="150" class="axis" />
+                <line x1="40" y1="195" x2="490" y2="195" class="axis" />
+                <line x1="40" y1="20" x2="40" y2="195" class="axis" />
 
-                <g *ngFor="let bar of buildHistogramBars(finalReturnDistribution.bins, 120, 440, 40, 8); let i = index">
+                <g *ngFor="let bar of buildHistogramBars(finalReturnDistribution.bins, 165, 440, 40, 8); let i = index">
                   <rect
                     [attr.x]="bar.x"
                     [attr.y]="bar.y"
@@ -250,7 +251,7 @@
                 </g>
 
                 <g *ngFor="let tick of getHistogramXAxisTicks()">
-                  <text [attr.x]="tick.x" y="168" class="tick-label" text-anchor="middle">{{ tick.label }}</text>
+                  <text [attr.x]="tick.x" y="218" class="tick-label" text-anchor="middle">{{ tick.label }}</text>
                 </g>
               </svg>
 
@@ -266,20 +267,21 @@
             </div>
 
             <div class="histogram-plot compact-histogram compact-histogram--drawdown">
-              <svg *ngIf="maxDrawdownDistribution.bins.length > 0" viewBox="0 0 420 175" class="svg-chart svg-chart--compact" role="img" aria-label="Distribuzione drawdown massimo" (pointerleave)="onMaxDrawdownPlotPointerLeave()">
+              <svg *ngIf="maxDrawdownDistribution.bins.length > 0" viewBox="0 0 420 225" class="svg-chart svg-chart--compact svg-chart--drawdown" role="img" aria-label="Distribuzione drawdown massimo" (pointerleave)="onMaxDrawdownPlotPointerLeave()">
                 <defs>
-                  <linearGradient id="drawdownBarGradient" x1="0" y1="145" x2="0" y2="20" gradientUnits="userSpaceOnUse">
+                  <linearGradient id="drawdownBarGradient" x1="0" y1="190" x2="0" y2="20" gradientUnits="userSpaceOnUse">
                     <stop offset="0%" stop-color="#8f102b"></stop>
-                    <stop offset="38%" stop-color="#c7193b"></stop>
-                    <stop offset="68%" stop-color="#ed3554"></stop>
-                    <stop offset="86%" stop-color="#f78394"></stop>
-                    <stop offset="100%" stop-color="#eab7c0"></stop>
+                    <stop offset="28%" stop-color="#c7193b"></stop>
+                    <stop offset="52%" stop-color="#ed3554"></stop>
+                    <stop offset="70%" stop-color="#f47f93"></stop>
+                    <stop offset="84%" stop-color="#f6bcc7"></stop>
+                    <stop offset="100%" stop-color="#fff0f3"></stop>
                   </linearGradient>
                 </defs>
-                <line x1="30" y1="145" x2="360" y2="145" class="axis" />
-                <line x1="30" y1="20" x2="30" y2="145" class="axis" />
+                <line x1="30" y1="190" x2="360" y2="190" class="axis" />
+                <line x1="30" y1="20" x2="30" y2="190" class="axis" />
 
-                <g *ngFor="let bar of buildMaxDrawdownHistogramBars(maxDrawdownDistribution.bins, 100, 350); let i = index">
+                <g *ngFor="let bar of buildMaxDrawdownHistogramBars(maxDrawdownDistribution.bins, 145, 350); let i = index">
                   <rect
                     [attr.x]="bar.x"
                     [attr.y]="bar.y"
@@ -297,10 +299,10 @@
                 </g>
 
                 <g *ngFor="let tick of getMaxDrawdownXAxisTicks(); let i = index">
-                  <text [attr.x]="tick.x" y="162" class="tick-label" text-anchor="middle">{{ tick.label }}</text>
+                  <text [attr.x]="tick.x" y="213" class="tick-label" text-anchor="middle">{{ tick.label }}</text>
                 </g>
 
-                <line x1="190" x2="190" y1="20" y2="145" class="marker marker--red" />
+                <line x1="190" x2="190" y1="20" y2="190" class="marker marker--red" />
               </svg>
 
               <div *ngIf="maxDrawdownTooltipPercentage !== null && maxDrawdownTooltipPercentage !== undefined" class="histogram-tooltip histogram-tooltip--drawdown" [style.left.px]="maxDrawdownTooltipPosition.left" [style.top.px]="maxDrawdownTooltipPosition.top">
