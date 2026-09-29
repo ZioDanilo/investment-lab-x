@@ -824,6 +824,48 @@ export class MontecarloPageComponent {
     this.finishDragState();
   }
 
+  onKpiListDragOver(event: DragEvent): void {
+    if (!this.draggedKpiId) {
+      return;
+    }
+
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+
+    const container = event.currentTarget as HTMLElement | null;
+    if (!container) {
+      return;
+    }
+
+    const rows = Array.from(container.querySelectorAll<HTMLElement>('.kpi-row:not(.is-dragging)'));
+    let insertIndex = this.kpis.length;
+
+    for (const row of rows) {
+      const rect = row.getBoundingClientRect();
+      if (event.clientY < rect.top + rect.height / 2) {
+        const rawIndex = Number(row.dataset['kpiIndex']);
+        insertIndex = Number.isFinite(rawIndex) ? rawIndex : insertIndex;
+        break;
+      }
+    }
+
+    this.insertTargetIndex = insertIndex;
+  }
+
+  onKpiListDrop(event: DragEvent): void {
+    event.preventDefault();
+    const kpiId = this.draggedKpiId || event.dataTransfer?.getData('text/plain') || null;
+    if (!kpiId) {
+      this.finishDragState();
+      return;
+    }
+
+    this.insertKpi(kpiId, this.insertTargetIndex ?? this.kpis.length);
+    this.finishDragState();
+  }
+
   onKpiDragEnd(): void {
     this.finishDragState();
   }
