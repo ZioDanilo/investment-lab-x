@@ -2637,3 +2637,11 @@ html, body {
   top: 0 !important;
   margin: 0 !important;
 }
+
+
+/* Annual returns legend: vertical stack inside the freed right gutter. */
+.evolution-legend {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 5px !important;
+}
