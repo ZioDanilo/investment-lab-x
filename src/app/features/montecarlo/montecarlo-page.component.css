@@ -436,14 +436,16 @@
   cursor: grabbing !important;
 }
 
-.kpi-drag-image {
+.kpi-row--drag-preview {
   position: fixed;
-  left: -10000px;
-  top: -10000px;
   z-index: 99999;
   box-sizing: border-box;
   opacity: 1 !important;
   pointer-events: none;
+  transform: none !important;
+  transition: none !important;
+  background: rgba(14, 20, 30, 0.62);
+  border: 1px solid rgba(136, 170, 214, 0.14);
 }
 
 .kpi-compact-list--settling .kpi-row {
