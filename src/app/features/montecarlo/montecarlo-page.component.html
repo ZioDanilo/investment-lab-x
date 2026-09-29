@@ -17,7 +17,7 @@
       (click)="runSimulation()"
       aria-label="Avvia simulazione"
     >
-      <span class="run-button__fill" [style.width.%]="buttonFillWidth"></span>
+      <span class="run-button__fill" [class.run-button__fill--reset]="!isRunning && !completionHoldActive" [style.width.%]="buttonFillWidth"></span>
       <span class="run-button__content">
         <span class="material-symbols-rounded">play_arrow</span>
         <span>{{ runButtonLabel }}</span>
