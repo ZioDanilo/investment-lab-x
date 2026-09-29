@@ -22,12 +22,6 @@ import {
   formatHistogramPercentage,
   resolveHistogramHoverIndex
 } from './monte-carlo-cagr-histogram';
-import {
-  demoMacroScenarioDistribution,
-  demoMaxDrawdownDistribution,
-  demoPortfolioTrajectories,
-  demoTargetProbabilities
-} from './monte-carlo-demo-data';
 
 interface MacroDonutSegment {
   key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation';
@@ -60,21 +54,12 @@ export class MontecarloPageComponent {
 
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
   readonly editorState = signal<MontecarloPortfolioEditorChange | null>(null);
-  readonly portfolioEvolutionValues = [0, 15000, 32000, 52000, 76000, 98000, 124000, 148000, 176000, 190000, 214000, 240000, 265000, 289000, 314000, 330000];
   finalReturnDistribution: { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } = {
     label: 'Distribuzione dei rendimenti finali',
     subtitle: 'Distribuzione simulata a 30 anni',
     bins: []
   };
-  readonly portfolioTrajectories = demoPortfolioTrajectories;
-  readonly targetProbabilities = demoTargetProbabilities;
-  macroScenarioDistribution: Array<{ label: string; percent: number; color: string; value: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> = [...demoMacroScenarioDistribution.map((segment) => ({
-    key: this.mapLabelToScenarioKey(segment.label),
-    label: segment.label,
-    value: this.normalizeScenarioValue(segment.percent),
-    percent: segment.percent,
-    color: segment.color
-  }))];
+  macroScenarioDistribution: Array<{ label: string; percent: number; color: string; value: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> = [];
   donutSegments: Array<{ path: string; color: string; percent: number; label: string; displayPercent: number; labelX: number; labelY: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> = this.buildDonutSegments();
 
   private readonly defaultKpis: KpiCard[] = [
@@ -111,12 +96,7 @@ export class MontecarloPageComponent {
   maxDrawdownDistribution: { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } = {
     label: 'Distribuzione Max Drawdown',
     subtitle: 'Distribuzione del drawdown massimo nei 30 anni',
-    bins: demoMaxDrawdownDistribution.bins.map((bin) => ({
-      label: bin.label,
-      value: bin.value,
-      lowerBoundPercent: Number.parseFloat(bin.label.replace('%', '')),
-      upperBoundPercent: Number.parseFloat(bin.label.replace('%', '')) + 10
-    }))
+    bins: []
   };
   hoveredMaxDrawdownBin: { label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number } | null = null;
   maxDrawdownTooltipPercentage: string | null = null;
@@ -806,10 +786,6 @@ export class MontecarloPageComponent {
       this.simulationProgress = 0;
       this.clearCompletionHold();
     }
-  }
-
-  buildPlaceholderEvolutionPath(): string {
-    return this.buildLinePath(this.portfolioEvolutionValues, 520, 170, 24);
   }
 
   private resetKpis(): void {
