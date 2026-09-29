@@ -41,8 +41,17 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "buildTarget": "portfolio-simulator:build"
-          }
+            "buildTarget": "portfolio-simulator:build:development"
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "portfolio-simulator:build:production"
+            },
+            "development": {
+              "buildTarget": "portfolio-simulator:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
