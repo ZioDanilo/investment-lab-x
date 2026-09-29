@@ -2010,3 +2010,27 @@
 .kpi-drag-overlay__inner.target-failure .kpi-row__target {
   border-color: rgba(248,113,113,.48) !important;
 }
+
+
+/* Render-matched histogram palette: vivid base fading toward white at taller values. */
+.histogram-bar {
+  fill: url(#returnsBarGradient) !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 3px 7px rgba(31,126,255,.30));
+}
+.histogram-bar:hover,
+.histogram-bar.is-hovered {
+  fill: url(#returnsBarGradient) !important;
+  opacity: 1 !important;
+  filter: brightness(1.12) drop-shadow(0 3px 9px rgba(54,151,255,.42));
+}
+.drawdown-histogram-bar {
+  fill: url(#drawdownBarGradient) !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 3px 7px rgba(242,48,82,.28));
+}
+.drawdown-histogram-bar:hover,
+.drawdown-histogram-bar.is-hovered {
+  opacity: 1 !important;
+  filter: brightness(1.10) drop-shadow(0 3px 9px rgba(255,70,101,.40));
+}
