@@ -123,6 +123,9 @@ export class MontecarloPageComponent {
 
   private async loadPortfolioKpiConfiguration(portfolioId: string | null): Promise<void> {
     const loadVersion = ++this.kpiConfigLoadVersion;
+    // Persisted targets/order are configuration only. Results belong exclusively
+    // to the simulation that produced them and must never survive a portfolio load.
+    this.kpiResultValues = {};
     if (!portfolioId) {
       this.loadedKpiPortfolioId = null;
       this.resetPortfolioKpiConfiguration();
@@ -1109,6 +1112,12 @@ export class MontecarloPageComponent {
   }
 
   getKpiTargetStatus(kpiId: string): 'success' | 'failure' | null {
+    // A target alone has no status: green/red is meaningful only after the
+    // current simulation has produced an actual KPI result for this card.
+    if (!Object.prototype.hasOwnProperty.call(this.kpiResultValues, kpiId)) {
+      return null;
+    }
+
     const target = this.kpiTargets[kpiId];
     const result = this.kpiResultValues[kpiId];
     if (!target || target === '–' || result === null || result === undefined || !Number.isFinite(result)) {
