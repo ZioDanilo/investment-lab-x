@@ -2607,3 +2607,12 @@ html, body {
     height: clamp(118px, 15.8vh, 154px) !important;
   }
 }
+
+
+/* Annual returns SVG must fill the panel horizontally.
+   PreserveAspectRatio was making the fixed 640x250 viewBox letterbox when height was constrained. */
+.portfolio-evolution-svg {
+  width: 100% !important;
+  max-width: none !important;
+  align-self: stretch;
+}
