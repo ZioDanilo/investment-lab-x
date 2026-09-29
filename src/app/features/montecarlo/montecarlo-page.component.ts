@@ -87,7 +87,6 @@ export class MontecarloPageComponent {
   draggedKpiId: string | null = null;
   swapTargetId: string | null = null;
   insertTargetIndex: number | null = null;
-  private dragPreviewOrder: KpiCard[] | null = null;
   readonly macroTotal = 360000;
   hoveredHistogramBin: { label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number } | null = null;
   histogramTooltipPercentage: string | null = null;
@@ -777,8 +776,6 @@ export class MontecarloPageComponent {
     this.draggedKpiId = kpiId;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
-    this.dragPreviewOrder = [...this.kpis];
-
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', kpiId);
@@ -841,7 +838,7 @@ export class MontecarloPageComponent {
       return;
     }
 
-    const rows = Array.from(container.querySelectorAll<HTMLElement>('.kpi-row:not(.is-dragging)'));
+    const rows = Array.from(container.querySelectorAll<HTMLElement>('.kpi-row'));
     let insertIndex = this.kpis.length;
 
     for (const row of rows) {
@@ -853,32 +850,22 @@ export class MontecarloPageComponent {
       }
     }
 
-    if (this.insertTargetIndex !== insertIndex) {
-      this.insertTargetIndex = insertIndex;
-      this.previewKpiMove(this.draggedKpiId, insertIndex);
-    }
+    this.insertTargetIndex = insertIndex;
   }
 
   onKpiListDrop(event: DragEvent): void {
     event.preventDefault();
+    event.stopPropagation();
+
     const kpiId = this.draggedKpiId || event.dataTransfer?.getData('text/plain') || null;
-    if (!kpiId) {
-      this.finishDragState();
-      return;
+    if (kpiId) {
+      this.insertKpi(kpiId, this.insertTargetIndex ?? this.kpis.length);
     }
 
-    // The list is already in the previewed order; dropping commits it.
-    this.dragPreviewOrder = null;
     this.finishDragState();
   }
 
   onKpiDragEnd(): void {
-    // dragend also fires after a valid drop. If drop already committed the
-    // preview, dragPreviewOrder is null; otherwise restore the pre-drag order.
-    if (this.dragPreviewOrder) {
-      this.kpis = this.dragPreviewOrder;
-    }
-    this.dragPreviewOrder = null;
     this.finishDragState();
   }
 
@@ -898,25 +885,6 @@ export class MontecarloPageComponent {
 
     const next = [...this.kpis];
     [next[sourceIndex], next[targetIndex]] = [next[targetIndex], next[sourceIndex]];
-    this.kpis = next;
-  }
-
-  private previewKpiMove(kpiId: string, insertIndex: number): void {
-    const sourceIndex = this.kpis.findIndex((kpi) => kpi.id === kpiId);
-    if (sourceIndex === -1) {
-      return;
-    }
-
-    const next = [...this.kpis];
-    const [moved] = next.splice(sourceIndex, 1);
-    let targetIndex = insertIndex;
-
-    if (sourceIndex < targetIndex) {
-      targetIndex -= 1;
-    }
-
-    targetIndex = Math.max(0, Math.min(targetIndex, next.length));
-    next.splice(targetIndex, 0, moved);
     this.kpis = next;
   }
 
