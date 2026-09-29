@@ -49,7 +49,7 @@
           </div>
 
           <div class="portfolio-evolution-chart">
-            <svg *ngIf="portfolioEvolution.length > 1; else evolutionEmpty" viewBox="0 0 640 250" class="portfolio-evolution-svg" role="img" aria-label="Rendimenti annuali del percorso simulato rappresentativo in 30 anni">
+            <svg *ngIf="portfolioEvolution.length > 1; else evolutionEmpty" viewBox="0 0 640 250" preserveAspectRatio="none" class="portfolio-evolution-svg" role="img" aria-label="Rendimenti annuali del percorso simulato rappresentativo in 30 anni">
               <g *ngFor="let tick of getPortfolioEvolutionYTicks()">
                 <line x1="52" [attr.y1]="tick.y" x2="634" [attr.y2]="tick.y" class="evolution-grid-line" />
                 <text x="44" [attr.y]="tick.y + 4" text-anchor="end" class="evolution-axis-label">{{ formatAnnualReturn(tick.value) }}</text>
