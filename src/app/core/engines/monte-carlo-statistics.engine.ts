@@ -743,20 +743,16 @@ export class MonteCarloStatisticsEngine {
     return fan;
   }
 
-  static selectRepresentativePath(paths: MonteCarloPathResult[], medianCagr: number): MonteCarloRepresentativePath {
+  static selectRepresentativePath(paths: MonteCarloPathResult[], expectedCagr: number): MonteCarloRepresentativePath {
     if (paths.length === 0) {
       return { simulationId: -1, cagr: 0, maxDrawdown: 0, capital: [] };
     }
-    const sortedByMaxDrawdown = [...paths].sort((a, b) => b.maxDrawdown - a.maxDrawdown);
-    const bucketSize = Math.max(1, Math.ceil(sortedByMaxDrawdown.length * 0.05));
-    const candidatePool = sortedByMaxDrawdown.slice(0, bucketSize);
-    const selectedPath = candidatePool.reduce((best, current) => {
-      const bestDistance = Math.abs(best.cagr - medianCagr);
-      const currentDistance = Math.abs(current.cagr - medianCagr);
-      if (currentDistance < bestDistance) return current;
-      if (currentDistance === bestDistance && current.simulationId < best.simulationId) return current;
-      return best;
-    }, candidatePool[0]);
+
+    const selectedPath = paths.reduce((best, current) => {
+      const bestDistance = Math.abs(best.cagr - expectedCagr);
+      const currentDistance = Math.abs(current.cagr - expectedCagr);
+      return currentDistance < bestDistance ? current : best;
+    }, paths[0]);
 
     const capital = Array.isArray(selectedPath.monthly)
       ? selectedPath.monthly
@@ -824,7 +820,6 @@ export class MonteCarloStatisticsEngine {
     const normalizedQ95MaxDrawdown = this.normalizeDrawdownTo30Years(rawQ95MaxDrawdown, horizonYears);
     const normalizedWorstMaxDrawdown = this.normalizeDrawdownTo30Years(rawWorstMaxDrawdown, horizonYears);
     const volatilityKpi = this.calculateTrimmedMean5Percent(pathVolatilities);
-    const medianCagr = this.calculateMedian(cagrValues.length > 0 ? cagrValues : [0]);
     const recoveryTimeKpi = completedRecoveryTimes.length > 0 ? this.calculateTrimmedMean5Percent(completedRecoveryTimes) : null;
     profileEvent?.('BASE_PATH_STATS_END', performance.now(), { pathsLength: paths.length });
 
@@ -839,7 +834,7 @@ export class MonteCarloStatisticsEngine {
     const capitalFan = this.buildCapitalFan(paths, horizonYears);
     profileEvent?.('CAPITAL_FAN_END', performance.now(), { pathsLength: paths.length });
     profileEvent?.('REPRESENTATIVE_PATH_START', performance.now(), { pathsLength: paths.length });
-    const representativePath = this.selectRepresentativePath(paths, medianCagr);
+    const representativePath = this.selectRepresentativePath(paths, robustCagr);
     profileEvent?.('REPRESENTATIVE_PATH_END', performance.now(), { pathsLength: paths.length });
     const flatDiagnostics = statisticsInput && !statisticsInput.diagnostics && (('correlations' in statisticsInput) || ('generalBenchmark' in statisticsInput) || ('performance' in statisticsInput) || ('matricesCoherent' in statisticsInput)) ? (statisticsInput as any) : statisticsInput?.diagnostics;
     const advancedStatisticsEnabled = statisticsInput?.advancedStatisticsEnabled ?? true;
