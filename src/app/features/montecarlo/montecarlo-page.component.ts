@@ -826,33 +826,6 @@ export class MontecarloPageComponent {
     this.finishDragState();
   }
 
-  onKpiOuterDragOver(position: 'top' | 'bottom', event: DragEvent): void {
-    if (!this.draggedKpiId) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'move';
-    }
-
-    const targetIndex = position === 'top' ? 0 : this.kpis.length;
-    this.insertTargetIndex = targetIndex;
-    this.moveKpiLive(this.draggedKpiId, targetIndex);
-  }
-
-  onKpiOuterDrop(position: 'top' | 'bottom', event: DragEvent): void {
-    if (!this.draggedKpiId) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    this.moveKpiLive(this.draggedKpiId, position === 'top' ? 0 : this.kpis.length);
-    this.finishDragState();
-  }
-
   onKpiListDragOver(event: DragEvent): void {
     if (!this.draggedKpiId) {
       return;
@@ -885,7 +858,7 @@ export class MontecarloPageComponent {
     // a thin insertion marker.
     if (this.insertTargetIndex !== insertIndex) {
       this.insertTargetIndex = insertIndex;
-      this.moveKpiLive(this.draggedKpiId, insertIndex);
+      this.insertKpi(this.draggedKpiId, insertIndex);
     }
   }
 
@@ -921,19 +894,6 @@ export class MontecarloPageComponent {
 
     const next = [...this.kpis];
     [next[sourceIndex], next[targetIndex]] = [next[targetIndex], next[sourceIndex]];
-    this.kpis = next;
-  }
-
-  private moveKpiLive(kpiId: string, insertIndex: number): void {
-    const sourceIndex = this.kpis.findIndex((kpi) => kpi.id === kpiId);
-    if (sourceIndex === -1) {
-      return;
-    }
-
-    const next = [...this.kpis];
-    const [moved] = next.splice(sourceIndex, 1);
-    const targetIndex = Math.max(0, Math.min(insertIndex > sourceIndex ? insertIndex - 1 : insertIndex, next.length));
-    next.splice(targetIndex, 0, moved);
     this.kpis = next;
   }
 
