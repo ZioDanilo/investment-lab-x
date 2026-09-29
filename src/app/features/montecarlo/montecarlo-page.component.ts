@@ -1155,10 +1155,10 @@ export class MontecarloPageComponent {
 
   private buildMacroSegmentsFromFrequencies(frequencies?: Record<string, number> | null): Array<{ label: string; percent: number; color: string; value: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> {
     const palette: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', string> = {
-      expansion: '#4DE3C6',
-      soft_landing: '#5DA7FF',
-      recession: '#FF6B7F',
-      stagflation: '#FFB454'
+      expansion: '#19E6B3',
+      soft_landing: '#268CFF',
+      recession: '#FF365B',
+      stagflation: '#FF9F1C'
     };
 
     const labelMap: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', string> = {
