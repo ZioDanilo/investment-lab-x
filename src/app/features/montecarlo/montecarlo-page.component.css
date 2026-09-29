@@ -1900,3 +1900,20 @@
   filter: none !important;
   text-shadow: none !important;
 }
+
+
+/* Restore native KPI drag lifecycle: hiding the draggable source with visibility breaks HTML5 drag */
+.kpi-row.is-dragging {
+  visibility: visible !important;
+  opacity: .01 !important;
+  cursor: grabbing !important;
+}
+
+/* Target is a click control, not a drag handle */
+.kpi-row__target,
+.kpi-row__target *,
+.kpi-target-dropdown,
+.kpi-target-trigger,
+.kpi-target-option {
+  cursor: pointer !important;
+}
