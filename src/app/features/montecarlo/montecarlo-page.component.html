@@ -75,13 +75,6 @@
                   (mouseenter)="onPortfolioEvolutionPointEnter(point)"
                   (mouseleave)="onPortfolioEvolutionPointLeave()"
                 ></circle>
-                <circle
-                  [attr.cx]="getPortfolioEvolutionX(point.year)"
-                  [attr.cy]="getPortfolioEvolutionY(point.capital)"
-                  [attr.r]="hoveredPortfolioEvolutionPoint === point ? 4 : 2.5"
-                  class="evolution-visible-point"
-                  pointer-events="none"
-                ></circle>
               </g>
 
               <g *ngIf="hoveredPortfolioEvolutionPoint as point" class="evolution-tooltip" pointer-events="none">
