@@ -46,7 +46,6 @@
         <article class="panel evolution-panel">
           <div class="panel-header compact-header">
             <h3>Rendimenti annuali</h3>
-            <span class="panel-badge">30 anni</span>
           </div>
 
           <div class="portfolio-evolution-chart">
@@ -135,6 +134,7 @@
               *ngFor="let kpi of kpis; let i = index; trackBy: trackKpiById"
               draggable="true"
               [attr.data-kpi-index]="i"
+              [attr.data-kpi-id]="kpi.id"
               [class.is-dragging]="draggedKpiId === kpi.id"
               [class.shift-up]="getKpiDragShift(i) === 'up'"
               [class.shift-down]="getKpiDragShift(i) === 'down'"
