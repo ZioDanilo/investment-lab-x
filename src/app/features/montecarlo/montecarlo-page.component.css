@@ -415,6 +415,36 @@
   min-width: 0;
 }
 
+.kpi-compact-list .kpi-drop-slot {
+  height: 4px;
+  margin: -6px 0;
+  border-radius: 999px;
+  transition: height 120ms ease, margin 120ms ease, background 120ms ease;
+}
+
+.kpi-compact-list--dragging .kpi-drop-slot {
+  height: 10px;
+  margin: -3px 0;
+}
+
+.kpi-compact-list .kpi-drop-slot.is-active {
+  height: 12px;
+  margin: -2px 0;
+  background: rgba(93, 167, 255, 0.7);
+}
+
+.kpi-row[draggable="true"] {
+  cursor: grab;
+}
+
+.kpi-row[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.kpi-row.is-dragging {
+  opacity: 0.45;
+}
+
 .kpi-row__label {
   font-size: 0.7rem;
   letter-spacing: 0.08em;
