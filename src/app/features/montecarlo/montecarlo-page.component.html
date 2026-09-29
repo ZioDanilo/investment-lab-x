@@ -86,7 +86,7 @@
               class="evolution-pointer-tooltip"
               [style.left.px]="portfolioEvolutionTooltipPosition.left"
               [style.top.px]="portfolioEvolutionTooltipPosition.top"
-            >Anno {{ point.year }}, {{ formatAnnualReturn(point.annualReturn) }}</div>
+            >Anno {{ point.year }}: {{ formatAnnualReturn(point.annualReturn) }}</div>
 
             <ng-template #evolutionEmpty>
               <div class="evolution-empty">Avvia la simulazione per visualizzare i rendimenti annuali.</div>
