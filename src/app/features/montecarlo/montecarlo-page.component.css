@@ -430,8 +430,8 @@
 }
 
 .kpi-row.is-dragging {
-  visibility: hidden;
-  opacity: 0;
+  opacity: 0.08;
+  cursor: grabbing !important;
 }
 
 .kpi-row.shift-up {
