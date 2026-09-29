@@ -429,6 +429,36 @@
   vector-effect: non-scaling-stroke;
 }
 
+.evolution-hit-point {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.evolution-visible-point {
+  fill: #d9edff;
+  stroke: #5da7ff;
+  stroke-width: 1.5;
+  transition: r 0.1s ease;
+}
+
+.evolution-tooltip-bg {
+  fill: rgba(7, 14, 23, 0.96);
+  stroke: rgba(93, 167, 255, 0.65);
+  stroke-width: 1;
+}
+
+.evolution-tooltip-year {
+  fill: #9fb2c7;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.evolution-tooltip-value {
+  fill: #f2f8ff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .evolution-empty {
   padding: 24px;
   color: var(--text-secondary);
