@@ -106,6 +106,8 @@ export interface MonteCarloResult {
   statistics: any;
   technicalChecks: any;
   performanceMetrics: any;
+  /** Optional path-level data used by result visualizations (histograms). */
+  paths?: MonteCarloPathResult[];
 }
 
 export interface MonteCarloMainKpis {
