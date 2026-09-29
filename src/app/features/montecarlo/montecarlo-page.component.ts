@@ -803,6 +803,8 @@ export class MontecarloPageComponent {
         simulationProgress: this.simulationProgress
       });
       this.isRunning = false;
+      this.simulationProgress = 0;
+      this.clearCompletionHold();
     }
   }
 
