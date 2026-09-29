@@ -775,9 +775,10 @@ export class MontecarloPageComponent {
       console.log('[MC-TRACE 10] applying result');
       this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
       this.updateDonutSegments();
-      const resultPaths = Array.isArray((result as any)?.paths) ? (result as any).paths : [];
-      this.finalReturnDistribution = this.buildFinalReturnDistribution(resultPaths);
-      this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(resultPaths);
+      const cagrSamples = Array.isArray(result.distributionSamples?.cagr) ? result.distributionSamples.cagr : [];
+      const maxDrawdownSamples = Array.isArray(result.distributionSamples?.maxDrawdown) ? result.distributionSamples.maxDrawdown : [];
+      this.finalReturnDistribution = this.buildFinalReturnDistribution(cagrSamples.map((cagr) => ({ cagr })));
+      this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(maxDrawdownSamples.map((maxDrawdown) => ({ maxDrawdown })));
       this.clearHistogramHover();
       this.clearMaxDrawdownHover();
       this.kpis = [
