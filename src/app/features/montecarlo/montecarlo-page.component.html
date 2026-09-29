@@ -214,11 +214,18 @@
         <div class="histogram-pair">
           <article class="panel histogram-panel">
             <div class="panel-header compact-header">
-              <h3><span class="material-symbols-rounded panel-title-icon panel-title-icon--returns">bar_chart</span>Distribuzione dei rendimenti finali</h3>
+              <h3>Rendimenti</h3>
             </div>
 
             <div class="histogram-plot compact-histogram">
               <svg *ngIf="finalReturnDistribution.bins.length > 0" viewBox="0 0 520 180" class="svg-chart" role="img" aria-label="Distribuzione dei rendimenti finali" (pointerleave)="onHistogramPlotPointerLeave()">
+                <defs>
+                  <linearGradient id="returnsBarGradient" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#1267ff"></stop>
+                    <stop offset="55%" stop-color="#399cff"></stop>
+                    <stop offset="100%" stop-color="#d9f3ff"></stop>
+                  </linearGradient>
+                </defs>
                 <line x1="40" y1="150" x2="490" y2="150" class="axis" />
                 <line x1="40" y1="20" x2="40" y2="150" class="axis" />
 
@@ -233,7 +240,7 @@
                     [attr.data-bin-index]="i"
                     class="histogram-bar"
                     [class.is-hovered]="hoveredHistogramBin === finalReturnDistribution.bins[i]"
-                    fill="#5da7ff"
+                    fill="url(#returnsBarGradient)"
                     rx="3"
                     (pointerenter)="onHistogramBarPointerEnter(finalReturnDistribution.bins[i], $event)"
                     (pointerleave)="onHistogramBarPointerLeave()"
@@ -253,11 +260,18 @@
 
           <article class="panel histogram-panel">
             <div class="panel-header compact-header">
-              <h3><span class="material-symbols-rounded panel-title-icon panel-title-icon--drawdown">trending_down</span>Drawdown massimo</h3>
+              <h3>Drawdown</h3>
             </div>
 
             <div class="histogram-plot compact-histogram compact-histogram--drawdown">
               <svg *ngIf="maxDrawdownDistribution.bins.length > 0" viewBox="0 0 420 175" class="svg-chart svg-chart--compact" role="img" aria-label="Distribuzione drawdown massimo" (pointerleave)="onMaxDrawdownPlotPointerLeave()">
+                <defs>
+                  <linearGradient id="drawdownBarGradient" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#e21f45"></stop>
+                    <stop offset="55%" stop-color="#ff5573"></stop>
+                    <stop offset="100%" stop-color="#ffd8df"></stop>
+                  </linearGradient>
+                </defs>
                 <line x1="30" y1="145" x2="360" y2="145" class="axis" />
                 <line x1="30" y1="20" x2="30" y2="145" class="axis" />
 
@@ -270,8 +284,8 @@
                     [attr.data-center-x]="bar.centerX"
                     class="drawdown-histogram-bar"
                     [class.is-hovered]="hoveredMaxDrawdownBin === maxDrawdownDistribution.bins[i]"
-                    fill="#ff6b7f"
-                    opacity="0.82"
+                    fill="url(#drawdownBarGradient)"
+                    opacity="1"
                     rx="2"
                     (pointerenter)="onMaxDrawdownBarPointerEnter(maxDrawdownDistribution.bins[i], $event)"
                     (pointerleave)="onMaxDrawdownBarPointerLeave()"
