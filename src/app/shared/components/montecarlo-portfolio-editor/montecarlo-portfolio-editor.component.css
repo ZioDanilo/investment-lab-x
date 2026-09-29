@@ -600,3 +600,15 @@
   background-repeat: no-repeat;
   clip-path: inset(0 calc(100% - var(--slider-value)) 0 0 round 4px);
 }
+
+
+/* Keep ETF autocomplete above every dashboard chart/panel */
+.editor-footer,
+.editor-footer .search-box {
+  position: relative;
+  z-index: 1001;
+  overflow: visible;
+}
+.search-results {
+  z-index: 1100 !important;
+}
