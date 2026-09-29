@@ -791,7 +791,8 @@ export class MontecarloPageComponent {
 
   private resetKpis(): void {
     this.kpis = [...this.defaultKpis];
-    this.portfolioEvolution = [];
+    // Keep T0/T-1/T-2 across repeated runs while this page component stays alive.
+    // The successful run will promote the previous T0 into history.
     this.hoveredPortfolioEvolutionYear = null;
     this.draggedKpiId = null;
     this.swapTargetId = null;
