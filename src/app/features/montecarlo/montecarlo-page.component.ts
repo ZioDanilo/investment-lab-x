@@ -1003,9 +1003,12 @@ export class MontecarloPageComponent {
       return null;
     }
 
+    const displayedResult = kpiId === 'recoveryPeriod'
+      ? Math.round(result)
+      : Math.round(result * 1000) / 1000;
     const targetValue = kpiId === 'recoveryPeriod' ? targetNumber * 12 : targetNumber / 100;
     const higherIsBetter = kpiId === 'expectedReturn' || kpiId === 'positiveReturnProbability';
-    const passed = higherIsBetter ? result >= targetValue : result <= targetValue;
+    const passed = higherIsBetter ? displayedResult >= targetValue : displayedResult <= targetValue;
     return passed ? 'success' : 'failure';
   }
 
