@@ -1917,3 +1917,19 @@
 .kpi-target-option {
   cursor: pointer !important;
 }
+
+
+/* KPI interaction final override: preserve native drag source and isolate Target from grab cursor */
+.kpi-row.is-dragging {
+  visibility: visible !important;
+  opacity: .08 !important;
+  cursor: grabbing !important;
+}
+.kpi-row__target,
+.kpi-row__target *,
+.kpi-target-dropdown,
+.kpi-target-dropdown *,
+.kpi-target-trigger,
+.kpi-target-trigger * {
+  cursor: pointer !important;
+}
