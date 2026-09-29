@@ -101,6 +101,7 @@ export class MontecarloPageComponent {
   maxDrawdownTooltipPosition = { left: 0, top: 0 };
   portfolioEvolution: Array<{ year: number; annualReturn: number }> = [];
   hoveredPortfolioEvolutionPoint: { year: number; annualReturn: number } | null = null;
+  portfolioEvolutionTooltipPosition = { left: 0, top: 0 };
 
   getHistogramTotalPaths(): number {
     return this.finalReturnDistribution.bins.reduce((sum, bin) => sum + Number(bin.value ?? 0), 0) || 0;
@@ -1222,20 +1223,36 @@ export class MontecarloPageComponent {
     return top + ((scale - annualReturn) / (scale * 2)) * plotHeight;
   }
 
-  onPortfolioEvolutionPointEnter(point: { year: number; annualReturn: number }): void {
+  onPortfolioEvolutionPointEnter(point: { year: number; annualReturn: number }, event: MouseEvent): void {
     this.hoveredPortfolioEvolutionPoint = point;
+    this.updatePortfolioEvolutionTooltipPosition(event);
+  }
+
+  onPortfolioEvolutionPointMove(event: MouseEvent): void {
+    this.updatePortfolioEvolutionTooltipPosition(event);
   }
 
   onPortfolioEvolutionPointLeave(): void {
     this.hoveredPortfolioEvolutionPoint = null;
   }
 
+  private updatePortfolioEvolutionTooltipPosition(event: MouseEvent): void {
+    const chart = (event.currentTarget as SVGElement | null)?.closest('.portfolio-evolution-chart') as HTMLElement | null;
+    if (!chart) {
+      return;
+    }
+    const bounds = chart.getBoundingClientRect();
+    this.portfolioEvolutionTooltipPosition = {
+      left: event.clientX - bounds.left + 8,
+      top: event.clientY - bounds.top - 8
+    };
+  }
+
   formatAnnualReturn(value: number): string {
     return new Intl.NumberFormat('it-IT', {
       style: 'percent',
       minimumFractionDigits: 1,
-      maximumFractionDigits: 2,
-      signDisplay: 'exceptZero'
+      maximumFractionDigits: 1
     }).format(value);
   }
 
