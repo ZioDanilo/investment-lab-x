@@ -795,6 +795,15 @@ export class MontecarloPageComponent {
         dragImage.classList.add('kpi-drag-image');
         dragImage.style.width = `${rect.width}px`;
         dragImage.style.height = `${rect.height}px`;
+
+        const sourceStyle = getComputedStyle(source);
+        dragImage.style.boxSizing = sourceStyle.boxSizing;
+        dragImage.style.background = sourceStyle.background;
+        dragImage.style.border = sourceStyle.border;
+        dragImage.style.borderRadius = sourceStyle.borderRadius;
+        dragImage.style.padding = sourceStyle.padding;
+        dragImage.style.opacity = '1';
+
         document.body.appendChild(dragImage);
 
         const offsetX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
