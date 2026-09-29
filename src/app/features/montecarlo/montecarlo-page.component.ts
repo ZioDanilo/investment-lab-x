@@ -786,6 +786,23 @@ export class MontecarloPageComponent {
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', kpiId);
+
+      const source = event.currentTarget as HTMLElement | null;
+      if (source) {
+        const dragImage = source.cloneNode(true) as HTMLElement;
+        const rect = source.getBoundingClientRect();
+        dragImage.classList.remove('is-dragging', 'shift-up', 'shift-down');
+        dragImage.classList.add('kpi-drag-image');
+        dragImage.style.width = `${rect.width}px`;
+        dragImage.style.height = `${rect.height}px`;
+        document.body.appendChild(dragImage);
+
+        const offsetX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+        const offsetY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+        event.dataTransfer.setDragImage(dragImage, offsetX, offsetY);
+
+        requestAnimationFrame(() => dragImage.remove());
+      }
     }
   }
 
@@ -852,8 +869,18 @@ export class MontecarloPageComponent {
       ? Math.max(0, rows[1].offsetTop - rows[0].offsetTop - rowHeight)
       : 8;
     const stride = Math.max(1, rowHeight + gap);
-    const pointerY = event.clientY - containerRect.top + container.scrollTop;
-    const insertIndex = Math.max(0, Math.min(this.kpis.length, Math.floor((pointerY + stride / 2) / stride)));
+    const listPaddingTop = Number.parseFloat(getComputedStyle(container).paddingTop) || 0;
+    const pointerY = event.clientY - containerRect.top - listPaddingTop + container.scrollTop;
+    const contentHeight = this.kpis.length * stride - gap;
+
+    let insertIndex: number;
+    if (pointerY <= 0) {
+      insertIndex = 0;
+    } else if (pointerY >= contentHeight) {
+      insertIndex = this.kpis.length;
+    } else {
+      insertIndex = Math.max(0, Math.min(this.kpis.length, Math.floor((pointerY + stride / 2) / stride)));
+    }
 
     this.insertTargetIndex = insertIndex;
   }
