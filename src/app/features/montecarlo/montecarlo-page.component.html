@@ -46,10 +46,31 @@
         <article class="panel evolution-panel">
           <div class="panel-header compact-header">
             <h3>Evoluzione del portafoglio</h3>
-            <span class="panel-badge">Anteprima</span>
+            <span class="panel-badge">30 anni</span>
           </div>
 
-          <div class="placeholder-chart"></div>
+          <div class="portfolio-evolution-chart">
+            <svg *ngIf="portfolioEvolution.length > 1; else evolutionEmpty" viewBox="0 0 640 250" class="portfolio-evolution-svg" role="img" aria-label="Evoluzione mediana del valore del portafoglio in 30 anni">
+              <g *ngFor="let tick of getPortfolioEvolutionYTicks()">
+                <line x1="68" [attr.y1]="tick.y" x2="622" [attr.y2]="tick.y" class="evolution-grid-line" />
+                <text x="58" [attr.y]="tick.y + 4" text-anchor="end" class="evolution-axis-label">{{ formatEuroAxis(tick.value) }}</text>
+              </g>
+
+              <line x1="68" y1="212" x2="622" y2="212" class="evolution-axis" />
+              <line x1="68" y1="18" x2="68" y2="212" class="evolution-axis" />
+
+              <g *ngFor="let year of [0, 5, 10, 15, 20, 25, 30]">
+                <line [attr.x1]="getPortfolioEvolutionX(year)" y1="212" [attr.x2]="getPortfolioEvolutionX(year)" y2="217" class="evolution-axis" />
+                <text [attr.x]="getPortfolioEvolutionX(year)" y="235" text-anchor="middle" class="evolution-axis-label">{{ year }}</text>
+              </g>
+
+              <polyline [attr.points]="buildPortfolioEvolutionPoints()" class="evolution-line" />
+            </svg>
+
+            <ng-template #evolutionEmpty>
+              <div class="evolution-empty">Avvia la simulazione per visualizzare l'evoluzione del portafoglio.</div>
+            </ng-template>
+          </div>
         </article>
       </div>
 
