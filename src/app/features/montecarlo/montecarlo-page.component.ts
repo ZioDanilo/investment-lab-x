@@ -775,6 +775,11 @@ export class MontecarloPageComponent {
       console.log('[MC-TRACE 10] applying result');
       this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
       this.updateDonutSegments();
+      const resultPaths = Array.isArray((result as any)?.paths) ? (result as any).paths : [];
+      this.finalReturnDistribution = this.buildFinalReturnDistribution(resultPaths);
+      this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(resultPaths);
+      this.clearHistogramHover();
+      this.clearMaxDrawdownHover();
       this.kpis = [
         { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
         { id: 'volatility', title: 'VOLATILITÀ', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
