@@ -415,43 +415,38 @@
   min-width: 0;
 }
 
-.kpi-compact-list .kpi-drop-slot {
-  height: 4px;
-  margin: -6px 0;
-  border-radius: 999px;
-  transition: height 120ms ease, margin 120ms ease, background 120ms ease;
-}
-
-.kpi-compact-list--dragging .kpi-drop-slot {
-  height: 10px;
-  margin: -3px 0;
-}
-
-.kpi-compact-list .kpi-drop-slot.is-active {
-  height: 12px;
-  margin: -2px 0;
-  background: rgba(93, 167, 255, 0.7);
-}
-
-.kpi-row[draggable="true"] {
-  cursor: grab;
-}
-
-.kpi-row[draggable="true"]:active {
-  cursor: grabbing;
-}
-
-.kpi-row.is-dragging {
-  opacity: 0.45;
-}
-
 .kpi-row__label {
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text, #fff);
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.kpi-row {
+  position: relative;
+}
+
+.kpi-row.is-drop-before::before,
+.kpi-row.is-drop-after::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  border-radius: 999px;
+  background: #5da7ff;
+  pointer-events: none;
+}
+
+.kpi-row.is-drop-before::before {
+  top: -5px;
+}
+
+.kpi-row.is-drop-after::after {
+  bottom: -5px;
 }
 
 .kpi-row__value {
