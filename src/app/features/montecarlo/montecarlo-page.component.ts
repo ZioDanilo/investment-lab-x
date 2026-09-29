@@ -305,9 +305,9 @@ export class MontecarloPageComponent {
           .slice()
           .sort((left: any, right: any) => Number(left?.monthIndex ?? 0) - Number(right?.monthIndex ?? 0))
           .map((entry: any, monthIndex: number) => ({
-            month: Number(entry?.monthIndex ?? monthIndex + 1),
-            monthWithinYear: ((Number(entry?.monthIndex ?? monthIndex + 1) - 1) % 12) + 1,
-            year: Math.floor((Number(entry?.monthIndex ?? monthIndex + 1) - 1) / 12) + 1,
+            month: Number(entry?.monthIndex ?? monthIndex) + 1,
+            monthWithinYear: (Number(entry?.monthIndex ?? monthIndex) % 12) + 1,
+            year: Math.floor(Number(entry?.monthIndex ?? monthIndex) / 12) + 1,
             portfolioReturn: Number(entry?.weightedReturn ?? entry?.return ?? 0),
             endingCapital: 0,
             capital: 0,
@@ -521,7 +521,7 @@ export class MontecarloPageComponent {
             .sort((left: any, right: any) => Number(left?.monthIndex ?? 0) - Number(right?.monthIndex ?? 0))
             .map((entry: any, monthIndex: number) => {
               const weightedReturn = Number(entry?.weightedReturn ?? entry?.return ?? 0);
-              const month = Number(entry?.monthIndex ?? monthIndex + 1);
+              const month = Number(entry?.monthIndex ?? monthIndex) + 1;
               const year = Math.floor((month - 1) / 12) + 1;
               const monthWithinYear = ((month - 1) % 12) + 1;
               return {
@@ -728,7 +728,7 @@ export class MontecarloPageComponent {
       this.kpis = [
         { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
         { id: 'volatility', title: 'VOLATILITÀ', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
-        { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: this.formatPercent(result.mainKpis?.positiveReturnProbability), description: 'Scenari con rendimento > 0', tone: 'blue' },
+        { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: this.formatPercent(cagrSamples.length > 0 ? cagrSamples.filter((value) => Number(value) > 0).length / cagrSamples.length : null), description: 'Scenari con rendimento > 0', tone: 'blue' },
         { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
         { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' }
       ];
