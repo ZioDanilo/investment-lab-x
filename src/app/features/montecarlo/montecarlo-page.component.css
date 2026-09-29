@@ -2459,3 +2459,91 @@ html, body {
     overflow-y: visible !important;
   }
 }
+
+
+/* Final desktop squeeze: reclaim the last vertical pixels without changing the visual hierarchy. */
+@media (min-width: 1181px) {
+  .montecarlo-page {
+    gap: 3px !important;
+    padding: 2px 8px 3px !important;
+  }
+
+  .main-grid,
+  .left-column,
+  .right-column,
+  .histogram-pair {
+    gap: 4px !important;
+  }
+
+  .panel {
+    padding: 5px 8px !important;
+  }
+
+  .kpi-panel {
+    padding: 4px 7px !important;
+  }
+
+  .kpi-panel .compact-header {
+    margin-bottom: 1px !important;
+  }
+
+  .kpi-columns-header {
+    margin-bottom: 2px !important;
+  }
+
+  .kpi-row {
+    min-height: 0 !important;
+  }
+
+  .kpi-row__metric,
+  .kpi-row__target {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .evolution-panel,
+  .histogram-panel {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .evolution-panel .compact-header,
+  .histogram-panel .compact-header {
+    margin-bottom: 1px !important;
+  }
+
+  .portfolio-evolution-chart {
+    min-height: clamp(128px, 17.2vh, 168px) !important;
+  }
+
+  .portfolio-evolution-svg {
+    height: clamp(128px, 17.2vh, 168px) !important;
+  }
+
+  .histogram-plot.compact-histogram {
+    min-height: clamp(114px, 15.5vh, 154px) !important;
+  }
+
+  .svg-chart--returns,
+  .svg-chart--drawdown {
+    height: clamp(114px, 15.5vh, 154px) !important;
+  }
+
+  .suggestions-panel {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .macro-panel {
+    padding: 5px 8px 6px !important;
+  }
+
+  .macro-panel .compact-header {
+    margin-bottom: 3px !important;
+  }
+
+  .macro-bar {
+    height: 32px !important;
+    min-height: 32px !important;
+  }
+}
