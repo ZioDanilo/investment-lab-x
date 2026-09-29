@@ -100,6 +100,7 @@ export class MontecarloPageComponent {
   maxDrawdownTooltipPercentage: string | null = null;
   maxDrawdownTooltipPosition = { left: 0, top: 0 };
   portfolioEvolution: Array<{ year: number; capital: number }> = [];
+  hoveredPortfolioEvolutionPoint: { year: number; capital: number } | null = null;
 
   getHistogramTotalPaths(): number {
     return this.finalReturnDistribution.bins.reduce((sum, bin) => sum + Number(bin.value ?? 0), 0) || 0;
@@ -776,6 +777,7 @@ export class MontecarloPageComponent {
   private resetKpis(): void {
     this.kpis = [...this.defaultKpis];
     this.portfolioEvolution = [];
+    this.hoveredPortfolioEvolutionPoint = null;
     this.draggedKpiId = null;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
@@ -1220,6 +1222,28 @@ export class MontecarloPageComponent {
 
   getPortfolioEvolutionX(year: number): number {
     return 68 + (year / 30) * (640 - 68 - 18);
+  }
+
+  getPortfolioEvolutionY(capital: number): number {
+    const yMax = this.getPortfolioEvolutionYAxisMax();
+    return 18 + (1 - Math.max(0, Math.min(1, capital / yMax))) * (250 - 18 - 38);
+  }
+
+  onPortfolioEvolutionPointEnter(point: { year: number; capital: number }): void {
+    this.hoveredPortfolioEvolutionPoint = point;
+  }
+
+  onPortfolioEvolutionPointLeave(): void {
+    this.hoveredPortfolioEvolutionPoint = null;
+  }
+
+  formatEuroTooltip(value: number): string {
+    return new Intl.NumberFormat('it-IT', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
   }
 
   formatEuroAxis(value: number): string {
