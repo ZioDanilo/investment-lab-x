@@ -839,16 +839,14 @@ export class MontecarloPageComponent {
     }
 
     const rows = Array.from(container.querySelectorAll<HTMLElement>('.kpi-row'));
-    let insertIndex = this.kpis.length;
-
-    for (const row of rows) {
-      const rect = row.getBoundingClientRect();
-      if (event.clientY < rect.top + rect.height / 2) {
-        const rawIndex = Number(row.dataset['kpiIndex']);
-        insertIndex = Number.isFinite(rawIndex) ? rawIndex : insertIndex;
-        break;
-      }
-    }
+    const containerRect = container.getBoundingClientRect();
+    const rowHeight = rows[0]?.offsetHeight ?? 0;
+    const gap = rows.length > 1
+      ? Math.max(0, rows[1].offsetTop - rows[0].offsetTop - rowHeight)
+      : 8;
+    const stride = Math.max(1, rowHeight + gap);
+    const pointerY = event.clientY - containerRect.top + container.scrollTop;
+    const insertIndex = Math.max(0, Math.min(this.kpis.length, Math.floor((pointerY + stride / 2) / stride)));
 
     this.insertTargetIndex = insertIndex;
   }
