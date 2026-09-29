@@ -396,6 +396,147 @@
   border: 1px solid rgba(115, 154, 206, 0.12);
 }
 
+.portfolio-evolution-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 220px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(17, 26, 37, 0.78), rgba(12, 18, 27, 0.96));
+  border: 1px solid rgba(115, 154, 206, 0.12);
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+.portfolio-evolution-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 220px;
+}
+
+.evolution-grid-line {
+  stroke: rgba(132, 164, 204, 0.12);
+  stroke-width: 1;
+}
+
+.evolution-axis {
+  stroke: rgba(166, 194, 226, 0.32);
+  stroke-width: 1;
+}
+
+.evolution-zero-axis {
+  stroke: rgba(210, 225, 242, 0.58);
+  stroke-width: 1.5;
+}
+
+.evolution-axis-label {
+  fill: #8295aa;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.evolution-line {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.evolution-line--t0 {
+  stroke: #5da7ff;
+}
+
+.evolution-line--t1 {
+  stroke: #f0a23a;
+}
+
+.evolution-line--t2 {
+  stroke: #a96f45;
+}
+
+.evolution-year-hit-area {
+  fill: transparent;
+  cursor: default;
+}
+
+.evolution-legend {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  display: flex;
+  gap: 12px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.evolution-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #9fb2c7;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.evolution-legend-item i {
+  width: 16px;
+  height: 2px;
+  display: inline-block;
+  background: currentColor;
+}
+
+.evolution-legend-item.evolution-line--t0,
+.evolution-tooltip-row--t0 {
+  color: #5da7ff;
+}
+
+.evolution-legend-item.evolution-line--t1,
+.evolution-tooltip-row--t1 {
+  color: #f0a23a;
+}
+
+.evolution-legend-item.evolution-line--t2,
+.evolution-tooltip-row--t2 {
+  color: #a96f45;
+}
+
+.evolution-pointer-tooltip {
+  position: absolute;
+  z-index: 1000;
+  transform: translateY(-100%);
+  pointer-events: none;
+  white-space: nowrap;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: rgba(7, 14, 23, 0.96);
+  border: 1px solid rgba(93, 167, 255, 0.65);
+  color: #f2f8ff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.evolution-tooltip-heading {
+  color: #f2f8ff;
+  margin-bottom: 4px;
+}
+
+.evolution-tooltip-row {
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.evolution-empty {
+  padding: 24px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
 .kpi-compact-list {
   display: flex;
   flex-direction: column;
