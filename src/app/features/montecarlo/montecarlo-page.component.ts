@@ -83,6 +83,8 @@ export class MontecarloPageComponent {
   simulationProgress = 0;
   completionHoldActive = false;
   private completionHoldTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private progressAnimationIntervalId: ReturnType<typeof setInterval> | null = null;
+  private progressAnimationStartedAt = 0;
   isRegeneratingMarketUniverse = false;
   marketUniverseStatusMessage: string | null = null;
   kpis: KpiCard[] = [...this.defaultKpis];
@@ -183,6 +185,33 @@ export class MontecarloPageComponent {
       this.completionHoldTimeoutId = null;
     }
     this.completionHoldActive = false;
+  }
+
+  private startProgressAnimation(): void {
+    this.stopProgressAnimation();
+    this.simulationProgress = 1;
+    this.progressAnimationStartedAt = performance.now();
+    this.progressAnimationIntervalId = setInterval(() => {
+      if (!this.isRunning) {
+        return;
+      }
+
+      const elapsedSeconds = Math.max(0, (performance.now() - this.progressAnimationStartedAt) / 1000);
+      // UX progress: advance smoothly through long precompute/finalization phases where
+      // the engine cannot provide path-based progress. It approaches 94% but never
+      // completes before the real result is available.
+      const visualTarget = Math.min(94, 1 + (elapsedSeconds * 3.2));
+      if (visualTarget > this.simulationProgress) {
+        this.simulationProgress = visualTarget;
+      }
+    }, 200);
+  }
+
+  private stopProgressAnimation(): void {
+    if (this.progressAnimationIntervalId) {
+      clearInterval(this.progressAnimationIntervalId);
+      this.progressAnimationIntervalId = null;
+    }
   }
 
   private showToast(message: string): void {
@@ -662,6 +691,7 @@ export class MontecarloPageComponent {
     }
 
     this.isRunning = true;
+    this.startProgressAnimation();
     this.resetKpis();
 
     try {
@@ -734,7 +764,10 @@ export class MontecarloPageComponent {
         if (progressValue >= 99) {
           console.log('[MC-TRACE PROGRESS] 99');
         }
-        this.simulationProgress = Math.min(Math.max(Number(progress) || 0, 0), 99);
+        const engineProgress = Math.min(Math.max(Number(progress) || 0, 0), 99);
+        // Real engine progress may move the bar forward, never backward. The visual
+        // animation fills the phases that currently emit no granular progress.
+        this.simulationProgress = Math.max(this.simulationProgress, engineProgress);
       });
       console.log('[MC-TRACE 07] coordinator created');
       console.log('[MC-TRACE 08] coordinator.run start');
@@ -783,6 +816,7 @@ export class MontecarloPageComponent {
         simulationProgress: this.simulationProgress
       });
       this.isRunning = false;
+      this.stopProgressAnimation();
       this.simulationProgress = 0;
       this.clearCompletionHold();
     }
