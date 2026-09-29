@@ -855,6 +855,29 @@ export class MontecarloPageComponent {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', kpiId);
 
+      // Native HTML drag ghosts are browser-rendered with translucency.
+      // Use an opaque visual clone so the KPI being carried looks exactly like the source row.
+      const source = event.currentTarget as HTMLElement | null;
+      if (source) {
+        const rect = source.getBoundingClientRect();
+        const dragImage = source.cloneNode(true) as HTMLElement;
+        dragImage.classList.remove('is-dragging', 'shift-up', 'shift-down');
+        dragImage.style.position = 'fixed';
+        dragImage.style.left = '-10000px';
+        dragImage.style.top = '-10000px';
+        dragImage.style.width = `${rect.width}px`;
+        dragImage.style.height = `${rect.height}px`;
+        dragImage.style.opacity = '1';
+        dragImage.style.visibility = 'visible';
+        dragImage.style.transform = 'none';
+        dragImage.style.pointerEvents = 'none';
+        document.body.appendChild(dragImage);
+
+        const offsetX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+        const offsetY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+        event.dataTransfer.setDragImage(dragImage, offsetX, offsetY);
+        requestAnimationFrame(() => dragImage.remove());
+      }
     }
   }
 
