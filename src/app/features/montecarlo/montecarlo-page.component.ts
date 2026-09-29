@@ -848,51 +848,14 @@ export class MontecarloPageComponent {
 
   onKpiDragStart(kpiId: string, event: DragEvent): void {
     this.draggedKpiId = kpiId;
-    this.draggedKpiPreview = this.kpis.find((kpi) => kpi.id === kpiId) ?? null;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
-
-    const source = event.currentTarget as HTMLElement | null;
-    if (source) {
-      const rect = source.getBoundingClientRect();
-      this.draggedKpiPointerOffset = {
-        x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
-        y: Math.max(0, Math.min(rect.height, event.clientY - rect.top))
-      };
-      this.draggedKpiPreviewPosition = {
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height
-      };
-    }
 
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', kpiId);
 
-      // Suppress the browser's translucent native drag ghost. The visible preview
-      // is a real fixed-position KPI row rendered by Angular.
-      const transparentDragImage = document.createElement('div');
-      transparentDragImage.style.width = '1px';
-      transparentDragImage.style.height = '1px';
-      transparentDragImage.style.opacity = '0';
-      document.body.appendChild(transparentDragImage);
-      event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
-      requestAnimationFrame(() => transparentDragImage.remove());
     }
-  }
-
-  onKpiDrag(event: DragEvent): void {
-    if (!this.draggedKpiId || event.clientX === 0 && event.clientY === 0) {
-      return;
-    }
-
-    this.draggedKpiPreviewPosition = {
-      ...this.draggedKpiPreviewPosition,
-      left: event.clientX - this.draggedKpiPointerOffset.x,
-      top: event.clientY - this.draggedKpiPointerOffset.y
-    };
   }
 
   onKpiDragOver(kpiId: string, event: DragEvent): void {
