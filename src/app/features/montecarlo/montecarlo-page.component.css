@@ -1780,3 +1780,20 @@
   color: #ff5975;
   filter: drop-shadow(0 0 7px rgba(255,89,117,.40));
 }
+
+
+/* KPI drag: only the moving card remains visible; remove legacy accent bars */
+.kpi-row::before,
+.kpi-row[data-kpi-id]::before {
+  content: none !important;
+  display: none !important;
+}
+.kpi-row.is-dragging {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+.kpi-row--drag-preview {
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: none !important;
+}
