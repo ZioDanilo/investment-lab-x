@@ -231,6 +231,10 @@
                 </defs>
                 <line x1="40" y1="195" x2="490" y2="195" class="axis" />
                 <line x1="40" y1="20" x2="40" y2="195" class="axis" />
+                <g *ngFor="let tick of getHistogramYTicks(finalReturnDistribution.bins, 195, 165, 40)">
+                  <line x1="40" [attr.y1]="tick.y" x2="490" [attr.y2]="tick.y" class="histogram-grid-line" />
+                  <text x="34" [attr.y]="tick.y + 4" class="tick-label histogram-y-label" text-anchor="end">{{ tick.label }}</text>
+                </g>
 
                 <g *ngFor="let bar of buildHistogramBars(finalReturnDistribution.bins, 165, 440, 40, 8); let i = index">
                   <rect
@@ -280,6 +284,10 @@
                 </defs>
                 <line x1="30" y1="190" x2="360" y2="190" class="axis" />
                 <line x1="30" y1="20" x2="30" y2="190" class="axis" />
+                <g *ngFor="let tick of getHistogramYTicks(maxDrawdownDistribution.bins, 190, 145, 30)">
+                  <line x1="30" [attr.y1]="tick.y" x2="360" [attr.y2]="tick.y" class="histogram-grid-line" />
+                  <text x="24" [attr.y]="tick.y + 4" class="tick-label histogram-y-label" text-anchor="end">{{ tick.label }}</text>
+                </g>
 
                 <g *ngFor="let bar of buildMaxDrawdownHistogramBars(maxDrawdownDistribution.bins, 145, 350); let i = index">
                   <rect
