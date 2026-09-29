@@ -2034,3 +2034,12 @@
   opacity: 1 !important;
   filter: brightness(1.10) drop-shadow(0 3px 9px rgba(255,70,101,.40));
 }
+
+
+/* Keep low histogram bars dark; only bars reaching high absolute Y levels enter pale tones. */
+.histogram-bar {
+  filter: drop-shadow(0 2px 5px rgba(5,74,177,.24)) !important;
+}
+.drawdown-histogram-bar {
+  filter: drop-shadow(0 2px 5px rgba(153,20,48,.22)) !important;
+}
