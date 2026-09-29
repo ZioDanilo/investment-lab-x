@@ -85,6 +85,7 @@ export class MontecarloPageComponent {
   marketUniverseStatusMessage: string | null = null;
   kpis: KpiCard[] = [...this.defaultKpis];
   draggedKpiId: string | null = null;
+  suppressKpiTransitions = false;
   swapTargetId: string | null = null;
   insertTargetIndex: number | null = null;
   readonly macroTotal = 360000;
@@ -864,13 +865,20 @@ export class MontecarloPageComponent {
     const kpiId = this.draggedKpiId || event.dataTransfer?.getData('text/plain') || null;
     const insertIndex = this.insertTargetIndex ?? this.kpis.length;
 
-    // Remove preview transforms before changing the DOM order. Without this,
-    // upward moves briefly keep shift-down on rows that have already changed index.
+    // Commit preview -> final order atomically. The preview transforms and the DOM
+    // reorder must settle in the same frame with transitions disabled; otherwise
+    // upward moves animate the traversed rows back toward their old slots first.
+    this.suppressKpiTransitions = true;
+    if (kpiId) {
+      this.insertKpi(kpiId, insertIndex);
+    }
     this.finishDragState();
 
-    if (kpiId) {
-      requestAnimationFrame(() => this.insertKpi(kpiId, insertIndex));
-    }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.suppressKpiTransitions = false;
+      });
+    });
   }
 
   onKpiDragEnd(): void {
@@ -902,6 +910,10 @@ export class MontecarloPageComponent {
     }
 
     return null;
+  }
+
+  trackKpiById(_index: number, kpi: KpiCard): string {
+    return kpi.id;
   }
 
   private finishDragState(): void {
