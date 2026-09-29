@@ -2103,3 +2103,42 @@
 .macro-segment__label strong {
   font-weight: 800;
 }
+
+
+/* Luminous macro palette with readable labels on every scenario. */
+.macro-bar {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.13),
+    0 0 18px rgba(45,128,220,.10);
+}
+.macro-segment {
+  isolation: isolate;
+}
+.macro-segment::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.04) 45%, rgba(0,0,0,.16) 100%);
+  pointer-events: none;
+}
+.macro-segment[data-scenario="expansion"] {
+  box-shadow: inset 0 0 18px rgba(54,255,199,.28), 0 0 12px rgba(25,230,179,.18);
+}
+.macro-segment[data-scenario="soft_landing"] {
+  box-shadow: inset 0 0 18px rgba(76,166,255,.30), 0 0 12px rgba(38,140,255,.20);
+}
+.macro-segment[data-scenario="recession"] {
+  box-shadow: inset 0 0 18px rgba(255,92,118,.30), 0 0 12px rgba(255,54,91,.18);
+}
+.macro-segment[data-scenario="stagflation"] {
+  box-shadow: inset 0 0 18px rgba(255,187,72,.32), 0 0 12px rgba(255,159,28,.20);
+}
+.macro-segment__label {
+  color: #fff !important;
+  font-weight: 700;
+  letter-spacing: .01em;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,.92),
+    0 0 5px rgba(0,0,0,.48);
+}
