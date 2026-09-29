@@ -1869,3 +1869,15 @@
   text-shadow: none;
   filter: drop-shadow(0 0 7px rgba(255,208,90,.40));
 }
+
+
+/* ETF autocomplete must float above the charts instead of being clipped by the portfolio card */
+.portfolio-panel {
+  overflow: visible !important;
+  z-index: 1000;
+}
+.portfolio-panel app-montecarlo-portfolio-editor {
+  position: relative;
+  z-index: 1000;
+  overflow: visible;
+}
