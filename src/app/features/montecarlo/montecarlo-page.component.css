@@ -2547,3 +2547,15 @@ html, body {
     min-height: 32px !important;
   }
 }
+
+
+/* Histogram axes: use the full plot area and make the vertical scale readable. */
+.histogram-grid-line {
+  stroke: rgba(133, 166, 201, .13);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.histogram-y-label {
+  fill: rgba(185, 207, 230, .72) !important;
+  font-size: 9px;
+}
