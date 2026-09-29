@@ -434,6 +434,10 @@
   cursor: grabbing !important;
 }
 
+.kpi-compact-list--settling .kpi-row {
+  transition: none !important;
+}
+
 .kpi-row.shift-up {
   transform: translateY(calc(-100% - 8px));
 }
