@@ -765,11 +765,11 @@ export class MontecarloPageComponent {
       this.clearHistogramHover();
       this.clearMaxDrawdownHover();
       const updatedKpis: KpiCard[] = [
-        { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
-        { id: 'volatility', title: 'VOLATILITÀ', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
-        { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: this.formatPercent(cagrSamples.length > 0 ? cagrSamples.filter((value) => Number(value) > 0).length / cagrSamples.length : null), description: 'Scenari con rendimento > 0', tone: 'blue' },
-        { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
-        { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' }
+        { id: 'expectedReturn', title: 'Rendimento annuo', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
+        { id: 'volatility', title: 'Volatilità', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
+        { id: 'positiveReturnProbability', title: 'Rendimento positivo (30 anni)', value: this.formatPercent(cagrSamples.length > 0 ? cagrSamples.filter((value) => Number(value) > 0).length / cagrSamples.length : null), description: 'Scenari con rendimento > 0', tone: 'blue' },
+        { id: 'recoveryPeriod', title: 'Periodo di recupero', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
+        { id: 'averageMaxDrawdown', title: 'Drawdown', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' }
       ];
       this.kpis = this.mergeKpiValuesPreservingOrder(updatedKpis);
       this.advanceProgressStage(97);
