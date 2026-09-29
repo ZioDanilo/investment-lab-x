@@ -2043,3 +2043,31 @@
 .drawdown-histogram-bar {
   filter: drop-shadow(0 2px 5px rgba(153,20,48,.22)) !important;
 }
+
+
+/* Give both distribution charts more visual weight. */
+.histogram-pair {
+  gap: 18px;
+}
+.histogram-panel {
+  min-height: 330px;
+}
+.histogram-plot.compact-histogram {
+  min-height: 250px;
+}
+.svg-chart--returns,
+.svg-chart--drawdown {
+  height: 245px !important;
+}
+
+/* Hover keeps the tooltip but visually softens the selected bar. */
+.histogram-bar:hover,
+.histogram-bar.is-hovered {
+  opacity: .64 !important;
+  filter: saturate(.72) brightness(.92) !important;
+}
+.drawdown-histogram-bar:hover,
+.drawdown-histogram-bar.is-hovered {
+  opacity: .64 !important;
+  filter: saturate(.72) brightness(.92) !important;
+}
