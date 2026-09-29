@@ -1,0 +1,5 @@
+import { Component, Input } from '@angular/core';import { CommonModule } from '@angular/common';
+export interface SegmentedBarItem{label:string;percent:number;color:string;key?:string}
+@Component({selector:'app-segmented-bar',standalone:true,imports:[CommonModule],template:`<div class="bar"><span *ngFor="let s of segments" class="segment" [style.width.%]="s.percent" [style.background]="s.color"><span>{{s.label}} <strong>{{s.percent}}%</strong></span></span></div>`,styles:[`
+.bar{display:flex;overflow:hidden;height:36px;border-radius:8px;background:#0a1521;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}.segment{position:relative;display:flex;align-items:center;justify-content:center;min-width:0}.segment:before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.03) 45%,rgba(0,0,0,.15))}.segment span{position:relative;color:#fff;font-size:.72rem;font-weight:700;text-shadow:0 1px 2px #000;white-space:nowrap}
+`]}) export class SegmentedBarComponent{@Input() segments:SegmentedBarItem[]=[];}

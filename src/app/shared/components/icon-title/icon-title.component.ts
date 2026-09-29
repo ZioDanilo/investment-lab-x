@@ -1,0 +1,2 @@
+import { Component, Input } from '@angular/core';import { CommonModule } from '@angular/common';
+@Component({selector:'app-icon-title',standalone:true,imports:[CommonModule],template:`<span class="title"><span *ngIf="icon" class="material-symbols-rounded" [style.color]="color">{{icon}}</span><span>{{text}}</span></span>`,styles:[`.title{display:inline-flex;align-items:center;gap:6px}.material-symbols-rounded{font-size:22px}`]}) export class IconTitleComponent{@Input() text='';@Input() icon='';@Input() color='#ffd84d';}

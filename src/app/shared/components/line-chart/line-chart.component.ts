@@ -1,0 +1,6 @@
+import { Component, EventEmitter, Input, Output } from '@angular/core';import { CommonModule } from '@angular/common';
+export interface LineChartSeries{label:string;color:string;points:string}
+export interface LineChartTick{value:string|number;x?:number;y?:number}
+@Component({selector:'app-line-chart',standalone:true,imports:[CommonModule],template:`<div class="chart"><svg [attr.viewBox]="viewBox" preserveAspectRatio="none"><line *ngFor="let t of yTicks" [attr.x1]="plotLeft" [attr.y1]="t.y" [attr.x2]="plotRight" [attr.y2]="t.y" class="grid"/><text *ngFor="let t of yTicks" [attr.x]="plotLeft-8" [attr.y]="(t.y||0)+4" text-anchor="end">{{t.value}}</text><polyline *ngFor="let s of series" [attr.points]="s.points" [attr.stroke]="s.color" fill="none" class="series"/></svg><ng-content></ng-content></div>`,styles:[`
+:host{display:block;min-width:0}.chart{position:relative;width:100%;height:100%}svg{display:block;width:100%;height:100%}.grid{stroke:rgba(113,151,193,.14)}text{fill:#879bb3;font-size:10px}.series{stroke-width:2.6;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 3px rgba(74,150,255,.14))}
+`]}) export class LineChartComponent{@Input() series:LineChartSeries[]=[];@Input() yTicks:LineChartTick[]=[];@Input() viewBox='0 0 640 250';@Input() plotLeft=52;@Input() plotRight=634;}
