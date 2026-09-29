@@ -120,6 +120,11 @@ export class MontecarloPageComponent {
   maxDrawdownTooltipPercentage: string | null = null;
   maxDrawdownTooltipPosition = { left: 0, top: 0 };
 
+  portfolioEvolution: Array<{ year: number; annualReturn: number }> = [];
+  portfolioEvolutionHistory: Array<Array<{ year: number; annualReturn: number }>> = [];
+  hoveredPortfolioEvolutionYear: number | null = null;
+  portfolioEvolutionTooltipPosition = { left: 0, top: 0 };
+
   getHistogramTotalPaths(): number {
     return this.finalReturnDistribution.bins.reduce((sum, bin) => sum + Number(bin.value ?? 0), 0) || 0;
   }
@@ -764,6 +769,26 @@ export class MontecarloPageComponent {
       const maxDrawdownSamples = Array.isArray(result.distributionSamples?.maxDrawdown) ? result.distributionSamples.maxDrawdown : [];
       this.finalReturnDistribution = this.buildFinalReturnDistribution(cagrSamples.map((cagr) => ({ cagr })));
       this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(maxDrawdownSamples.map((maxDrawdown) => ({ maxDrawdown })));
+      const representativeCapital = Array.isArray(result.representativePath?.capital)
+        ? result.representativePath.capital
+        : [];
+      const annualCapital = representativeCapital
+        .filter((point) => Number(point.month) > 0 && Number(point.month) % 12 === 0)
+        .map((point) => ({
+          year: Number(point.month) / 12,
+          capital: Number(point.capital)
+        }))
+        .filter((point) => Number.isFinite(point.year) && point.year <= 30 && Number.isFinite(point.capital));
+      let previousCapital = 100000;
+      const currentEvolution = annualCapital.map((point) => {
+        const annualReturn = previousCapital > 0 ? (point.capital / previousCapital) - 1 : 0;
+        previousCapital = point.capital;
+        return { year: point.year, annualReturn };
+      });
+      if (this.portfolioEvolution.length > 0) {
+        this.portfolioEvolutionHistory = [this.portfolioEvolution, ...this.portfolioEvolutionHistory].slice(0, 2);
+      }
+      this.portfolioEvolution = currentEvolution;
       this.clearHistogramHover();
       this.clearMaxDrawdownHover();
       const positiveReturnProbability = cagrSamples.length > 0
@@ -804,6 +829,7 @@ export class MontecarloPageComponent {
 
   private resetKpis(): void {
     this.kpis = this.mergeKpiValuesPreservingOrder(this.defaultKpis);
+    this.hoveredPortfolioEvolutionYear = null;
     this.draggedKpiId = null;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
@@ -1322,6 +1348,108 @@ export class MontecarloPageComponent {
 
   onMaxDrawdownPlotPointerLeave(): void {
     this.clearMaxDrawdownHover();
+  }
+
+  getPortfolioEvolutionSeries(): Array<{ label: string; className: string; points: Array<{ year: number; annualReturn: number }> }> {
+    const series = [
+      { label: 'T0', className: 'evolution-line--t0', points: this.portfolioEvolution },
+      { label: 'T-1', className: 'evolution-line--t1', points: this.portfolioEvolutionHistory[0] ?? [] },
+      { label: 'T-2', className: 'evolution-line--t2', points: this.portfolioEvolutionHistory[1] ?? [] }
+    ];
+    return series.filter((item) => item.points.length > 0);
+  }
+
+  getPortfolioAnnualReturnScale(): number {
+    const allPoints = this.getPortfolioEvolutionSeries().flatMap((series) => series.points);
+    const maxAbsoluteReturn = Math.max(...allPoints.map((point) => Math.abs(point.annualReturn)), 0.1);
+    return Math.ceil((maxAbsoluteReturn * 1.12) / 0.05) * 0.05;
+  }
+
+  buildPortfolioEvolutionPoints(points: Array<{ year: number; annualReturn: number }>): string {
+    if (points.length < 2) {
+      return '';
+    }
+    return points
+      .map((point) => `${this.getPortfolioEvolutionX(point.year).toFixed(2)},${this.getPortfolioEvolutionY(point.annualReturn).toFixed(2)}`)
+      .join(' ');
+  }
+
+  getPortfolioEvolutionYTicks(): Array<{ value: number; y: number }> {
+    const scale = this.getPortfolioAnnualReturnScale();
+    return Array.from({ length: 5 }, (_, index) => {
+      const value = scale - (index * scale / 2);
+      return { value, y: this.getPortfolioEvolutionY(value) };
+    });
+  }
+
+  getPortfolioEvolutionX(year: number): number {
+    return 68 + ((Math.max(1, Math.min(30, year)) - 1) / 29) * (640 - 68 - 18);
+  }
+
+  getPortfolioEvolutionY(annualReturn: number): number {
+    const scale = this.getPortfolioAnnualReturnScale();
+    const top = 18;
+    const plotHeight = 250 - 18 - 38;
+    return top + ((scale - annualReturn) / (scale * 2)) * plotHeight;
+  }
+
+  getPortfolioEvolutionHoverX(year: number): number {
+    const plotLeft = 68;
+    const plotRight = 622;
+    const step = (plotRight - plotLeft) / 29;
+    return Math.max(plotLeft, this.getPortfolioEvolutionX(year) - step / 2);
+  }
+
+  getPortfolioEvolutionHoverWidth(year: number): number {
+    const plotLeft = 68;
+    const plotRight = 622;
+    const step = (plotRight - plotLeft) / 29;
+    const left = this.getPortfolioEvolutionHoverX(year);
+    const right = Math.min(plotRight, this.getPortfolioEvolutionX(year) + step / 2);
+    return right - left;
+  }
+
+  onPortfolioEvolutionYearEnter(year: number, event: MouseEvent): void {
+    this.hoveredPortfolioEvolutionYear = year;
+    this.updatePortfolioEvolutionTooltipPosition(event);
+  }
+
+  onPortfolioEvolutionPointMove(event: MouseEvent): void {
+    this.updatePortfolioEvolutionTooltipPosition(event);
+  }
+
+  onPortfolioEvolutionPointLeave(): void {
+    this.hoveredPortfolioEvolutionYear = null;
+  }
+
+  getPortfolioEvolutionTooltipRows(year: number): Array<{ label: string; className: string; value: number }> {
+    return this.getPortfolioEvolutionSeries()
+      .map((series) => ({
+        label: series.label,
+        className: series.className.replace('evolution-line--', 'evolution-tooltip-row--'),
+        value: series.points.find((point) => point.year === year)?.annualReturn
+      }))
+      .filter((row): row is { label: string; className: string; value: number } => Number.isFinite(row.value));
+  }
+
+  private updatePortfolioEvolutionTooltipPosition(event: MouseEvent): void {
+    const chart = (event.currentTarget as SVGElement | null)?.closest('.portfolio-evolution-chart') as HTMLElement | null;
+    if (!chart) {
+      return;
+    }
+    const bounds = chart.getBoundingClientRect();
+    this.portfolioEvolutionTooltipPosition = {
+      left: event.clientX - bounds.left + 8,
+      top: event.clientY - bounds.top - 8
+    };
+  }
+
+  formatAnnualReturn(value: number): string {
+    return new Intl.NumberFormat('it-IT', {
+      style: 'percent',
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    }).format(value);
   }
 
   buildLinePath(values: number[], width = 510, height = 150, padding = 18): string {
