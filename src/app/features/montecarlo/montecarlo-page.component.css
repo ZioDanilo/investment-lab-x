@@ -430,7 +430,16 @@
 }
 
 .kpi-row.is-dragging {
-  opacity: 0.45;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.kpi-row.shift-up {
+  transform: translateY(calc(-100% - 8px));
+}
+
+.kpi-row.shift-down {
+  transform: translateY(calc(100% + 8px));
 }
 
 .kpi-row__label {
