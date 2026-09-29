@@ -45,11 +45,70 @@
 
         <article class="panel evolution-panel">
           <div class="panel-header compact-header">
-            <h3>Evoluzione del portafoglio</h3>
-            <span class="panel-badge">Anteprima</span>
+            <h3>Rendimenti annuali</h3>
+            <span class="panel-badge">30 anni</span>
           </div>
 
-          <div class="placeholder-chart"></div>
+          <div class="portfolio-evolution-chart">
+            <svg *ngIf="portfolioEvolution.length > 1; else evolutionEmpty" viewBox="0 0 640 250" class="portfolio-evolution-svg" role="img" aria-label="Rendimenti annuali del percorso simulato rappresentativo in 30 anni">
+              <g *ngFor="let tick of getPortfolioEvolutionYTicks()">
+                <line x1="68" [attr.y1]="tick.y" x2="622" [attr.y2]="tick.y" class="evolution-grid-line" />
+                <text x="58" [attr.y]="tick.y + 4" text-anchor="end" class="evolution-axis-label">{{ formatAnnualReturn(tick.value) }}</text>
+              </g>
+
+              <line x1="68" [attr.y1]="getPortfolioEvolutionY(0)" x2="622" [attr.y2]="getPortfolioEvolutionY(0)" class="evolution-zero-axis" />
+              <line x1="68" y1="18" x2="68" y2="212" class="evolution-axis" />
+
+              <g *ngFor="let year of [1, 5, 10, 15, 20, 25, 30]">
+                <line [attr.x1]="getPortfolioEvolutionX(year)" y1="212" [attr.x2]="getPortfolioEvolutionX(year)" y2="217" class="evolution-axis" />
+                <text [attr.x]="getPortfolioEvolutionX(year)" y="235" text-anchor="middle" class="evolution-axis-label">{{ year }}</text>
+              </g>
+
+              <polyline
+                *ngFor="let series of getPortfolioEvolutionSeries()"
+                [attr.points]="buildPortfolioEvolutionPoints(series.points)"
+                class="evolution-line"
+                [ngClass]="series.className"
+              />
+
+              <g *ngFor="let year of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]">
+                <rect
+                  [attr.x]="getPortfolioEvolutionHoverX(year)"
+                  y="18"
+                  [attr.width]="getPortfolioEvolutionHoverWidth(year)"
+                  height="194"
+                  class="evolution-year-hit-area"
+                  (mouseenter)="onPortfolioEvolutionYearEnter(year, $event)"
+                  (mousemove)="onPortfolioEvolutionPointMove($event)"
+                  (mouseleave)="onPortfolioEvolutionPointLeave()"
+                ></rect>
+              </g>
+            </svg>
+
+            <div class="evolution-legend" *ngIf="portfolioEvolution.length > 1">
+              <span *ngFor="let series of getPortfolioEvolutionSeries()" class="evolution-legend-item" [ngClass]="series.className">
+                <i></i>{{ series.label }}
+              </span>
+            </div>
+
+            <div
+              *ngIf="hoveredPortfolioEvolutionYear as year"
+              class="evolution-pointer-tooltip"
+              [style.left.px]="portfolioEvolutionTooltipPosition.left"
+              [style.top.px]="portfolioEvolutionTooltipPosition.top"
+            >
+              <div class="evolution-tooltip-heading">Anno {{ year }}</div>
+              <div
+                *ngFor="let row of getPortfolioEvolutionTooltipRows(year)"
+                class="evolution-tooltip-row"
+                [ngClass]="row.className"
+              >{{ row.label }}: {{ formatAnnualReturn(row.value) }}</div>
+            </div>
+
+            <ng-template #evolutionEmpty>
+              <div class="evolution-empty">Avvia la simulazione per visualizzare i rendimenti annuali.</div>
+            </ng-template>
+          </div>
         </article>
       </div>
 
