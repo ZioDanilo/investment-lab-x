@@ -2559,3 +2559,51 @@ html, body {
   fill: rgba(185, 207, 230, .72) !important;
   font-size: 9px;
 }
+
+
+/* Charts: remove redundant inner card treatment and reclaim the space below X axes. */
+.portfolio-evolution-chart {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+.evolution-empty {
+  display: none !important;
+}
+
+.histogram-plot.compact-histogram {
+  min-height: 0 !important;
+  height: auto !important;
+  padding-bottom: 0 !important;
+}
+
+@media (min-width: 1181px) {
+  .histogram-panel {
+    padding-bottom: 1px !important;
+  }
+
+  .histogram-plot.compact-histogram {
+    min-height: 0 !important;
+    height: clamp(104px, 13.8vh, 138px) !important;
+  }
+
+  .svg-chart--returns,
+  .svg-chart--drawdown {
+    display: block;
+    height: 100% !important;
+    width: 100%;
+  }
+
+  .evolution-panel {
+    padding-bottom: 2px !important;
+  }
+
+  .portfolio-evolution-chart,
+  .portfolio-evolution-svg {
+    min-height: 0 !important;
+    height: clamp(118px, 15.8vh, 154px) !important;
+  }
+}
