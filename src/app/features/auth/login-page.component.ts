@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 
 @Component({
@@ -14,12 +15,15 @@ export class LoginPageComponent {
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
 
-  onLogin(): void {
-    void this.apiService.warmupMarketUniverseCache().subscribe({
-      next: () => undefined,
-      error: () => undefined
-    });
+  async onLogin(): Promise<void> {
+    // Complete the Market Universe warm-up before entering the application so
+    // Monte Carlo portfolio projections do not pay the cold-cache cost later.
+    try {
+      await firstValueFrom(this.apiService.warmupMarketUniverseCache());
+    } catch (error) {
+      console.error('[Market Universe warmup]', error);
+    }
 
-    void this.router.navigateByUrl('/home');
+    await this.router.navigateByUrl('/home');
   }
 }
