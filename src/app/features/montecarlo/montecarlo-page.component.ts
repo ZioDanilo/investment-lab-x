@@ -168,7 +168,7 @@ export class MontecarloPageComponent {
       return 'AVVIA SIMULAZIONE';
     }
 
-    return `${this.buttonFillWidth}%`;
+    return 'SIMULAZIONE IN CORSO';
   }
 
   get buttonFillWidth(): number {
