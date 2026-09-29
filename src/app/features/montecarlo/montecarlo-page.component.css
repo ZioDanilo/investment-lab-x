@@ -385,15 +385,55 @@
   font-weight: 700;
 }
 
-.placeholder-chart {
+.portfolio-evolution-chart {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 180px;
+  min-height: 220px;
   border-radius: 12px;
   background: linear-gradient(180deg, rgba(17, 26, 37, 0.78), rgba(12, 18, 27, 0.96));
   border: 1px solid rgba(115, 154, 206, 0.12);
+  overflow: hidden;
+}
+
+.portfolio-evolution-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 220px;
+}
+
+.evolution-grid-line {
+  stroke: rgba(132, 164, 204, 0.12);
+  stroke-width: 1;
+}
+
+.evolution-axis {
+  stroke: rgba(166, 194, 226, 0.32);
+  stroke-width: 1;
+}
+
+.evolution-axis-label {
+  fill: #8295aa;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.evolution-line {
+  fill: none;
+  stroke: #5da7ff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.evolution-empty {
+  padding: 24px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-align: center;
 }
 
 .kpi-compact-list {
