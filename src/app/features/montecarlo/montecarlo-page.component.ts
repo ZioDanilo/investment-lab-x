@@ -848,37 +848,43 @@ export class MontecarloPageComponent {
 
   onKpiDragStart(kpiId: string, event: DragEvent): void {
     this.draggedKpiId = kpiId;
+    this.draggedKpiPreview = this.kpis.find((kpi) => kpi.id === kpiId) ?? null;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
+
+    const source = event.currentTarget as HTMLElement | null;
+    if (source) {
+      const rect = source.getBoundingClientRect();
+      this.draggedKpiPointerOffset = {
+        x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
+        y: Math.max(0, Math.min(rect.height, event.clientY - rect.top))
+      };
+      this.draggedKpiPreviewPosition = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    }
 
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', kpiId);
 
-      // Native HTML drag ghosts are browser-rendered with translucency.
-      // Use an opaque visual clone so the KPI being carried looks exactly like the source row.
-      const source = event.currentTarget as HTMLElement | null;
-      if (source) {
-        const rect = source.getBoundingClientRect();
-        const dragImage = source.cloneNode(true) as HTMLElement;
-        dragImage.classList.remove('is-dragging', 'shift-up', 'shift-down');
-        dragImage.style.position = 'fixed';
-        dragImage.style.left = '-10000px';
-        dragImage.style.top = '-10000px';
-        dragImage.style.width = `${rect.width}px`;
-        dragImage.style.height = `${rect.height}px`;
-        dragImage.style.opacity = '1';
-        dragImage.style.visibility = 'visible';
-        dragImage.style.transform = 'none';
-        dragImage.style.pointerEvents = 'none';
-        document.body.appendChild(dragImage);
-
-        const offsetX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
-        const offsetY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
-        event.dataTransfer.setDragImage(dragImage, offsetX, offsetY);
-        requestAnimationFrame(() => dragImage.remove());
-      }
+      const transparentDragImage = document.createElement('div');
+      transparentDragImage.style.width = '1px';
+      transparentDragImage.style.height = '1px';
+      transparentDragImage.style.opacity = '0';
+      document.body.appendChild(transparentDragImage);
+      event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+      requestAnimationFrame(() => transparentDragImage.remove());
     }
+  }
+
+  onKpiDrag(event: DragEvent): void {
+    if (!this.draggedKpiId || (event.clientX === 0 && event.clientY === 0)) {
+      return;
+    }
+    this.draggedKpiPreviewPosition = {
+      ...this.draggedKpiPreviewPosition,
+      left: event.clientX - this.draggedKpiPointerOffset.x,
+      top: event.clientY - this.draggedKpiPointerOffset.y
+    };
   }
 
   onKpiDragOver(kpiId: string, event: DragEvent): void {
