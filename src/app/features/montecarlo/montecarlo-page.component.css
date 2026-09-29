@@ -394,8 +394,9 @@
   border-radius: 12px;
   background: linear-gradient(180deg, rgba(17, 26, 37, 0.78), rgba(12, 18, 27, 0.96));
   border: 1px solid rgba(115, 154, 206, 0.12);
-  overflow: hidden;
+  overflow: visible;
   position: relative;
+  z-index: 1;
 }
 
 .portfolio-evolution-svg {
@@ -442,7 +443,7 @@
 
 .evolution-pointer-tooltip {
   position: absolute;
-  z-index: 3;
+  z-index: 1000;
   transform: translateY(-100%);
   pointer-events: none;
   white-space: nowrap;
