@@ -87,6 +87,7 @@ export class MontecarloPageComponent {
   draggedKpiId: string | null = null;
   swapTargetId: string | null = null;
   insertTargetIndex: number | null = null;
+  private dragPreviewOrder: KpiCard[] | null = null;
   readonly macroTotal = 360000;
   hoveredHistogramBin: { label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number } | null = null;
   histogramTooltipPercentage: string | null = null;
@@ -776,6 +777,7 @@ export class MontecarloPageComponent {
     this.draggedKpiId = kpiId;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
+    this.dragPreviewOrder = [...this.kpis];
 
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
@@ -839,7 +841,7 @@ export class MontecarloPageComponent {
       return;
     }
 
-    const rows = Array.from(container.querySelectorAll<HTMLElement>('.kpi-row:not(.kpi-row--placeholder)'));
+    const rows = Array.from(container.querySelectorAll<HTMLElement>('.kpi-row:not(.is-dragging)'));
     let insertIndex = this.kpis.length;
 
     for (const row of rows) {
@@ -865,11 +867,18 @@ export class MontecarloPageComponent {
       return;
     }
 
-    // The list is already in the previewed order; dropping only commits it.
+    // The list is already in the previewed order; dropping commits it.
+    this.dragPreviewOrder = null;
     this.finishDragState();
   }
 
   onKpiDragEnd(): void {
+    // dragend also fires after a valid drop. If drop already committed the
+    // preview, dragPreviewOrder is null; otherwise restore the pre-drag order.
+    if (this.dragPreviewOrder) {
+      this.kpis = this.dragPreviewOrder;
+    }
+    this.dragPreviewOrder = null;
     this.finishDragState();
   }
 
