@@ -54,43 +54,40 @@
       </div>
 
       <div class="right-column">
-        <article
-          class="panel kpi-panel"
-          (dragover)="onKpiOuterDragOver('top', $event)"
-          (drop)="onKpiOuterDrop('top', $event)"
-        >
+        <article class="panel kpi-panel">
           <div class="panel-header compact-header">
             <h3>KPI</h3>
           </div>
 
-          <div
-            class="kpi-compact-list"
-            [class.kpi-compact-list--dragging]="draggedKpiId !== null"
-            (dragover)="onKpiListDragOver($event)"
-            (drop)="onKpiListDrop($event)"
-          >
-            <div class="kpi-edge-drop-zone kpi-edge-drop-zone--top"></div>
+          <div class="kpi-compact-list" [class.kpi-compact-list--dragging]="draggedKpiId !== null">
+            <ng-container *ngFor="let kpi of kpis; let i = index">
+              <div
+                class="kpi-drop-slot"
+                [class.is-active]="insertTargetIndex === i"
+                (dragover)="onGapDragOver(i, $event)"
+                (drop)="onGapDrop(i, $event)"
+              ></div>
+              <div
+                class="kpi-row"
+                draggable="true"
+                [class.is-dragging]="draggedKpiId === kpi.id"
+                (dragstart)="onKpiDragStart(kpi.id, $event)"
+                (dragend)="onKpiDragEnd()"
+              >
+                <span class="kpi-row__label">{{ kpi.title }}</span>
+                <strong class="kpi-row__value">{{ kpi.value }}</strong>
+              </div>
+            </ng-container>
             <div
-              class="kpi-row"
-              *ngFor="let kpi of kpis; let i = index"
-              draggable="true"
-              [attr.data-kpi-index]="i"
-              [class.is-dragging]="draggedKpiId === kpi.id"
-              (dragstart)="onKpiDragStart(kpi.id, $event)"
-              (dragend)="onKpiDragEnd()"
-            >
-              <span class="kpi-row__label">{{ kpi.title }}</span>
-              <strong class="kpi-row__value">{{ kpi.value }}</strong>
-            </div>
-            <div class="kpi-edge-drop-zone kpi-edge-drop-zone--bottom"></div>
+              class="kpi-drop-slot"
+              [class.is-active]="insertTargetIndex === kpis.length"
+              (dragover)="onGapDragOver(kpis.length, $event)"
+              (drop)="onGapDrop(kpis.length, $event)"
+            ></div>
           </div>
         </article>
 
-        <article
-          class="panel suggestions-panel"
-          (dragover)="onKpiOuterDragOver('bottom', $event)"
-          (drop)="onKpiOuterDrop('bottom', $event)"
-        >
+        <article class="panel suggestions-panel">
           <div class="panel-header compact-header">
             <h3>Suggerimenti</h3>
           </div>
