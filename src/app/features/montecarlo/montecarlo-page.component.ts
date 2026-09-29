@@ -1244,6 +1244,15 @@ export class MontecarloPageComponent {
     return `${months} ${monthLabel}`;
   }
 
+  getHistogramYTicks(data: Array<{ value: number }>, baselineY: number, plotHeight: number, axisX: number): Array<{ label: string; y: number; x: number }> {
+    const maxValue = Math.max(...data.map((item) => Number(item.value ?? 0)), 1);
+    return [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
+      label: `${Math.round(maxValue * ratio)}`,
+      y: baselineY - (plotHeight * ratio),
+      x: axisX
+    }));
+  }
+
   getHistogramXAxisTicks(): Array<{ label: string; x: number; lowerBoundPercent: number; upperBoundPercent: number }> {
     const bins = this.finalReturnDistribution.bins;
     if (!bins.length) {
@@ -1286,7 +1295,7 @@ export class MontecarloPageComponent {
 
     return geometry.map((entry) => {
       const h = (entry.bin.value / maxValue) * height;
-      const baselineY = 150;
+      const baselineY = 195;
       const y = baselineY - h;
       return {
         x: entry.x,
@@ -1317,7 +1326,7 @@ export class MontecarloPageComponent {
 
     return geometry.bars.map((entry) => {
       const h = (Number(entry.bin.value ?? 0) / maxValue) * height;
-      const baselineY = 145;
+      const baselineY = 190;
       const y = baselineY - h;
       return {
         x: entry.x,
