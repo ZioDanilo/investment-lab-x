@@ -1399,7 +1399,7 @@ export class MontecarloPageComponent {
   }
 
   getPortfolioEvolutionX(year: number): number {
-    return 68 + ((Math.max(1, Math.min(30, year)) - 1) / 29) * (640 - 68 - 18);
+    return 52 + ((Math.max(1, Math.min(30, year)) - 1) / 29) * (640 - 52 - 6);
   }
 
   getPortfolioEvolutionY(annualReturn: number): number {
@@ -1410,15 +1410,15 @@ export class MontecarloPageComponent {
   }
 
   getPortfolioEvolutionHoverX(year: number): number {
-    const plotLeft = 68;
-    const plotRight = 622;
+    const plotLeft = 52;
+    const plotRight = 634;
     const step = (plotRight - plotLeft) / 29;
     return Math.max(plotLeft, this.getPortfolioEvolutionX(year) - step / 2);
   }
 
   getPortfolioEvolutionHoverWidth(year: number): number {
-    const plotLeft = 68;
-    const plotRight = 622;
+    const plotLeft = 52;
+    const plotRight = 634;
     const step = (plotRight - plotLeft) / 29;
     const left = this.getPortfolioEvolutionHoverX(year);
     const right = Math.min(plotRight, this.getPortfolioEvolutionX(year) + step / 2);
