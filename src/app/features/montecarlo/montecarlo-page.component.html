@@ -65,6 +65,47 @@
               </g>
 
               <polyline [attr.points]="buildPortfolioEvolutionPoints()" class="evolution-line" />
+
+              <g *ngFor="let point of portfolioEvolution">
+                <circle
+                  [attr.cx]="getPortfolioEvolutionX(point.year)"
+                  [attr.cy]="getPortfolioEvolutionY(point.capital)"
+                  r="8"
+                  class="evolution-hit-point"
+                  (mouseenter)="onPortfolioEvolutionPointEnter(point)"
+                  (mouseleave)="onPortfolioEvolutionPointLeave()"
+                ></circle>
+                <circle
+                  [attr.cx]="getPortfolioEvolutionX(point.year)"
+                  [attr.cy]="getPortfolioEvolutionY(point.capital)"
+                  [attr.r]="hoveredPortfolioEvolutionPoint === point ? 4 : 2.5"
+                  class="evolution-visible-point"
+                  pointer-events="none"
+                ></circle>
+              </g>
+
+              <g *ngIf="hoveredPortfolioEvolutionPoint as point" class="evolution-tooltip" pointer-events="none">
+                <rect
+                  [attr.x]="Math.min(Math.max(getPortfolioEvolutionX(point.year) - 58, 72), 502)"
+                  [attr.y]="Math.max(getPortfolioEvolutionY(point.capital) - 52, 8)"
+                  width="116"
+                  height="38"
+                  rx="7"
+                  class="evolution-tooltip-bg"
+                ></rect>
+                <text
+                  [attr.x]="Math.min(Math.max(getPortfolioEvolutionX(point.year), 130), 560)"
+                  [attr.y]="Math.max(getPortfolioEvolutionY(point.capital) - 37, 23)"
+                  text-anchor="middle"
+                  class="evolution-tooltip-year"
+                >Anno {{ point.year }}</text>
+                <text
+                  [attr.x]="Math.min(Math.max(getPortfolioEvolutionX(point.year), 130), 560)"
+                  [attr.y]="Math.max(getPortfolioEvolutionY(point.capital) - 23, 37)"
+                  text-anchor="middle"
+                  class="evolution-tooltip-value"
+                >{{ formatEuroTooltip(point.capital) }}</text>
+              </g>
             </svg>
 
             <ng-template #evolutionEmpty>
