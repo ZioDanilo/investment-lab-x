@@ -839,7 +839,7 @@ export class MontecarloPageComponent {
       return;
     }
 
-    const rows = Array.from(container.querySelectorAll<HTMLElement>('.kpi-row:not(.is-dragging)'));
+    const rows = Array.from(container.querySelectorAll<HTMLElement>('.kpi-row:not(.kpi-row--placeholder)'));
     let insertIndex = this.kpis.length;
 
     for (const row of rows) {
@@ -851,7 +851,10 @@ export class MontecarloPageComponent {
       }
     }
 
-    this.insertTargetIndex = insertIndex;
+    if (this.insertTargetIndex !== insertIndex) {
+      this.insertTargetIndex = insertIndex;
+      this.previewKpiMove(this.draggedKpiId, insertIndex);
+    }
   }
 
   onKpiListDrop(event: DragEvent): void {
@@ -862,7 +865,7 @@ export class MontecarloPageComponent {
       return;
     }
 
-    this.insertKpi(kpiId, this.insertTargetIndex ?? this.kpis.length);
+    // The list is already in the previewed order; dropping only commits it.
     this.finishDragState();
   }
 
@@ -886,6 +889,25 @@ export class MontecarloPageComponent {
 
     const next = [...this.kpis];
     [next[sourceIndex], next[targetIndex]] = [next[targetIndex], next[sourceIndex]];
+    this.kpis = next;
+  }
+
+  private previewKpiMove(kpiId: string, insertIndex: number): void {
+    const sourceIndex = this.kpis.findIndex((kpi) => kpi.id === kpiId);
+    if (sourceIndex === -1) {
+      return;
+    }
+
+    const next = [...this.kpis];
+    const [moved] = next.splice(sourceIndex, 1);
+    let targetIndex = insertIndex;
+
+    if (sourceIndex < targetIndex) {
+      targetIndex -= 1;
+    }
+
+    targetIndex = Math.max(0, Math.min(targetIndex, next.length));
+    next.splice(targetIndex, 0, moved);
     this.kpis = next;
   }
 
