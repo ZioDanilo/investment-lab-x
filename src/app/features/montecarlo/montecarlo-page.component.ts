@@ -851,7 +851,13 @@ export class MontecarloPageComponent {
       }
     }
 
-    this.insertTargetIndex = insertIndex;
+    // Reorder live while dragging: the whole KPI card moves into the candidate
+    // position, so the surrounding cards visibly make room instead of showing
+    // a thin insertion marker.
+    if (this.insertTargetIndex !== insertIndex) {
+      this.insertTargetIndex = insertIndex;
+      this.insertKpi(this.draggedKpiId, insertIndex);
+    }
   }
 
   onKpiListDrop(event: DragEvent): void {
@@ -862,7 +868,7 @@ export class MontecarloPageComponent {
       return;
     }
 
-    this.insertKpi(kpiId, this.insertTargetIndex ?? this.kpis.length);
+    // Position is already reflected live by dragover; drop only commits it.
     this.finishDragState();
   }
 
