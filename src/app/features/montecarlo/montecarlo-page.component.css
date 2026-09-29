@@ -503,8 +503,9 @@
 }
 
 .kpi-row__value {
-  font-size: 1rem;
-  color: #edf7ff;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
   white-space: nowrap;
 }
 
