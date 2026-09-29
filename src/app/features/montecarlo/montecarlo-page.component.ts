@@ -84,6 +84,20 @@ export class MontecarloPageComponent {
   isRegeneratingMarketUniverse = false;
   marketUniverseStatusMessage: string | null = null;
   kpis: KpiCard[] = [...this.defaultKpis];
+  readonly kpiTargetOptions: Record<string, string[]> = {
+    expectedReturn: ['2%', '3%', '4%', '5%', '6%', '7%', '8%'],
+    volatility: ['6%', '8%', '10%', '12%', '14%', '16%', '18%'],
+    positiveReturnProbability: ['80%', '90%', '95%', '97%', '99%', '100%'],
+    recoveryPeriod: ['1 anno', '2 anni', '3 anni', '4 anni', '5 anni', '6 anni'],
+    averageMaxDrawdown: ['10%', '15%', '20%', '25%', '30%', '35%', '40%']
+  };
+  kpiTargets: Record<string, string> = {
+    expectedReturn: '2%',
+    volatility: '6%',
+    positiveReturnProbability: '80%',
+    recoveryPeriod: '1 anno',
+    averageMaxDrawdown: '10%'
+  };
   draggedKpiId: string | null = null;
   draggedKpiPreview: KpiCard | null = null;
   draggedKpiPreviewPosition = { left: 0, top: 0, width: 0, height: 0 };
