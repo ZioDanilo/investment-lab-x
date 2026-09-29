@@ -258,3 +258,28 @@
 }
 .profile-dropdown__item--logout { color: #ff8092; }
 .profile-dropdown__item--logout .material-symbols-rounded { color: #ff657d; }
+
+
+/* Keep the profile dropdown mounted: visibility is controlled explicitly so the menu cannot be lost by structural rendering/clipping. */
+.global-navbar,
+.nav-actions,
+.profile-menu {
+  overflow: visible !important;
+}
+
+.profile-dropdown {
+  display: block;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity .12s ease, transform .12s ease, visibility 0s linear .12s;
+}
+
+.profile-dropdown.is-open {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
