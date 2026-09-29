@@ -6,6 +6,12 @@ export interface PortfolioOption {
   label: string;
 }
 
+export interface WorkingPortfolioSnapshot {
+  id: string;
+  name?: string;
+  holdings: Array<{ etfId: string; isin?: string; ticker?: string; nickname?: string; fullName?: string; weight: number; [key: string]: any }>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -14,6 +20,9 @@ export class PortfolioSelectionService {
 
   readonly portfolioOptions = signal<PortfolioOption[]>([]);
   readonly selectedPortfolio = signal<PortfolioOption | null>(null);
+  readonly currentWorkingPortfolioId = signal<string | null>(null);
+  readonly workingPortfolio = signal<WorkingPortfolioSnapshot | null>(null);
+  readonly originalPortfolioSnapshot = signal<WorkingPortfolioSnapshot | null>(null);
   readonly loading = signal(false);
   readonly hasError = signal(false);
 
@@ -72,19 +81,82 @@ export class PortfolioSelectionService {
   setSelectedPortfolio(portfolioId: string | null): void {
     if (!portfolioId) {
       this.selectedPortfolio.set(null);
+      this.discardWorkingPortfolio();
       return;
     }
 
     const nextPortfolio = this.portfolioOptions().find((portfolio) => portfolio.id === portfolioId);
+    const previousId = this.currentWorkingPortfolioId();
+
+    if (previousId && previousId !== portfolioId) {
+      this.discardWorkingPortfolio();
+    }
 
     this.selectedPortfolio.set(nextPortfolio ?? null);
+    if (nextPortfolio && this.currentWorkingPortfolioId() !== nextPortfolio.id) {
+      this.currentWorkingPortfolioId.set(nextPortfolio.id);
+      this.workingPortfolio.set(null);
+      this.originalPortfolioSnapshot.set(null);
+    }
   }
 
   setSelectedPortfolioByLabel(label: string): void {
     const nextPortfolio = this.portfolioOptions().find((portfolio) => portfolio.label === label);
 
     if (nextPortfolio) {
-      this.selectedPortfolio.set(nextPortfolio);
+      this.setSelectedPortfolio(nextPortfolio.id);
     }
+  }
+
+  preserveWorkingPortfolio(portfolioId: string, portfolio: WorkingPortfolioSnapshot | null): void {
+    const normalizedPortfolio = portfolio ? {
+      ...portfolio,
+      holdings: Array.isArray(portfolio.holdings) ? portfolio.holdings.map((holding) => ({ ...holding })) : []
+    } : null;
+
+    if (this.currentWorkingPortfolioId() && this.currentWorkingPortfolioId() !== portfolioId) {
+      this.discardWorkingPortfolio();
+    }
+
+    this.currentWorkingPortfolioId.set(portfolioId);
+    this.workingPortfolio.set(normalizedPortfolio);
+    if (!this.originalPortfolioSnapshot() || this.originalPortfolioSnapshot()?.id !== portfolioId) {
+      this.originalPortfolioSnapshot.set(normalizedPortfolio ? {
+        ...normalizedPortfolio,
+        holdings: normalizedPortfolio.holdings.map((holding) => ({ ...holding }))
+      } : null);
+    }
+  }
+
+  restoreWorkingPortfolio(portfolioId: string, fallback: WorkingPortfolioSnapshot | null): WorkingPortfolioSnapshot | null {
+    const currentId = this.currentWorkingPortfolioId();
+    const storedPortfolio = this.workingPortfolio();
+
+    if (currentId === portfolioId && storedPortfolio) {
+      return {
+        ...storedPortfolio,
+        holdings: storedPortfolio.holdings.map((holding) => ({ ...holding }))
+      };
+    }
+
+    if (currentId && currentId !== portfolioId) {
+      this.discardWorkingPortfolio();
+    }
+
+    const normalizedFallback = fallback ? {
+      ...fallback,
+      holdings: Array.isArray(fallback.holdings) ? fallback.holdings.map((holding) => ({ ...holding })) : []
+    } : null;
+
+    this.currentWorkingPortfolioId.set(portfolioId);
+    this.originalPortfolioSnapshot.set(normalizedFallback ? { ...normalizedFallback, holdings: normalizedFallback.holdings.map((holding) => ({ ...holding })) } : null);
+    this.workingPortfolio.set(normalizedFallback ? { ...normalizedFallback, holdings: normalizedFallback.holdings.map((holding) => ({ ...holding })) } : null);
+    return normalizedFallback;
+  }
+
+  discardWorkingPortfolio(): void {
+    this.currentWorkingPortfolioId.set(null);
+    this.workingPortfolio.set(null);
+    this.originalPortfolioSnapshot.set(null);
   }
 }

@@ -203,7 +203,12 @@ const modelMatrices = {
   soft_landing: { target: [[1, 0.4], [0.4, 1]], operational: [[1, 0.4], [0.4, 1]], latent: [[1, 0.4], [0.4, 1]] }
 } as const;
 
-const runResult = (paths: MonteCarloPathResult[], extraOptions: Record<string, unknown> = {}) => MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100000, baseOptions, { advancedStatisticsEnabled: true, modelMatrices, ...extraOptions });
+const runResult = (paths: MonteCarloPathResult[], extraOptions: Record<string, unknown> = {}) => MonteCarloStatisticsEngine.buildOfficialResult(paths, 1, 100000, {
+  ...baseOptions,
+  ...extraOptions,
+  modelMatrices,
+  advancedStatisticsEnabled: extraOptions.advancedStatisticsEnabled ?? true
+});
 
 const results: Array<{ name: string; pass: boolean; details: string }> = [];
 

@@ -59,12 +59,17 @@ export const buildMonteCarloUserInput = (
 
 export const createCompleteExecutionMode = (): keyof typeof MONTE_CARLO_EXECUTION_MODES => 'COMPLETE';
 
-export const createMonteCarloCoordinator = (input: MonteCarloUserInput, snapshot: MonteCarloSnapshot, mode: keyof typeof MONTE_CARLO_EXECUTION_MODES = 'COMPLETE') => {
+export const createMonteCarloCoordinator = (
+  input: MonteCarloUserInput,
+  snapshot: MonteCarloSnapshot,
+  mode: keyof typeof MONTE_CARLO_EXECUTION_MODES = 'COMPLETE',
+  onProgress?: (progress: number) => void
+) => {
   validateMonteCarloRunContract(input, snapshot);
   return new MonteCarloCoordinator({
     input,
     snapshot,
     mode,
-    onProgress: () => undefined
+    onProgress: onProgress ?? (() => undefined)
   });
 };

@@ -1,10 +1,18 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, ViewChild, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { MonteCarloStatisticsEngine } from '../../core/engines/monte-carlo-statistics.engine';
+import {
+  buildMonteCarloSnapshotRequest,
+  buildMonteCarloUserInput,
+  createMonteCarloCoordinator
+} from '../../core/monte-carlo-ui-flow';
+import { MarketUniverseBinaryTransport, type DecodedMarketUniverseBinary } from '../../core/market-universe/market-universe-binary-transport';
 import { MonteCarloResult } from '../../core/models/monte-carlo-contracts.model';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
+import { MontecarloPortfolioEditorComponent, type MontecarloPortfolioEditorChange } from '../../shared/components/montecarlo-portfolio-editor/montecarlo-portfolio-editor.component';
+import { ToastComponent } from '../../shared/components/toast/toast.component';
 import {
   buildCagrHistogramFromPaths,
   buildDrawdownDisplayGeometry,
@@ -40,7 +48,7 @@ interface KpiCard {
 @Component({
   selector: 'app-montecarlo-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MontecarloPortfolioEditorComponent, ToastComponent],
   templateUrl: './montecarlo-page.component.html',
   styleUrls: ['./montecarlo-page.component.css']
 })
@@ -48,7 +56,11 @@ export class MontecarloPageComponent {
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
   private readonly apiService = inject(ApiService);
 
+  @ViewChild(ToastComponent) toast!: ToastComponent;
+
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
+  readonly editorState = signal<MontecarloPortfolioEditorChange | null>(null);
+  readonly portfolioEvolutionValues = [0, 15000, 32000, 52000, 76000, 98000, 124000, 148000, 176000, 190000, 214000, 240000, 265000, 289000, 314000, 330000];
   finalReturnDistribution: { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } = {
     label: 'Distribuzione dei rendimenti finali',
     subtitle: 'Distribuzione simulata a 30 anni',
@@ -73,7 +85,19 @@ export class MontecarloPageComponent {
     { id: 'recoveryTime', title: 'RECOVERY TIME', value: '—', description: 'Tempo medio di recupero', tone: 'teal' }
   ];
 
+  private marketUniverseBinaryMetadataCache: {
+    runId: string;
+    transportVersion: number;
+    pathCount: number;
+    monthCount: number;
+    scenarios: Uint8Array;
+    intensities: Float64Array;
+  } | null = null;
+
   isRunning = false;
+  simulationProgress = 0;
+  completionHoldActive = false;
+  private completionHoldTimeoutId: ReturnType<typeof setTimeout> | null = null;
   isRegeneratingMarketUniverse = false;
   marketUniverseStatusMessage: string | null = null;
   kpis: KpiCard[] = [...this.defaultKpis];
@@ -157,6 +181,38 @@ export class MontecarloPageComponent {
     };
   }
 
+  get runButtonLabel(): string {
+    if (!this.isRunning && !this.completionHoldActive) {
+      return 'AVVIA SIMULAZIONE';
+    }
+
+    return `${this.buttonFillWidth}%`;
+  }
+
+  get buttonFillWidth(): number {
+    if (this.completionHoldActive) {
+      return 100;
+    }
+
+    return Math.max(0, Math.min(99, this.simulationProgress));
+  }
+
+  private clearCompletionHold(): void {
+    if (this.completionHoldTimeoutId) {
+      clearTimeout(this.completionHoldTimeoutId);
+      this.completionHoldTimeoutId = null;
+    }
+    this.completionHoldActive = false;
+  }
+
+  private showToast(message: string): void {
+    if (this.toast) {
+      this.toast.show(message);
+      return;
+    }
+    console.error(message);
+  }
+
   async regenerateMarketUniverse(): Promise<void> {
     if (this.isRegeneratingMarketUniverse) {
       return;
@@ -175,11 +231,11 @@ export class MontecarloPageComponent {
         throw new Error(payload?.error || 'Market Universe regeneration failed');
       }
 
-      this.marketUniverseStatusMessage = incompleteCount > 0
-        ? `Market Universe rigenerato — ${assetCount} strumenti, ${incompleteCount} incompleti`
-        : `Market Universe rigenerato — ${assetCount} strumenti`;
+      this.marketUniverseStatusMessage = null;
     } catch (error: any) {
-      this.marketUniverseStatusMessage = error?.error?.error || error?.message || 'Errore nella rigenerazione del Market Universe';
+      const message = error?.error?.error || error?.message || 'Errore nella rigenerazione del Market Universe';
+      this.marketUniverseStatusMessage = null;
+      this.showToast(message);
     } finally {
       this.isRegeneratingMarketUniverse = false;
     }
@@ -288,6 +344,160 @@ export class MontecarloPageComponent {
     const finalCapital = runningCapital;
     const cagr = Math.pow(Math.max(finalCapital / initialCapital, Number.EPSILON), 1 / Math.max(horizonYears, 1)) - 1;
     return { cagr, simulationId: Number(rawPath?.pathId ?? pathIndex + 1), maxDrawdown };
+  }
+
+  private normalizeBinaryProjectionProjection(decoded: DecodedMarketUniverseBinary): any {
+    const modeScenarioCache = decoded.payloadType === 'FULL' ? decoded.scenarios : this.marketUniverseBinaryMetadataCache?.scenarios ?? null;
+    const modeIntensityCache = decoded.payloadType === 'FULL' ? decoded.intensities : this.marketUniverseBinaryMetadataCache?.intensities ?? null;
+
+    if (!modeScenarioCache || !modeIntensityCache) {
+      throw new Error('Binary Market Universe payload missing scenario/intensity metadata for statistics adaptation.');
+    }
+
+    const pathEntries = [] as any[];
+    const totalPaths = Number(decoded.pathCount || 0);
+    const totalMonths = Number(decoded.monthCount || 0);
+
+    for (let pathId = 0; pathId < totalPaths; pathId += 1) {
+      const monthlyReturns = [] as number[];
+      const months = [] as any[];
+      const baseIndex = pathId * totalMonths;
+
+      for (let monthIndex = 0; monthIndex < totalMonths; monthIndex += 1) {
+        const flatIndex = baseIndex + monthIndex;
+        const weightedReturn = Number(decoded.returns[flatIndex] ?? 0);
+        const scenarioCode = modeScenarioCache[flatIndex] ?? 0;
+        const scenario = MarketUniverseBinaryTransport.decodeScenarioCode(scenarioCode);
+        const intensity = Number(modeIntensityCache[flatIndex] ?? 0);
+        monthlyReturns.push(weightedReturn);
+        months.push({
+          monthIndex,
+          scenario,
+          intensity,
+          weightedReturn
+        });
+      }
+
+      pathEntries.push({
+        pathId,
+        monthlyReturns,
+        months
+      });
+    }
+
+    return {
+      success: true,
+      run: {
+        runId: decoded.runId,
+        pathCount: totalPaths,
+        monthCount: totalMonths,
+        assetCount: 0,
+        status: 'ACTIVE',
+        active: true,
+        generatedAt: new Date().toISOString()
+      },
+      pathCount: totalPaths,
+      monthCount: totalMonths,
+      paths: pathEntries
+    };
+  }
+
+  private setBinaryMetadataCacheFromDecoded(decoded: DecodedMarketUniverseBinary): void {
+    if (decoded.payloadType !== 'FULL') {
+      return;
+    }
+    if (!decoded.scenarios || !decoded.intensities) {
+      throw new Error('FULL binary payload is missing required scenario or intensity arrays.');
+    }
+
+    this.marketUniverseBinaryMetadataCache = {
+      runId: decoded.runId,
+      transportVersion: decoded.version,
+      pathCount: decoded.pathCount,
+      monthCount: decoded.monthCount,
+      scenarios: decoded.scenarios,
+      intensities: decoded.intensities
+    };
+  }
+
+  private invalidateBinaryMetadataCache(): void {
+    this.marketUniverseBinaryMetadataCache = null;
+  }
+
+  private ensureBinaryMetadataCompatibility(decoded: DecodedMarketUniverseBinary): void {
+    const metadata = this.marketUniverseBinaryMetadataCache;
+    if (!metadata) {
+      throw new Error('Binary Market Universe metadata cache is empty for RETURNS_ONLY validation.');
+    }
+
+    if (decoded.runId !== metadata.runId || decoded.version !== metadata.transportVersion || decoded.pathCount !== metadata.pathCount || decoded.monthCount !== metadata.monthCount) {
+      this.invalidateBinaryMetadataCache();
+      throw new Error('Binary Market Universe metadata mismatch: refusing to combine stale run metadata.');
+    }
+  }
+
+  private async requestBinaryProjectionForHoldings(
+    holdings: Array<{ isin: string; weight: number }>,
+    options: {
+      knownRunId?: string | null;
+      previousRunId?: string | null;
+      payloadType?: 'FULL' | 'RETURNS_ONLY';
+    } = {}
+  ): Promise<DecodedMarketUniverseBinary> {
+    const response = await firstValueFrom(this.apiService.buildBinaryPortfolioProjectionFromActiveMarketUniverse({
+      holdings,
+      knownRunId: options.knownRunId ?? null,
+      previousRunId: options.previousRunId ?? null,
+      payloadType: options.payloadType ?? 'FULL'
+    }));
+
+    if (!response) {
+      throw new Error('Binary Market Universe response was empty.');
+    }
+
+    const arrayBuffer = response instanceof ArrayBuffer
+      ? response
+      : (response as ArrayBufferView)?.buffer instanceof ArrayBuffer
+        ? (response as ArrayBufferView).buffer
+        : new Uint8Array(response as ArrayBuffer | number[]).buffer;
+
+    return MarketUniverseBinaryTransport.decode(arrayBuffer);
+  }
+
+  private async requestBinarySimulationProjection(holdings: Array<{ isin: string; weight: number }>): Promise<any> {
+    const baseKnownRunId = this.marketUniverseBinaryMetadataCache?.runId ?? null;
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const knownRunId = attempt === 0 ? baseKnownRunId : null;
+      const payloadType = attempt === 0 && knownRunId ? 'RETURNS_ONLY' : 'FULL';
+      const previousRunId = attempt === 0 && knownRunId ? knownRunId : null;
+
+      try {
+        const decoded = await this.requestBinaryProjectionForHoldings(holdings, {
+          knownRunId,
+          previousRunId,
+          payloadType
+        });
+
+        if (decoded.payloadType === 'RETURNS_ONLY') {
+          this.ensureBinaryMetadataCompatibility(decoded);
+          return this.normalizeBinaryProjectionProjection(decoded);
+        }
+
+        this.setBinaryMetadataCacheFromDecoded(decoded);
+        return this.normalizeBinaryProjectionProjection(decoded);
+      } catch (error) {
+        lastError = error;
+        if (attempt === 0 && baseKnownRunId && (error instanceof Error) && /stale|mismatch|invalid|metadata/i.test(error.message)) {
+          this.invalidateBinaryMetadataCache();
+          continue;
+        }
+        break;
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('Binary Market Universe request failed.');
   }
 
   private buildOfficialResultFromProjection(projection: any, initialCapital: number, horizonYears: number): MonteCarloResult {
@@ -460,7 +670,12 @@ export class MontecarloPageComponent {
     });
   }
 
+  onEditorStateChange(change: MontecarloPortfolioEditorChange): void {
+    this.editorState.set(change);
+  }
+
   async runSimulation(): Promise<void> {
+    console.log('[MC-TRACE 01] runSimulation entered');
     const portfolio = this.selectedPortfolio();
     if (!portfolio || this.isRunning) {
       return;
@@ -468,9 +683,9 @@ export class MontecarloPageComponent {
 
     this.isRunning = true;
     this.resetKpis();
-    this.marketUniverseStatusMessage = 'Caricamento Market Universe attivo...';
 
     try {
+      console.log('[MC-TRACE 02] snapshot request start');
       const portfolioResponse = await firstValueFrom(this.apiService.getPortfolioById(portfolio.id));
       const rawHoldings = Array.isArray(portfolioResponse?.data?.holdings)
         ? portfolioResponse.data.holdings
@@ -482,60 +697,112 @@ export class MontecarloPageComponent {
         throw new Error('Portfolio senza holding disponibili.');
       }
 
-      const positions: Array<{ isin: string; weight: number }> = rawHoldings
-        .map((holding: any): { isin: string; weight: number } | null => {
-          const isin = holding?.isin ?? holding?.etfId ?? holding?.id ?? holding?.ticker;
-          const weight = Number(holding?.weight ?? holding?.targetWeight ?? 0);
-          if (!isin || !Number.isFinite(weight) || weight <= 0) {
-            return null;
-          }
-          return { isin: String(isin), weight };
-        })
-        .filter((position: { isin: string; weight: number } | null): position is { isin: string; weight: number } => position !== null);
+      const positions = rawHoldings
+        .map((holding: any) => ({
+          isin: holding?.isin ?? holding?.etfId ?? holding?.id ?? holding?.ticker,
+          weight: Number(holding?.weight ?? holding?.targetWeight ?? 0)
+        }))
+        .filter((position: { isin?: string; weight: number }) => Boolean(position.isin) && Number.isFinite(position.weight) && position.weight > 0);
 
       if (positions.length === 0) {
         throw new Error('Nessuna posizione valida nel portafoglio selezionato.');
       }
 
-      const normalizedPositions = positions.map((position: { isin: string; weight: number }) => ({
-        isin: position.isin,
+      const normalizedPositions = positions.map((position: { isin?: string; weight: number }) => ({
+        isin: String(position.isin),
         weight: position.weight
       }));
 
-      const projectionResponse = await firstValueFrom(this.apiService.buildPortfolioProjectionFromActiveMarketUniverse({
-        holdings: normalizedPositions
-      }));
+      console.log('[MC-TRACE 04] build input start');
+      const snapshotRequest = buildMonteCarloSnapshotRequest(normalizedPositions);
+      const snapshotResponse = await firstValueFrom(this.apiService.getMonteCarloSnapshot(snapshotRequest));
+      const snapshot = snapshotResponse?.data ?? snapshotResponse;
+      console.log('[MC-TRACE 03] snapshot received', {
+        exists: !!snapshot,
+        assetCount: Array.isArray(snapshot?.etfs) ? snapshot.etfs.length : 0
+      });
 
-      const projection = projectionResponse?.data ?? projectionResponse;
-      if (!projection || !Array.isArray(projection?.paths) || projection.paths.length === 0) {
-        throw new Error('Active Market Universe non disponibile o senza percorsi validi.');
+      if (!snapshot || !Array.isArray(snapshot.etfs) || snapshot.etfs.length === 0) {
+        throw new Error('Snapshot Monte Carlo non disponibile.');
       }
 
-      this.marketUniverseStatusMessage = `Market Universe attivo • ${projection?.run?.pathCount ?? projection.paths.length} percorsi • ${projection?.run?.monthCount ?? 360} mesi`;
-      const projectedPaths = Array.isArray(projection?.paths) ? projection.paths.map((rawPath: any, index: number) => this.buildPathResultFromProjection(rawPath, index, 100000, 30)) : [];
-      const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
-      this.finalReturnDistribution = this.buildFinalReturnDistribution(projectedPaths);
-      this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(projectedPaths);
-      console.info('Final return histogram buckets', this.finalReturnDistribution.bins.slice(0, 12).map((bin) => ({
-        lowerBound: bin.lowerBoundPercent,
-        upperBound: bin.upperBoundPercent,
-        count: bin.value
-      })));
+      const input = buildMonteCarloUserInput(normalizedPositions, 100000, 30);
+      console.log('[MC-TRACE 05] input built', {
+        totalPaths: input ? 1000 : 0,
+        months: input ? input.horizonYears * 12 : 0,
+        years: input ? input.horizonYears : 0,
+        etfCount: input ? input.positions.length : 0
+      });
+      console.log('[MC-TRACE 06] coordinator creation start');
+      const coordinator = createMonteCarloCoordinator(input, snapshot, 'COMPLETE', (progress) => {
+        const progressValue = Number(progress);
+        const progressType = typeof progress;
+        const preview = typeof progress === 'number' ? progress : (progress && typeof progress === 'object' ? Object.keys(progress).slice(0, 5) : String(progress));
+        console.log('[MC-TRACE PROGRESS] callback', { type: progressType, value: progressValue, preview });
+        if (progressValue >= 1 && progressValue < 25 && !this.simulationProgress) {
+          console.log('[MC-TRACE PROGRESS] 1');
+        }
+        if (progressValue >= 25 && progressValue < 50) {
+          console.log('[MC-TRACE PROGRESS] 25');
+        }
+        if (progressValue >= 50 && progressValue < 75) {
+          console.log('[MC-TRACE PROGRESS] 50');
+        }
+        if (progressValue >= 75 && progressValue < 99) {
+          console.log('[MC-TRACE PROGRESS] 75');
+        }
+        if (progressValue >= 99) {
+          console.log('[MC-TRACE PROGRESS] 99');
+        }
+        this.simulationProgress = Math.min(Math.max(Number(progress) || 0, 0), 99);
+      });
+      console.log('[MC-TRACE 07] coordinator created');
+      console.log('[MC-TRACE 08] coordinator.run start');
+      const outcome = await coordinator.run();
+      console.log('[MC-TRACE 09] coordinator.run resolved', {
+        hasOutcome: !!outcome,
+        status: outcome?.status,
+        hasResult: !!outcome?.result,
+        errorCode: outcome?.error?.code,
+        errorMessage: outcome?.error?.message ? String(outcome.error.message).slice(0, 120) : undefined
+      });
+
+      if (outcome.status !== 'success' || !outcome.result) {
+        throw new Error(outcome.error?.message ?? 'Simulazione Monte Carlo fallita.');
+      }
+
+      const result = outcome.result;
+      console.log('[MC-TRACE 10] applying result');
       this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
       this.updateDonutSegments();
       this.kpis = [
         { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
         { id: 'volatility', title: 'VOLATILITÀ', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
         { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: '—', description: 'Scenari con rendimento > 0', tone: 'blue' },
+        { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
         { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' },
         { id: 'recoveryTime', title: 'RECOVERY TIME', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio di recupero', tone: 'teal' }
       ];
-    } catch (error: any) {
-      this.marketUniverseStatusMessage = error?.error?.error || error?.message || 'Errore nella lettura del Market Universe attivo';
+      console.log('[MC-TRACE 11] result applied', {
+        kpis: this.kpis.length,
+        returnsBins: this.finalReturnDistribution?.bins?.length ?? 0,
+        drawdownBins: this.maxDrawdownDistribution?.bins?.length ?? 0,
+        scenarios: this.macroScenarioDistribution?.length ?? 0
+      });
+    } catch (error) {
+      console.error('[MC-TRACE ERROR]', error);
       this.kpis = [...this.defaultKpis];
     } finally {
+      console.log('[MC-TRACE 12] runSimulation finally', {
+        isRunning: this.isRunning,
+        simulationProgress: this.simulationProgress
+      });
       this.isRunning = false;
     }
+  }
+
+  buildPlaceholderEvolutionPath(): string {
+    return this.buildLinePath(this.portfolioEvolutionValues, 520, 170, 24);
   }
 
   private resetKpis(): void {

@@ -61,6 +61,7 @@ interface ActivityItem {
   styleUrls: ['./home-page.component.css']
 })
 export class HomePageComponent {
+
   readonly navItems: NavItem[] = [
     { label: 'Home', icon: 'home', active: true },
     { label: 'Laboratorio Portafogli', icon: 'science' },

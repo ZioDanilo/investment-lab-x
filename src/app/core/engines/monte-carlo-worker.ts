@@ -1,4 +1,15 @@
-﻿export { derivePathSeed, toCompactPathResult } from 'investment-lab-core';
+﻿export {
+  derivePathSeed,
+  toCompactPathResult,
+  beginReturnVectorBatchProfile,
+  endReturnVectorBatchProfile,
+  generateMonthlyReturnVector
+} from 'investment-lab-core';
+
+console.info('[MC-REAL-WORKER] LOADED', {
+  workerScope: typeof self !== 'undefined' ? 'worker' : 'unknown',
+  url: typeof import.meta !== 'undefined' ? import.meta.url : undefined
+});
 
 const deviationDirectionCodes: Record<string, number> = {
   above_expected: 0,
