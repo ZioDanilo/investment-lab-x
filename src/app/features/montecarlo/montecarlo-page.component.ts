@@ -706,21 +706,21 @@ export class MontecarloPageComponent {
     this.resetKpis();
 
     try {
-      const portfolioResponse = await firstValueFrom(this.apiService.getPortfolioById(portfolio.id));
-      const rawHoldings = Array.isArray(portfolioResponse?.data?.holdings)
-        ? portfolioResponse.data.holdings
-        : Array.isArray(portfolioResponse?.holdings)
-          ? portfolioResponse.holdings
-          : [];
-
-      const positions = rawHoldings
-        .map((holding: any) => ({
-          isin: holding?.isin ?? holding?.etfId ?? holding?.id ?? holding?.ticker,
-          weight: Number(holding?.weight ?? holding?.targetWeight ?? 0)
+      // The editor is the source of truth for a simulation. Its composition can
+      // intentionally differ from the persisted portfolio until the user chooses
+      // "Aggiorna portafoglio"; fetching the DB portfolio here would therefore
+      // simulate stale weights after every temporary edit.
+      const editorChange = this.editorState();
+      const editorItems = editorChange?.state?.currentItems ?? [];
+      const positions = editorItems
+        .map((item: any) => ({
+          isin: item?.isin,
+          // Editor weights are percentages (0..100); projection weights are decimals.
+          weight: Number(item?.weight ?? 0) / 100
         }))
         .filter((position: { isin?: string; weight: number }) => Boolean(position.isin) && Number.isFinite(position.weight) && position.weight > 0)
         .map((position: { isin?: string; weight: number }) => ({
-          isin: String(position.isin),
+          isin: String(position.isin).trim().toUpperCase(),
           weight: position.weight
         }));
 
