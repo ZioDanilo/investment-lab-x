@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, ViewChild, inject, signal } from '@angular/core';
+import { Component, HostListener, ViewChild, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { MonteCarloStatisticsEngine } from '../../core/engines/monte-carlo-statistics.engine';
@@ -722,8 +722,7 @@ export class MontecarloPageComponent {
 
   async runSimulation(): Promise<void> {
     this.kpiResultValues = {};
-    const portfolio = this.selectedPortfolio();
-    if (!portfolio || this.editorState()?.state?.isValid !== true || this.isRunning) {
+    if (this.editorState()?.state?.isValid !== true || this.isRunning) {
       return;
     }
 
@@ -751,7 +750,7 @@ export class MontecarloPageComponent {
         }));
 
       if (positions.length === 0) {
-        throw new Error('Nessuna posizione valida nel portafoglio selezionato.');
+        throw new Error('Nessuna posizione valida nella composizione temporanea.');
       }
 
       // Fast path: ETF paths are already generated in the active Market Universe.
@@ -827,6 +826,17 @@ export class MontecarloPageComponent {
     return this.kpis.map((current) => updatedById.get(current.id) ?? current);
   }
 
+  getKpiIcon(kpiId: string): string {
+    const icons: Record<string, string> = {
+      expectedReturn: 'trending_up',
+      volatility: 'show_chart',
+      positiveReturnProbability: 'verified',
+      recoveryPeriod: 'schedule',
+      averageMaxDrawdown: 'trending_down'
+    };
+    return icons[kpiId] ?? 'analytics';
+  }
+
   private resetKpis(): void {
     this.kpis = this.mergeKpiValuesPreservingOrder(this.defaultKpis);
     this.hoveredPortfolioEvolutionYear = null;
@@ -848,20 +858,13 @@ export class MontecarloPageComponent {
         x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
         y: Math.max(0, Math.min(rect.height, event.clientY - rect.top))
       };
-      this.draggedKpiPreviewPosition = {
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height
-      };
+      this.draggedKpiPreviewPosition = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
     }
 
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', kpiId);
 
-      // Suppress the browser's translucent native drag ghost. The visible preview
-      // is a real fixed-position KPI row rendered by Angular.
       const transparentDragImage = document.createElement('div');
       transparentDragImage.style.width = '1px';
       transparentDragImage.style.height = '1px';
@@ -873,10 +876,9 @@ export class MontecarloPageComponent {
   }
 
   onKpiDrag(event: DragEvent): void {
-    if (!this.draggedKpiId || event.clientX === 0 && event.clientY === 0) {
+    if (!this.draggedKpiId || (event.clientX === 0 && event.clientY === 0)) {
       return;
     }
-
     this.draggedKpiPreviewPosition = {
       ...this.draggedKpiPreviewPosition,
       left: event.clientX - this.draggedKpiPointerOffset.x,
@@ -1047,6 +1049,11 @@ export class MontecarloPageComponent {
     this.openKpiTargetId = this.openKpiTargetId === kpiId ? null : kpiId;
   }
 
+  @HostListener('document:click')
+  closeKpiTargetOnOutsideClick(): void {
+    this.openKpiTargetId = null;
+  }
+
   selectKpiTarget(kpiId: string, value: string, event: MouseEvent): void {
     event.stopPropagation();
     this.kpiTargets[kpiId] = value;
@@ -1147,10 +1154,10 @@ export class MontecarloPageComponent {
 
   private buildMacroSegmentsFromFrequencies(frequencies?: Record<string, number> | null): Array<{ label: string; percent: number; color: string; value: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> {
     const palette: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', string> = {
-      expansion: '#4DE3C6',
-      soft_landing: '#5DA7FF',
-      recession: '#FF6B7F',
-      stagflation: '#FFB454'
+      expansion: '#19E6B3',
+      soft_landing: '#268CFF',
+      recession: '#FF365B',
+      stagflation: '#FF9F1C'
     };
 
     const labelMap: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', string> = {
@@ -1237,6 +1244,15 @@ export class MontecarloPageComponent {
     return `${months} ${monthLabel}`;
   }
 
+  getHistogramYTicks(data: Array<{ value: number }>, baselineY: number, plotHeight: number, axisX: number): Array<{ label: string; y: number; x: number }> {
+    const maxValue = Math.max(...data.map((item) => Number(item.value ?? 0)), 1);
+    return [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
+      label: (maxValue * ratio / 10).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+      y: baselineY - (plotHeight * ratio),
+      x: axisX
+    }));
+  }
+
   getHistogramXAxisTicks(): Array<{ label: string; x: number; lowerBoundPercent: number; upperBoundPercent: number }> {
     const bins = this.finalReturnDistribution.bins;
     if (!bins.length) {
@@ -1279,7 +1295,7 @@ export class MontecarloPageComponent {
 
     return geometry.map((entry) => {
       const h = (entry.bin.value / maxValue) * height;
-      const baselineY = 150;
+      const baselineY = 195;
       const y = baselineY - h;
       return {
         x: entry.x,
@@ -1310,7 +1326,7 @@ export class MontecarloPageComponent {
 
     return geometry.bars.map((entry) => {
       const h = (Number(entry.bin.value ?? 0) / maxValue) * height;
-      const baselineY = 145;
+      const baselineY = 190;
       const y = baselineY - h;
       return {
         x: entry.x,
@@ -1383,7 +1399,7 @@ export class MontecarloPageComponent {
   }
 
   getPortfolioEvolutionX(year: number): number {
-    return 68 + ((Math.max(1, Math.min(30, year)) - 1) / 29) * (640 - 68 - 18);
+    return 52 + ((Math.max(1, Math.min(30, year)) - 1) / 29) * (640 - 52 - 6);
   }
 
   getPortfolioEvolutionY(annualReturn: number): number {
@@ -1394,15 +1410,15 @@ export class MontecarloPageComponent {
   }
 
   getPortfolioEvolutionHoverX(year: number): number {
-    const plotLeft = 68;
-    const plotRight = 622;
+    const plotLeft = 52;
+    const plotRight = 634;
     const step = (plotRight - plotLeft) / 29;
     return Math.max(plotLeft, this.getPortfolioEvolutionX(year) - step / 2);
   }
 
   getPortfolioEvolutionHoverWidth(year: number): number {
-    const plotLeft = 68;
-    const plotRight = 622;
+    const plotLeft = 52;
+    const plotRight = 634;
     const step = (plotRight - plotLeft) / 29;
     const left = this.getPortfolioEvolutionHoverX(year);
     const right = Math.min(plotRight, this.getPortfolioEvolutionX(year) + step / 2);

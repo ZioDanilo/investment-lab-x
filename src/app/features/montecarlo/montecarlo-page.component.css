@@ -1411,3 +1411,1237 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Investment Lab X — premium dashboard skin */
+.montecarlo-page {
+  position: relative;
+  isolation: isolate;
+  max-width: 1560px;
+  gap: 14px;
+  padding: 12px 20px 18px;
+}
+.montecarlo-page::before {
+  content: "";
+  position: fixed;
+  inset: 52px 0 auto;
+  height: 260px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 18% -10%, rgba(42, 101, 235, .22), transparent 50%),
+    radial-gradient(ellipse at 82% -20%, rgba(20, 159, 255, .13), transparent 46%);
+  opacity: .9;
+}
+.page-header { display: none; }
+
+.panel {
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid rgba(77, 128, 184, .28);
+  background:
+    linear-gradient(145deg, rgba(15, 31, 52, .78) 0%, rgba(8, 20, 34, .96) 46%, rgba(7, 17, 29, .98) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    inset 0 -1px 0 rgba(0,0,0,.28),
+    0 14px 34px rgba(0, 5, 14, .18);
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.panel:hover {
+  border-color: rgba(76, 145, 219, .42);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 18px 40px rgba(0, 5, 14, .24),
+    0 0 28px rgba(36, 114, 220, .045);
+}
+.panel-header h3 {
+  color: #f3f7ff;
+  font-size: 1.04rem;
+  font-weight: 800;
+  letter-spacing: -.015em;
+}
+.compact-header { margin-bottom: 12px; }
+
+.cta-row {
+  min-height: 58px;
+  padding: 4px 0;
+}
+.run-button,
+.secondary-button {
+  height: 44px;
+  border-radius: 11px;
+}
+.run-button {
+  min-width: 230px;
+  border: 1px solid rgba(92, 137, 185, .38);
+  background: linear-gradient(180deg, rgba(16, 31, 48, .92), rgba(9, 22, 36, .98));
+  color: #aebbd0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 8px 22px rgba(0,0,0,.14);
+}
+.run-button:not(:disabled):not(.is-running) {
+  color: #d9e7f7;
+}
+.run-button:hover:not(:disabled) {
+  border-color: rgba(67, 166, 239, .65);
+  background: linear-gradient(180deg, rgba(18, 39, 61, .98), rgba(10, 25, 42, .98));
+}
+.run-button__fill {
+  border-radius: 9px 0 0 9px;
+  background:
+    linear-gradient(180deg, rgba(70, 203, 255, .28), rgba(15, 91, 224, .24)),
+    linear-gradient(90deg, #0da9df 0%, #1977ed 48%, #3d43e8 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    5px 0 18px rgba(44, 113, 255, .28);
+  transition: width .22s linear;
+}
+.run-button.is-running {
+  opacity: 1 !important;
+  color: #f6fbff;
+  border-color: rgba(51, 154, 255, .68);
+}
+.run-button.is-running .run-button__content {
+  text-shadow: 0 1px 8px rgba(0,0,0,.45);
+}
+.secondary-button {
+  min-width: 260px;
+  border-color: rgba(91, 125, 161, .34);
+  background: linear-gradient(180deg, rgba(13, 26, 41, .84), rgba(8, 18, 30, .94));
+  color: #b8c4d5;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.main-grid,
+.left-column,
+.right-column,
+.histogram-pair { gap: 14px; }
+
+.portfolio-evolution-chart {
+  min-height: 250px;
+  border-color: rgba(69, 119, 172, .20);
+  background:
+    linear-gradient(rgba(63, 108, 154, .055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(63, 108, 154, .045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(8, 24, 41, .82), rgba(6, 17, 30, .96));
+  background-size: 100% 48px, 56px 100%, 100% 100%;
+  box-shadow: inset 0 1px 18px rgba(17, 63, 109, .12);
+}
+.portfolio-evolution-svg { min-height: 250px; }
+.evolution-grid-line { stroke: rgba(113, 151, 193, .14); }
+.evolution-axis { stroke: rgba(151, 181, 216, .34); }
+.evolution-zero-axis { stroke: rgba(204, 222, 242, .62); }
+.evolution-axis-label { fill: #879bb3; }
+.evolution-line {
+  stroke-width: 2.6;
+  filter: drop-shadow(0 0 3px rgba(74, 150, 255, .14));
+}
+.evolution-line--t0 { stroke: #48a4ff; }
+.evolution-line--t1 { stroke: #ff991f; }
+.evolution-line--t2 { stroke: #b9783c; }
+.evolution-legend {
+  top: 9px;
+  right: 14px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(5, 15, 27, .62);
+  border: 1px solid rgba(86, 130, 177, .13);
+  backdrop-filter: blur(8px);
+}
+.evolution-pointer-tooltip {
+  border-color: rgba(77, 143, 218, .55);
+  background: rgba(6, 17, 30, .96);
+  box-shadow: 0 10px 28px rgba(0,0,0,.34);
+}
+
+.kpi-columns-header {
+  color: #dbe6f4;
+  font-weight: 700;
+}
+.kpi-compact-list { gap: 8px; }
+.kpi-row {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 44px;
+  padding: 7px 8px 7px 12px;
+  border-radius: 10px;
+  border-color: rgba(73, 116, 160, .28);
+  background:
+    linear-gradient(90deg, rgba(17, 39, 62, .58), rgba(8, 21, 36, .78));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.018);
+}
+.kpi-row::before {
+  content: "";
+  width: 4px;
+  align-self: stretch;
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  border-radius: 0 4px 4px 0;
+  background: #419dff;
+  opacity: .85;
+  box-shadow: 0 0 10px currentColor;
+}
+.kpi-row[data-kpi-id="volatility"]::before { background: #ff9b24; }
+.kpi-row[data-kpi-id="positiveReturnProbability"]::before { background: #24d8ad; }
+.kpi-row[data-kpi-id="recoveryPeriod"]::before { background: #5aa8ff; }
+.kpi-row[data-kpi-id="averageMaxDrawdown"]::before { background: #ff526d; }
+.kpi-row.target-success {
+  border-color: rgba(31, 199, 151, .55);
+  background: linear-gradient(90deg, rgba(12, 64, 58, .22), rgba(8, 26, 37, .8));
+}
+.kpi-row.target-failure {
+  border-color: rgba(236, 74, 92, .58);
+  background: linear-gradient(90deg, rgba(76, 21, 35, .22), rgba(20, 19, 31, .82));
+}
+.kpi-row__label { font-weight: 700; color: #f0f5fc; }
+.kpi-row__value { font-size: 1rem; color: #e7effa; }
+.kpi-target-trigger {
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(15, 32, 50, .92), rgba(8, 21, 35, .96));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+.kpi-target-menu {
+  background: rgba(7, 19, 32, .985);
+  border-color: rgba(77, 132, 187, .42);
+  box-shadow: 0 18px 38px rgba(0,0,0,.42);
+  backdrop-filter: blur(14px);
+}
+
+.suggestions-panel {
+  background:
+    radial-gradient(circle at 5% 50%, rgba(255, 190, 55, .055), transparent 24%),
+    linear-gradient(145deg, rgba(15, 31, 52, .78), rgba(7, 18, 31, .98));
+}
+
+.histogram-panel {
+  background:
+    radial-gradient(circle at 50% 56%, rgba(42, 111, 216, .055), transparent 48%),
+    linear-gradient(145deg, rgba(15, 31, 52, .78), rgba(7, 18, 31, .98));
+}
+.histogram-panel:last-child {
+  background:
+    radial-gradient(circle at 50% 56%, rgba(231, 70, 102, .05), transparent 48%),
+    linear-gradient(145deg, rgba(15, 31, 52, .78), rgba(7, 18, 31, .98));
+}
+.histogram-bar {
+  fill: #438fe7 !important;
+  filter: drop-shadow(0 3px 5px rgba(44, 130, 238, .18));
+}
+.drawdown-histogram-bar {
+  fill: #df5870 !important;
+  filter: drop-shadow(0 3px 5px rgba(230, 76, 107, .16));
+}
+.axis { stroke: rgba(121, 154, 190, .32); }
+.tick-label { fill: #8498af; }
+
+.macro-panel {
+  margin-top: 0;
+  padding: 14px 18px 16px;
+}
+.macro-bar {
+  height: 17px;
+  gap: 2px;
+  border: 0;
+  padding: 0;
+  border-radius: 9px;
+  background: rgba(4, 13, 23, .7);
+  box-shadow: inset 0 1px 5px rgba(0,0,0,.5), 0 0 0 1px rgba(82, 126, 171, .13);
+}
+.macro-segment {
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.24);
+}
+.macro-segment:first-child { border-radius: 9px 3px 3px 9px; }
+.macro-segment:last-child { border-radius: 3px 9px 9px 3px; }
+.macro-legend { margin-top: 13px; }
+.legend-swatch {
+  box-shadow: 0 0 9px rgba(100, 170, 255, .22);
+}
+
+@media (max-width: 920px) {
+  .montecarlo-page { padding-inline: 10px; }
+  .cta-row { grid-template-columns: 1fr; }
+  .cta-side-spacer { display: none; }
+  .cta-side-spacer--right { display: flex; justify-content: center; }
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+
+/* Panel iconography from the approved dashboard direction */
+.panel-header h3 {
+  display: flex;
+  align-items: center;
+  gap: .48rem;
+}
+.panel-title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
+  border: 1px solid rgba(96,157,224,.22);
+  background: linear-gradient(145deg, rgba(50,112,205,.18), rgba(16,42,72,.38));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 4px 10px rgba(0,0,0,.16);
+}
+.panel-title-icon--evolution { color: #5aa8ff; }
+.panel-title-icon--kpi { color: #7b8dff; }
+.panel-title-icon--suggestions {
+  color: #ffc95c;
+  border-color: rgba(255,190,67,.24);
+  background: linear-gradient(145deg, rgba(255,183,48,.16), rgba(83,57,13,.28));
+  text-shadow: 0 0 10px rgba(255,191,64,.38);
+}
+.panel-title-icon--returns { color: #53a5ff; }
+.panel-title-icon--drawdown { color: #ff667d; }
+.panel-title-icon--macro { color: #56d7c3; }
+
+
+/* Per-KPI iconography and visible drag feedback */
+.kpi-row__metric {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: .55rem;
+}
+.kpi-metric-icon {
+  grid-row: 1;
+  grid-column: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 17px;
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
+  background: rgba(54,113,190,.13);
+  border: 1px solid rgba(92,151,222,.20);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+}
+.kpi-row__label { grid-column: 2; }
+.kpi-row__value { grid-column: 3; }
+.kpi-metric-icon[data-kpi-icon="expectedReturn"] { color:#4fd4c2; background:rgba(37,190,167,.10); border-color:rgba(79,212,194,.22); }
+.kpi-metric-icon[data-kpi-icon="volatility"] { color:#a184ff; background:rgba(137,103,255,.10); border-color:rgba(161,132,255,.22); }
+.kpi-metric-icon[data-kpi-icon="positiveReturnProbability"] { color:#5da7ff; background:rgba(61,139,236,.11); border-color:rgba(93,167,255,.22); }
+.kpi-metric-icon[data-kpi-icon="recoveryPeriod"] { color:#ffc45e; background:rgba(222,157,46,.10); border-color:rgba(255,196,94,.22); }
+.kpi-metric-icon[data-kpi-icon="averageMaxDrawdown"] { color:#ff667d; background:rgba(220,66,91,.10); border-color:rgba(255,102,125,.22); }
+
+.kpi-row.is-dragging {
+  opacity: .22 !important;
+}
+.kpi-row--drag-preview {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: linear-gradient(145deg, rgba(19,39,64,.98), rgba(8,21,37,.99)) !important;
+  border: 1px solid rgba(88,158,235,.58) !important;
+  box-shadow: 0 18px 42px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  filter: none !important;
+}
+
+
+/* KPI icons: larger, free-standing and more vivid like the approved render */
+.kpi-row__metric {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  column-gap: .6rem;
+}
+.kpi-metric-icon {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  font-size: 25px;
+  font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 100, 'opsz' 24;
+}
+.kpi-metric-icon[data-kpi-icon="expectedReturn"] {
+  color: #38f0cf;
+  filter: drop-shadow(0 0 7px rgba(56,240,207,.38));
+}
+.kpi-metric-icon[data-kpi-icon="volatility"] {
+  color: #b58cff;
+  filter: drop-shadow(0 0 7px rgba(181,140,255,.40));
+}
+.kpi-metric-icon[data-kpi-icon="positiveReturnProbability"] {
+  color: #4fb3ff;
+  filter: drop-shadow(0 0 7px rgba(79,179,255,.40));
+}
+.kpi-metric-icon[data-kpi-icon="recoveryPeriod"] {
+  color: #ffd05a;
+  filter: drop-shadow(0 0 7px rgba(255,208,90,.40));
+}
+.kpi-metric-icon[data-kpi-icon="averageMaxDrawdown"] {
+  color: #ff5975;
+  filter: drop-shadow(0 0 7px rgba(255,89,117,.40));
+}
+
+
+/* KPI drag: only the moving card remains visible; remove legacy accent bars */
+.kpi-row::before,
+.kpi-row[data-kpi-id]::before {
+  content: none !important;
+  display: none !important;
+}
+.kpi-row.is-dragging {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+.kpi-row--drag-preview {
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: none !important;
+}
+
+
+/* KPI 80/20 layout: keep Target aligned and dropdown width stable */
+.kpi-columns-header,
+.kpi-row {
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr) !important;
+  gap: 8px;
+}
+.kpi-columns-header {
+  padding: 0 8px 0 12px;
+}
+.kpi-columns-header span:last-child {
+  width: 100%;
+  text-align: center;
+}
+.kpi-row__target {
+  width: 100%;
+  box-sizing: border-box;
+}
+.kpi-target-dropdown,
+.kpi-target-trigger {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.kpi-target-trigger {
+  white-space: nowrap;
+}
+
+/* Completion reset must be instantaneous, never animate backwards */
+.run-button__fill--reset {
+  transition: none !important;
+}
+
+
+/* KPI target: centered value with chevron pinned to the far right */
+.kpi-target-trigger {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 24px 0 8px;
+  text-align: center;
+}
+.kpi-target-trigger > span:first-child {
+  width: 100%;
+  text-align: center;
+}
+.kpi-target-chevron {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+}
+
+/* Suggestions icon: same free-standing treatment as KPI icons */
+.panel-title-icon--suggestions {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #ffd05a;
+  font-size: 25px;
+  font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 100, 'opsz' 24;
+  text-shadow: none;
+  filter: drop-shadow(0 0 7px rgba(255,208,90,.40));
+}
+
+
+/* ETF autocomplete must float above the charts instead of being clipped by the portfolio card */
+.portfolio-panel {
+  overflow: visible !important;
+  z-index: 1000;
+}
+.portfolio-panel app-montecarlo-portfolio-editor {
+  position: relative;
+  z-index: 1000;
+  overflow: visible;
+}
+
+
+/* Suggestions bulb: brighter solid yellow */
+.panel-title-icon--suggestions {
+  color: #ffe34f !important;
+  font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 100, 'opsz' 24;
+  filter:
+    drop-shadow(0 0 5px rgba(255,227,79,.58))
+    drop-shadow(0 0 10px rgba(255,210,45,.24));
+}
+
+
+/* Suggestions bulb: flat solid treatment, consistent with KPI icon styling */
+.panel-title-icon--suggestions {
+  color: #ffe34f !important;
+  font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 100, 'opsz' 24;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+
+/* Restore native KPI drag lifecycle: hiding the draggable source with visibility breaks HTML5 drag */
+.kpi-row.is-dragging {
+  visibility: visible !important;
+  opacity: .01 !important;
+  cursor: grabbing !important;
+}
+
+/* Target is a click control, not a drag handle */
+.kpi-row__target,
+.kpi-row__target *,
+.kpi-target-dropdown,
+.kpi-target-trigger,
+.kpi-target-option {
+  cursor: pointer !important;
+}
+
+
+/* KPI interaction final override: preserve native drag source and isolate Target from grab cursor */
+.kpi-row.is-dragging {
+  visibility: visible !important;
+  opacity: .08 !important;
+  cursor: grabbing !important;
+}
+.kpi-row__target,
+.kpi-row__target *,
+.kpi-target-dropdown,
+.kpi-target-dropdown *,
+.kpi-target-trigger,
+.kpi-target-trigger * {
+  cursor: pointer !important;
+}
+
+
+/* KPI drag final: keep the source painted so the browser native drag image remains visible.
+   No extra Angular preview is rendered, so dragging cannot add height to the KPI panel. */
+.kpi-row.is-dragging {
+  visibility: visible !important;
+  opacity: 1 !important;
+  cursor: grabbing !important;
+}
+
+
+/* Opaque KPI drag overlay: fixed and out of document flow, so it cannot resize the dashboard. */
+.kpi-drag-overlay {
+  position: fixed !important;
+  z-index: 2147483647;
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
+  gap: 8px;
+  box-sizing: border-box;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none;
+  transform: none !important;
+  transition: none !important;
+}
+.kpi-drag-overlay .kpi-row__metric,
+.kpi-drag-overlay .kpi-row__target {
+  opacity: 1 !important;
+  background: linear-gradient(90deg, rgba(17,39,62,.98), rgba(8,21,36,.99)) !important;
+  border: 1px solid rgba(136,170,214,.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+.kpi-drag-overlay.target-success .kpi-row__metric,
+.kpi-drag-overlay.target-success .kpi-row__target {
+  border-color: rgba(52,211,153,.48) !important;
+}
+.kpi-drag-overlay.target-failure .kpi-row__metric,
+.kpi-drag-overlay.target-failure .kpi-row__target {
+  border-color: rgba(248,113,113,.48) !important;
+}
+.kpi-row.is-dragging {
+  opacity: .08 !important;
+}
+
+
+/* Drag the compact inner KPI strip, not the larger outer row footprint. */
+.kpi-drag-overlay {
+  display: block !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.kpi-drag-overlay__inner {
+  position: absolute;
+  inset: 7px 8px 7px 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
+  gap: 8px;
+  opacity: 1;
+}
+.kpi-drag-overlay__inner .kpi-row__metric,
+.kpi-drag-overlay__inner .kpi-row__target {
+  min-height: 0;
+  opacity: 1 !important;
+  background: linear-gradient(90deg, rgba(17,39,62,.98), rgba(8,21,36,.99)) !important;
+  border: 1px solid rgba(136,170,214,.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+.kpi-drag-overlay__inner.target-success .kpi-row__metric,
+.kpi-drag-overlay__inner.target-success .kpi-row__target {
+  border-color: rgba(52,211,153,.48) !important;
+}
+.kpi-drag-overlay__inner.target-failure .kpi-row__metric,
+.kpi-drag-overlay__inner.target-failure .kpi-row__target {
+  border-color: rgba(248,113,113,.48) !important;
+}
+
+
+/* Render-matched histogram palette: vivid base fading toward white at taller values. */
+.histogram-bar {
+  fill: url(#returnsBarGradient) !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 3px 7px rgba(31,126,255,.30));
+}
+.histogram-bar:hover,
+.histogram-bar.is-hovered {
+  fill: url(#returnsBarGradient) !important;
+  opacity: 1 !important;
+  filter: brightness(1.12) drop-shadow(0 3px 9px rgba(54,151,255,.42));
+}
+.drawdown-histogram-bar {
+  fill: url(#drawdownBarGradient) !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 3px 7px rgba(242,48,82,.28));
+}
+.drawdown-histogram-bar:hover,
+.drawdown-histogram-bar.is-hovered {
+  opacity: 1 !important;
+  filter: brightness(1.10) drop-shadow(0 3px 9px rgba(255,70,101,.40));
+}
+
+
+/* Keep low histogram bars dark; only bars reaching high absolute Y levels enter pale tones. */
+.histogram-bar {
+  filter: drop-shadow(0 2px 5px rgba(5,74,177,.24)) !important;
+}
+.drawdown-histogram-bar {
+  filter: drop-shadow(0 2px 5px rgba(153,20,48,.22)) !important;
+}
+
+
+/* Give both distribution charts more visual weight. */
+.histogram-pair {
+  gap: 18px;
+}
+.histogram-panel {
+  min-height: 330px;
+}
+.histogram-plot.compact-histogram {
+  min-height: 250px;
+}
+.svg-chart--returns,
+.svg-chart--drawdown {
+  height: 245px !important;
+}
+
+/* Hover keeps the tooltip but visually softens the selected bar. */
+.histogram-bar:hover,
+.histogram-bar.is-hovered {
+  opacity: .64 !important;
+  filter: saturate(.72) brightness(.92) !important;
+}
+.drawdown-histogram-bar:hover,
+.drawdown-histogram-bar.is-hovered {
+  opacity: .64 !important;
+  filter: saturate(.72) brightness(.92) !important;
+}
+
+
+/* Macro distribution: labels and percentages live inside each scenario segment. */
+.macro-bar {
+  height: 44px !important;
+  min-height: 44px;
+  overflow: hidden;
+}
+.macro-segment {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+.macro-segment__label {
+  display: block;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: rgba(255,255,255,.96);
+  font-size: .78rem;
+  font-weight: 650;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0,0,0,.58);
+}
+.macro-segment__label strong {
+  font-weight: 800;
+}
+
+
+/* Luminous macro palette with readable labels on every scenario. */
+.macro-bar {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.13),
+    0 0 18px rgba(45,128,220,.10);
+}
+.macro-segment {
+  isolation: isolate;
+}
+.macro-segment::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.04) 45%, rgba(0,0,0,.16) 100%);
+  pointer-events: none;
+}
+.macro-segment[data-scenario="expansion"] {
+  box-shadow: inset 0 0 18px rgba(54,255,199,.28), 0 0 12px rgba(25,230,179,.18);
+}
+.macro-segment[data-scenario="soft_landing"] {
+  box-shadow: inset 0 0 18px rgba(76,166,255,.30), 0 0 12px rgba(38,140,255,.20);
+}
+.macro-segment[data-scenario="recession"] {
+  box-shadow: inset 0 0 18px rgba(255,92,118,.30), 0 0 12px rgba(255,54,91,.18);
+}
+.macro-segment[data-scenario="stagflation"] {
+  box-shadow: inset 0 0 18px rgba(255,187,72,.32), 0 0 12px rgba(255,159,28,.20);
+}
+.macro-segment__label {
+  color: #fff !important;
+  font-weight: 700;
+  letter-spacing: .01em;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,.92),
+    0 0 5px rgba(0,0,0,.48);
+}
+
+
+/* Final responsive layout: desktop fits in one viewport; horizontal scrolling is never allowed. */
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.montecarlo-page {
+  width: 100%;
+  max-width: min(1560px, 100vw);
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: clip !important;
+}
+
+.montecarlo-main-layout,
+.main-grid,
+.left-column,
+.right-column,
+.histogram-pair,
+.panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Normal desktop: compact vertically without sacrificing the two-column dashboard. */
+@media (min-width: 1181px) and (min-height: 760px) {
+  .montecarlo-page {
+    height: calc(100dvh - 58px);
+    min-height: 0;
+    gap: clamp(6px, .75vh, 10px);
+    padding: clamp(6px, .75vh, 10px) clamp(10px, 1.2vw, 18px) 6px;
+    overflow-y: hidden !important;
+  }
+
+  .cta-row {
+    min-height: 34px;
+  }
+
+  .main-grid {
+    gap: clamp(7px, .65vw, 11px);
+  }
+
+  .left-column,
+  .right-column {
+    gap: clamp(7px, .75vh, 10px);
+  }
+
+  .panel {
+    padding: clamp(8px, .85vh, 12px) clamp(10px, .9vw, 14px);
+  }
+
+  .compact-header {
+    margin-bottom: clamp(4px, .55vh, 7px);
+  }
+
+  .portfolio-evolution-chart {
+    min-height: clamp(170px, 22vh, 220px);
+  }
+
+  .portfolio-evolution-svg {
+    height: clamp(165px, 21vh, 215px);
+  }
+
+  .histogram-pair {
+    gap: clamp(7px, .65vw, 11px);
+  }
+
+  .histogram-panel {
+    min-height: 0;
+  }
+
+  .histogram-plot.compact-histogram {
+    min-height: clamp(150px, 20vh, 205px);
+  }
+
+  .svg-chart--returns,
+  .svg-chart--drawdown {
+    height: clamp(150px, 20vh, 205px) !important;
+  }
+
+  .macro-panel {
+    padding: 8px 14px 10px;
+  }
+
+  .macro-bar {
+    height: clamp(34px, 4.5vh, 42px) !important;
+    min-height: 34px;
+  }
+
+  .suggestions-panel {
+    padding-block: clamp(7px, .8vh, 10px);
+  }
+}
+
+/* Short desktop/laptop screens: squeeze whitespace first, not content width. */
+@media (min-width: 1181px) and (max-height: 759px) {
+  .montecarlo-page {
+    height: calc(100dvh - 54px);
+    min-height: 0;
+    gap: 5px;
+    padding: 4px 10px;
+    overflow-y: hidden !important;
+  }
+
+  .cta-row { min-height: 30px; }
+  .run-button, .secondary-button { min-height: 30px; padding-block: 4px; }
+  .main-grid, .left-column, .right-column, .histogram-pair { gap: 6px; }
+  .panel { padding: 6px 9px; }
+  .compact-header { margin-bottom: 3px; }
+  .panel-header h3 { font-size: .88rem; }
+
+  .portfolio-evolution-chart { min-height: 145px; }
+  .portfolio-evolution-svg { height: 145px; }
+
+  .histogram-panel { min-height: 0; }
+  .histogram-plot.compact-histogram { min-height: 132px; }
+  .svg-chart--returns, .svg-chart--drawdown { height: 132px !important; }
+
+  .macro-panel { padding: 6px 10px 7px; }
+  .macro-bar { height: 32px !important; min-height: 32px; }
+  .macro-segment__label { font-size: .68rem; }
+}
+
+/* Intermediate widths: preserve two columns as long as they remain readable. */
+@media (min-width: 861px) and (max-width: 1180px) {
+  .montecarlo-page {
+    padding: 8px 10px 10px;
+    gap: 8px;
+    overflow-x: clip !important;
+  }
+
+  .main-grid {
+    grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr) !important;
+    gap: 8px;
+  }
+
+  .left-column, .right-column, .histogram-pair { gap: 8px; }
+  .panel { padding: 9px 10px; }
+  .portfolio-evolution-chart { min-height: 205px; }
+  .histogram-panel { min-height: 260px; }
+  .histogram-plot.compact-histogram { min-height: 205px; }
+  .svg-chart--returns, .svg-chart--drawdown { height: 205px !important; }
+  .macro-segment__label { font-size: .68rem; }
+}
+
+/* Narrow/tablet/mobile: one clean vertical slot, vertical scrolling allowed, never horizontal. */
+@media (max-width: 860px) {
+  .montecarlo-page {
+    height: auto !important;
+    min-height: 0;
+    padding: 7px;
+    gap: 8px;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+  }
+
+  .cta-row {
+    grid-template-columns: 1fr !important;
+    gap: 7px;
+  }
+
+  .cta-side-spacer { display: none !important; }
+  .cta-side-spacer--right {
+    display: flex !important;
+    justify-content: stretch !important;
+  }
+  .run-button,
+  .secondary-button { width: 100%; }
+
+  .main-grid,
+  .histogram-pair {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px;
+  }
+
+  .left-column,
+  .right-column {
+    display: contents;
+  }
+
+  .portfolio-panel,
+  .evolution-panel,
+  .kpi-panel,
+  .suggestions-panel,
+  .histogram-panel {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .panel { padding: 9px; }
+
+  .portfolio-evolution-chart { min-height: 210px; }
+  .portfolio-evolution-svg { height: 210px; }
+
+  .histogram-panel { min-height: 270px; }
+  .histogram-plot.compact-histogram { min-height: 215px; }
+  .svg-chart--returns,
+  .svg-chart--drawdown { height: 215px !important; }
+
+  .macro-panel { padding: 9px; }
+  .macro-bar { min-height: 40px; height: 40px !important; }
+  .macro-segment__label { font-size: clamp(.58rem, 2vw, .72rem); }
+}
+
+/* Phones: tighten typography and controls instead of ever introducing horizontal overflow. */
+@media (max-width: 560px) {
+  .montecarlo-page { padding: 5px; }
+  .panel { padding: 8px 7px; border-radius: 10px; }
+  .panel-header h3 { font-size: .9rem; }
+  .kpi-row__metric { grid-template-columns: 24px minmax(0,1fr) auto; column-gap: .35rem; }
+  .kpi-row__label { font-size: .76rem; }
+  .kpi-row__value { font-size: .88rem; }
+  .macro-bar { height: auto !important; min-height: 38px; }
+  .macro-segment__label {
+    white-space: normal;
+    line-height: 1.05;
+    font-size: .56rem;
+    padding-inline: 2px;
+  }
+}
+
+
+/* Viewport-fit correction: remove the nested height trap and reclaim vertical whitespace. */
+html, body {
+  overflow-x: hidden;
+}
+
+.montecarlo-page {
+  min-height: 0 !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+/* Full desktop: the whole dashboard, including macro distribution, must fit before scrolling. */
+@media (min-width: 1181px) {
+  .montecarlo-page {
+    height: auto !important;
+    max-height: none !important;
+    gap: 5px !important;
+    padding: 4px 10px !important;
+    overflow: visible !important;
+  }
+
+  .cta-row {
+    min-height: 30px !important;
+    margin: 0 !important;
+  }
+
+  .run-button,
+  .secondary-button {
+    min-height: 30px !important;
+    padding-block: 4px !important;
+  }
+
+  .main-grid,
+  .left-column,
+  .right-column,
+  .histogram-pair {
+    gap: 6px !important;
+  }
+
+  .panel {
+    padding: 6px 9px !important;
+  }
+
+  .compact-header {
+    margin-bottom: 3px !important;
+  }
+
+  .portfolio-evolution-chart {
+    min-height: clamp(140px, 19vh, 185px) !important;
+  }
+
+  .portfolio-evolution-svg {
+    height: clamp(140px, 19vh, 185px) !important;
+  }
+
+  .histogram-panel {
+    min-height: 0 !important;
+  }
+
+  .histogram-plot.compact-histogram {
+    min-height: clamp(125px, 17vh, 170px) !important;
+  }
+
+  .svg-chart--returns,
+  .svg-chart--drawdown {
+    height: clamp(125px, 17vh, 170px) !important;
+  }
+
+  .suggestions-panel {
+    padding-block: 5px !important;
+  }
+
+  .macro-panel {
+    margin: 0 !important;
+    padding: 6px 9px 7px !important;
+  }
+
+  .macro-bar {
+    height: 34px !important;
+    min-height: 34px !important;
+  }
+}
+
+/* Mid-size screens may scroll vertically when content can no longer fit, but never horizontally. */
+@media (max-width: 1180px) {
+  .montecarlo-page {
+    height: auto !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+  }
+}
+
+
+/* Final desktop squeeze: reclaim the last vertical pixels without changing the visual hierarchy. */
+@media (min-width: 1181px) {
+  .montecarlo-page {
+    gap: 3px !important;
+    padding: 2px 8px 3px !important;
+  }
+
+  .main-grid,
+  .left-column,
+  .right-column,
+  .histogram-pair {
+    gap: 4px !important;
+  }
+
+  .panel {
+    padding: 5px 8px !important;
+  }
+
+  .kpi-panel {
+    padding: 4px 7px !important;
+  }
+
+  .kpi-panel .compact-header {
+    margin-bottom: 1px !important;
+  }
+
+  .kpi-columns-header {
+    margin-bottom: 2px !important;
+  }
+
+  .kpi-row {
+    min-height: 0 !important;
+  }
+
+  .kpi-row__metric,
+  .kpi-row__target {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .evolution-panel,
+  .histogram-panel {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .evolution-panel .compact-header,
+  .histogram-panel .compact-header {
+    margin-bottom: 1px !important;
+  }
+
+  .portfolio-evolution-chart {
+    min-height: clamp(128px, 17.2vh, 168px) !important;
+  }
+
+  .portfolio-evolution-svg {
+    height: clamp(128px, 17.2vh, 168px) !important;
+  }
+
+  .histogram-plot.compact-histogram {
+    min-height: clamp(114px, 15.5vh, 154px) !important;
+  }
+
+  .svg-chart--returns,
+  .svg-chart--drawdown {
+    height: clamp(114px, 15.5vh, 154px) !important;
+  }
+
+  .suggestions-panel {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .macro-panel {
+    padding: 5px 8px 6px !important;
+  }
+
+  .macro-panel .compact-header {
+    margin-bottom: 3px !important;
+  }
+
+  .macro-bar {
+    height: 32px !important;
+    min-height: 32px !important;
+  }
+}
+
+
+/* Histogram axes: use the full plot area and make the vertical scale readable. */
+.histogram-grid-line {
+  stroke: rgba(133, 166, 201, .13);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.histogram-y-label {
+  fill: rgba(185, 207, 230, .72) !important;
+  font-size: 9px;
+}
+
+
+/* Charts: remove redundant inner card treatment and reclaim the space below X axes. */
+.portfolio-evolution-chart {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+.evolution-empty {
+  display: none !important;
+}
+
+.histogram-plot.compact-histogram {
+  min-height: 0 !important;
+  height: auto !important;
+  padding-bottom: 0 !important;
+}
+
+@media (min-width: 1181px) {
+  .histogram-panel {
+    padding-bottom: 1px !important;
+  }
+
+  .histogram-plot.compact-histogram {
+    min-height: 0 !important;
+    height: clamp(104px, 13.8vh, 138px) !important;
+  }
+
+  .svg-chart--returns,
+  .svg-chart--drawdown {
+    display: block;
+    height: 100% !important;
+    width: 100%;
+  }
+
+  .evolution-panel {
+    padding-bottom: 2px !important;
+  }
+
+  .portfolio-evolution-chart,
+  .portfolio-evolution-svg {
+    min-height: 0 !important;
+    height: clamp(118px, 15.8vh, 154px) !important;
+  }
+}
+
+
+/* Annual returns SVG must fill the panel horizontally.
+   PreserveAspectRatio was making the fixed 640x250 viewBox letterbox when height was constrained. */
+.portfolio-evolution-svg {
+  width: 100% !important;
+  max-width: none !important;
+  align-self: stretch;
+}
+
+
+/* Annual returns: keep a 10% lateral breathing room and pin legend to the top edge. */
+.portfolio-evolution-svg {
+  width: 80% !important;
+  margin-inline: 10% !important;
+}
+
+.evolution-legend {
+  top: 0 !important;
+  right: 10% !important;
+  margin-top: 0 !important;
+}
+
+
+/* Use the freed right gutter for the annual-returns legend. */
+.evolution-legend {
+  right: 0 !important;
+  top: 0 !important;
+  margin: 0 !important;
+}
+
+
+/* Annual returns legend: vertical stack inside the freed right gutter. */
+.evolution-legend {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 5px !important;
+}

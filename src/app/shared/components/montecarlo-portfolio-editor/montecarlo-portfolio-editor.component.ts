@@ -616,6 +616,17 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     return String(item.etfId);
   }
 
+  getEtfAccentColor(item: MontecarloPortfolioItem, index: number): string {
+    const palette = ['#2f80ff', '#ff9d2e', '#ffc04d', '#7c5cff', '#ff536d', '#35dbc0', '#35a2ff', '#a66cff'];
+    const identity = String(item.etfId || item.isin || item.ticker || item.nickname || index);
+    let hash = 0;
+    for (let i = 0; i < identity.length; i += 1) {
+      hash = ((hash << 5) - hash + identity.charCodeAt(i)) | 0;
+    }
+    return palette[Math.abs(hash) % palette.length];
+  }
+
+
   formatWeight(value: number): string {
     return `${value.toFixed(2).replace('.', ',')}`;
   }
