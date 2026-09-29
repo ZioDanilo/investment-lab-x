@@ -51,12 +51,12 @@
           <div class="portfolio-evolution-chart">
             <svg *ngIf="portfolioEvolution.length > 1; else evolutionEmpty" viewBox="0 0 640 250" class="portfolio-evolution-svg" role="img" aria-label="Rendimenti annuali del percorso simulato rappresentativo in 30 anni">
               <g *ngFor="let tick of getPortfolioEvolutionYTicks()">
-                <line x1="68" [attr.y1]="tick.y" x2="622" [attr.y2]="tick.y" class="evolution-grid-line" />
-                <text x="58" [attr.y]="tick.y + 4" text-anchor="end" class="evolution-axis-label">{{ formatAnnualReturn(tick.value) }}</text>
+                <line x1="52" [attr.y1]="tick.y" x2="634" [attr.y2]="tick.y" class="evolution-grid-line" />
+                <text x="44" [attr.y]="tick.y + 4" text-anchor="end" class="evolution-axis-label">{{ formatAnnualReturn(tick.value) }}</text>
               </g>
 
-              <line x1="68" [attr.y1]="getPortfolioEvolutionY(0)" x2="622" [attr.y2]="getPortfolioEvolutionY(0)" class="evolution-zero-axis" />
-              <line x1="68" y1="18" x2="68" y2="212" class="evolution-axis" />
+              <line x1="52" [attr.y1]="getPortfolioEvolutionY(0)" x2="634" [attr.y2]="getPortfolioEvolutionY(0)" class="evolution-zero-axis" />
+              <line x1="52" y1="18" x2="68" y2="212" class="evolution-axis" />
 
               <g *ngFor="let year of [1, 5, 10, 15, 20, 25, 30]">
                 <line [attr.x1]="getPortfolioEvolutionX(year)" y1="212" [attr.x2]="getPortfolioEvolutionX(year)" y2="217" class="evolution-axis" />
