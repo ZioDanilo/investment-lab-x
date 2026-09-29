@@ -430,8 +430,7 @@
 }
 
 .kpi-row.is-dragging {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0.45;
 }
 
 .kpi-row__label {
