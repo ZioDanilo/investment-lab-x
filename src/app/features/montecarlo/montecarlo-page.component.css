@@ -414,6 +414,11 @@
   stroke-width: 1;
 }
 
+.evolution-zero-axis {
+  stroke: rgba(210, 225, 242, 0.58);
+  stroke-width: 1.5;
+}
+
 .evolution-axis-label {
   fill: #8295aa;
   font-size: 11px;
