@@ -415,31 +415,22 @@
   min-width: 0;
 }
 
-.kpi-row__label {
-  font-size: 0.78rem;
-  font-weight: 400;
-  letter-spacing: normal;
-  text-transform: none;
-  color: var(--text, #fff);
-  min-width: 0;
-  overflow-wrap: anywhere;
+.kpi-compact-list .kpi-drop-slot {
+  height: 4px;
+  margin: -6px 0;
+  border-radius: 999px;
+  transition: height 120ms ease, margin 120ms ease, background 120ms ease;
 }
 
-.kpi-row {
-  position: relative;
+.kpi-compact-list--dragging .kpi-drop-slot {
+  height: 10px;
+  margin: -3px 0;
 }
 
-.kpi-edge-drop-zone {
-  flex: 0 0 30px;
-  margin: -12px 0;
-}
-
-.kpi-edge-drop-zone--top {
-  margin-top: -4px;
-}
-
-.kpi-edge-drop-zone--bottom {
-  margin-bottom: -4px;
+.kpi-compact-list .kpi-drop-slot.is-active {
+  height: 12px;
+  margin: -2px 0;
+  background: rgba(93, 167, 255, 0.7);
 }
 
 .kpi-row[draggable="true"] {
@@ -451,9 +442,16 @@
 }
 
 .kpi-row.is-dragging {
-  opacity: 0.72;
-  border-color: rgba(93, 167, 255, 0.78);
-  box-shadow: 0 0 0 1px rgba(93, 167, 255, 0.2);
+  opacity: 0.45;
+}
+
+.kpi-row__label {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .kpi-row__value {
