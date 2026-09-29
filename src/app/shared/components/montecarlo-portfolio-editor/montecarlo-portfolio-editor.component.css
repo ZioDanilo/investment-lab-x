@@ -81,10 +81,16 @@
   border-radius: 4px !important;
   background:
     linear-gradient(to right,
-      rgba(24, 217, 246, 0.5) 0,
-      rgba(24, 217, 246, 0.5) var(--slider-value),
+      #315fba 0,
+      #477fd6 48%,
+      #6a8fe0 var(--slider-value),
       transparent var(--slider-value),
       transparent 100%
+    ),
+    linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.16) 0,
+      rgba(255, 255, 255, 0.04) 42%,
+      rgba(7, 15, 31, 0.16) 100%
     ),
     linear-gradient(to right,
       transparent calc(20% - 0.5px), rgba(210, 226, 242, 0.28) calc(20% - 0.5px), rgba(210, 226, 242, 0.28) calc(20% + 0.5px), transparent calc(20% + 0.5px),
