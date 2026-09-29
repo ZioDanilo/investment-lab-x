@@ -36,6 +36,14 @@ export class ApiService {
     return this.http.delete(`${this.apiUrl}/portfolio/${id}`);
   }
 
+  getPortfolioKpiTargets(id: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/portfolio/${id}/kpi-targets`);
+  }
+
+  savePortfolioKpiTargets(id: string, kpis: Array<{ kpi: string; priority: number; target: string | null }>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/portfolio/${id}/kpi-targets`, { kpis });
+  }
+
   // ETF endpoints
   getETFs(): Observable<any> {
     return this.http.get(`${this.apiUrl}/etf`);
