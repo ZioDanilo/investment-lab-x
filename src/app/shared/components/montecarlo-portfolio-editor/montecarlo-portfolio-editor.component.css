@@ -61,9 +61,79 @@
   text-overflow: ellipsis;
 }
 
-.slider {
+.slider-shell {
+  position: relative;
   width: 100%;
+  height: 14px;
+}
+
+.slider-segments {
+  position: absolute;
+  inset: 2px 0;
+  background:
+    linear-gradient(to right,
+      transparent calc(20% - 0.5px), rgba(210, 226, 242, 0.22) calc(20% - 0.5px), rgba(210, 226, 242, 0.22) calc(20% + 0.5px), transparent calc(20% + 0.5px),
+      transparent calc(40% - 0.5px), rgba(210, 226, 242, 0.22) calc(40% - 0.5px), rgba(210, 226, 242, 0.22) calc(40% + 0.5px), transparent calc(40% + 0.5px),
+      transparent calc(60% - 0.5px), rgba(210, 226, 242, 0.22) calc(60% - 0.5px), rgba(210, 226, 242, 0.22) calc(60% + 0.5px), transparent calc(60% + 0.5px),
+      transparent calc(80% - 0.5px), rgba(210, 226, 242, 0.22) calc(80% - 0.5px), rgba(210, 226, 242, 0.22) calc(80% + 0.5px), transparent calc(80% + 0.5px)
+    ),
+    rgba(91, 118, 145, 0.34);
+  border: 1px solid rgba(133, 176, 226, 0.18);
+  border-radius: 0;
+  pointer-events: none;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 14px;
   margin: 0;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: ew-resize;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.slider::-webkit-slider-thumb {
+  width: 1px;
+  height: 14px;
+  margin-top: -2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.slider::-moz-range-track {
+  height: 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.slider::-moz-range-progress {
+  height: 10px;
+  background: transparent;
+}
+
+.slider::-moz-range-thumb {
+  width: 1px;
+  height: 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .weight-input,
