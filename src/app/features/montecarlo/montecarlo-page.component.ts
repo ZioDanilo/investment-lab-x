@@ -722,8 +722,7 @@ export class MontecarloPageComponent {
 
   async runSimulation(): Promise<void> {
     this.kpiResultValues = {};
-    const portfolio = this.selectedPortfolio();
-    if (!portfolio || this.editorState()?.state?.isValid !== true || this.isRunning) {
+    if (this.editorState()?.state?.isValid !== true || this.isRunning) {
       return;
     }
 
@@ -751,7 +750,7 @@ export class MontecarloPageComponent {
         }));
 
       if (positions.length === 0) {
-        throw new Error('Nessuna posizione valida nel portafoglio selezionato.');
+        throw new Error('Nessuna posizione valida nella composizione temporanea.');
       }
 
       // Fast path: ETF paths are already generated in the active Market Universe.
