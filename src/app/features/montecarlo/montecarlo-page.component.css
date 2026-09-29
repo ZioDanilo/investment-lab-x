@@ -434,13 +434,6 @@
   cursor: crosshair;
 }
 
-.evolution-visible-point {
-  fill: #d9edff;
-  stroke: #5da7ff;
-  stroke-width: 1.5;
-  transition: r 0.1s ease;
-}
-
 .evolution-tooltip-bg {
   fill: rgba(7, 14, 23, 0.96);
   stroke: rgba(93, 167, 255, 0.65);
