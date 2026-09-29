@@ -901,6 +901,7 @@ export class MonteCarloStatisticsEngine {
       representativePath,
       statistics: officialStatistics,
       technicalChecks,
+      paths,
       performanceMetrics: {
         totalTime: null,
         pathsPerSecond: null,
