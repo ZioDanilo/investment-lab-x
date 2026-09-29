@@ -80,7 +80,7 @@ export class MontecarloPageComponent {
   private completionHoldTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private progressAnimationIntervalId: ReturnType<typeof setInterval> | null = null;
   private progressAnimationStartedAt = 0;
-  private progressAnimationCeiling = 40;
+  private progressAnimationCeiling = 60;
   isRegeneratingMarketUniverse = false;
   marketUniverseStatusMessage: string | null = null;
   kpis: KpiCard[] = [...this.defaultKpis];
@@ -186,7 +186,7 @@ export class MontecarloPageComponent {
   private startProgressAnimation(): void {
     this.stopProgressAnimation();
     this.simulationProgress = 1;
-    this.progressAnimationCeiling = 40;
+    this.progressAnimationCeiling = 60;
     this.progressAnimationStartedAt = performance.now();
     this.progressAnimationIntervalId = setInterval(() => {
       if (!this.isRunning) {
@@ -731,11 +731,11 @@ export class MontecarloPageComponent {
       // Fast path: ETF paths are already generated in the active Market Universe.
       // A simulation click only applies the selected portfolio weights and derives
       // portfolio paths/KPIs; it must never regenerate the Monte Carlo universe.
-      this.advanceProgressStage(45);
+      this.advanceProgressStage(62);
       const projection = await this.requestBinarySimulationProjection(positions);
-      this.advanceProgressStage(72);
+      this.advanceProgressStage(80);
       const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
-      this.advanceProgressStage(88);
+      this.advanceProgressStage(92);
 
       this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
       this.updateDonutSegments();
@@ -752,7 +752,7 @@ export class MontecarloPageComponent {
         { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
         { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' }
       ];
-      this.advanceProgressStage(96);
+      this.advanceProgressStage(97);
       await this.completeProgressAnimation();
     } catch (error) {
       console.error('[Monte Carlo fast path]', error);
