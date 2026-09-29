@@ -81,6 +81,7 @@ export class MontecarloPageComponent {
     { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: '—', description: 'CAGR annuo', tone: 'cyan' },
     { id: 'volatility', title: 'VOLATILITÀ', value: '—', description: 'Deviazione standard annua', tone: 'violet' },
     { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: '—', description: 'Scenari con rendimento > 0', tone: 'blue' },
+    { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: '—', description: 'Tempo medio al break-even', tone: 'amber' },
     { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: '—', description: 'Perdita massima media', tone: 'red' }
   ];
 
