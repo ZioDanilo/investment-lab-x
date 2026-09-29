@@ -92,12 +92,13 @@ export class MontecarloPageComponent {
     averageMaxDrawdown: ['10%', '15%', '20%', '25%', '30%', '35%', '40%']
   };
   kpiTargets: Record<string, string> = {
-    expectedReturn: '2%',
-    volatility: '6%',
-    positiveReturnProbability: '80%',
-    recoveryPeriod: '1 anno',
-    averageMaxDrawdown: '10%'
+    expectedReturn: '–',
+    volatility: '–',
+    positiveReturnProbability: '–',
+    recoveryPeriod: '–',
+    averageMaxDrawdown: '–'
   };
+  openKpiTargetId: string | null = null;
   draggedKpiId: string | null = null;
   draggedKpiPreview: KpiCard | null = null;
   draggedKpiPreviewPosition = { left: 0, top: 0, width: 0, height: 0 };
@@ -980,6 +981,17 @@ export class MontecarloPageComponent {
 
   trackKpiById(_index: number, kpi: KpiCard): string {
     return kpi.id;
+  }
+
+  toggleKpiTarget(kpiId: string, event: MouseEvent): void {
+    event.stopPropagation();
+    this.openKpiTargetId = this.openKpiTargetId === kpiId ? null : kpiId;
+  }
+
+  selectKpiTarget(kpiId: string, value: string, event: MouseEvent): void {
+    event.stopPropagation();
+    this.kpiTargets[kpiId] = value;
+    this.openKpiTargetId = null;
   }
 
   private finishDragState(): void {
