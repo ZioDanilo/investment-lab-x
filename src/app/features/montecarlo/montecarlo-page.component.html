@@ -64,29 +64,46 @@
                 <text [attr.x]="getPortfolioEvolutionX(year)" y="235" text-anchor="middle" class="evolution-axis-label">{{ year }}</text>
               </g>
 
-              <polyline [attr.points]="buildPortfolioEvolutionPoints()" class="evolution-line" />
+              <polyline
+                *ngFor="let series of getPortfolioEvolutionSeries()"
+                [attr.points]="buildPortfolioEvolutionPoints(series.points)"
+                class="evolution-line"
+                [ngClass]="series.className"
+              />
 
-              <g *ngFor="let point of portfolioEvolution">
-                <circle
-                  [attr.cx]="getPortfolioEvolutionX(point.year)"
-                  [attr.cy]="getPortfolioEvolutionY(point.annualReturn)"
-                  r="8"
-                  class="evolution-hit-point"
-                  (mouseenter)="onPortfolioEvolutionPointEnter(point, $event)"
+              <g *ngFor="let year of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]">
+                <rect
+                  [attr.x]="getPortfolioEvolutionHoverX(year)"
+                  y="18"
+                  [attr.width]="getPortfolioEvolutionHoverWidth(year)"
+                  height="194"
+                  class="evolution-year-hit-area"
+                  (mouseenter)="onPortfolioEvolutionYearEnter(year, $event)"
                   (mousemove)="onPortfolioEvolutionPointMove($event)"
                   (mouseleave)="onPortfolioEvolutionPointLeave()"
-                ></circle>
+                ></rect>
               </g>
-
-
             </svg>
 
+            <div class="evolution-legend" *ngIf="portfolioEvolution.length > 1">
+              <span *ngFor="let series of getPortfolioEvolutionSeries()" class="evolution-legend-item" [ngClass]="series.className">
+                <i></i>{{ series.label }}
+              </span>
+            </div>
+
             <div
-              *ngIf="hoveredPortfolioEvolutionPoint as point"
+              *ngIf="hoveredPortfolioEvolutionYear as year"
               class="evolution-pointer-tooltip"
               [style.left.px]="portfolioEvolutionTooltipPosition.left"
               [style.top.px]="portfolioEvolutionTooltipPosition.top"
-            >Anno {{ point.year }}: {{ formatAnnualReturn(point.annualReturn) }}</div>
+            >
+              <div class="evolution-tooltip-heading">Anno {{ year }}</div>
+              <div
+                *ngFor="let row of getPortfolioEvolutionTooltipRows(year)"
+                class="evolution-tooltip-row"
+                [ngClass]="row.className"
+              >{{ row.label }}: {{ formatAnnualReturn(row.value) }}</div>
+            </div>
 
             <ng-template #evolutionEmpty>
               <div class="evolution-empty">Avvia la simulazione per visualizzare i rendimenti annuali.</div>
