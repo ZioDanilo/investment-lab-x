@@ -71,6 +71,8 @@
               draggable="true"
               [attr.data-kpi-index]="i"
               [class.is-dragging]="draggedKpiId === kpi.id"
+              [class.shift-up]="getKpiDragShift(i) === 'up'"
+              [class.shift-down]="getKpiDragShift(i) === 'down'"
               (dragstart)="onKpiDragStart(kpi.id, $event)"
               (dragend)="onKpiDragEnd()"
             >
