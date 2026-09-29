@@ -80,6 +80,7 @@ export class MontecarloPageComponent {
   private completionHoldTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private progressAnimationIntervalId: ReturnType<typeof setInterval> | null = null;
   private progressAnimationStartedAt = 0;
+  private progressAnimationCeiling = 40;
   isRegeneratingMarketUniverse = false;
   marketUniverseStatusMessage: string | null = null;
   kpis: KpiCard[] = [...this.defaultKpis];
@@ -185,21 +186,37 @@ export class MontecarloPageComponent {
   private startProgressAnimation(): void {
     this.stopProgressAnimation();
     this.simulationProgress = 1;
+    this.progressAnimationCeiling = 40;
     this.progressAnimationStartedAt = performance.now();
     this.progressAnimationIntervalId = setInterval(() => {
       if (!this.isRunning) {
         return;
       }
 
-      const elapsedSeconds = Math.max(0, (performance.now() - this.progressAnimationStartedAt) / 1000);
-      // UX progress: advance smoothly through long precompute/finalization phases where
-      // the engine cannot provide path-based progress. It approaches 94% but never
-      // completes before the real result is available.
-      const visualTarget = Math.min(94, 1 + (elapsedSeconds * 3.2));
-      if (visualTarget > this.simulationProgress) {
-        this.simulationProgress = visualTarget;
-      }
-    }, 200);
+      // Stage-aware UX progress. It moves quickly but never crosses the ceiling
+      // of the current real phase, so a slow request cannot fake completion.
+      const remaining = Math.max(0, this.progressAnimationCeiling - this.simulationProgress);
+      const step = Math.max(0.8, remaining * 0.16);
+      this.simulationProgress = Math.min(this.progressAnimationCeiling, this.simulationProgress + step);
+    }, 80);
+  }
+
+  private advanceProgressStage(target: number): void {
+    this.progressAnimationCeiling = Math.max(this.progressAnimationCeiling, Math.min(99, target));
+    if (this.simulationProgress < target - 12) {
+      this.simulationProgress = target - 12;
+    }
+  }
+
+  private async completeProgressAnimation(): Promise<void> {
+    this.progressAnimationCeiling = 100;
+    const startedAt = performance.now();
+    while (this.simulationProgress < 99 && performance.now() - startedAt < 220) {
+      this.simulationProgress = Math.min(100, this.simulationProgress + Math.max(4, (100 - this.simulationProgress) * 0.35));
+      await new Promise<void>((resolve) => setTimeout(resolve, 16));
+    }
+    this.simulationProgress = 100;
+    await new Promise<void>((resolve) => setTimeout(resolve, 90));
   }
 
   private stopProgressAnimation(): void {
@@ -714,8 +731,11 @@ export class MontecarloPageComponent {
       // Fast path: ETF paths are already generated in the active Market Universe.
       // A simulation click only applies the selected portfolio weights and derives
       // portfolio paths/KPIs; it must never regenerate the Monte Carlo universe.
+      this.advanceProgressStage(45);
       const projection = await this.requestBinarySimulationProjection(positions);
+      this.advanceProgressStage(72);
       const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
+      this.advanceProgressStage(88);
 
       this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
       this.updateDonutSegments();
@@ -732,6 +752,8 @@ export class MontecarloPageComponent {
         { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
         { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' }
       ];
+      this.advanceProgressStage(96);
+      await this.completeProgressAnimation();
     } catch (error) {
       console.error('[Monte Carlo fast path]', error);
       this.kpis = [...this.defaultKpis];
