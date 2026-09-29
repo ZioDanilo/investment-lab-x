@@ -3,11 +3,6 @@ import { Component, ViewChild, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { MonteCarloStatisticsEngine } from '../../core/engines/monte-carlo-statistics.engine';
-import {
-  buildMonteCarloSnapshotRequest,
-  buildMonteCarloUserInput,
-  createMonteCarloCoordinator
-} from '../../core/monte-carlo-ui-flow';
 import { MarketUniverseBinaryTransport, type DecodedMarketUniverseBinary } from '../../core/market-universe/market-universe-binary-transport';
 import { MonteCarloResult } from '../../core/models/monte-carlo-contracts.model';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
@@ -684,7 +679,6 @@ export class MontecarloPageComponent {
   }
 
   async runSimulation(): Promise<void> {
-    console.log('[MC-TRACE 01] runSimulation entered');
     const portfolio = this.selectedPortfolio();
     if (!portfolio || this.isRunning) {
       return;
@@ -695,7 +689,6 @@ export class MontecarloPageComponent {
     this.resetKpis();
 
     try {
-      console.log('[MC-TRACE 02] snapshot request start');
       const portfolioResponse = await firstValueFrom(this.apiService.getPortfolioById(portfolio.id));
       const rawHoldings = Array.isArray(portfolioResponse?.data?.holdings)
         ? portfolioResponse.data.holdings
@@ -703,89 +696,27 @@ export class MontecarloPageComponent {
           ? portfolioResponse.holdings
           : [];
 
-      if (rawHoldings.length === 0) {
-        throw new Error('Portfolio senza holding disponibili.');
-      }
-
       const positions = rawHoldings
         .map((holding: any) => ({
           isin: holding?.isin ?? holding?.etfId ?? holding?.id ?? holding?.ticker,
           weight: Number(holding?.weight ?? holding?.targetWeight ?? 0)
         }))
-        .filter((position: { isin?: string; weight: number }) => Boolean(position.isin) && Number.isFinite(position.weight) && position.weight > 0);
+        .filter((position: { isin?: string; weight: number }) => Boolean(position.isin) && Number.isFinite(position.weight) && position.weight > 0)
+        .map((position: { isin?: string; weight: number }) => ({
+          isin: String(position.isin),
+          weight: position.weight
+        }));
 
       if (positions.length === 0) {
         throw new Error('Nessuna posizione valida nel portafoglio selezionato.');
       }
 
-      const normalizedPositions = positions.map((position: { isin?: string; weight: number }) => ({
-        isin: String(position.isin),
-        weight: position.weight
-      }));
+      // Fast path: ETF paths are already generated in the active Market Universe.
+      // A simulation click only applies the selected portfolio weights and derives
+      // portfolio paths/KPIs; it must never regenerate the Monte Carlo universe.
+      const projection = await this.requestBinarySimulationProjection(positions);
+      const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
 
-      console.log('[MC-TRACE 04] build input start');
-      const snapshotRequest = buildMonteCarloSnapshotRequest(normalizedPositions);
-      const snapshotResponse = await firstValueFrom(this.apiService.getMonteCarloSnapshot(snapshotRequest));
-      const snapshot = snapshotResponse?.data ?? snapshotResponse;
-      console.log('[MC-TRACE 03] snapshot received', {
-        exists: !!snapshot,
-        assetCount: Array.isArray(snapshot?.etfs) ? snapshot.etfs.length : 0
-      });
-
-      if (!snapshot || !Array.isArray(snapshot.etfs) || snapshot.etfs.length === 0) {
-        throw new Error('Snapshot Monte Carlo non disponibile.');
-      }
-
-      const input = buildMonteCarloUserInput(normalizedPositions, 100000, 30);
-      console.log('[MC-TRACE 05] input built', {
-        totalPaths: input ? 1000 : 0,
-        months: input ? input.horizonYears * 12 : 0,
-        years: input ? input.horizonYears : 0,
-        etfCount: input ? input.positions.length : 0
-      });
-      console.log('[MC-TRACE 06] coordinator creation start');
-      const coordinator = createMonteCarloCoordinator(input, snapshot, 'COMPLETE', (progress) => {
-        const progressValue = Number(progress);
-        const progressType = typeof progress;
-        const preview = typeof progress === 'number' ? progress : (progress && typeof progress === 'object' ? Object.keys(progress).slice(0, 5) : String(progress));
-        console.log('[MC-TRACE PROGRESS] callback', { type: progressType, value: progressValue, preview });
-        if (progressValue >= 1 && progressValue < 25 && !this.simulationProgress) {
-          console.log('[MC-TRACE PROGRESS] 1');
-        }
-        if (progressValue >= 25 && progressValue < 50) {
-          console.log('[MC-TRACE PROGRESS] 25');
-        }
-        if (progressValue >= 50 && progressValue < 75) {
-          console.log('[MC-TRACE PROGRESS] 50');
-        }
-        if (progressValue >= 75 && progressValue < 99) {
-          console.log('[MC-TRACE PROGRESS] 75');
-        }
-        if (progressValue >= 99) {
-          console.log('[MC-TRACE PROGRESS] 99');
-        }
-        const engineProgress = Math.min(Math.max(Number(progress) || 0, 0), 99);
-        // Real engine progress may move the bar forward, never backward. The visual
-        // animation fills the phases that currently emit no granular progress.
-        this.simulationProgress = Math.max(this.simulationProgress, engineProgress);
-      });
-      console.log('[MC-TRACE 07] coordinator created');
-      console.log('[MC-TRACE 08] coordinator.run start');
-      const outcome = await coordinator.run();
-      console.log('[MC-TRACE 09] coordinator.run resolved', {
-        hasOutcome: !!outcome,
-        status: outcome?.status,
-        hasResult: !!outcome?.result,
-        errorCode: outcome?.error?.code,
-        errorMessage: outcome?.error?.message ? String(outcome.error.message).slice(0, 120) : undefined
-      });
-
-      if (outcome.status !== 'success' || !outcome.result) {
-        throw new Error(outcome.error?.message ?? 'Simulazione Monte Carlo fallita.');
-      }
-
-      const result = outcome.result;
-      console.log('[MC-TRACE 10] applying result');
       this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
       this.updateDonutSegments();
       const cagrSamples = Array.isArray(result.distributionSamples?.cagr) ? result.distributionSamples.cagr : [];
@@ -797,24 +728,14 @@ export class MontecarloPageComponent {
       this.kpis = [
         { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
         { id: 'volatility', title: 'VOLATILITÀ', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
-        { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: '—', description: 'Scenari con rendimento > 0', tone: 'blue' },
+        { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: this.formatPercent(result.mainKpis?.positiveReturnProbability), description: 'Scenari con rendimento > 0', tone: 'blue' },
         { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
         { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' }
       ];
-      console.log('[MC-TRACE 11] result applied', {
-        kpis: this.kpis.length,
-        returnsBins: this.finalReturnDistribution?.bins?.length ?? 0,
-        drawdownBins: this.maxDrawdownDistribution?.bins?.length ?? 0,
-        scenarios: this.macroScenarioDistribution?.length ?? 0
-      });
     } catch (error) {
-      console.error('[MC-TRACE ERROR]', error);
+      console.error('[Monte Carlo fast path]', error);
       this.kpis = [...this.defaultKpis];
     } finally {
-      console.log('[MC-TRACE 12] runSimulation finally', {
-        isRunning: this.isRunning,
-        simulationProgress: this.simulationProgress
-      });
       this.isRunning = false;
       this.stopProgressAnimation();
       this.simulationProgress = 0;
