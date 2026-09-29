@@ -107,7 +107,7 @@
   appearance: none;
   -webkit-appearance: none;
   background: transparent;
-  cursor: ew-resize;
+  cursor: default;
 }
 
 .slider::-webkit-slider-runnable-track {
