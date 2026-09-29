@@ -1797,3 +1797,37 @@
   visibility: visible !important;
   filter: none !important;
 }
+
+
+/* KPI 80/20 layout: keep Target aligned and dropdown width stable */
+.kpi-columns-header,
+.kpi-row {
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr) !important;
+  gap: 8px;
+}
+.kpi-columns-header {
+  padding: 0 8px 0 12px;
+}
+.kpi-columns-header span:last-child {
+  width: 100%;
+  text-align: center;
+}
+.kpi-row__target {
+  width: 100%;
+  box-sizing: border-box;
+}
+.kpi-target-dropdown,
+.kpi-target-trigger {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.kpi-target-trigger {
+  white-space: nowrap;
+}
+
+/* Completion reset must be instantaneous, never animate backwards */
+.run-button__fill--reset {
+  transition: none !important;
+}
