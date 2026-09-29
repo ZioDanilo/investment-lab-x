@@ -508,20 +508,64 @@
   white-space: nowrap;
 }
 
-.kpi-target-select {
+.kpi-target-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.kpi-target-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   width: 100%;
   min-width: 0;
+  padding: 0;
   border: 0;
-  outline: 0;
   background: transparent;
-  color: #edf7ff;
+  color: #edf6ff;
   font: inherit;
-  text-align: center;
   cursor: pointer !important;
 }
 
-.kpi-target-select option {
-  color: #111827;
+.kpi-target-chevron {
+  font-size: 1rem;
+  color: rgba(200, 222, 240, 0.8);
+}
+
+.kpi-target-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 100%;
+  border: 1px solid rgba(133, 176, 226, 0.22);
+  border-radius: 10px;
+  background: rgba(8, 14, 20, 0.98);
+  box-shadow: 0 18px 28px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+
+.kpi-target-option {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: rgba(228, 238, 248, 0.9);
+  font: inherit;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer !important;
+}
+
+.kpi-target-option:hover {
+  background: rgba(22, 131, 204, 0.12);
+}
+
+.kpi-target-option.is-selected {
+  background: rgba(23, 139, 210, 0.08);
 }
 
 .kpi-target-preview {
