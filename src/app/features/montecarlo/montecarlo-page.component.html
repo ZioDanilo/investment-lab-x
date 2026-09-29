@@ -49,21 +49,7 @@
             <span class="panel-badge">Anteprima</span>
           </div>
 
-          <div class="placeholder-chart">
-            <svg viewBox="0 0 520 170" class="svg-chart" role="img" aria-label="Anteprima evoluzione portafoglio">
-              <line x1="24" y1="148" x2="490" y2="148" class="axis" />
-              <line x1="24" y1="20" x2="24" y2="148" class="axis" />
-              <path [attr.d]="buildPlaceholderEvolutionPath()" class="trajectory trajectory--median"></path>
-              <g class="placeholder-grid">
-                <text x="24" y="156" class="tick-label">€0</text>
-                <text x="110" y="156" class="tick-label">€100k</text>
-                <text x="190" y="156" class="tick-label">€200k</text>
-                <text x="272" y="156" class="tick-label">€300k</text>
-                <text x="354" y="156" class="tick-label">€400k</text>
-                <text x="438" y="156" class="tick-label">€500k</text>
-              </g>
-            </svg>
-          </div>
+          <div class="placeholder-chart"></div>
         </article>
       </div>
 
@@ -95,7 +81,7 @@
             </div>
 
             <div class="histogram-plot compact-histogram">
-              <svg viewBox="0 0 520 180" class="svg-chart" role="img" aria-label="Distribuzione dei rendimenti finali" (pointerleave)="onHistogramPlotPointerLeave()">
+              <svg *ngIf="finalReturnDistribution.bins.length > 0" viewBox="0 0 520 180" class="svg-chart" role="img" aria-label="Distribuzione dei rendimenti finali" (pointerleave)="onHistogramPlotPointerLeave()">
                 <line x1="40" y1="150" x2="490" y2="150" class="axis" />
                 <line x1="40" y1="20" x2="40" y2="150" class="axis" />
 
@@ -134,7 +120,7 @@
             </div>
 
             <div class="histogram-plot compact-histogram compact-histogram--drawdown">
-              <svg viewBox="0 0 420 175" class="svg-chart svg-chart--compact" role="img" aria-label="Distribuzione drawdown massimo" (pointerleave)="onMaxDrawdownPlotPointerLeave()">
+              <svg *ngIf="maxDrawdownDistribution.bins.length > 0" viewBox="0 0 420 175" class="svg-chart svg-chart--compact" role="img" aria-label="Distribuzione drawdown massimo" (pointerleave)="onMaxDrawdownPlotPointerLeave()">
                 <line x1="30" y1="145" x2="360" y2="145" class="axis" />
                 <line x1="30" y1="20" x2="30" y2="145" class="axis" />
 
