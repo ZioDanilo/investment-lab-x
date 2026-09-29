@@ -429,16 +429,68 @@
 
 .evolution-line {
   fill: none;
-  stroke: #5da7ff;
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
-.evolution-hit-point {
+.evolution-line--t0 {
+  stroke: #5da7ff;
+}
+
+.evolution-line--t1 {
+  stroke: #f0a23a;
+}
+
+.evolution-line--t2 {
+  stroke: #a96f45;
+}
+
+.evolution-year-hit-area {
   fill: transparent;
   cursor: default;
+}
+
+.evolution-legend {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  display: flex;
+  gap: 12px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.evolution-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #9fb2c7;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.evolution-legend-item i {
+  width: 16px;
+  height: 2px;
+  display: inline-block;
+  background: currentColor;
+}
+
+.evolution-legend-item.evolution-line--t0,
+.evolution-tooltip-row--t0 {
+  color: #5da7ff;
+}
+
+.evolution-legend-item.evolution-line--t1,
+.evolution-tooltip-row--t1 {
+  color: #f0a23a;
+}
+
+.evolution-legend-item.evolution-line--t2,
+.evolution-tooltip-row--t2 {
+  color: #a96f45;
 }
 
 .evolution-pointer-tooltip {
@@ -455,6 +507,16 @@
   font-size: 11px;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.evolution-tooltip-heading {
+  color: #f2f8ff;
+  margin-bottom: 4px;
+}
+
+.evolution-tooltip-row {
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .evolution-empty {
