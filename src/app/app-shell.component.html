@@ -25,7 +25,7 @@
         <button type="button" class="avatar-button" aria-label="Profilo utente" aria-haspopup="menu" [attr.aria-expanded]="profileMenuOpen" (click)="toggleProfileMenu($event)">
           <span>DL</span>
         </button>
-        <div class="profile-dropdown" *ngIf="profileMenuOpen" role="menu" (click)="$event.stopPropagation()">
+        <div class="profile-dropdown" [class.is-open]="profileMenuOpen" role="menu" [attr.aria-hidden]="!profileMenuOpen" (click)="$event.stopPropagation()">
           <button type="button" class="profile-dropdown__item" role="menuitem" [disabled]="isRegeneratingMarketUniverse" (click)="regenerateMarketUniverse($event)">
             <span class="material-symbols-rounded">autorenew</span>
             <span>{{ isRegeneratingMarketUniverse ? 'Generazione in corso…' : 'Genera Market Universe' }}</span>
