@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, ViewChild, inject, signal } from '@angular/core';
+import { Component, HostListener, ViewChild, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { MonteCarloStatisticsEngine } from '../../core/engines/monte-carlo-statistics.engine';
