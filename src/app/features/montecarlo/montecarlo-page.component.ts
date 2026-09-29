@@ -718,7 +718,7 @@ export class MontecarloPageComponent {
   async runSimulation(): Promise<void> {
     this.kpiResultValues = {};
     const portfolio = this.selectedPortfolio();
-    if (!portfolio || this.isRunning) {
+    if (!portfolio || this.editorState()?.state?.isValid !== true || this.isRunning) {
       return;
     }
 
