@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, HostListener, ViewChild, inject, signal } from '@angular/core';
+import { Component, HostListener, ViewChild, effect, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { MonteCarloStatisticsEngine } from '../../core/engines/monte-carlo-statistics.engine';
@@ -49,6 +49,7 @@ export class MontecarloPageComponent {
 
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
   readonly editorState = signal<MontecarloPortfolioEditorChange | null>(null);
+  private kpiConfigLoadVersion = 0;
   finalReturnDistribution: { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } = {
     label: 'Distribuzione dei rendimenti finali',
     subtitle: 'Distribuzione simulata a 30 anni',
@@ -98,6 +99,84 @@ export class MontecarloPageComponent {
     recoveryPeriod: '–',
     averageMaxDrawdown: '–'
   };
+
+
+  constructor() {
+    effect(() => {
+      const portfolioId = this.selectedPortfolio()?.id ?? null;
+      void this.loadPortfolioKpiConfiguration(portfolioId);
+    });
+  }
+
+  private resetPortfolioKpiConfiguration(): void {
+    this.kpis = this.defaultKpis.map((kpi) => ({ ...kpi }));
+    this.kpiTargets = {
+      expectedReturn: '–',
+      volatility: '–',
+      positiveReturnProbability: '–',
+      recoveryPeriod: '–',
+      averageMaxDrawdown: '–'
+    };
+    this.openKpiTargetId = null;
+  }
+
+  private async loadPortfolioKpiConfiguration(portfolioId: string | null): Promise<void> {
+    const loadVersion = ++this.kpiConfigLoadVersion;
+    if (!portfolioId) {
+      this.resetPortfolioKpiConfiguration();
+      return;
+    }
+
+    try {
+      const response = await firstValueFrom(this.apiService.getPortfolioKpiTargets(portfolioId));
+      if (loadVersion !== this.kpiConfigLoadVersion || this.selectedPortfolio()?.id !== portfolioId) {
+        return;
+      }
+
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      const defaultById = new Map(this.defaultKpis.map((kpi) => [kpi.id, kpi]));
+      const validRows = rows
+        .filter((row: any) => defaultById.has(String(row?.kpi)))
+        .sort((left: any, right: any) => Number(left?.priority) - Number(right?.priority));
+
+      if (validRows.length !== this.defaultKpis.length || new Set(validRows.map((row: any) => String(row.kpi))).size !== this.defaultKpis.length) {
+        this.resetPortfolioKpiConfiguration();
+        return;
+      }
+
+      this.kpis = validRows.map((row: any) => ({ ...defaultById.get(String(row.kpi))! }));
+      this.kpiTargets = Object.fromEntries(
+        this.defaultKpis.map((kpi) => {
+          const row = validRows.find((item: any) => String(item.kpi) === kpi.id);
+          return [kpi.id, row?.target == null || String(row.target).trim() === '' ? '–' : String(row.target)];
+        })
+      );
+      this.openKpiTargetId = null;
+    } catch (error) {
+      if (loadVersion === this.kpiConfigLoadVersion && this.selectedPortfolio()?.id === portfolioId) {
+        console.error('[KPI target load]', error);
+        this.resetPortfolioKpiConfiguration();
+      }
+    }
+  }
+
+  private async saveCurrentPortfolioKpiConfiguration(): Promise<void> {
+    const portfolioId = this.selectedPortfolio()?.id;
+    if (!portfolioId) {
+      return;
+    }
+
+    const payload = this.kpis.map((kpi, index) => ({
+      kpi: kpi.id,
+      priority: index + 1,
+      target: this.kpiTargets[kpi.id] ?? '–'
+    }));
+
+    const response = await firstValueFrom(this.apiService.savePortfolioKpiTargets(portfolioId, payload));
+    if (response?.success === false) {
+      throw new Error(response?.error || 'Salvataggio configurazione KPI non riuscito');
+    }
+  }
   openKpiTargetId: string | null = null;
   kpiResultValues: Record<string, number | null> = {};
   draggedKpiId: string | null = null;
@@ -731,6 +810,8 @@ export class MontecarloPageComponent {
     this.resetKpis();
 
     try {
+      await this.saveCurrentPortfolioKpiConfiguration();
+
       // The editor is the source of truth for a simulation. Its composition can
       // intentionally differ from the persisted portfolio until the user chooses
       // "Aggiorna portafoglio"; fetching the DB portfolio here would therefore
