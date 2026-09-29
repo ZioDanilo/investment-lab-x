@@ -395,6 +395,7 @@
   background: linear-gradient(180deg, rgba(17, 26, 37, 0.78), rgba(12, 18, 27, 0.96));
   border: 1px solid rgba(115, 154, 206, 0.12);
   overflow: hidden;
+  position: relative;
 }
 
 .portfolio-evolution-svg {
@@ -436,25 +437,23 @@
 
 .evolution-hit-point {
   fill: transparent;
-  cursor: crosshair;
+  cursor: default;
 }
 
-.evolution-tooltip-bg {
-  fill: rgba(7, 14, 23, 0.96);
-  stroke: rgba(93, 167, 255, 0.65);
-  stroke-width: 1;
-}
-
-.evolution-tooltip-year {
-  fill: #9fb2c7;
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.evolution-tooltip-value {
-  fill: #f2f8ff;
+.evolution-pointer-tooltip {
+  position: absolute;
+  z-index: 3;
+  transform: translateY(-100%);
+  pointer-events: none;
+  white-space: nowrap;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: rgba(7, 14, 23, 0.96);
+  border: 1px solid rgba(93, 167, 255, 0.65);
+  color: #f2f8ff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .evolution-empty {
