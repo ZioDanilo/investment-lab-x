@@ -401,6 +401,8 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  padding-block: 28px;
+  margin-block: -28px;
 }
 
 .kpi-row {
@@ -430,8 +432,18 @@
 }
 
 .kpi-row.is-dragging {
-  opacity: 1;
+  opacity: 0;
   cursor: grabbing !important;
+}
+
+.kpi-drag-image {
+  position: fixed;
+  left: -10000px;
+  top: -10000px;
+  z-index: 99999;
+  box-sizing: border-box;
+  opacity: 1 !important;
+  pointer-events: none;
 }
 
 .kpi-compact-list--settling .kpi-row {
