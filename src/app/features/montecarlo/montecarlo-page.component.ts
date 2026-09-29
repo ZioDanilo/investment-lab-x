@@ -85,6 +85,9 @@ export class MontecarloPageComponent {
   marketUniverseStatusMessage: string | null = null;
   kpis: KpiCard[] = [...this.defaultKpis];
   draggedKpiId: string | null = null;
+  draggedKpiPreview: KpiCard | null = null;
+  draggedKpiPreviewPosition = { left: 0, top: 0, width: 0, height: 0 };
+  private draggedKpiPointerOffset = { x: 0, y: 0 };
   suppressKpiTransitions = false;
   swapTargetId: string | null = null;
   insertTargetIndex: number | null = null;
@@ -781,38 +784,51 @@ export class MontecarloPageComponent {
 
   onKpiDragStart(kpiId: string, event: DragEvent): void {
     this.draggedKpiId = kpiId;
+    this.draggedKpiPreview = this.kpis.find((kpi) => kpi.id === kpiId) ?? null;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
+
+    const source = event.currentTarget as HTMLElement | null;
+    if (source) {
+      const rect = source.getBoundingClientRect();
+      this.draggedKpiPointerOffset = {
+        x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
+        y: Math.max(0, Math.min(rect.height, event.clientY - rect.top))
+      };
+      this.draggedKpiPreviewPosition = {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height
+      };
+    }
+
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', kpiId);
 
-      const source = event.currentTarget as HTMLElement | null;
-      if (source) {
-        const dragImage = source.cloneNode(true) as HTMLElement;
-        const rect = source.getBoundingClientRect();
-        dragImage.classList.remove('is-dragging', 'shift-up', 'shift-down');
-        dragImage.classList.add('kpi-drag-image');
-        dragImage.style.width = `${rect.width}px`;
-        dragImage.style.height = `${rect.height}px`;
-
-        const sourceStyle = getComputedStyle(source);
-        dragImage.style.boxSizing = sourceStyle.boxSizing;
-        dragImage.style.background = sourceStyle.background;
-        dragImage.style.border = sourceStyle.border;
-        dragImage.style.borderRadius = sourceStyle.borderRadius;
-        dragImage.style.padding = sourceStyle.padding;
-        dragImage.style.opacity = '1';
-
-        document.body.appendChild(dragImage);
-
-        const offsetX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
-        const offsetY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
-        event.dataTransfer.setDragImage(dragImage, offsetX, offsetY);
-
-        requestAnimationFrame(() => dragImage.remove());
-      }
+      // Suppress the browser's translucent native drag ghost. The visible preview
+      // is a real fixed-position KPI row rendered by Angular.
+      const transparentDragImage = document.createElement('div');
+      transparentDragImage.style.width = '1px';
+      transparentDragImage.style.height = '1px';
+      transparentDragImage.style.opacity = '0';
+      document.body.appendChild(transparentDragImage);
+      event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+      requestAnimationFrame(() => transparentDragImage.remove());
     }
+  }
+
+  onKpiDrag(event: DragEvent): void {
+    if (!this.draggedKpiId || event.clientX === 0 && event.clientY === 0) {
+      return;
+    }
+
+    this.draggedKpiPreviewPosition = {
+      ...this.draggedKpiPreviewPosition,
+      left: event.clientX - this.draggedKpiPointerOffset.x,
+      top: event.clientY - this.draggedKpiPointerOffset.y
+    };
   }
 
   onKpiDragOver(kpiId: string, event: DragEvent): void {
@@ -954,6 +970,7 @@ export class MontecarloPageComponent {
 
   private finishDragState(): void {
     this.draggedKpiId = null;
+    this.draggedKpiPreview = null;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
   }
