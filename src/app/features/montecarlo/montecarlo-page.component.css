@@ -1891,3 +1891,12 @@
     drop-shadow(0 0 5px rgba(255,227,79,.58))
     drop-shadow(0 0 10px rgba(255,210,45,.24));
 }
+
+
+/* Suggestions bulb: flat solid treatment, consistent with KPI icon styling */
+.panel-title-icon--suggestions {
+  color: #ffe34f !important;
+  font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 100, 'opsz' 24;
+  filter: none !important;
+  text-shadow: none !important;
+}
