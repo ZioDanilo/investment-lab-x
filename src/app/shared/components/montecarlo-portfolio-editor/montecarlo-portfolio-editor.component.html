@@ -15,7 +15,7 @@
         <span class="etf-accent-dot" [style.background]="getEtfAccentColor(item, i)" [style.box-shadow]="'0 0 10px ' + getEtfAccentColor(item, i) + '55'"></span>
         <span class="item-name__text">{{ item.nickname || item.ticker || item.isin }}</span>
       </div>
-      <div class="slider-shell" [style.--slider-value.%]="item.weight">
+      <div class="slider-shell" [style.--slider-value.%]="item.weight" [style.--etf-accent]="getEtfAccentColor(item, i)">
         <div class="slider-segments" aria-hidden="true"></div>
         <span class="slider-edge-highlight" *ngIf="item.weight > 0" [style.left.%]="item.weight" aria-hidden="true"></span>
         <input
