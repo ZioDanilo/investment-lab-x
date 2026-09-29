@@ -99,6 +99,7 @@ export class MontecarloPageComponent {
   hoveredMaxDrawdownBin: { label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number } | null = null;
   maxDrawdownTooltipPercentage: string | null = null;
   maxDrawdownTooltipPosition = { left: 0, top: 0 };
+  portfolioEvolution: Array<{ year: number; capital: number }> = [];
 
   getHistogramTotalPaths(): number {
     return this.finalReturnDistribution.bins.reduce((sum, bin) => sum + Number(bin.value ?? 0), 0) || 0;
@@ -743,6 +744,13 @@ export class MontecarloPageComponent {
       const maxDrawdownSamples = Array.isArray(result.distributionSamples?.maxDrawdown) ? result.distributionSamples.maxDrawdown : [];
       this.finalReturnDistribution = this.buildFinalReturnDistribution(cagrSamples.map((cagr) => ({ cagr })));
       this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(maxDrawdownSamples.map((maxDrawdown) => ({ maxDrawdown })));
+      this.portfolioEvolution = [
+        { year: 0, capital: 100000 },
+        ...(Array.isArray(result.capitalFan) ? result.capitalFan : []).map((point) => ({
+          year: Number(point.year),
+          capital: Number(point.capitalP50)
+        })).filter((point) => Number.isFinite(point.year) && Number.isFinite(point.capital))
+      ];
       this.clearHistogramHover();
       this.clearMaxDrawdownHover();
       this.kpis = [
@@ -767,6 +775,7 @@ export class MontecarloPageComponent {
 
   private resetKpis(): void {
     this.kpis = [...this.defaultKpis];
+    this.portfolioEvolution = [];
     this.draggedKpiId = null;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
@@ -1163,6 +1172,63 @@ export class MontecarloPageComponent {
 
   onMaxDrawdownPlotPointerLeave(): void {
     this.clearMaxDrawdownHover();
+  }
+
+  buildPortfolioEvolutionPoints(width = 640, height = 250, left = 68, right = 18, top = 18, bottom = 38): string {
+    if (this.portfolioEvolution.length < 2) {
+      return '';
+    }
+
+    const maxCapital = Math.max(...this.portfolioEvolution.map((point) => point.capital), 100000);
+    const yMax = this.getPortfolioEvolutionYAxisMax(maxCapital);
+    const plotWidth = width - left - right;
+    const plotHeight = height - top - bottom;
+
+    return this.portfolioEvolution
+      .map((point) => {
+        const x = left + (Math.max(0, Math.min(30, point.year)) / 30) * plotWidth;
+        const y = top + (1 - Math.max(0, Math.min(1, point.capital / yMax))) * plotHeight;
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+      })
+      .join(' ');
+  }
+
+  getPortfolioEvolutionYAxisMax(value?: number): number {
+    const maxCapital = Number.isFinite(value)
+      ? Number(value)
+      : Math.max(...this.portfolioEvolution.map((point) => point.capital), 100000);
+    const padded = Math.max(100000, maxCapital) * 1.08;
+    const magnitude = Math.pow(10, Math.max(0, Math.floor(Math.log10(padded)) - 1));
+    return Math.ceil(padded / magnitude) * magnitude;
+  }
+
+  getPortfolioEvolutionYTicks(): Array<{ value: number; y: number }> {
+    const yMax = this.getPortfolioEvolutionYAxisMax();
+    const top = 18;
+    const bottom = 38;
+    const height = 250;
+    const plotHeight = height - top - bottom;
+
+    return Array.from({ length: 5 }, (_, index) => {
+      const ratio = index / 4;
+      return {
+        value: yMax * (1 - ratio),
+        y: top + ratio * plotHeight
+      };
+    });
+  }
+
+  getPortfolioEvolutionX(year: number): number {
+    return 68 + (year / 30) * (640 - 68 - 18);
+  }
+
+  formatEuroAxis(value: number): string {
+    return new Intl.NumberFormat('it-IT', {
+      style: 'currency',
+      currency: 'EUR',
+      notation: 'compact',
+      maximumFractionDigits: 0
+    }).format(value);
   }
 
   buildLinePath(values: number[], width = 510, height = 150, padding = 18): string {
