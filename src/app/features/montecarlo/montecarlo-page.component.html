@@ -65,25 +65,18 @@
             (dragover)="onKpiListDragOver($event)"
             (drop)="onKpiListDrop($event)"
           >
-            <ng-container *ngFor="let kpi of kpis; let i = index">
-              <div
-                *ngIf="draggedKpiId === kpi.id; else visibleKpiRow"
-                class="kpi-row kpi-row--placeholder"
-                [attr.data-kpi-index]="i"
-              ></div>
-              <ng-template #visibleKpiRow>
-                <div
-                  class="kpi-row"
-                  draggable="true"
-                  [attr.data-kpi-index]="i"
-                  (dragstart)="onKpiDragStart(kpi.id, $event)"
-                  (dragend)="onKpiDragEnd()"
-                >
-                  <span class="kpi-row__label">{{ kpi.title }}</span>
-                  <strong class="kpi-row__value">{{ kpi.value }}</strong>
-                </div>
-              </ng-template>
-            </ng-container>
+            <div
+              class="kpi-row"
+              *ngFor="let kpi of kpis; let i = index"
+              draggable="true"
+              [attr.data-kpi-index]="i"
+              [class.is-dragging]="draggedKpiId === kpi.id"
+              (dragstart)="onKpiDragStart(kpi.id, $event)"
+              (dragend)="onKpiDragEnd()"
+            >
+              <span class="kpi-row__label">{{ kpi.title }}</span>
+              <strong class="kpi-row__value">{{ kpi.value }}</strong>
+            </div>
           </div>
         </article>
 
