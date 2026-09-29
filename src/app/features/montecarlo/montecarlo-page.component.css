@@ -1831,3 +1831,41 @@
 .run-button__fill--reset {
   transition: none !important;
 }
+
+
+/* KPI target: centered value with chevron pinned to the far right */
+.kpi-target-trigger {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 24px 0 8px;
+  text-align: center;
+}
+.kpi-target-trigger > span:first-child {
+  width: 100%;
+  text-align: center;
+}
+.kpi-target-chevron {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+}
+
+/* Suggestions icon: same free-standing treatment as KPI icons */
+.panel-title-icon--suggestions {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #ffd05a;
+  font-size: 25px;
+  font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 100, 'opsz' 24;
+  text-shadow: none;
+  filter: drop-shadow(0 0 7px rgba(255,208,90,.40));
+}
