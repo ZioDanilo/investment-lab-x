@@ -827,6 +827,17 @@ export class MontecarloPageComponent {
     return this.kpis.map((current) => updatedById.get(current.id) ?? current);
   }
 
+  getKpiIcon(kpiId: string): string {
+    const icons: Record<string, string> = {
+      expectedReturn: 'trending_up',
+      volatility: 'show_chart',
+      positiveReturnProbability: 'verified',
+      recoveryPeriod: 'schedule',
+      averageMaxDrawdown: 'trending_down'
+    };
+    return icons[kpiId] ?? 'analytics';
+  }
+
   private resetKpis(): void {
     this.kpis = this.mergeKpiValuesPreservingOrder(this.defaultKpis);
     this.hoveredPortfolioEvolutionYear = null;
