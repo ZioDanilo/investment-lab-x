@@ -2366,3 +2366,96 @@
     padding-inline: 2px;
   }
 }
+
+
+/* Viewport-fit correction: remove the nested height trap and reclaim vertical whitespace. */
+html, body {
+  overflow-x: hidden;
+}
+
+.montecarlo-page {
+  min-height: 0 !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+/* Full desktop: the whole dashboard, including macro distribution, must fit before scrolling. */
+@media (min-width: 1181px) {
+  .montecarlo-page {
+    height: auto !important;
+    max-height: none !important;
+    gap: 5px !important;
+    padding: 4px 10px !important;
+    overflow: visible !important;
+  }
+
+  .cta-row {
+    min-height: 30px !important;
+    margin: 0 !important;
+  }
+
+  .run-button,
+  .secondary-button {
+    min-height: 30px !important;
+    padding-block: 4px !important;
+  }
+
+  .main-grid,
+  .left-column,
+  .right-column,
+  .histogram-pair {
+    gap: 6px !important;
+  }
+
+  .panel {
+    padding: 6px 9px !important;
+  }
+
+  .compact-header {
+    margin-bottom: 3px !important;
+  }
+
+  .portfolio-evolution-chart {
+    min-height: clamp(140px, 19vh, 185px) !important;
+  }
+
+  .portfolio-evolution-svg {
+    height: clamp(140px, 19vh, 185px) !important;
+  }
+
+  .histogram-panel {
+    min-height: 0 !important;
+  }
+
+  .histogram-plot.compact-histogram {
+    min-height: clamp(125px, 17vh, 170px) !important;
+  }
+
+  .svg-chart--returns,
+  .svg-chart--drawdown {
+    height: clamp(125px, 17vh, 170px) !important;
+  }
+
+  .suggestions-panel {
+    padding-block: 5px !important;
+  }
+
+  .macro-panel {
+    margin: 0 !important;
+    padding: 6px 9px 7px !important;
+  }
+
+  .macro-bar {
+    height: 34px !important;
+    min-height: 34px !important;
+  }
+}
+
+/* Mid-size screens may scroll vertically when content can no longer fit, but never horizontally. */
+@media (max-width: 1180px) {
+  .montecarlo-page {
+    height: auto !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+  }
+}
