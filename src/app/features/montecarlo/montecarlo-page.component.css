@@ -416,20 +416,9 @@
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
-.kpi-row--placeholder {
-  min-height: 41px;
-  visibility: hidden;
-  pointer-events: none;
-}
-
 .kpi-compact-list,
 .kpi-compact-list * {
-  cursor: grab;
-}
-
-.kpi-compact-list--dragging,
-.kpi-compact-list--dragging * {
-  cursor: grabbing !important;
+  cursor: grab !important;
 }
 
 .kpi-row[draggable="true"] {
@@ -441,7 +430,8 @@
 }
 
 .kpi-row.is-dragging {
-  opacity: 0.45;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .kpi-row__label {
