@@ -1247,7 +1247,7 @@ export class MontecarloPageComponent {
   getHistogramYTicks(data: Array<{ value: number }>, baselineY: number, plotHeight: number, axisX: number): Array<{ label: string; y: number; x: number }> {
     const maxValue = Math.max(...data.map((item) => Number(item.value ?? 0)), 1);
     return [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
-      label: `${Math.round(maxValue * ratio)}`,
+      label: (maxValue * ratio / 10).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
       y: baselineY - (plotHeight * ratio),
       x: axisX
     }));
