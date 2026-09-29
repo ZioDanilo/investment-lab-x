@@ -534,3 +534,18 @@
     -4px 0 12px color-mix(in srgb, var(--etf-accent) 45%, transparent),
     inset 0 1px 0 rgba(255,255,255,.72);
 }
+
+
+/* Chunkier light cap at the selected allocation */
+.slider-edge-highlight {
+  top: 2px;
+  bottom: 2px;
+  width: 16px;
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, rgba(226,239,255,.40), rgba(255,255,255,.82)),
+    var(--etf-accent);
+  box-shadow:
+    -4px 0 12px color-mix(in srgb, var(--etf-accent) 45%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.76);
+}
