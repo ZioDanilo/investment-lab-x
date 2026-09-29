@@ -862,11 +862,15 @@ export class MontecarloPageComponent {
     event.stopPropagation();
 
     const kpiId = this.draggedKpiId || event.dataTransfer?.getData('text/plain') || null;
-    if (kpiId) {
-      this.insertKpi(kpiId, this.insertTargetIndex ?? this.kpis.length);
-    }
+    const insertIndex = this.insertTargetIndex ?? this.kpis.length;
 
+    // Remove preview transforms before changing the DOM order. Without this,
+    // upward moves briefly keep shift-down on rows that have already changed index.
     this.finishDragState();
+
+    if (kpiId) {
+      requestAnimationFrame(() => this.insertKpi(kpiId, insertIndex));
+    }
   }
 
   onKpiDragEnd(): void {
