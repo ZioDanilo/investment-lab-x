@@ -58,11 +58,11 @@ export class MontecarloPageComponent {
   donutSegments: Array<{ path: string; color: string; percent: number; label: string; displayPercent: number; labelX: number; labelY: number; key: 'expansion' | 'soft_landing' | 'recession' | 'stagflation' }> = this.buildDonutSegments();
 
   private readonly defaultKpis: KpiCard[] = [
-    { id: 'expectedReturn', title: 'RENDIMENTO ANNUO', value: '—', description: 'CAGR annuo', tone: 'cyan' },
-    { id: 'volatility', title: 'VOLATILITÀ', value: '—', description: 'Deviazione standard annua', tone: 'violet' },
-    { id: 'positiveReturnProbability', title: 'RENDIMENTO POSITIVO (30 ANNI)', value: '—', description: 'Scenari con rendimento > 0', tone: 'blue' },
-    { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: '—', description: 'Tempo medio al break-even', tone: 'amber' },
-    { id: 'averageMaxDrawdown', title: 'DRAWDOWN', value: '—', description: 'Perdita massima media', tone: 'red' }
+    { id: 'expectedReturn', title: 'Rendimento annuo', value: '—', description: 'CAGR annuo', tone: 'cyan' },
+    { id: 'volatility', title: 'Volatilità', value: '—', description: 'Deviazione standard annua', tone: 'violet' },
+    { id: 'positiveReturnProbability', title: 'Rendimento positivo (30 anni)', value: '—', description: 'Scenari con rendimento > 0', tone: 'blue' },
+    { id: 'recoveryPeriod', title: 'Periodo di recupero', value: '—', description: 'Tempo medio al break-even', tone: 'amber' },
+    { id: 'averageMaxDrawdown', title: 'Drawdown', value: '—', description: 'Perdita massima media', tone: 'red' }
   ];
 
   private marketUniverseBinaryMetadataCache: {
