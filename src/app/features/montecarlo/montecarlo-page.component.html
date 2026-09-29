@@ -72,34 +72,21 @@
                   [attr.cy]="getPortfolioEvolutionY(point.annualReturn)"
                   r="8"
                   class="evolution-hit-point"
-                  (mouseenter)="onPortfolioEvolutionPointEnter(point)"
+                  (mouseenter)="onPortfolioEvolutionPointEnter(point, $event)"
+                  (mousemove)="onPortfolioEvolutionPointMove($event)"
                   (mouseleave)="onPortfolioEvolutionPointLeave()"
                 ></circle>
               </g>
 
-              <g *ngIf="hoveredPortfolioEvolutionPoint as point" class="evolution-tooltip" pointer-events="none">
-                <rect
-                  [attr.x]="Math.min(Math.max(getPortfolioEvolutionX(point.year) - 58, 72), 502)"
-                  [attr.y]="Math.max(getPortfolioEvolutionY(point.annualReturn) - 52, 8)"
-                  width="116"
-                  height="38"
-                  rx="7"
-                  class="evolution-tooltip-bg"
-                ></rect>
-                <text
-                  [attr.x]="Math.min(Math.max(getPortfolioEvolutionX(point.year), 130), 560)"
-                  [attr.y]="Math.max(getPortfolioEvolutionY(point.annualReturn) - 37, 23)"
-                  text-anchor="middle"
-                  class="evolution-tooltip-year"
-                >Anno {{ point.year }}</text>
-                <text
-                  [attr.x]="Math.min(Math.max(getPortfolioEvolutionX(point.year), 130), 560)"
-                  [attr.y]="Math.max(getPortfolioEvolutionY(point.annualReturn) - 23, 37)"
-                  text-anchor="middle"
-                  class="evolution-tooltip-value"
-                >{{ formatAnnualReturn(point.annualReturn) }}</text>
-              </g>
+
             </svg>
+
+            <div
+              *ngIf="hoveredPortfolioEvolutionPoint as point"
+              class="evolution-pointer-tooltip"
+              [style.left.px]="portfolioEvolutionTooltipPosition.left"
+              [style.top.px]="portfolioEvolutionTooltipPosition.top"
+            >Anno {{ point.year }}, {{ formatAnnualReturn(point.annualReturn) }}</div>
 
             <ng-template #evolutionEmpty>
               <div class="evolution-empty">Avvia la simulazione per visualizzare i rendimenti annuali.</div>
