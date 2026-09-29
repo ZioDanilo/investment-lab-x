@@ -430,8 +430,15 @@
 }
 
 .kpi-row.is-dragging {
-  opacity: 0.08;
+  opacity: 1;
+  background: rgba(14, 20, 30, 0.08);
+  border-color: rgba(136, 170, 214, 0.42);
   cursor: grabbing !important;
+}
+
+.kpi-row.is-dragging .kpi-row__label,
+.kpi-row.is-dragging .kpi-row__value {
+  opacity: 0.08;
 }
 
 .kpi-compact-list--settling .kpi-row {
