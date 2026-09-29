@@ -745,18 +745,19 @@ export class MontecarloPageComponent {
       this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(maxDrawdownSamples.map((maxDrawdown) => ({ maxDrawdown })));
       this.clearHistogramHover();
       this.clearMaxDrawdownHover();
-      this.kpis = [
+      const updatedKpis: KpiCard[] = [
         { id: 'expectedReturn', title: 'RENDIMENTO MEDIO ATTESO', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo', tone: 'cyan' },
         { id: 'volatility', title: 'VOLATILITÀ', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua', tone: 'violet' },
         { id: 'positiveReturnProbability', title: 'PROBABILITÀ RENDIMENTO POSITIVO', value: this.formatPercent(cagrSamples.length > 0 ? cagrSamples.filter((value) => Number(value) > 0).length / cagrSamples.length : null), description: 'Scenari con rendimento > 0', tone: 'blue' },
         { id: 'recoveryPeriod', title: 'PERIODO DI RECUPERO', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even', tone: 'amber' },
         { id: 'averageMaxDrawdown', title: 'DRAWDOWN MASSIMO MEDIO', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media', tone: 'red' }
       ];
+      this.kpis = this.mergeKpiValuesPreservingOrder(updatedKpis);
       this.advanceProgressStage(97);
       await this.completeProgressAnimation();
     } catch (error) {
       console.error('[Monte Carlo fast path]', error);
-      this.kpis = [...this.defaultKpis];
+      this.kpis = this.mergeKpiValuesPreservingOrder(this.defaultKpis);
     } finally {
       this.isRunning = false;
       this.stopProgressAnimation();
@@ -765,8 +766,13 @@ export class MontecarloPageComponent {
     }
   }
 
+  private mergeKpiValuesPreservingOrder(updatedKpis: KpiCard[]): KpiCard[] {
+    const updatedById = new Map(updatedKpis.map((kpi) => [kpi.id, kpi]));
+    return this.kpis.map((current) => updatedById.get(current.id) ?? current);
+  }
+
   private resetKpis(): void {
-    this.kpis = [...this.defaultKpis];
+    this.kpis = this.mergeKpiValuesPreservingOrder(this.defaultKpis);
     this.draggedKpiId = null;
     this.swapTargetId = null;
     this.insertTargetIndex = null;
