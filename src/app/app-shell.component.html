@@ -20,16 +20,23 @@
       </button>
     </nav>
 
-    <div class="nav-actions" aria-label="Azioni rapide">
-      <button type="button" class="icon-button" aria-label="Ricerca">
-        <span class="material-symbols-rounded">search</span>
-      </button>
-      <button type="button" class="icon-button" aria-label="Impostazioni">
-        <span class="material-symbols-rounded">settings</span>
-      </button>
-      <button type="button" class="avatar-button" aria-label="Profilo utente">
-        <span>DL</span>
-      </button>
+    <div class="nav-actions" aria-label="Profilo">
+      <div class="profile-menu">
+        <button type="button" class="avatar-button" aria-label="Profilo utente" aria-haspopup="menu" [attr.aria-expanded]="profileMenuOpen" (click)="toggleProfileMenu($event)">
+          <span>DL</span>
+        </button>
+        <div class="profile-dropdown" *ngIf="profileMenuOpen" role="menu" (click)="$event.stopPropagation()">
+          <button type="button" class="profile-dropdown__item" role="menuitem" [disabled]="isRegeneratingMarketUniverse" (click)="regenerateMarketUniverse($event)">
+            <span class="material-symbols-rounded">autorenew</span>
+            <span>{{ isRegeneratingMarketUniverse ? 'Generazione in corso…' : 'Genera Market Universe' }}</span>
+          </button>
+          <div class="profile-dropdown__separator" aria-hidden="true"></div>
+          <button type="button" class="profile-dropdown__item profile-dropdown__item--logout" role="menuitem" (click)="logout($event)">
+            <span class="material-symbols-rounded">logout</span>
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 
