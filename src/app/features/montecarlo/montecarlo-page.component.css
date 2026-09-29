@@ -308,6 +308,7 @@
 }
 
 .main-grid {
+  --top-stack-height: 430px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
@@ -323,11 +324,22 @@
 }
 
 .left-column {
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: var(--top-stack-height) minmax(0, 1fr);
 }
 
 .right-column {
   grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.portfolio-panel {
+  height: var(--top-stack-height);
+  overflow: hidden;
+}
+
+.portfolio-panel app-montecarlo-portfolio-editor {
+  display: block;
+  height: 100%;
+  min-height: 0;
 }
 
 .histogram-pair {
