@@ -2071,3 +2071,35 @@
   opacity: .64 !important;
   filter: saturate(.72) brightness(.92) !important;
 }
+
+
+/* Macro distribution: labels and percentages live inside each scenario segment. */
+.macro-bar {
+  height: 44px !important;
+  min-height: 44px;
+  overflow: hidden;
+}
+.macro-segment {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+.macro-segment__label {
+  display: block;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: rgba(255,255,255,.96);
+  font-size: .78rem;
+  font-weight: 650;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0,0,0,.58);
+}
+.macro-segment__label strong {
+  font-weight: 800;
+}
