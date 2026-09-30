@@ -113,7 +113,7 @@
           label="Salva Portafoglio"
           loadingText="Salvataggio..."
           variant="primary"
-          [disabled]="!isTotalValid() || selectedEtfs().length === 0 || !nomePortafoglio().trim()"
+          [disabled]="!isTotalValid() || selectedEtfs().length === 0 || !nomePortafoglio().trim() || isPortfolioNameUnavailable()"
           [onConfirm]="savePortafoglio.bind(this)"
         ></app-tasto-conferma>
       </div>
