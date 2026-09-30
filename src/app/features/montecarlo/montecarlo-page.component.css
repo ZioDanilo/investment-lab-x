@@ -3048,3 +3048,27 @@ html, body {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+
+
+/* Macro distribution: remove the redundant inner card/chrome.
+   The colored scenario segments sit directly in the main macro panel. */
+.montecarlo-page .macro-bar {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* Give glyph descenders (g, p, q, y...) enough vertical room instead of
+   clipping them on the text baseline inside each segment. */
+.montecarlo-page .macro-segment {
+  overflow: visible;
+}
+
+.montecarlo-page .macro-segment__label {
+  line-height: 1.25 !important;
+  padding-top: 1px;
+  padding-bottom: 2px;
+  overflow: visible;
+  text-overflow: clip;
+}
