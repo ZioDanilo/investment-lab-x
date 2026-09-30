@@ -89,3 +89,11 @@
 .delete-confirm-button--keep{border:1px solid rgba(37,230,177,.58);background:linear-gradient(180deg,rgba(19,103,79,.68),rgba(10,67,52,.82));color:#69f1c9}
 .delete-confirm-button--keep:hover:not(:disabled){border-color:#25e6b1;background:linear-gradient(180deg,rgba(24,127,97,.78),rgba(12,82,63,.92))}
 .delete-confirm-button:disabled{opacity:.5;cursor:wait}
+
+/* Delete confirmation: neutral dark controls; semantics live in border/text only. */
+.delete-confirm-button--delete,
+.delete-confirm-button--keep{background:rgba(9,16,24,.86);box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+.delete-confirm-button--delete{border-color:rgba(255,83,102,.72);color:#ff657d}
+.delete-confirm-button--delete:hover:not(:disabled){background:rgba(255,82,108,.07);border-color:#ff526c;color:#ff8092}
+.delete-confirm-button--keep{border-color:rgba(37,230,177,.68);color:#25e6b1}
+.delete-confirm-button--keep:hover:not(:disabled){background:rgba(37,230,177,.07);border-color:#25e6b1;color:#69f1c9}
