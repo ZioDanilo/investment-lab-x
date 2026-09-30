@@ -37,7 +37,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   creating=false;
   get portfolioNameUnavailable():boolean {
     const name=this.portfolioName().trim().toLocaleLowerCase();
-    return !!name && this.portfolios.some((p)=>p.name.trim().toLocaleLowerCase()===name);
+    return !!name && this.portfolioSelection.portfolioOptions().some((p)=>p.label.trim().toLocaleLowerCase()===name);
   }
   openPortfolioMenu:string|null=null;
   portfolioPendingDelete:Portfolio|null=null;
