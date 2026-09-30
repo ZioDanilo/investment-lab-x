@@ -11,8 +11,7 @@
               <button type="button" class="portfolio-dropdown__item" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">add_shopping_cart</span><span>Acquista</span></button>
               <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--sell" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">sell</span><span>Vendi</span></button>
               <div class="portfolio-dropdown__separator" aria-hidden="true"></div>
-              <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--edit" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">edit</span><span>Modifica</span></button>
-              <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--delete" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">delete</span><span>Elimina</span></button>
+              <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--delete" role="menuitem" (click)="requestDeletePortfolio($event,p)"><span class="material-symbols-rounded">delete</span><span>Elimina</span></button>
             </div>
           </div>
         </div>
@@ -64,3 +63,17 @@
         <footer class="create-dialog-footer"><button type="button" class="discard-btn" (click)="discardCreatePortfolio()"><span class="material-symbols-rounded">delete</span>Elimina</button><button type="button" class="create-btn" [disabled]="!portfolioName().trim() || creating" (click)="createPortfolio()"><span class="material-symbols-rounded">add</span>{{creating ? 'Creazione…' : 'Crea'}}</button></footer>
       </section>
     </div>
+
+<div *ngIf="portfolioPendingDelete" class="delete-confirm-overlay">
+  <section class="delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-portfolio-title" (click)="$event.stopPropagation()">
+    <h2 id="delete-portfolio-title">Sei sicuro di voler eliminare il portafoglio?</h2>
+    <div class="delete-confirm-actions">
+      <button type="button" class="delete-confirm-button delete-confirm-button--delete" [disabled]="deletingPortfolio" (click)="confirmDeletePortfolio()">
+        <span class="material-symbols-rounded">delete</span><span>{{ deletingPortfolio ? 'Eliminazione…' : 'Elimina' }}</span>
+      </button>
+      <button type="button" class="delete-confirm-button delete-confirm-button--keep" [disabled]="deletingPortfolio" (click)="keepPortfolio()">
+        <span class="material-symbols-rounded">check</span><span>Mantieni</span>
+      </button>
+    </div>
+  </section>
+</div>
