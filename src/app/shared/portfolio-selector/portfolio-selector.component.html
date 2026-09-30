@@ -28,19 +28,23 @@
       <span class="selector-option__label selector-option__label--placeholder" [title]="triggerPlaceholder">{{ triggerPlaceholder }}</span>
     </button>
 
-    <button
-      *ngFor="let option of options()"
-      type="button"
-      class="selector-option"
-      role="option"
-      [attr.aria-selected]="selectedPortfolio()?.id === option.id"
-      [class.is-selected]="selectedPortfolio()?.id === option.id"
-      (click)="selectPortfolio(option.id)"
-    >
-      <span class="selector-option__check material-symbols-rounded" aria-hidden="true">
-        {{ selectedPortfolio()?.id === option.id ? 'check' : '' }}
-      </span>
+    <div class="selector-section-label" *ngIf="realOptions().length">Portafogli reali</div>
+    <button *ngFor="let option of realOptions()" type="button" class="selector-option" role="option"
+      [attr.aria-selected]="selectedPortfolio()?.id === option.id" [class.is-selected]="selectedPortfolio()?.id === option.id"
+      (click)="selectPortfolio(option.id)">
+      <span class="selector-option__check material-symbols-rounded" aria-hidden="true">{{ selectedPortfolio()?.id === option.id ? 'check' : '' }}</span>
       <span class="selector-option__label" [title]="option.label">{{ option.label }}</span>
     </button>
+
+    <ng-container *ngIf="!realOnly()">
+      <div class="selector-section-divider" *ngIf="realOptions().length && laboratoryOptions().length"></div>
+      <div class="selector-section-label" *ngIf="laboratoryOptions().length">Laboratorio / Monte Carlo</div>
+      <button *ngFor="let option of laboratoryOptions()" type="button" class="selector-option" role="option"
+        [attr.aria-selected]="selectedPortfolio()?.id === option.id" [class.is-selected]="selectedPortfolio()?.id === option.id"
+        (click)="selectPortfolio(option.id)">
+        <span class="selector-option__check material-symbols-rounded" aria-hidden="true">{{ selectedPortfolio()?.id === option.id ? 'check' : '' }}</span>
+        <span class="selector-option__label" [title]="option.label">{{ option.label }}</span>
+      </button>
+    </ng-container>
   </div>
 </div>
