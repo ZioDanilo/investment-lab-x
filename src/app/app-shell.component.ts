@@ -19,6 +19,15 @@ export class AppShellComponent {
 
   get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
 
+  activeFeaturePage: any = null;
+  onFeatureActivate(component: any): void { this.activeFeaturePage = component; }
+  get featureActionLabel(): string { return this.activeFeaturePage?.headerActionLabel ?? ''; }
+  get featureActionIcon(): string { return this.activeFeaturePage?.headerActionIcon ?? ''; }
+  get featureActionDisabled(): boolean { return this.activeFeaturePage?.headerActionDisabled ?? false; }
+  get featureActionRunning(): boolean { return this.activeFeaturePage?.headerActionRunning ?? false; }
+  get featureActionProgress(): number { return this.activeFeaturePage?.headerActionProgress ?? 0; }
+  runFeatureAction(): void { this.activeFeaturePage?.runHeaderAction?.(); }
+
   profileMenuOpen = false;
   isRegeneratingMarketUniverse = false;
 
