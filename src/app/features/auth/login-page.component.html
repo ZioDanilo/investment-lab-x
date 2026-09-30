@@ -29,7 +29,7 @@
         <p class="subtitle">Dati. Scenari. Simulazioni. Decisioni migliori.</p>
       </div>
 
-      <aside class="login-card" aria-label="Form di login">
+      <form class="login-card" aria-label="Form di login" (ngSubmit)="onLogin()">
         <h2>Accedi a Investment Lab</h2>
         <label class="field">
           <span>Username</span>
@@ -41,10 +41,10 @@
         </label>
 
 
-        <button type="button" class="primary-login" (click)="onLogin()" [disabled]="loggingIn">{{ loggingIn ? 'Accesso...' : 'Entra' }}</button>
+        <button type="submit" class="primary-login" [disabled]="loggingIn">{{ loggingIn ? 'Accesso...' : 'Entra' }}</button>
         <p class="helper-text" *ngIf="loginError">{{ loginError }}</p>
         <p class="helper-text">Accedi al tuo laboratorio di investimento.</p>
-      </aside>
+      </form>
 
       <div class="quote-block" aria-label="Frase promozionale">
         <span class="quote-bar"></span>
