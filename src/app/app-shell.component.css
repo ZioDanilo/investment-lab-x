@@ -320,3 +320,8 @@
 @media(max-width:1180px){
   .route-content--feature{padding:0 8px}
 }
+
+/* Shared desktop baseline: sidebar starts with the first body card row (Monte Carlo composition/KPI). */
+@media(min-width:1181px){
+  .app-feature-sidebar{margin-top:71px}
+}
