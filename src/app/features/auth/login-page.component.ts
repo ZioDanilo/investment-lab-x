@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../core/api/api.service';
+import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 @Component({
   selector: 'app-login-page',
@@ -14,6 +15,7 @@ import { ApiService } from '../../core/api/api.service';
 export class LoginPageComponent {
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
+  private readonly portfolioSelection = inject(PortfolioSelectionService);
   username = '';
   password = '';
   loggingIn = false;
@@ -27,9 +29,14 @@ export class LoginPageComponent {
     }
     this.loggingIn = true;
     this.loginError = '';
+
+    // Login is a hard user boundary: never keep portfolio state from a previous user.
+    localStorage.removeItem('investmentLabUsername');
+    this.portfolioSelection.resetForLogin();
     this.apiService.login(username, this.password).subscribe({
       next: (response: any) => {
         localStorage.setItem('investmentLabUsername', String(response?.data?.username ?? username));
+        this.portfolioSelection.loadPortfolios();
         this.loggingIn = false;
         this.apiService.warmupMarketUniverseCache().subscribe({
           next: () => undefined,
