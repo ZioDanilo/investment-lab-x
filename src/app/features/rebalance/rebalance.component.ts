@@ -8,7 +8,8 @@ import { RebalanceEngine } from '../../core/engines/rebalance.engine';
   selector: 'app-rebalance',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './rebalance.component.html'
+  templateUrl: './rebalance.component.html',
+  styleUrls: ['./rebalance.component.css']
 })
 export class RebalanceComponent {
   portfolio1Text = signal('');
