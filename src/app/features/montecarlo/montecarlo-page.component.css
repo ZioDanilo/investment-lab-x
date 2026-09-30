@@ -2976,3 +2976,44 @@ html, body {
 .kpi-drag-overlay__inner {
   inset: 0 !important;
 }
+
+
+/* KPI drag + Target dropdown final interaction fixes. */
+.kpi-row.is-dragging {
+  /* Keep the native HTML5 drag source alive; only hide its painted copy. */
+  visibility: visible !important;
+  opacity: 0 !important;
+  cursor: grabbing !important;
+}
+
+.kpi-panel {
+  position: relative;
+  z-index: 50 !important;
+  overflow: visible !important;
+}
+
+.kpi-compact-list,
+.kpi-row,
+.kpi-row__target,
+.kpi-target-dropdown {
+  overflow: visible !important;
+}
+
+.kpi-row:has(.kpi-target-dropdown.is-open) {
+  position: relative;
+  z-index: 1001 !important;
+}
+
+.kpi-row__target:has(.kpi-target-dropdown.is-open),
+.kpi-target-dropdown.is-open {
+  z-index: 1002 !important;
+}
+
+.kpi-target-menu {
+  z-index: 1003 !important;
+}
+
+.suggestions-panel {
+  position: relative;
+  z-index: 1;
+}
