@@ -75,3 +75,17 @@
   .operation-label{display:none}
   .operation-plus{display:block}
 }
+
+/* Mobile: replace the button label itself with +, without a second element */
+@media (max-width:700px){
+  .portfolio-add-operation .operation-label{font-size:0}
+  .portfolio-add-operation .operation-label::after{
+    content:"+";
+    display:block;
+    font-size:18px;
+    font-weight:500;
+    line-height:26px;
+    text-align:center;
+  }
+  .operation-plus{display:none!important}
+}
