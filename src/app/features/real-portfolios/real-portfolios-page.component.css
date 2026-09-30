@@ -58,3 +58,18 @@
 
 /* Anchor dropdown so the trigger sits above its left/icon edge: menu opens down-right. */
 .portfolio-dropdown{left:0;right:auto}
+
+/* Portfolio-specific selection accent and extended action menu. */
+.portfolio-choice.active{
+  border-color:var(--portfolio-accent);
+  box-shadow:0 0 14px color-mix(in srgb,var(--portfolio-accent) 22%,transparent),inset 0 1px 0 rgba(255,255,255,.055);
+}
+.portfolio-dropdown__separator{
+  height:1px;
+  margin:6px 3px;
+  background:rgba(135,174,216,.55);
+  box-shadow:0 1px 0 rgba(255,255,255,.035);
+}
+.portfolio-dropdown__item--edit .material-symbols-rounded{color:#f9be48}
+.portfolio-dropdown__item--delete{color:#ff8092}
+.portfolio-dropdown__item--delete .material-symbols-rounded{color:#ff657d}
