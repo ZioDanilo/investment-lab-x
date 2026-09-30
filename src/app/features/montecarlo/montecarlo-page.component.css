@@ -2837,7 +2837,8 @@ html, body {
    (Composizione temporanea / KPI), below page heading and CTA. */
 @media (min-width: 1181px) {
   .feature-sidebar {
-    margin-top: 103px;
+    /* Align the first menu card with the top edge of Composizione temporanea. */
+    margin-top: 40px;
   }
 }
 
@@ -2938,4 +2939,33 @@ html, body {
   transform: translateY(-2px);
   border-color: rgba(var(--menu-accent-rgb), .98) !important;
   outline: none;
+}
+
+
+/* Final KPI drag contract: the source leaves its slot visually, while a fully
+   opaque 80/20 KPI + Target preview follows the pointer. */
+.kpi-row.is-dragging {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.kpi-drag-overlay {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.kpi-drag-overlay__inner,
+.kpi-drag-overlay__inner .kpi-row__metric,
+.kpi-drag-overlay__inner .kpi-row__target,
+.kpi-drag-overlay__inner .kpi-target-preview {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.kpi-drag-overlay__inner {
+  inset: 0 !important;
 }
