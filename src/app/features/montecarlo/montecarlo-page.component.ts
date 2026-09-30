@@ -957,13 +957,22 @@ export class MontecarloPageComponent {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', kpiId);
 
-      const transparentDragImage = document.createElement('div');
-      transparentDragImage.style.width = '1px';
-      transparentDragImage.style.height = '1px';
-      transparentDragImage.style.opacity = '0';
-      document.body.appendChild(transparentDragImage);
-      event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
-      requestAnimationFrame(() => transparentDragImage.remove());
+      // Use an opaque clone as the native drag image. This follows the pointer
+      // independently from the KPI panel's backdrop-filter/stacking context.
+      if (source) {
+        const dragImage = source.cloneNode(true) as HTMLElement;
+        dragImage.classList.remove('is-dragging', 'shift-up', 'shift-down');
+        dragImage.classList.add('kpi-native-drag-image');
+        dragImage.style.width = `${source.getBoundingClientRect().width}px`;
+        dragImage.style.height = `${source.getBoundingClientRect().height}px`;
+        document.body.appendChild(dragImage);
+        event.dataTransfer.setDragImage(
+          dragImage,
+          this.draggedKpiPointerOffset.x,
+          this.draggedKpiPointerOffset.y
+        );
+        requestAnimationFrame(() => dragImage.remove());
+      }
     }
   }
 
@@ -1143,17 +1152,18 @@ export class MontecarloPageComponent {
   }
 
   toggleKpiTarget(kpiId: string, event: MouseEvent): void {
-    event.stopPropagation();
     this.openKpiTargetId = this.openKpiTargetId === kpiId ? null : kpiId;
   }
 
-  @HostListener('document:click')
-  closeKpiTargetOnOutsideClick(): void {
-    this.openKpiTargetId = null;
+  @HostListener('document:click', ['$event'])
+  closeKpiTargetOnOutsideClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target?.closest('.kpi-target-dropdown')) {
+      this.openKpiTargetId = null;
+    }
   }
 
   selectKpiTarget(kpiId: string, value: string, event: MouseEvent): void {
-    event.stopPropagation();
     this.kpiTargets[kpiId] = value;
     this.openKpiTargetId = null;
   }
