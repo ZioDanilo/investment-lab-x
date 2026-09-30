@@ -44,6 +44,15 @@ export class ApiService {
     return this.http.put(`${this.apiUrl}/portfolio/${id}/kpi-targets`, { kpis });
   }
 
+  // Real portfolio endpoints
+  getRealPortfolios(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios`);
+  }
+
+  createRealPortfolio(data: { name: string; description?: string | null }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/real-portfolios`, data);
+  }
+
   // ETF endpoints
   getETFs(): Observable<any> {
     return this.http.get(`${this.apiUrl}/etf`);

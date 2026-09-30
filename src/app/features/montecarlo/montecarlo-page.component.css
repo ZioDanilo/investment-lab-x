@@ -2835,9 +2835,17 @@ html, body {
 
 /* Align desktop side navigation with the first Monte Carlo content panels
    (Composizione temporanea / KPI), below page heading and CTA. */
-@media (min-width: 1181px) {
+@media (min-width: 1181px) and (min-height: 760px) {
   .feature-sidebar {
-    margin-top: 103px;
+    /* page top padding + 44px CTA + page gap - sidebar's own 2px top padding */
+    margin-top: calc(42px + (2 * clamp(6px, .75vh, 10px)));
+  }
+}
+
+@media (min-width: 1181px) and (max-height: 759px) {
+  .feature-sidebar {
+    /* 4px page top padding + 44px CTA + 5px page gap - 2px sidebar padding */
+    margin-top: 51px;
   }
 }
 
@@ -2938,4 +2946,129 @@ html, body {
   transform: translateY(-2px);
   border-color: rgba(var(--menu-accent-rgb), .98) !important;
   outline: none;
+}
+
+
+/* Final KPI drag contract: the source leaves its slot visually, while a fully
+   opaque 80/20 KPI + Target preview follows the pointer. */
+.kpi-row.is-dragging {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.kpi-drag-overlay {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.kpi-drag-overlay__inner,
+.kpi-drag-overlay__inner .kpi-row__metric,
+.kpi-drag-overlay__inner .kpi-row__target,
+.kpi-drag-overlay__inner .kpi-target-preview {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.kpi-drag-overlay__inner {
+  inset: 0 !important;
+}
+
+
+/* KPI drag + Target dropdown final interaction fixes. */
+.kpi-row.is-dragging {
+  /* Keep the native HTML5 drag source alive; only hide its painted copy. */
+  visibility: visible !important;
+  opacity: 0 !important;
+  cursor: grabbing !important;
+}
+
+.kpi-panel {
+  position: relative;
+  z-index: 50 !important;
+  overflow: visible !important;
+}
+
+.kpi-compact-list,
+.kpi-row,
+.kpi-row__target,
+.kpi-target-dropdown {
+  overflow: visible !important;
+}
+
+.kpi-row:has(.kpi-target-dropdown.is-open) {
+  position: relative;
+  z-index: 1001 !important;
+}
+
+.kpi-row__target:has(.kpi-target-dropdown.is-open),
+.kpi-target-dropdown.is-open {
+  z-index: 1002 !important;
+}
+
+.kpi-target-menu {
+  z-index: 1003 !important;
+}
+
+.suggestions-panel {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* Native KPI drag image: exact opaque 80/20 row shown by the browser under the pointer. */
+.kpi-native-drag-image {
+  position: fixed !important;
+  left: -10000px !important;
+  top: -10000px !important;
+  z-index: 2147483647 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr) !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  transition: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+/* Target menu uses exactly the same surface as the navbar portfolio selector. */
+.kpi-target-menu {
+  background: rgba(8, 14, 20, 0.98) !important;
+  border: 1px solid rgba(133, 176, 226, 0.22) !important;
+  box-shadow: 0 18px 28px rgba(0, 0, 0, 0.32) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+
+/* Macro distribution: remove the redundant inner card/chrome.
+   The colored scenario segments sit directly in the main macro panel. */
+.montecarlo-page .macro-bar {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* Give glyph descenders (g, p, q, y...) enough vertical room instead of
+   clipping them on the text baseline inside each segment. */
+.montecarlo-page .macro-segment {
+  overflow: visible;
+}
+
+.montecarlo-page .macro-segment__label {
+  line-height: 1.25 !important;
+  padding-top: 1px;
+  padding-bottom: 2px;
+  overflow: visible;
+  text-overflow: clip;
 }

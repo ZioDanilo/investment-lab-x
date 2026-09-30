@@ -1,0 +1,62 @@
+<div class="feature-layout">
+  <aside class="feature-sidebar" aria-label="Navigazione Investment Lab">
+    <a class="feature-menu-card feature-menu-card--blue" routerLink="/laboratorio-portafogli"><span class="feature-menu-icon material-symbols-rounded">science</span><span>Laboratorio Portafogli</span></a>
+    <div class="feature-menu-card feature-menu-card--purple is-active"><span class="feature-menu-icon material-symbols-rounded">folder</span><span>I tuoi Portafogli</span></div>
+    <a class="feature-menu-card feature-menu-card--green" routerLink="/monte-carlo"><span class="feature-menu-icon material-symbols-rounded">query_stats</span><span>Monte Carlo</span></a>
+    <a class="feature-menu-card feature-menu-card--amber" routerLink="/ribilanciamento"><span class="feature-menu-icon material-symbols-rounded">sync</span><span>Ribilanciamento</span></a>
+    <a class="feature-menu-card feature-menu-card--cyan" routerLink="/market-universe"><span class="feature-menu-icon material-symbols-rounded">bar_chart</span><span>ETF & Mercati</span></a>
+    <a class="feature-menu-card feature-menu-card--blue" routerLink="/nuovo-etf"><span class="feature-menu-icon material-symbols-rounded">add</span><span>Nuovo ETF</span></a>
+  </aside>
+
+  <section class="feature-content">
+    <header class="page-heading"><div><h1>I tuoi portafogli</h1><p>Gestisci i tuoi investimenti reali, traccia acquisti e vendite e monitora la performance nel tempo.</p></div></header>
+
+    <div class="portfolio-strip">
+      <button *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" (click)="selectPortfolio(i)">
+        <span>{{p.name}}</span><span class="portfolio-add-operation" title="Aggiungi operazione" aria-label="Aggiungi operazione" (click)="$event.stopPropagation()">+</span>
+      </button>
+      <button class="portfolio-choice add" (click)="openCreatePortfolio()"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
+    </div>
+
+    <ng-container *ngIf="hasSelectedPortfolio">
+    <div class="toolbar">
+      <nav><button class="active">Panoramica</button><button>Composizione</button><button>Operazioni</button><button>Analisi</button><button>Dettagli</button></nav>
+    </div>
+
+    <div class="kpi-grid">
+      <app-ui-card *ngFor="let k of kpis" [compact]="true"><span class="kpi-label">{{k[0]}}</span><strong class="kpi-value" [class]="k[3]">{{k[1]}}</strong><small [class]="k[3]">{{k[2]}}</small></app-ui-card>
+    </div>
+
+    <div class="main-grid">
+      <app-ui-card title="Andamento del portafoglio" class="chart-card">
+        <div class="chart-tools"><app-chart-legend [items]="legend"></app-chart-legend><div class="periods"><button>1Y</button><button class="active">3Y</button><button>5Y</button><button>MAX</button></div></div>
+        <div class="chart-wrap"><app-line-chart [series]="series" [yTicks]="ticks" viewBox="0 0 640 260"></app-line-chart></div>
+        <div class="months"><span>Gen 2023</span><span>Lug 2023</span><span>Gen 2024</span><span>Lug 2024</span><span>Gen 2025</span></div>
+      </app-ui-card>
+
+      <app-ui-card title="Composizione attuale">
+        <div class="seg-tabs"><button class="active">Per ETF</button><button>Per asset class</button></div>
+        <div class="composition"><div class="donut"><div><strong>€ 24.523</strong><small>Totale</small></div></div><ul><li><i class="c1"></i>VWCE <b>38,2%</b></li><li><i class="c2"></i>EIMI <b>24,5%</b></li><li><i class="c3"></i>AGGH <b>18,1%</b></li><li><i class="c4"></i>IUSN <b>11,4%</b></li><li><i class="c5"></i>CSPX <b>7,8%</b></li></ul></div>
+      </app-ui-card>
+
+      <app-ui-card title="Statistiche"><div class="stats"><div *ngFor="let s of stats"><span>{{s[0]}}</span><b [class]="s[2]">{{s[1]}}</b></div></div></app-ui-card>
+    </div>
+
+    <div class="bottom-grid">
+      <app-ui-card title="I tuoi ETF"><div class="table-scroll"><table><thead><tr><th>ETF</th><th>Ticker</th><th>Quantità</th><th>Prezzo medio</th><th>Valore attuale</th><th>Gain/Loss</th><th>Peso</th></tr></thead><tbody><tr *ngFor="let h of holdings"><td><strong>{{h.name}}</strong></td><td>{{h.ticker}}</td><td>{{h.qty}}</td><td>{{h.avg}}</td><td>{{h.value}}</td><td [class]="h.tone">{{h.gain}}</td><td>{{h.weight}}</td></tr></tbody></table></div></app-ui-card>
+      <app-ui-card title="Ultime operazioni"><div class="table-scroll"><table><thead><tr><th>Data</th><th>Operazione</th><th>ETF</th><th>Quantità</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody><tr *ngFor="let o of operations"><td>{{o.date}}</td><td><span class="pill" [class.sell]="o.type==='Vendita'">{{o.type}}</span></td><td>{{o.ticker}}</td><td>{{o.qty}}</td><td>{{o.price}}</td><td>{{o.total}}</td></tr></tbody></table></div></app-ui-card>
+    </div>
+    </ng-container>
+
+    <div *ngIf="showCreateDialog()" class="create-overlay">
+      <section class="create-dialog" role="dialog" aria-modal="true" aria-labelledby="create-portfolio-title" (click)="$event.stopPropagation()">
+        <header><div><span class="dialog-eyebrow">PORTAFOGLIO REALE</span><h2 id="create-portfolio-title">Crea nuovo portafoglio</h2></div></header>
+        <div class="create-dialog-body">
+          <label class="dialog-field"><span>Nome portafoglio</span><input type="text" [ngModel]="portfolioName()" (ngModelChange)="portfolioName.set($event)" placeholder="es. Portafoglio principale"></label>
+          <label class="dialog-field"><span>Descrizione</span><textarea [ngModel]="portfolioDescription()" (ngModelChange)="portfolioDescription.set($event)" placeholder="Descrizione facoltativa del portafoglio" rows="3"></textarea></label>
+        </div>
+        <footer class="create-dialog-footer"><button type="button" class="discard-btn" (click)="discardCreatePortfolio()"><span class="material-symbols-rounded">delete</span>Elimina</button><button type="button" class="create-btn" [disabled]="!portfolioName().trim() || creating" (click)="createPortfolio()"><span class="material-symbols-rounded">add</span>{{creating ? 'Creazione…' : 'Crea'}}</button></footer>
+      </section>
+    </div>
+  </section>
+</div>
