@@ -57,10 +57,10 @@
       <section class="create-dialog" role="dialog" aria-modal="true" aria-labelledby="create-portfolio-title" (click)="$event.stopPropagation()">
         <header><div><span class="dialog-eyebrow">PORTAFOGLIO REALE</span><h2 id="create-portfolio-title">Crea nuovo portafoglio</h2></div></header>
         <div class="create-dialog-body">
-          <label class="dialog-field"><span>Nome portafoglio</span><input type="text" [ngModel]="portfolioName()" (ngModelChange)="portfolioName.set($event)" placeholder="es. Portafoglio principale"></label>
+          <label class="dialog-field"><span>Nome portafoglio</span><input type="text" [ngModel]="portfolioName()" (ngModelChange)="portfolioName.set($event)" [class.invalid]="portfolioNameUnavailable" placeholder="es. Portafoglio principale"><small *ngIf="portfolioNameUnavailable" class="field-error">Questo nome non è utilizzabile: esiste già un portafoglio con questo nome.</small></label>
           <label class="dialog-field"><span>Descrizione</span><textarea [ngModel]="portfolioDescription()" (ngModelChange)="portfolioDescription.set($event)" placeholder="Descrizione facoltativa del portafoglio" rows="3"></textarea></label>
         </div>
-        <footer class="create-dialog-footer"><button type="button" class="discard-btn" (click)="discardCreatePortfolio()"><span class="material-symbols-rounded">close</span>Annulla</button><button type="button" class="create-btn" [disabled]="!portfolioName().trim() || creating" (click)="createPortfolio()"><span class="material-symbols-rounded">add</span>{{creating ? 'Creazione…' : 'Crea'}}</button></footer>
+        <footer class="create-dialog-footer"><button type="button" class="discard-btn" (click)="discardCreatePortfolio()"><span class="material-symbols-rounded">close</span>Annulla</button><button type="button" class="create-btn" [disabled]="!portfolioName().trim() || portfolioNameUnavailable || creating" (click)="createPortfolio()"><span class="material-symbols-rounded">add</span>{{creating ? 'Creazione…' : 'Crea'}}</button></footer>
       </section>
     </div>
 
