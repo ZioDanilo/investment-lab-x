@@ -35,6 +35,8 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioDescription=signal('');
   creating=false;
   openPortfolioMenu:string|null=null;
+  portfolioPendingDelete:Portfolio|null=null;
+  deletingPortfolio=false;
 
   constructor(private readonly api:ApiService) {}
 
@@ -89,6 +91,25 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioColor(i:number):string { return ['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'][i%6]; }
   togglePortfolioMenu(event:MouseEvent,id:string):void { event.stopPropagation(); this.openPortfolioMenu=this.openPortfolioMenu===id?null:id; }
   choosePortfolioAction(event:MouseEvent,i:number):void { event.stopPropagation(); this.selected=i; this.openPortfolioMenu=null; }
+  requestDeletePortfolio(event:MouseEvent,portfolio:Portfolio):void { event.stopPropagation(); this.openPortfolioMenu=null; this.portfolioPendingDelete=portfolio; }
+  keepPortfolio():void { if(this.deletingPortfolio)return; this.portfolioPendingDelete=null; }
+  confirmDeletePortfolio():void {
+    const portfolio=this.portfolioPendingDelete;
+    if(!portfolio||this.deletingPortfolio)return;
+    this.deletingPortfolio=true;
+    this.api.deleteRealPortfolio(portfolio.id).subscribe({
+      next:()=>{
+        const removedIndex=this.portfolios.findIndex(item=>item.id===portfolio.id);
+        this.portfolios=this.portfolios.filter(item=>item.id!==portfolio.id);
+        if(this.portfolios.length===0)this.selected=0;
+        else if(this.selected>=this.portfolios.length)this.selected=this.portfolios.length-1;
+        else if(removedIndex>=0&&removedIndex<this.selected)this.selected--;
+        this.deletingPortfolio=false;
+        this.portfolioPendingDelete=null;
+      },
+      error:()=>{this.deletingPortfolio=false;}
+    });
+  }
   @HostListener('document:click') closePortfolioMenu():void { this.openPortfolioMenu=null; }
   selectPortfolio(i:number){this.selected=i;this.openPortfolioMenu=null;}
 }
