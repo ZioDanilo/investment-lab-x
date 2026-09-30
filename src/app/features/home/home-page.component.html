@@ -30,7 +30,7 @@
         <span class="material-symbols-rounded">settings</span>
       </button>
       <button type="button" class="avatar-button" aria-label="Profilo utente">
-        <span>DL</span>
+        <span>{{ loggedUsername }}</span>
       </button>
     </div>
   </header>
@@ -38,7 +38,7 @@
   <main class="home-main">
     <section class="workspace-header" aria-label="Header workspace">
       <div class="workspace-copy">
-        <p class="welcome-label">Bentornato, Danilo</p>
+        <p class="welcome-label">Bentornato, {{ loggedUsername }}</p>
         <h1>Cosa vuoi costruire oggi?</h1>
         <p class="workspace-subtitle">Costruisci, confronta e testa i tuoi portafogli.</p>
       </div>
