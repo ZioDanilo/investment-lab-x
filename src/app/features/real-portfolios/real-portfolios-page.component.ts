@@ -45,7 +45,15 @@ export class RealPortfoliosPageComponent implements OnInit {
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
     effect(() => {
-      const options = this.portfolioSelection.portfolioOptions();
+      const realOptions = this.portfolioSelection.portfolioOptions().filter((option) => option.tipo === 'reale');
+      if (realOptions.length && this.portfolios.length) {
+        const byId = new Map(this.portfolios.map((portfolio) => [portfolio.id, portfolio]));
+        const ordered = realOptions.map((option) => byId.get(option.id)).filter((portfolio): portfolio is Portfolio => !!portfolio);
+        if (ordered.length === this.portfolios.length && ordered.some((portfolio, index) => portfolio.id !== this.portfolios[index]?.id)) {
+          this.portfolios = ordered;
+        }
+      }
+
       const selectedId = this.portfolioSelection.selectedPortfolio()?.id;
       if (selectedId) {
         const index = this.portfolios.findIndex((portfolio) => portfolio.id === selectedId);
@@ -54,7 +62,7 @@ export class RealPortfoliosPageComponent implements OnInit {
       }
 
       const firstReal = this.portfolios[0];
-      if (firstReal && options.some((option) => option.id === firstReal.id && option.tipo === 'reale')) {
+      if (firstReal && realOptions.some((option) => option.id === firstReal.id)) {
         this.selected = 0;
         this.portfolioSelection.setSelectedPortfolio(firstReal.id);
       }
