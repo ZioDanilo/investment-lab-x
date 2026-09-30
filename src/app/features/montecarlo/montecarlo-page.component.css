@@ -1583,12 +1583,11 @@
   position: relative;
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: 44px;
-  padding: 7px 8px 7px 12px;
-  border-radius: 10px;
-  border-color: rgba(73, 116, 160, .28);
-  background:
-    linear-gradient(90deg, rgba(17, 39, 62, .58), rgba(8, 21, 36, .78));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.018);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .kpi-row::before {
   content: "";
@@ -1607,13 +1606,10 @@
 .kpi-row[data-kpi-id="positiveReturnProbability"]::before { background: #24d8ad; }
 .kpi-row[data-kpi-id="recoveryPeriod"]::before { background: #5aa8ff; }
 .kpi-row[data-kpi-id="averageMaxDrawdown"]::before { background: #ff526d; }
-.kpi-row.target-success {
-  border-color: rgba(31, 199, 151, .55);
-  background: linear-gradient(90deg, rgba(12, 64, 58, .22), rgba(8, 26, 37, .8));
-}
+.kpi-row.target-success,
 .kpi-row.target-failure {
-  border-color: rgba(236, 74, 92, .58);
-  background: linear-gradient(90deg, rgba(76, 21, 35, .22), rgba(20, 19, 31, .82));
+  border: 0;
+  background: transparent;
 }
 .kpi-row__label { font-weight: 700; color: #f0f5fc; }
 .kpi-row__value { font-size: 1rem; color: #e7effa; }
@@ -2009,7 +2005,7 @@
 }
 .kpi-drag-overlay__inner {
   position: absolute;
-  inset: 7px 8px 7px 12px;
+  inset: 0;
   display: grid;
   grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
   gap: 8px;
