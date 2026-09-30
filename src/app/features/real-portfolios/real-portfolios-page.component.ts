@@ -107,7 +107,7 @@ export class RealPortfoliosPageComponent implements OnInit {
         this.deletingPortfolio=false;
         this.portfolioPendingDelete=null;
       },
-      error:()=>{this.deletingPortfolio=false;}
+      error:(error)=>{this.deletingPortfolio=false; console.error('Errore eliminazione portafoglio', error);}
     });
   }
   @HostListener('document:click') closePortfolioMenu():void { this.openPortfolioMenu=null; }
