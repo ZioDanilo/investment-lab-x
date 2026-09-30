@@ -53,6 +53,10 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/real-portfolios`, data);
   }
 
+  deleteRealPortfolio(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/real-portfolios/${id}`);
+  }
+
   // ETF endpoints
   getETFs(): Observable<any> {
     return this.http.get(`${this.apiUrl}/etf`);
