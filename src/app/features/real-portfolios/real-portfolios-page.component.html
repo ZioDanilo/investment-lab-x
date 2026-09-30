@@ -12,9 +12,25 @@
     <header class="page-heading"><div><h1>I tuoi portafogli</h1><p>Gestisci i tuoi investimenti reali, traccia acquisti e vendite e monitora la performance nel tempo.</p></div></header>
 
     <div class="portfolio-strip">
-      <button *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" (click)="selectPortfolio(i)">
-        <span>{{p.name}}</span><span class="portfolio-add-operation" role="button" title="Aggiungi operazione" aria-label="Aggiungi operazione" (click)="$event.stopPropagation()"><span class="material-symbols-rounded operation-icon" aria-hidden="true">add</span><span class="operation-label">Operazione</span></span>
-      </button>
+      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" (click)="selectPortfolio(i)">
+        <div class="portfolio-choice__top">
+          <span class="portfolio-color" [style.background]="portfolioColor(i)"></span>
+          <span class="portfolio-name">{{p.name}}</span>
+          <div class="portfolio-menu" (click)="$event.stopPropagation()">
+            <button type="button" class="portfolio-menu__trigger" aria-label="Azioni portafoglio" aria-haspopup="menu" [attr.aria-expanded]="openPortfolioMenu===p.id" (click)="togglePortfolioMenu($event,p.id)">
+              <span class="material-symbols-rounded">more_horiz</span>
+            </button>
+            <div class="portfolio-dropdown" [class.is-open]="openPortfolioMenu===p.id" role="menu" (click)="$event.stopPropagation()">
+              <button type="button" class="portfolio-dropdown__item" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">add_shopping_cart</span><span>Acquista</span></button>
+              <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--sell" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">sell</span><span>Vendi</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="portfolio-choice__metrics">
+          <strong>€ 0,00</strong>
+          <span class="portfolio-return neutral">0,0%</span>
+        </div>
+      </div>
       <button class="portfolio-choice add" (click)="openCreatePortfolio()"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
     </div>
 
