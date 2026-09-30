@@ -90,7 +90,7 @@ export class PortafoliPageComponent implements OnInit {
   // Load all portfolios
   loadPortafogli() {
     this.loading.set(true);
-    this.apiService.getPortfolios().subscribe({
+    this.apiService.getPortfolios('laboratorio').subscribe({
       next: (res: any) => {
         this.portafogli.set(res.data || []);
         this.loading.set(false);
