@@ -20,7 +20,7 @@ export class PortfolioSelectorComponent {
   readonly options = this.portfolioSelectionService.portfolioOptions;
   readonly realOptions = computed(() => this.options().filter((option) => option.tipo === 'reale'));
   readonly laboratoryOptions = computed(() => this.options().filter((option) => option.tipo === 'laboratorio'));
-  readonly realOnly = computed(() => this.currentUrl().startsWith('/portafogli'));
+  readonly realOnly = computed(() => this.currentUrl().startsWith('/portafogli') || this.currentUrl().startsWith('/ribilanciamento'));
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
   readonly loading = this.portfolioSelectionService.loading;
   readonly hasError = this.portfolioSelectionService.hasError;
