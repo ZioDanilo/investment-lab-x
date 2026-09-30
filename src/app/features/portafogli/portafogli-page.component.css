@@ -615,3 +615,17 @@
   .feature-sidebar { grid-template-columns: repeat(6, 112px); }
   .feature-menu-card { min-height: 42px; }
 }
+
+
+.field-error {
+  display: block;
+  margin-top: 6px;
+  color: #ff6b6b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+input.invalid,
+.form-input.invalid {
+  border-color: #ff6b6b;
+}
