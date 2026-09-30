@@ -1,20 +1,23 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiCardComponent } from '../../shared/components/ui-card/ui-card.component';
 import { UiButtonComponent } from '../../shared/components/ui-button/ui-button.component';
 import { LineChartComponent, LineChartSeries, LineChartTick } from '../../shared/components/line-chart/line-chart.component';
 import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/chart-legend/chart-legend.component';
 import { ApiService } from '../../core/api/api.service';
+import { DropdownComponent, DropdownOption } from '../../shared/components/dropdown/dropdown.component';
 
-interface Portfolio { id:string; name:string; description?:string|null; currency:string; }
+interface Portfolio { id:string; name:string; description?:string|null; status:string; }
+interface Etf { id:string; isin:string; name:string; description?:string; ticker?:string; }
 interface Holding { name:string; ticker:string; qty:string; avg:string; value:string; gain:string; weight:string; tone:'positive'|'negative'; }
 interface Operation { date:string; type:'Acquisto'|'Vendita'; ticker:string; qty:string; price:string; total:string; }
 
 @Component({
   selector:'app-real-portfolios-page',
   standalone:true,
-  imports:[CommonModule,RouterLink,UiCardComponent,UiButtonComponent,LineChartComponent,ChartLegendComponent],
+  imports:[CommonModule,FormsModule,RouterLink,UiCardComponent,UiButtonComponent,LineChartComponent,ChartLegendComponent,DropdownComponent],
   templateUrl:'./real-portfolios-page.component.html',
   styleUrls:['./real-portfolios-page.component.css']
 })
@@ -22,6 +25,14 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolios:Portfolio[]=[];
   selected=0;
   loadingPortfolios=true;
+  showCreateDialog=signal(false);
+  portfolioName=signal('');
+  searchQuery=signal('');
+  searchResults=signal<Etf[]>([]);
+  selectedEtfs=signal<Etf[]>([]);
+  searchLoading=signal(false);
+  creating=false;
+  searchDropdownOptions=computed<DropdownOption[]>(()=>this.searchResults().map(etf=>({value:etf.id,label:etf.name,description:etf.isin})));
 
   constructor(private readonly api:ApiService) {}
 
@@ -33,6 +44,31 @@ export class RealPortfoliosPageComponent implements OnInit {
   }
 
   get hasSelectedPortfolio():boolean { return this.portfolios.length>0 && !!this.portfolios[this.selected]; }
+
+  openCreatePortfolio():void { this.portfolioName.set(''); this.searchQuery.set(''); this.searchResults.set([]); this.selectedEtfs.set([]); this.showCreateDialog.set(true); }
+  discardCreatePortfolio():void { this.showCreateDialog.set(false); this.portfolioName.set(''); this.searchQuery.set(''); this.searchResults.set([]); this.selectedEtfs.set([]); }
+  onSearchChange(query:string):void {
+    this.searchQuery.set(query);
+    if(query.length<3){this.searchResults.set([]);return;}
+    this.searchLoading.set(true);
+    this.api.searchETF(query).subscribe({
+      next:(res:any)=>{const ids=new Set(this.selectedEtfs().map(x=>x.id));this.searchResults.set((res?.data||[]).filter((x:Etf)=>!ids.has(x.id)));this.searchLoading.set(false);},
+      error:()=>{this.searchResults.set([]);this.searchLoading.set(false);}
+    });
+  }
+  onSearchResultSelected(id:string):void {
+    const etf=this.searchResults().find(x=>x.id===id); if(!etf)return;
+    this.selectedEtfs.update(items=>[...items,etf]); this.searchQuery.set(''); this.searchResults.set([]);
+  }
+  removeSelectedEtf(id:string):void { this.selectedEtfs.update(items=>items.filter(x=>x.id!==id)); }
+  createPortfolio():void {
+    const name=this.portfolioName().trim(); if(!name||this.creating)return;
+    this.creating=true;
+    this.api.createRealPortfolio({name}).subscribe({
+      next:(res:any)=>{if(res?.data)this.portfolios=[...this.portfolios,res.data];this.selected=Math.max(0,this.portfolios.length-1);this.creating=false;this.discardCreatePortfolio();},
+      error:()=>{this.creating=false;}
+    });
+  }
   readonly kpis=[
     ['Valore di mercato','€ 24.523','+ € 2.701  (+12,4%)','positive'],
     ['Capitale investito','€ 21.822','',''],
