@@ -20,6 +20,13 @@ interface Operation { date:string; type:'Acquisto'|'Vendita'; ticker:string; qty
   styleUrls:['./real-portfolios-page.component.css']
 })
 export class RealPortfoliosPageComponent implements OnInit {
+  readonly headerActionLabel='AGGIORNA QUOTAZIONI';
+  readonly headerActionIcon='sync';
+  readonly headerActionDisabled=false;
+  readonly headerActionRunning=false;
+  readonly headerActionProgress=0;
+  runHeaderAction():void {}
+
   portfolios:Portfolio[]=[];
   selected=0;
   loadingPortfolios=true;
