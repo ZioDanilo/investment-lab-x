@@ -34,6 +34,10 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioName=signal('');
   portfolioDescription=signal('');
   creating=false;
+  get portfolioNameUnavailable():boolean {
+    const name=this.portfolioName().trim().toLocaleLowerCase();
+    return !!name && this.portfolios.some((p)=>p.name.trim().toLocaleLowerCase()===name);
+  }
   openPortfolioMenu:string|null=null;
   portfolioPendingDelete:Portfolio|null=null;
   deletingPortfolio=false;
@@ -52,7 +56,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   openCreatePortfolio():void { this.portfolioName.set(''); this.portfolioDescription.set(''); this.showCreateDialog.set(true); }
   discardCreatePortfolio():void { this.showCreateDialog.set(false); this.portfolioName.set(''); this.portfolioDescription.set(''); }
   createPortfolio():void {
-    const name=this.portfolioName().trim(); if(!name||this.creating)return;
+    const name=this.portfolioName().trim(); if(!name||this.creating||this.portfolioNameUnavailable)return;
     this.creating=true;
     this.api.createRealPortfolio({name, description:this.portfolioDescription().trim() || null}).subscribe({
       next:(res:any)=>{if(res?.data)this.portfolios=[...this.portfolios,res.data];this.selected=Math.max(0,this.portfolios.length-1);this.creating=false;this.discardCreatePortfolio();},
