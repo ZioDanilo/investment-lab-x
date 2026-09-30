@@ -19,3 +19,16 @@
 .portfolio-choice:not(.add){position:relative;padding-right:42px}
 .portfolio-add-operation{position:absolute;top:9px;right:9px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(92,185,255,.92);border-radius:50%;background:linear-gradient(180deg,#238bf8,#176ddd);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 4px 10px rgba(15,93,200,.24);color:#fff;font-size:1.15rem;font-weight:700;line-height:1;cursor:pointer;transition:transform .15s ease,background .15s ease,box-shadow .15s ease}
 .portfolio-add-operation:hover{transform:translateY(-1px) scale(1.05);background:linear-gradient(180deg,#3297ff,#1976e8);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 5px 14px rgba(15,93,200,.34)}
+
+/* Align add-operation control with the borderless primary action language */
+.portfolio-add-operation{
+  border:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial,sans-serif;
+  font-size:18px;
+  font-weight:500;
+  line-height:24px;
+  text-align:center;
+  vertical-align:middle;
+}
