@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, HostListener, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiCardComponent } from '../../shared/components/ui-card/ui-card.component';
@@ -27,6 +27,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioName=signal('');
   portfolioDescription=signal('');
   creating=false;
+  openPortfolioMenu:string|null=null;
 
   constructor(private readonly api:ApiService) {}
 
@@ -78,5 +79,9 @@ export class RealPortfoliosPageComponent implements OnInit {
     {label:'Capitale investito',color:'#9ab2cf',points:'52,216 95,207 140,199 188,191 235,182 282,174 330,164 378,154 425,145 472,137 520,131 568,124 620,118'}
   ];
   readonly ticks:LineChartTick[]=[{value:'€ 30.000',y:30},{value:'€ 25.000',y:70},{value:'€ 20.000',y:110},{value:'€ 15.000',y:150},{value:'€ 10.000',y:190},{value:'€ 5.000',y:230}];
-  selectPortfolio(i:number){this.selected=i;}
+  portfolioColor(i:number):string { return ['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'][i%6]; }
+  togglePortfolioMenu(event:MouseEvent,id:string):void { event.stopPropagation(); this.openPortfolioMenu=this.openPortfolioMenu===id?null:id; }
+  choosePortfolioAction(event:MouseEvent,i:number):void { event.stopPropagation(); this.selected=i; this.openPortfolioMenu=null; }
+  @HostListener('document:click') closePortfolioMenu():void { this.openPortfolioMenu=null; }
+  selectPortfolio(i:number){this.selected=i;this.openPortfolioMenu=null;}
 }
