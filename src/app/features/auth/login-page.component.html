@@ -32,20 +32,17 @@
       <aside class="login-card" aria-label="Form di login">
         <h2>Accedi a Investment Lab</h2>
         <label class="field">
-          <span>Email</span>
-          <input type="email" value="danilo@investmentlab.it" aria-label="Email" />
+          <span>Username</span>
+          <input type="text" [(ngModel)]="username" autocomplete="username" aria-label="Username" />
         </label>
         <label class="field">
           <span>Password</span>
-          <input type="password" value="••••••••" aria-label="Password" />
+          <input type="password" [(ngModel)]="password" autocomplete="current-password" aria-label="Password" (keyup.enter)="onLogin()" />
         </label>
 
-        <label class="remember-row">
-          <input type="checkbox" />
-          <span>Ricordami</span>
-        </label>
 
-        <button type="button" class="primary-login" (click)="onLogin()">Entra</button>
+        <button type="button" class="primary-login" (click)="onLogin()" [disabled]="loggingIn">{{ loggingIn ? 'Accesso...' : 'Entra' }}</button>
+        <p class="helper-text" *ngIf="loginError">{{ loginError }}</p>
         <p class="helper-text">Accedi al tuo laboratorio di investimento.</p>
       </aside>
 
