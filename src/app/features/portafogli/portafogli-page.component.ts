@@ -64,6 +64,12 @@ export class PortafoliPageComponent implements OnInit {
     return this.selectedEtfs().reduce((sum, e) => sum + (e.peso || 0), 0);
   });
 
+  isPortfolioNameUnavailable = computed(() => {
+    if (this.currentEditingPortfolioId()) return false;
+    const name = this.nomePortafoglio().trim().toLocaleLowerCase();
+    return !!name && this.portafogli().some((p) => String(p.nome ?? '').trim().toLocaleLowerCase() === name);
+  });
+
   isTotalValid = computed(() => {
     const total = this.totalWeight();
     return Math.abs(total - 100) < 0.01;
@@ -248,6 +254,10 @@ export class PortafoliPageComponent implements OnInit {
   async savePortafoglio(): Promise<void> {
     if (!this.nomePortafoglio().trim()) {
       throw new Error('Inserisci il nome del portafoglio');
+    }
+
+    if (this.isPortfolioNameUnavailable()) {
+      throw new Error('Nome portafoglio già utilizzato');
     }
 
     if (this.selectedEtfs().length === 0) {
