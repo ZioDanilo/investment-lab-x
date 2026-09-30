@@ -1,7 +1,7 @@
 <div class="feature-layout">
   <aside class="feature-sidebar" aria-label="Navigazione Investment Lab">
     <a class="feature-menu-card feature-menu-card--blue" routerLink="/laboratorio-portafogli"><span class="feature-menu-icon material-symbols-rounded">science</span><span>Laboratorio Portafogli</span></a>
-    <div class="feature-menu-card feature-menu-card--purple is-active"><span class="feature-menu-icon material-symbols-rounded">folder</span><span>I tuoi Portafogli</span></div>
+    <div class="feature-menu-card feature-menu-card--purple is-active"><span class="feature-menu-icon material-symbols-rounded">folder</span><span>I miei Portafogli</span></div>
     <a class="feature-menu-card feature-menu-card--green" routerLink="/monte-carlo"><span class="feature-menu-icon material-symbols-rounded">query_stats</span><span>Monte Carlo</span></a>
     <a class="feature-menu-card feature-menu-card--amber" routerLink="/ribilanciamento"><span class="feature-menu-icon material-symbols-rounded">sync</span><span>Ribilanciamento</span></a>
     <a class="feature-menu-card feature-menu-card--cyan" routerLink="/market-universe"><span class="feature-menu-icon material-symbols-rounded">bar_chart</span><span>ETF & Mercati</span></a>
@@ -9,8 +9,6 @@
   </aside>
 
   <section class="feature-content">
-    <header class="page-heading"><div><h1>I tuoi portafogli</h1><p>Gestisci i tuoi investimenti reali, traccia acquisti e vendite e monitora la performance nel tempo.</p></div></header>
-
     <div class="portfolio-strip">
       <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" (click)="selectPortfolio(i)">
         <div class="portfolio-choice__top">
@@ -18,7 +16,7 @@
           <span class="portfolio-name">{{p.name}}</span>
           <div class="portfolio-menu" (click)="$event.stopPropagation()">
             <button type="button" class="portfolio-menu__trigger" aria-label="Azioni portafoglio" aria-haspopup="menu" [attr.aria-expanded]="openPortfolioMenu===p.id" (click)="togglePortfolioMenu($event,p.id)">
-              <span class="material-symbols-rounded">more_horiz</span>
+              <span class="material-symbols-rounded">more_vert</span>
             </button>
             <div class="portfolio-dropdown" [class.is-open]="openPortfolioMenu===p.id" role="menu" (click)="$event.stopPropagation()">
               <button type="button" class="portfolio-dropdown__item" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">add_shopping_cart</span><span>Acquista</span></button>
