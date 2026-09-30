@@ -7,25 +7,6 @@
     </div>
   </header>
 
-  <div class="cta-row">
-    <div class="cta-side-spacer"></div>
-    <button
-      type="button"
-      class="run-button"
-      [class.is-running]="isRunning || completionHoldActive"
-      [disabled]="editorState()?.state?.isValid !== true || isRunning || completionHoldActive"
-      (click)="runSimulation()"
-      aria-label="Avvia simulazione"
-    >
-      <span class="run-button__fill" [class.run-button__fill--reset]="!isRunning && !completionHoldActive" [style.width.%]="buttonFillWidth"></span>
-      <span class="run-button__content">
-        <span class="material-symbols-rounded">play_arrow</span>
-        <span>{{ runButtonLabel }}</span>
-      </span>
-    </button>
-    <div class="cta-side-spacer cta-side-spacer--right"></div>
-  </div>
-
   <app-toast></app-toast>
 
   <div class="montecarlo-main-layout">
