@@ -61,11 +61,7 @@ export class RealPortfoliosPageComponent implements OnInit {
         return;
       }
 
-      const firstReal = this.portfolios[0];
-      if (firstReal && realOptions.some((option) => option.id === firstReal.id)) {
-        this.selected = 0;
-        this.portfolioSelection.setSelectedPortfolio(firstReal.id);
-      }
+      // A hidden simulated selection remains global until the user explicitly selects a real portfolio.
     });
   }
 
@@ -77,8 +73,8 @@ export class RealPortfoliosPageComponent implements OnInit {
         const selectedIndex=selectedId ? this.portfolios.findIndex((portfolio)=>portfolio.id===selectedId) : -1;
         this.selected=selectedIndex>=0 ? selectedIndex : 0;
         this.loadingPortfolios=false;
-        if (selectedIndex<0 && this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
-        else if (!this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(null);
+        if (!selectedId && this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
+        else if (!this.portfolios.length && !selectedId) this.portfolioSelection.setSelectedPortfolio(null);
       },
       error:()=>{ this.portfolios=[]; this.loadingPortfolios=false; }
     });
