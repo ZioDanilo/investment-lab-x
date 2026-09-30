@@ -20,8 +20,9 @@ export class ApiService {
   }
 
   // Portfolio endpoints
-  getPortfolios(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/portfolio`);
+  getPortfolios(tipo?: 'reale' | 'laboratorio'): Observable<any> {
+    const suffix = tipo ? `?tipo=${tipo}` : '';
+    return this.http.get(`${this.apiUrl}/portfolio${suffix}`);
   }
 
   getPortfolioById(id: string): Observable<any> {

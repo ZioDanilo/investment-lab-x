@@ -23,7 +23,7 @@
     <div class="nav-actions" aria-label="Profilo">
       <div class="profile-menu">
         <button type="button" class="avatar-button" aria-label="Profilo utente" aria-haspopup="menu" [attr.aria-expanded]="profileMenuOpen" (click)="toggleProfileMenu($event)">
-          <span>DL</span>
+          <span>{{ loggedUsername }}</span>
         </button>
         <div class="profile-dropdown" [class.is-open]="profileMenuOpen" role="menu" [attr.aria-hidden]="!profileMenuOpen" (click)="$event.stopPropagation()">
           <button type="button" class="profile-dropdown__item" role="menuitem" [disabled]="isRegeneratingMarketUniverse" (click)="regenerateMarketUniverse($event)">

@@ -124,3 +124,9 @@
     min-width: 150px;
   }
 }
+
+.selector-section-divider {
+  height: 1px;
+  margin: 7px 10px;
+  background: rgba(133, 176, 226, 0.28);
+}

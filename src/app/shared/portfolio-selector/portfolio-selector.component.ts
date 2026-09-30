@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, HostListener, computed, inject } from '@angular/core';
+import { Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 @Component({
@@ -12,15 +14,30 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
 export class PortfolioSelectorComponent {
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
+  private readonly router = inject(Router);
+  private readonly currentUrl = signal(this.router.url);
 
   readonly options = this.portfolioSelectionService.portfolioOptions;
+  readonly realOptions = computed(() => this.options().filter((option) => option.tipo === 'reale'));
+  readonly laboratoryOptions = computed(() => this.options().filter((option) => option.tipo === 'laboratorio'));
+  readonly realOnly = computed(() => this.currentUrl().startsWith('/portafogli') || this.currentUrl().startsWith('/ribilanciamento'));
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
+  readonly visibleSelectedPortfolio = computed(() => {
+    const selected = this.selectedPortfolio();
+    return selected && (!this.realOnly() || selected.tipo === 'reale') ? selected : null;
+  });
   readonly loading = this.portfolioSelectionService.loading;
   readonly hasError = this.portfolioSelectionService.hasError;
-  readonly selectedLabel = computed(() => this.selectedPortfolio()?.label ?? 'Seleziona portafoglio');
+  readonly selectedLabel = computed(() => this.visibleSelectedPortfolio()?.label ?? 'Seleziona portafoglio');
   readonly triggerPlaceholder = 'Seleziona portafoglio';
 
   isOpen = false;
+
+  constructor() {
+    this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
+      this.currentUrl.set(event.urlAfterRedirects);
+    });
+  }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {

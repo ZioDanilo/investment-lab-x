@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit, signal } from '@angular/core';
+import { Component, HostListener, OnInit, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiCardComponent } from '../../shared/components/ui-card/ui-card.component';
@@ -7,6 +7,7 @@ import { UiButtonComponent } from '../../shared/components/ui-button/ui-button.c
 import { LineChartComponent, LineChartSeries, LineChartTick } from '../../shared/components/line-chart/line-chart.component';
 import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/chart-legend/chart-legend.component';
 import { ApiService } from '../../core/api/api.service';
+import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; }
 interface Holding { name:string; ticker:string; qty:string; avg:string; value:string; gain:string; weight:string; tone:'positive'|'negative'; }
@@ -36,17 +37,45 @@ export class RealPortfoliosPageComponent implements OnInit {
   creating=false;
   get portfolioNameUnavailable():boolean {
     const name=this.portfolioName().trim().toLocaleLowerCase();
-    return !!name && this.portfolios.some((p)=>p.name.trim().toLocaleLowerCase()===name);
+    return !!name && this.portfolioSelection.portfolioOptions().some((p)=>p.label.trim().toLocaleLowerCase()===name);
   }
   openPortfolioMenu:string|null=null;
   portfolioPendingDelete:Portfolio|null=null;
   deletingPortfolio=false;
 
-  constructor(private readonly api:ApiService) {}
+  constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
+    effect(() => {
+      const realOptions = this.portfolioSelection.portfolioOptions().filter((option) => option.tipo === 'reale');
+      if (realOptions.length && this.portfolios.length) {
+        const byId = new Map(this.portfolios.map((portfolio) => [portfolio.id, portfolio]));
+        const ordered = realOptions.map((option) => byId.get(option.id)).filter((portfolio): portfolio is Portfolio => !!portfolio);
+        if (ordered.length === this.portfolios.length && ordered.some((portfolio, index) => portfolio.id !== this.portfolios[index]?.id)) {
+          this.portfolios = ordered;
+        }
+      }
+
+      const selectedId = this.portfolioSelection.selectedPortfolio()?.id;
+      if (selectedId) {
+        const index = this.portfolios.findIndex((portfolio) => portfolio.id === selectedId);
+        if (index >= 0 && index !== this.selected) this.selected = index;
+        return;
+      }
+
+      // A hidden simulated selection remains global until the user explicitly selects a real portfolio.
+    });
+  }
 
   ngOnInit():void {
     this.api.getRealPortfolios().subscribe({
-      next:(response:any)=>{ this.portfolios=Array.isArray(response?.data)?response.data:[]; this.selected=0; this.loadingPortfolios=false; },
+      next:(response:any)=>{
+        this.portfolios=Array.isArray(response?.data)?response.data:[];
+        const selectedId=this.portfolioSelection.selectedPortfolio()?.id;
+        const selectedIndex=selectedId ? this.portfolios.findIndex((portfolio)=>portfolio.id===selectedId) : -1;
+        this.selected=selectedIndex>=0 ? selectedIndex : 0;
+        this.loadingPortfolios=false;
+        if (!selectedId && this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
+        else if (!this.portfolios.length && !selectedId) this.portfolioSelection.setSelectedPortfolio(null);
+      },
       error:()=>{ this.portfolios=[]; this.loadingPortfolios=false; }
     });
   }
@@ -59,7 +88,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     const name=this.portfolioName().trim(); if(!name||this.creating||this.portfolioNameUnavailable)return;
     this.creating=true;
     this.api.createRealPortfolio({name, description:this.portfolioDescription().trim() || null}).subscribe({
-      next:(res:any)=>{if(res?.data)this.portfolios=[...this.portfolios,res.data];this.selected=Math.max(0,this.portfolios.length-1);this.creating=false;this.discardCreatePortfolio();},
+      next:(res:any)=>{if(res?.data)this.portfolios=[...this.portfolios,res.data];this.selected=Math.max(0,this.portfolios.length-1);this.creating=false;this.discardCreatePortfolio();this.portfolioSelection.loadPortfolios();},
       error:()=>{this.creating=false;}
     });
   }
@@ -94,7 +123,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   readonly ticks:LineChartTick[]=[{value:'€ 30.000',y:30},{value:'€ 25.000',y:70},{value:'€ 20.000',y:110},{value:'€ 15.000',y:150},{value:'€ 10.000',y:190},{value:'€ 5.000',y:230}];
   portfolioColor(i:number):string { return ['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'][i%6]; }
   togglePortfolioMenu(event:MouseEvent,id:string):void { event.stopPropagation(); this.openPortfolioMenu=this.openPortfolioMenu===id?null:id; }
-  choosePortfolioAction(event:MouseEvent,i:number):void { event.stopPropagation(); this.selected=i; this.openPortfolioMenu=null; }
+  choosePortfolioAction(event:MouseEvent,i:number):void { event.stopPropagation(); this.selectPortfolio(i); }
   requestDeletePortfolio(event:MouseEvent,portfolio:Portfolio):void { event.stopPropagation(); this.openPortfolioMenu=null; this.portfolioPendingDelete=portfolio; }
   keepPortfolio():void { if(this.deletingPortfolio)return; this.portfolioPendingDelete=null; }
   confirmDeletePortfolio():void {
@@ -110,10 +139,16 @@ export class RealPortfoliosPageComponent implements OnInit {
         else if(removedIndex>=0&&removedIndex<this.selected)this.selected--;
         this.deletingPortfolio=false;
         this.portfolioPendingDelete=null;
+        this.portfolioSelection.loadPortfolios();
       },
       error:(error)=>{this.deletingPortfolio=false; console.error('Errore eliminazione portafoglio', error);}
     });
   }
   @HostListener('document:click') closePortfolioMenu():void { this.openPortfolioMenu=null; }
-  selectPortfolio(i:number){this.selected=i;this.openPortfolioMenu=null;}
+  selectPortfolio(i:number){
+    this.selected=i;
+    this.openPortfolioMenu=null;
+    const portfolio=this.portfolios[i];
+    this.portfolioSelection.setSelectedPortfolio(portfolio?.id ?? null);
+  }
 }
