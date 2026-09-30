@@ -49,7 +49,7 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/real-portfolios`);
   }
 
-  createRealPortfolio(data: { name: string }): Observable<any> {
+  createRealPortfolio(data: { name: string; description?: string | null }): Observable<any> {
     return this.http.post(`${this.apiUrl}/real-portfolios`, data);
   }
 
