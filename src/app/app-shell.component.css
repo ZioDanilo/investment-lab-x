@@ -325,3 +325,12 @@
 @media(min-width:1181px){
   .app-feature-sidebar{margin-top:71px}
 }
+
+/* Feature frame contract: 2px top + 30px action row + 3px row gap = 35px body baseline. */
+@media(min-width:1181px){
+  .app-feature-sidebar{
+    top:4px;
+    margin-top:35px;
+    padding-top:0;
+  }
+}
