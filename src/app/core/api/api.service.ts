@@ -15,6 +15,10 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
+  login(username: string, password: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auth/login`, { username, password });
+  }
+
   // Portfolio endpoints
   getPortfolios(): Observable<any> {
     return this.http.get(`${this.apiUrl}/portfolio`);

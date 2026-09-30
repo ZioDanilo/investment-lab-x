@@ -108,3 +108,17 @@
 .create-dialog-footer .discard-btn:hover{background:rgba(255,82,108,.07);border-color:#ff526c;color:#ff8092}
 .create-dialog-footer .create-btn{border-color:rgba(38,149,255,.72);color:#63c7ff}
 .create-dialog-footer .create-btn:hover:not(:disabled){background:rgba(38,149,255,.08);border-color:#5cb9ff;color:#8bd5ff}
+
+
+.field-error {
+  display: block;
+  margin-top: 6px;
+  color: #ff6b6b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+input.invalid,
+.form-input.invalid {
+  border-color: #ff6b6b;
+}
