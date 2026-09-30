@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { UiCardComponent } from '../../shared/components/ui-card/ui-card.component';
 import { UiButtonComponent } from '../../shared/components/ui-button/ui-button.component';
 import { LineChartComponent, LineChartSeries, LineChartTick } from '../../shared/components/line-chart/line-chart.component';
 import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/chart-legend/chart-legend.component';
+import { ApiService } from '../../core/api/api.service';
 
-interface Portfolio { name:string; value:string; performance:string; tone:'positive'|'negative'; }
+interface Portfolio { id:string; name:string; description?:string|null; currency:string; }
 interface Holding { name:string; ticker:string; qty:string; avg:string; value:string; gain:string; weight:string; tone:'positive'|'negative'; }
 interface Operation { date:string; type:'Acquisto'|'Vendita'; ticker:string; qty:string; price:string; total:string; }
 
@@ -17,14 +18,21 @@ interface Operation { date:string; type:'Acquisto'|'Vendita'; ticker:string; qty
   templateUrl:'./real-portfolios-page.component.html',
   styleUrls:['./real-portfolios-page.component.css']
 })
-export class RealPortfoliosPageComponent {
-  readonly portfolios:Portfolio[]=[
-    {name:'Portafoglio principale',value:'€ 24.523',performance:'+12,4%',tone:'positive'},
-    {name:'Pensione integrativa',value:'€ 8.432',performance:'+6,1%',tone:'positive'},
-    {name:'Figlio Matteo',value:'€ 3.210',performance:'-2,3%',tone:'negative'},
-    {name:'Dividendi',value:'€ 6.785',performance:'+8,7%',tone:'positive'}
-  ];
+export class RealPortfoliosPageComponent implements OnInit {
+  portfolios:Portfolio[]=[];
   selected=0;
+  loadingPortfolios=true;
+
+  constructor(private readonly api:ApiService) {}
+
+  ngOnInit():void {
+    this.api.getRealPortfolios().subscribe({
+      next:(response:any)=>{ this.portfolios=Array.isArray(response?.data)?response.data:[]; this.selected=0; this.loadingPortfolios=false; },
+      error:()=>{ this.portfolios=[]; this.loadingPortfolios=false; }
+    });
+  }
+
+  get hasSelectedPortfolio():boolean { return this.portfolios.length>0 && !!this.portfolios[this.selected]; }
   readonly kpis=[
     ['Valore di mercato','€ 24.523','+ € 2.701  (+12,4%)','positive'],
     ['Capitale investito','€ 21.822','',''],
