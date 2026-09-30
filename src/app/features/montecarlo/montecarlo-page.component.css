@@ -674,7 +674,7 @@
   margin: 0;
   padding: 0;
   border-radius: inherit;
-  background: rgba(14, 20, 30, 0.62);
+  background: transparent;
 }
 
 .kpi-target-trigger {
@@ -1619,8 +1619,8 @@
 .kpi-row__value { font-size: 1rem; color: #e7effa; }
 .kpi-target-trigger {
   border-radius: 9px;
-  background: linear-gradient(180deg, rgba(15, 32, 50, .92), rgba(8, 21, 35, .96));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+  background: transparent;
+  box-shadow: none;
 }
 .kpi-target-menu {
   background: rgba(7, 19, 32, .985);
