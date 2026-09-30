@@ -16,109 +16,83 @@
 .dialog-field textarea::placeholder{color:#73889f}
 .create-dialog-footer{padding:11px 16px}
 
-.portfolio-choice:not(.add){position:relative;padding-right:42px}
-.portfolio-add-operation{position:absolute;top:9px;right:9px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(92,185,255,.92);border-radius:50%;background:linear-gradient(180deg,#238bf8,#176ddd);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 4px 10px rgba(15,93,200,.24);color:#fff;font-size:1.15rem;font-weight:700;line-height:1;cursor:pointer;transition:transform .15s ease,background .15s ease,box-shadow .15s ease}
-.portfolio-add-operation:hover{transform:translateY(-1px) scale(1.05);background:linear-gradient(180deg,#3297ff,#1976e8);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 5px 14px rgba(15,93,200,.34)}
-
-/* Align add-operation control with the borderless primary action language */
+/* Portfolio card action — one coherent responsive contract. */
+.portfolio-choice:not(.add){
+  position:relative;
+  padding:10px 12px;
+  padding-right:48px;
+  overflow:hidden;
+}
+.portfolio-choice:not(.add)>span:first-child{
+  display:block;
+  min-width:0;
+  max-width:100%;
+  margin:0;
+  padding-right:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 .portfolio-add-operation{
-  border:0;
+  position:absolute;
+  top:50%;
+  right:10px;
+  transform:translateY(-50%);
+  width:30px;
+  min-width:30px;
+  height:30px;
+  margin:0;
   padding:0;
   box-sizing:border-box;
-  font-family:Arial,sans-serif;
-  font-size:18px;
-  font-weight:500;
-  line-height:24px;
-  text-align:center;
-  vertical-align:middle;
-}
-
-/* Card-sized version of the Monte Carlo primary action */
-.portfolio-choice:not(.add){padding-right:132px}
-.portfolio-add-operation{
-  width:auto;
-  height:28px;
-  min-width:116px;
-  padding:0 10px;
-  border:1px solid rgba(38,149,255,.72);
-  border-radius:6px;
-  background:linear-gradient(180deg,#197ee8,#1164ce);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 5px 12px rgba(15,93,200,.16);
-  color:#fff;
-  font-family:inherit;
-  font-size:.66rem;
-  font-weight:800;
-  line-height:26px;
-  white-space:nowrap;
-  text-align:center;
-}
-.portfolio-add-operation:hover{
-  transform:none;
-  background:linear-gradient(180deg,#238bf8,#176ddd);
-  border-color:rgba(92,185,255,.9);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 5px 12px rgba(15,93,200,.16);
-}
-
-.operation-plus{display:none}
-@media (max-width:700px){
-  .portfolio-choice:not(.add){padding-right:46px}
-  .portfolio-add-operation{
-    width:28px;
-    min-width:28px;
-    height:28px;
-    padding:0;
-    border-radius:6px;
-    font-size:18px;
-    font-weight:500;
-    line-height:26px;
-  }
-  .operation-label{display:none}
-  .operation-plus{display:block}
-}
-
-/* Mobile: replace the button label itself with +, without a second element */
-@media (max-width:700px){
-  .portfolio-add-operation .operation-label{font-size:0}
-  .portfolio-add-operation .operation-label::after{
-    content:"+";
-    display:block;
-    font-size:18px;
-    font-weight:500;
-    line-height:26px;
-    text-align:center;
-  }
-  .operation-plus{display:none!important}
-}
-
-/* Responsive portfolio operation action: + Operazione on wide cards, icon-only earlier */
-.portfolio-choice:not(.add){padding-right:120px}
-.portfolio-add-operation{
-  min-width:104px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:5px;
+  gap:0;
+  overflow:hidden;
+  border:1px solid rgba(38,149,255,.72);
+  border-radius:7px;
+  background:linear-gradient(180deg,#197ee8,#1164ce);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 12px rgba(35,139,248,.20);
+  color:#fff;
+  cursor:pointer;
+  white-space:nowrap;
+  line-height:1;
+  transition:background .15s ease,border-color .15s ease,box-shadow .15s ease;
+}
+.portfolio-add-operation:hover{
+  transform:translateY(-50%);
+  background:linear-gradient(180deg,#238bf8,#176ddd);
+  border-color:rgba(92,185,255,.9);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 14px rgba(35,139,248,.28);
 }
 .portfolio-add-operation .operation-icon{
-  font-size:17px;
-  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:20px;
+  height:20px;
+  margin:0;
+  font-size:19px;
+  line-height:20px;
   font-variation-settings:'FILL' 0,'wght' 600,'GRAD' 0,'opsz' 20;
   text-shadow:0 0 7px rgba(150,215,255,.42);
 }
-.portfolio-add-operation .operation-label{
-  font-size:.66rem;
-  line-height:1;
-}
-@media (max-width:900px){
-  .portfolio-choice:not(.add){padding-right:46px}
+.portfolio-add-operation .operation-label{display:none;margin:0;font-size:.66rem;font-weight:800;line-height:1}
+
+/* Show "+ Operazione" only when each grid card is genuinely wide enough. */
+@media (min-width:1450px){
+  .portfolio-choice:not(.add){padding-right:122px}
   .portfolio-add-operation{
-    width:28px;
-    min-width:28px;
-    height:28px;
-    padding:0;
-    gap:0;
+    width:auto;
+    min-width:104px;
+    padding:0 10px 0 8px;
+    gap:4px;
   }
-  .portfolio-add-operation .operation-label{display:none;font-size:.66rem}
-  .portfolio-add-operation .operation-label::after{content:none}
-  .portfolio-add-operation .operation-icon{display:inline-flex;font-size:18px}
+  .portfolio-add-operation .operation-label{display:inline;white-space:nowrap}
+}
+
+/* Once the portfolio strip becomes horizontal, cards have a stable width:
+   keep the compact icon action so it can never cover the portfolio name. */
+@media (max-width:760px){
+  .portfolio-choice:not(.add){padding-right:48px}
 }
