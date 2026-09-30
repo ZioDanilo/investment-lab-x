@@ -45,10 +45,19 @@ export class RealPortfoliosPageComponent implements OnInit {
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
     effect(() => {
+      const options = this.portfolioSelection.portfolioOptions();
       const selectedId = this.portfolioSelection.selectedPortfolio()?.id;
-      if (!selectedId) return;
-      const index = this.portfolios.findIndex((portfolio) => portfolio.id === selectedId);
-      if (index >= 0 && index !== this.selected) this.selected = index;
+      if (selectedId) {
+        const index = this.portfolios.findIndex((portfolio) => portfolio.id === selectedId);
+        if (index >= 0 && index !== this.selected) this.selected = index;
+        return;
+      }
+
+      const firstReal = this.portfolios[0];
+      if (firstReal && options.some((option) => option.id === firstReal.id && option.tipo === 'reale')) {
+        this.selected = 0;
+        this.portfolioSelection.setSelectedPortfolio(firstReal.id);
+      }
     });
   }
 
