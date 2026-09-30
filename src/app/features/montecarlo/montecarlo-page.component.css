@@ -2835,10 +2835,17 @@ html, body {
 
 /* Align desktop side navigation with the first Monte Carlo content panels
    (Composizione temporanea / KPI), below page heading and CTA. */
-@media (min-width: 1181px) {
+@media (min-width: 1181px) and (min-height: 760px) {
   .feature-sidebar {
-    /* Align the first menu card with the top edge of Composizione temporanea. */
-    margin-top: 40px;
+    /* page top padding + 44px CTA + page gap - sidebar's own 2px top padding */
+    margin-top: calc(42px + (2 * clamp(6px, .75vh, 10px)));
+  }
+}
+
+@media (min-width: 1181px) and (max-height: 759px) {
+  .feature-sidebar {
+    /* 4px page top padding + 44px CTA + 5px page gap - 2px sidebar padding */
+    margin-top: 51px;
   }
 }
 
