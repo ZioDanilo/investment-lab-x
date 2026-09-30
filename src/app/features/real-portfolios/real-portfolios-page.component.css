@@ -70,10 +70,22 @@
   background:rgba(135,174,216,.55);
   box-shadow:0 1px 0 rgba(255,255,255,.035);
 }
-.portfolio-dropdown__item--edit .material-symbols-rounded{color:#f9be48}
 .portfolio-dropdown__item--delete{color:#ff8092}
 .portfolio-dropdown__item--delete .material-symbols-rounded{color:#ff657d}
 
 
 /* Body-only page: the persistent shell owns navbar, action row, sidebar and their geometry. */
 @media(min-width:1181px){:host{display:block;box-sizing:border-box;padding:0 8px 3px}}
+
+/* Compact destructive confirmation, using the page's semantic red/green palette. */
+.delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.delete-confirm-dialog{width:min(390px,calc(100vw - 32px));box-sizing:border-box;padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.04)}
+.delete-confirm-dialog h2{margin:0 0 18px;text-align:center;color:#edf5ff;font-size:1rem;line-height:1.35;font-weight:750}
+.delete-confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.delete-confirm-button{height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:8px;font:inherit;font-size:.76rem;font-weight:800;cursor:pointer}
+.delete-confirm-button .material-symbols-rounded{font-size:1.05rem}
+.delete-confirm-button--delete{border:1px solid rgba(255,83,102,.62);background:linear-gradient(180deg,rgba(116,25,36,.72),rgba(72,15,24,.86));color:#ff9aa5}
+.delete-confirm-button--delete:hover:not(:disabled){border-color:#ff526c;background:linear-gradient(180deg,rgba(145,31,44,.82),rgba(87,18,28,.92))}
+.delete-confirm-button--keep{border:1px solid rgba(37,230,177,.58);background:linear-gradient(180deg,rgba(19,103,79,.68),rgba(10,67,52,.82));color:#69f1c9}
+.delete-confirm-button--keep:hover:not(:disabled){border-color:#25e6b1;background:linear-gradient(180deg,rgba(24,127,97,.78),rgba(12,82,63,.92))}
+.delete-confirm-button:disabled{opacity:.5;cursor:wait}
