@@ -2840,3 +2840,66 @@ html, body {
     margin-top: 103px;
   }
 }
+
+
+/* Home visual language — Monte Carlo cards.
+   Use the same dark translucent surface as Home dashboard panels. */
+.montecarlo-page .panel {
+  background: rgba(9, 16, 24, 0.68) !important;
+  border-color: rgba(122, 176, 224, 0.24) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025) !important;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.montecarlo-page .panel:hover {
+  border-color: rgba(122, 176, 224, 0.30) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035) !important;
+}
+
+/* KPI container remains a little darker/translucent, while each KPI + target
+   uses exactly the Recent Portfolios row surface from Home. */
+.montecarlo-page .kpi-panel {
+  background: rgba(7, 12, 18, 0.76) !important;
+}
+
+.montecarlo-page .kpi-row__metric,
+.montecarlo-page .kpi-row__target {
+  background: rgba(12, 18, 26, 0.70) !important;
+  border: 1px solid rgba(139, 177, 222, 0.18) !important;
+  box-shadow: none !important;
+}
+
+/* Preserve KPI result semantics: no result stays neutral; evaluated rows
+   retain the existing green/red border feedback. */
+.montecarlo-page .kpi-row.target-success .kpi-row__metric,
+.montecarlo-page .kpi-row.target-success .kpi-row__target {
+  border-color: rgba(52, 211, 153, 0.48) !important;
+}
+
+.montecarlo-page .kpi-row.target-failure .kpi-row__metric,
+.montecarlo-page .kpi-row.target-failure .kpi-row__target {
+  border-color: rgba(248, 113, 113, 0.48) !important;
+}
+
+/* Drag preview must keep the same Home row treatment. */
+.kpi-drag-overlay .kpi-row__metric,
+.kpi-drag-overlay .kpi-row__target,
+.kpi-drag-overlay__inner .kpi-row__metric,
+.kpi-drag-overlay__inner .kpi-row__target {
+  background: rgba(12, 18, 26, 0.96) !important;
+  border: 1px solid rgba(139, 177, 222, 0.18) !important;
+  box-shadow: none !important;
+}
+.kpi-drag-overlay.target-success .kpi-row__metric,
+.kpi-drag-overlay.target-success .kpi-row__target,
+.kpi-drag-overlay__inner.target-success .kpi-row__metric,
+.kpi-drag-overlay__inner.target-success .kpi-row__target {
+  border-color: rgba(52, 211, 153, 0.48) !important;
+}
+.kpi-drag-overlay.target-failure .kpi-row__metric,
+.kpi-drag-overlay.target-failure .kpi-row__target,
+.kpi-drag-overlay__inner.target-failure .kpi-row__metric,
+.kpi-drag-overlay__inner.target-failure .kpi-row__target {
+  border-color: rgba(248, 113, 113, 0.48) !important;
+}
