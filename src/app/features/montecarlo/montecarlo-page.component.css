@@ -2645,3 +2645,37 @@ html, body {
   align-items: flex-start !important;
   gap: 5px !important;
 }
+
+
+/* Responsive handoff: at laptop/tablet widths the two dashboard columns become
+   too narrow for the portfolio editor and KPI rows. Stack the sections before
+   they start clipping/overlapping, and let the page scroll vertically. */
+@media (min-width: 861px) and (max-width: 1180px) {
+  .main-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .left-column,
+  .right-column {
+    display: grid !important;
+    grid-template-rows: auto !important;
+    grid-row: auto !important;
+    gap: 8px;
+  }
+
+  .portfolio-panel {
+    grid-row: auto !important;
+    height: auto !important;
+    min-height: 430px;
+    overflow: visible;
+  }
+
+  .histogram-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .montecarlo-page {
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+  }
+}
