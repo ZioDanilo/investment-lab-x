@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, HostListener, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -7,7 +8,7 @@ import { ApiService } from './core/api/api.service';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent],
   templateUrl: './app-shell.component.html',
   styleUrls: ['./app-shell.component.css']
 })
