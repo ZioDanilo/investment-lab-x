@@ -61,6 +61,8 @@ interface ActivityItem {
   styleUrls: ['./home-page.component.css']
 })
 export class HomePageComponent {
+  get loggedUsername(): string { return localStorage.getItem('investmentLabUsername')?.trim() || ''; }
+
 
   readonly navItems: NavItem[] = [
     { label: 'Home', icon: 'home', active: true },
