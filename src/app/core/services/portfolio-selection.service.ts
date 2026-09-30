@@ -26,9 +26,7 @@ export class PortfolioSelectionService {
   readonly loading = signal(false);
   readonly hasError = signal(false);
 
-  constructor() {
-    this.loadPortfolios();
-  }
+  constructor() {}
 
   private normalizePortfolio(raw: any): PortfolioOption | null {
     if (!raw) {
@@ -48,7 +46,18 @@ export class PortfolioSelectionService {
     };
   }
 
+  resetForLogin(): void {
+    this.portfolioOptions.set([]);
+    this.selectedPortfolio.set(null);
+    this.discardWorkingPortfolio();
+    this.loading.set(false);
+    this.hasError.set(false);
+  }
+
   loadPortfolios(): void {
+    this.portfolioOptions.set([]);
+    this.selectedPortfolio.set(null);
+    this.discardWorkingPortfolio();
     this.loading.set(true);
     this.hasError.set(false);
 
