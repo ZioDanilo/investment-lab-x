@@ -13,11 +13,12 @@
 
     <div class="portfolio-strip">
       <button *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" (click)="selectPortfolio(i)">
-        <span>{{p.name}}</span><strong>{{p.value}}</strong><b [class]="p.tone">{{p.performance}}</b>
+        <span>{{p.name}}</span><strong>{{p.currency}}</strong>
       </button>
       <button class="portfolio-choice add"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
     </div>
 
+    <ng-container *ngIf="hasSelectedPortfolio">
     <div class="toolbar">
       <nav><button class="active">Panoramica</button><button>Composizione</button><button>Operazioni</button><button>Analisi</button><button>Dettagli</button></nav>
       <div><app-ui-button icon="add">Aggiungi operazione</app-ui-button></div>
@@ -46,5 +47,6 @@
       <app-ui-card title="I tuoi ETF"><div class="table-scroll"><table><thead><tr><th>ETF</th><th>Ticker</th><th>Quantità</th><th>Prezzo medio</th><th>Valore attuale</th><th>Gain/Loss</th><th>Peso</th></tr></thead><tbody><tr *ngFor="let h of holdings"><td><strong>{{h.name}}</strong></td><td>{{h.ticker}}</td><td>{{h.qty}}</td><td>{{h.avg}}</td><td>{{h.value}}</td><td [class]="h.tone">{{h.gain}}</td><td>{{h.weight}}</td></tr></tbody></table></div></app-ui-card>
       <app-ui-card title="Ultime operazioni"><div class="table-scroll"><table><thead><tr><th>Data</th><th>Operazione</th><th>ETF</th><th>Quantità</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody><tr *ngFor="let o of operations"><td>{{o.date}}</td><td><span class="pill" [class.sell]="o.type==='Vendita'">{{o.type}}</span></td><td>{{o.ticker}}</td><td>{{o.qty}}</td><td>{{o.price}}</td><td>{{o.total}}</td></tr></tbody></table></div></app-ui-card>
     </div>
+    </ng-container>
   </section>
 </div>
