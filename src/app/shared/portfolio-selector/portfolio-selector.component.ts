@@ -22,9 +22,13 @@ export class PortfolioSelectorComponent {
   readonly laboratoryOptions = computed(() => this.options().filter((option) => option.tipo === 'laboratorio'));
   readonly realOnly = computed(() => this.currentUrl().startsWith('/portafogli') || this.currentUrl().startsWith('/ribilanciamento'));
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
+  readonly visibleSelectedPortfolio = computed(() => {
+    const selected = this.selectedPortfolio();
+    return selected && (!this.realOnly() || selected.tipo === 'reale') ? selected : null;
+  });
   readonly loading = this.portfolioSelectionService.loading;
   readonly hasError = this.portfolioSelectionService.hasError;
-  readonly selectedLabel = computed(() => this.selectedPortfolio()?.label ?? 'Seleziona portafoglio');
+  readonly selectedLabel = computed(() => this.visibleSelectedPortfolio()?.label ?? 'Seleziona portafoglio');
   readonly triggerPlaceholder = 'Seleziona portafoglio';
 
   isOpen = false;
@@ -32,9 +36,6 @@ export class PortfolioSelectorComponent {
   constructor() {
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       this.currentUrl.set(event.urlAfterRedirects);
-      if (this.realOnly() && this.selectedPortfolio()?.tipo !== 'reale') {
-        this.portfolioSelectionService.setSelectedPortfolio(null);
-      }
     });
   }
 
