@@ -7,6 +7,7 @@ import { MarketUniversePageComponent } from './features/market-universe/market-u
 import { PortafoliPageComponent } from './features/portafogli/portafogli-page.component';
 import { RebalanceComponent } from './features/rebalance/rebalance.component';
 import { NewEtfPageComponent } from './features/new-etf/new-etf-page.component';
+import { RealPortfoliosPageComponent } from './features/real-portfolios/real-portfolios-page.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginPageComponent },
@@ -17,7 +18,7 @@ export const appRoutes: Routes = [
     children: [
       { path: 'home', component: HomePageComponent },
       { path: 'laboratorio-portafogli', component: PortafoliPageComponent },
-      { path: 'portafogli', redirectTo: 'laboratorio-portafogli', pathMatch: 'full' },
+      { path: 'portafogli', component: RealPortfoliosPageComponent },
       { path: 'monte-carlo', component: MontecarloPageComponent },
       { path: 'ribilanciamento', component: RebalanceComponent },
       { path: 'market-universe', component: MarketUniversePageComponent },
