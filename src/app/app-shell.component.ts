@@ -18,6 +18,7 @@ export class AppShellComponent {
   private readonly apiService = inject(ApiService);
 
   get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
+  get loggedUsername(): string { return localStorage.getItem('investmentLabUsername')?.trim() || ''; }
 
   activeFeaturePage: any = null;
   onFeatureActivate(component: any): void { this.activeFeaturePage = component; }
