@@ -124,3 +124,17 @@
     min-width: 150px;
   }
 }
+
+.selector-section-label {
+  padding: 9px 12px 5px;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: .58;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.selector-section-divider {
+  height: 1px;
+  margin: 6px 10px;
+  background: rgba(255,255,255,.12);
+}
