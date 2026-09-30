@@ -1,16 +1,5 @@
-<div class="feature-layout">
-  <aside class="feature-sidebar" aria-label="Navigazione Investment Lab">
-    <a class="feature-menu-card feature-menu-card--blue" routerLink="/laboratorio-portafogli"><span class="feature-menu-icon material-symbols-rounded">science</span><span>Laboratorio Portafogli</span></a>
-    <div class="feature-menu-card feature-menu-card--purple is-active"><span class="feature-menu-icon material-symbols-rounded">folder</span><span>I miei Portafogli</span></div>
-    <a class="feature-menu-card feature-menu-card--green" routerLink="/monte-carlo"><span class="feature-menu-icon material-symbols-rounded">query_stats</span><span>Monte Carlo</span></a>
-    <a class="feature-menu-card feature-menu-card--amber" routerLink="/ribilanciamento"><span class="feature-menu-icon material-symbols-rounded">sync</span><span>Ribilanciamento</span></a>
-    <a class="feature-menu-card feature-menu-card--cyan" routerLink="/market-universe"><span class="feature-menu-icon material-symbols-rounded">bar_chart</span><span>ETF & Mercati</span></a>
-    <a class="feature-menu-card feature-menu-card--blue" routerLink="/nuovo-etf"><span class="feature-menu-icon material-symbols-rounded">add</span><span>Nuovo ETF</span></a>
-  </aside>
-
-  <section class="feature-content">
-    <div class="portfolio-strip">
-      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" (click)="selectPortfolio(i)">
+<div class="portfolio-strip">
+      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" [style.--portfolio-accent]="portfolioColor(i)" (click)="selectPortfolio(i)">
         <div class="portfolio-choice__top">
           <span class="portfolio-color" [style.background]="portfolioColor(i)"></span>
           <span class="portfolio-name">{{p.name}}</span>
@@ -21,6 +10,8 @@
             <div class="portfolio-dropdown" [class.is-open]="openPortfolioMenu===p.id" role="menu" (click)="$event.stopPropagation()">
               <button type="button" class="portfolio-dropdown__item" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">add_shopping_cart</span><span>Acquista</span></button>
               <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--sell" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">sell</span><span>Vendi</span></button>
+              <div class="portfolio-dropdown__separator" aria-hidden="true"></div>
+              <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--delete" role="menuitem" (click)="requestDeletePortfolio($event,p)"><span class="material-symbols-rounded">delete</span><span>Elimina</span></button>
             </div>
           </div>
         </div>
@@ -69,8 +60,20 @@
           <label class="dialog-field"><span>Nome portafoglio</span><input type="text" [ngModel]="portfolioName()" (ngModelChange)="portfolioName.set($event)" placeholder="es. Portafoglio principale"></label>
           <label class="dialog-field"><span>Descrizione</span><textarea [ngModel]="portfolioDescription()" (ngModelChange)="portfolioDescription.set($event)" placeholder="Descrizione facoltativa del portafoglio" rows="3"></textarea></label>
         </div>
-        <footer class="create-dialog-footer"><button type="button" class="discard-btn" (click)="discardCreatePortfolio()"><span class="material-symbols-rounded">delete</span>Elimina</button><button type="button" class="create-btn" [disabled]="!portfolioName().trim() || creating" (click)="createPortfolio()"><span class="material-symbols-rounded">add</span>{{creating ? 'Creazione…' : 'Crea'}}</button></footer>
+        <footer class="create-dialog-footer"><button type="button" class="discard-btn" (click)="discardCreatePortfolio()"><span class="material-symbols-rounded">close</span>Annulla</button><button type="button" class="create-btn" [disabled]="!portfolioName().trim() || creating" (click)="createPortfolio()"><span class="material-symbols-rounded">add</span>{{creating ? 'Creazione…' : 'Crea'}}</button></footer>
       </section>
+    </div>
+
+<div *ngIf="portfolioPendingDelete" class="delete-confirm-overlay">
+  <section class="delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-portfolio-title" (click)="$event.stopPropagation()">
+    <h2 id="delete-portfolio-title">Sei sicuro di voler eliminare il portafoglio?</h2>
+    <div class="delete-confirm-actions">
+      <button type="button" class="delete-confirm-button delete-confirm-button--delete" [disabled]="deletingPortfolio" (click)="confirmDeletePortfolio()">
+        <span class="material-symbols-rounded">delete</span><span>{{ deletingPortfolio ? 'Eliminazione…' : 'Elimina' }}</span>
+      </button>
+      <button type="button" class="delete-confirm-button delete-confirm-button--keep" [disabled]="deletingPortfolio" (click)="keepPortfolio()">
+        <span class="material-symbols-rounded">check</span><span>Mantieni</span>
+      </button>
     </div>
   </section>
 </div>

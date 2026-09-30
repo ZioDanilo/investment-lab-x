@@ -3072,3 +3072,29 @@ html, body {
   overflow: visible;
   text-overflow: clip;
 }
+
+/* Shared-shell contract: Monte Carlo body starts exactly at the shell body baseline,
+   like I miei Portafogli. Header/action spacing belongs to AppShell only. */
+@media(min-width:1181px){
+  .montecarlo-page{
+    padding-top:0!important;
+    margin-top:0!important;
+  }
+  .montecarlo-main-layout{
+    margin-top:0!important;
+    padding-top:0!important;
+  }
+}
+
+/* app-toast is fixed visually, but its host is still a flex item. Remove it from
+   Monte Carlo document flow so the first dashboard row shares the shell baseline. */
+@media(min-width:1181px){
+  .montecarlo-page > app-toast{
+    position:absolute!important;
+    width:0!important;
+    height:0!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+  }
+}

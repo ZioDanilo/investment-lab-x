@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, HostListener, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -7,13 +8,25 @@ import { ApiService } from './core/api/api.service';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent],
   templateUrl: './app-shell.component.html',
   styleUrls: ['./app-shell.component.css']
 })
 export class AppShellComponent {
+  readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/nuovo-etf'];
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
+
+  get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
+
+  activeFeaturePage: any = null;
+  onFeatureActivate(component: any): void { this.activeFeaturePage = component; }
+  get featureActionLabel(): string { return this.activeFeaturePage?.headerActionLabel ?? ''; }
+  get featureActionIcon(): string { return this.activeFeaturePage?.headerActionIcon ?? ''; }
+  get featureActionDisabled(): boolean { return this.activeFeaturePage?.headerActionDisabled ?? false; }
+  get featureActionRunning(): boolean { return this.activeFeaturePage?.headerActionRunning ?? false; }
+  get featureActionProgress(): number { return this.activeFeaturePage?.headerActionProgress ?? 0; }
+  runFeatureAction(): void { this.activeFeaturePage?.runHeaderAction?.(); }
 
   profileMenuOpen = false;
   isRegeneratingMarketUniverse = false;

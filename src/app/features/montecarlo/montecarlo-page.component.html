@@ -1,62 +1,6 @@
-<div class="feature-layout">
-  <aside class="feature-sidebar" aria-label="Navigazione Investment Lab">
-    <a class="feature-menu-card feature-menu-card--blue" href="/laboratorio-portafogli">
-      <span class="feature-menu-icon material-symbols-rounded">science</span>
-      <span>Laboratorio Portafogli</span>
-    </a>
-    <a class="feature-menu-card feature-menu-card--purple" href="/portafogli">
-      <span class="feature-menu-icon material-symbols-rounded">folder</span>
-      <span>I miei Portafogli</span>
-    </a>
-    <div class="feature-menu-card feature-menu-card--green is-active" aria-current="page" aria-disabled="true">
-      <span class="feature-menu-icon material-symbols-rounded">trending_up</span>
-      <span>Monte Carlo</span>
-    </div>
-    <a class="feature-menu-card feature-menu-card--amber" href="/ribilanciamento">
-      <span class="feature-menu-icon material-symbols-rounded">sync</span>
-      <span>Ribilanciamento</span>
-    </a>
-    <a class="feature-menu-card feature-menu-card--cyan" href="/market-universe">
-      <span class="feature-menu-icon material-symbols-rounded">bar_chart</span>
-      <span>ETF & Mercati</span>
-    </a>
-    <a class="feature-menu-card feature-menu-card--blue" href="/nuovo-etf">
-      <span class="feature-menu-icon material-symbols-rounded">add</span>
-      <span>Nuovo ETF</span>
-    </a>
-  </aside>
-  <div class="feature-content">
 <section class="montecarlo-page">
-  <header class="page-header">
-    <div class="header-copy">
-      <p class="eyebrow">MONTE CARLO</p>
-      <h2>Simula il futuro del tuo portafoglio</h2>
-      <p class="header-subtitle">Analizza migliaia di scenari per valutare la distribuzione dei possibili risultati.</p>
-    </div>
-  </header>
-
-  <div class="cta-row">
-    <div class="cta-side-spacer"></div>
-    <button
-      type="button"
-      class="run-button"
-      [class.is-running]="isRunning || completionHoldActive"
-      [disabled]="editorState()?.state?.isValid !== true || isRunning || completionHoldActive"
-      (click)="runSimulation()"
-      aria-label="Avvia simulazione"
-    >
-      <span class="run-button__fill" [class.run-button__fill--reset]="!isRunning && !completionHoldActive" [style.width.%]="buttonFillWidth"></span>
-      <span class="run-button__content">
-        <span class="material-symbols-rounded">play_arrow</span>
-        <span>{{ runButtonLabel }}</span>
-      </span>
-    </button>
-    <div class="cta-side-spacer cta-side-spacer--right"></div>
-  </div>
-
   <app-toast></app-toast>
-
-  <div class="montecarlo-main-layout">
+<div class="montecarlo-main-layout">
     <div class="main-grid">
       <div class="left-column">
         <article class="panel portfolio-panel">
@@ -363,6 +307,3 @@
     </div>
   </article>
 </section>
-
-  </div>
-</div>
