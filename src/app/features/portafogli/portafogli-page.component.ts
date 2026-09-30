@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PortfolioStateService } from '../../core/services/portfolio-state.service';
+import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import { ApiService } from '../../core/api/api.service';
 import { ToastComponent } from '../../shared/components/toast/toast.component';
 import { DialogComponent } from '../../shared/components/dialog/dialog.component';
@@ -33,6 +34,7 @@ interface PortfolioEtf {
 export class PortafoliPageComponent implements OnInit {
   private apiService = inject(ApiService);
   private portfolioState = inject(PortfolioStateService);
+  private portfolioSelection = inject(PortfolioSelectionService);
 
   @ViewChild(ToastComponent) toast!: ToastComponent;
   @ViewChild(DialogComponent) dialog!: DialogComponent;
@@ -288,6 +290,7 @@ export class PortafoliPageComponent implements OnInit {
           this.toast.show(message);
           this.closeForm();
           this.loadPortafogli();
+          this.portfolioSelection.loadPortfolios();
           resolve();
         },
         error: (err: any) => {
@@ -306,6 +309,7 @@ export class PortafoliPageComponent implements OnInit {
           next: (res: any) => {
             this.toast.show('Portafoglio eliminato con successo!');
             this.loadPortafogli();
+            this.portfolioSelection.loadPortfolios();
           },
           error: (err: any) => {
             this.dialog.show('Errore nell\'eliminazione: ' + (err.error?.error || 'Errore sconosciuto'));
