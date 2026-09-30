@@ -297,3 +297,26 @@
 .app-feature-menu-card--blue{--menu-accent-rgb:90,166,255}.app-feature-menu-card--purple{--menu-accent-rgb:165,122,255}.app-feature-menu-card--green{--menu-accent-rgb:67,214,154}.app-feature-menu-card--amber{--menu-accent-rgb:249,190,72}.app-feature-menu-card--cyan{--menu-accent-rgb:80,211,230}
 @media(max-width:1180px){.route-content--feature{display:block}.app-feature-sidebar{position:static;grid-template-columns:repeat(6,minmax(110px,1fr));padding:6px 8px 2px;overflow-x:auto}}
 @media(max-width:760px){.app-feature-sidebar{grid-template-columns:repeat(6,112px)}}
+
+/* Canonical feature-page gutters: one source of truth for every page except Home. */
+.route-content--feature{
+  --feature-gutter:12px;
+  --feature-sidebar-gap:12px;
+  grid-template-columns:156px minmax(0,1fr);
+  column-gap:var(--feature-sidebar-gap);
+  padding:0 var(--feature-gutter);
+  box-sizing:border-box;
+}
+.route-content--feature .route-page{min-width:0;padding:0}
+:host ::ng-deep .route-content--feature .montecarlo-page,
+:host ::ng-deep .route-content--feature .market-page,
+:host ::ng-deep .route-content--feature .page-panel,
+:host ::ng-deep .route-content--feature app-real-portfolios-page > .feature-content{
+  max-width:none;
+  margin-left:0;
+  margin-right:0;
+}
+:host ::ng-deep .route-content--feature app-real-portfolios-page > .feature-content{padding-left:0;padding-right:0}
+@media(max-width:1180px){
+  .route-content--feature{padding:0 8px}
+}
