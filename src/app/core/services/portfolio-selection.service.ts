@@ -4,6 +4,7 @@ import { ApiService } from '../api/api.service';
 export interface PortfolioOption {
   id: string;
   label: string;
+  tipo: 'reale' | 'laboratorio';
 }
 
 export interface WorkingPortfolioSnapshot {
@@ -42,7 +43,8 @@ export class PortfolioSelectionService {
 
     return {
       id: String(id),
-      label: String(label)
+      label: String(label),
+      tipo: raw.tipo === 'reale' ? 'reale' : 'laboratorio'
     };
   }
 
