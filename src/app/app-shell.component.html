@@ -41,6 +41,12 @@
   </header>
 
   <main class="route-content" [class.route-content--feature]="showFeatureSidebar">
+    <div *ngIf="showFeatureSidebar" class="app-feature-action-row">
+      <button *ngIf="featureActionLabel" type="button" class="app-feature-action" [class.is-running]="featureActionRunning" [disabled]="featureActionDisabled" (click)="runFeatureAction()">
+        <span class="app-feature-action__fill" [style.width.%]="featureActionProgress"></span>
+        <span class="app-feature-action__content"><span class="material-symbols-rounded">{{ featureActionIcon }}</span><span>{{ featureActionLabel }}</span></span>
+      </button>
+    </div>
     <aside *ngIf="showFeatureSidebar" class="app-feature-sidebar" aria-label="Navigazione Investment Lab">
       <a class="app-feature-menu-card app-feature-menu-card--blue" routerLink="/laboratorio-portafogli" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">science</span><span>Laboratorio Portafogli</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--purple" routerLink="/portafogli" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">folder</span><span>I miei Portafogli</span></a>
@@ -49,6 +55,6 @@
       <a class="app-feature-menu-card app-feature-menu-card--cyan" routerLink="/market-universe" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">bar_chart</span><span>ETF & Mercati</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--blue" routerLink="/nuovo-etf" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">add</span><span>Nuovo ETF</span></a>
     </aside>
-    <section class="route-page"><router-outlet></router-outlet></section>
+    <section class="route-page"><router-outlet (activate)="onFeatureActivate($event)"></router-outlet></section>
   </main>
 </div>
