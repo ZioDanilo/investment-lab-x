@@ -4,6 +4,9 @@ import { HomePageComponent } from './features/home/home-page.component';
 import { LoginPageComponent } from './features/auth/login-page.component';
 import { MontecarloPageComponent } from './features/montecarlo/montecarlo-page.component';
 import { MarketUniversePageComponent } from './features/market-universe/market-universe-page.component';
+import { PortafoliPageComponent } from './features/portafogli/portafogli-page.component';
+import { RebalanceComponent } from './features/rebalance/rebalance.component';
+import { NewEtfPageComponent } from './features/new-etf/new-etf-page.component';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginPageComponent },
@@ -13,8 +16,12 @@ export const appRoutes: Routes = [
     component: AppShellComponent,
     children: [
       { path: 'home', component: HomePageComponent },
+      { path: 'laboratorio-portafogli', component: PortafoliPageComponent },
+      { path: 'portafogli', redirectTo: 'laboratorio-portafogli', pathMatch: 'full' },
       { path: 'monte-carlo', component: MontecarloPageComponent },
-      { path: 'market-universe', component: MarketUniversePageComponent }
+      { path: 'ribilanciamento', component: RebalanceComponent },
+      { path: 'market-universe', component: MarketUniversePageComponent },
+      { path: 'nuovo-etf', component: NewEtfPageComponent }
     ]
   },
   { path: '**', redirectTo: '/login' }
