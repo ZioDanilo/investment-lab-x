@@ -89,3 +89,36 @@
   }
   .operation-plus{display:none!important}
 }
+
+/* Responsive portfolio operation action: + Operazione on wide cards, icon-only earlier */
+.portfolio-choice:not(.add){padding-right:120px}
+.portfolio-add-operation{
+  min-width:104px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+}
+.portfolio-add-operation .operation-icon{
+  font-size:17px;
+  line-height:1;
+  font-variation-settings:'FILL' 0,'wght' 600,'GRAD' 0,'opsz' 20;
+  text-shadow:0 0 7px rgba(150,215,255,.42);
+}
+.portfolio-add-operation .operation-label{
+  font-size:.66rem;
+  line-height:1;
+}
+@media (max-width:900px){
+  .portfolio-choice:not(.add){padding-right:46px}
+  .portfolio-add-operation{
+    width:28px;
+    min-width:28px;
+    height:28px;
+    padding:0;
+    gap:0;
+  }
+  .portfolio-add-operation .operation-label{display:none;font-size:.66rem}
+  .portfolio-add-operation .operation-label::after{content:none}
+  .portfolio-add-operation .operation-icon{display:inline-flex;font-size:18px}
+}
