@@ -2831,3 +2831,12 @@ html, body {
     min-height: 42px;
   }
 }
+
+
+/* Align desktop side navigation with the first Monte Carlo content panels
+   (Composizione temporanea / KPI), below page heading and CTA. */
+@media (min-width: 1181px) {
+  .feature-sidebar {
+    margin-top: 103px;
+  }
+}
