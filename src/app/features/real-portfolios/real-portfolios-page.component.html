@@ -13,7 +13,7 @@
 
     <div class="portfolio-strip">
       <button *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" (click)="selectPortfolio(i)">
-        <span>{{p.name}}</span>
+        <span>{{p.name}}</span><span class="portfolio-add-operation" title="Aggiungi operazione" aria-label="Aggiungi operazione" (click)="$event.stopPropagation()">+</span>
       </button>
       <button class="portfolio-choice add" (click)="openCreatePortfolio()"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
     </div>
@@ -21,7 +21,6 @@
     <ng-container *ngIf="hasSelectedPortfolio">
     <div class="toolbar">
       <nav><button class="active">Panoramica</button><button>Composizione</button><button>Operazioni</button><button>Analisi</button><button>Dettagli</button></nav>
-      <div><app-ui-button icon="add">Aggiungi operazione</app-ui-button></div>
     </div>
 
     <div class="kpi-grid">
