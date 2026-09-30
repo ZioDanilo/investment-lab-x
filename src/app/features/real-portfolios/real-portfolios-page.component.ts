@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit, signal } from '@angular/core';
+import { Component, HostListener, OnInit, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiCardComponent } from '../../shared/components/ui-card/ui-card.component';
@@ -43,11 +43,24 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioPendingDelete:Portfolio|null=null;
   deletingPortfolio=false;
 
-  constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {}
+  constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
+    effect(() => {
+      const selectedId = this.portfolioSelection.selectedPortfolio()?.id;
+      if (!selectedId) return;
+      const index = this.portfolios.findIndex((portfolio) => portfolio.id === selectedId);
+      if (index >= 0 && index !== this.selected) this.selected = index;
+    });
+  }
 
   ngOnInit():void {
     this.api.getRealPortfolios().subscribe({
-      next:(response:any)=>{ this.portfolios=Array.isArray(response?.data)?response.data:[]; this.selected=0; this.loadingPortfolios=false; },
+      next:(response:any)=>{
+        this.portfolios=Array.isArray(response?.data)?response.data:[];
+        this.selected=0;
+        this.loadingPortfolios=false;
+        if (this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
+        else this.portfolioSelection.setSelectedPortfolio(null);
+      },
       error:()=>{ this.portfolios=[]; this.loadingPortfolios=false; }
     });
   }
@@ -95,7 +108,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   readonly ticks:LineChartTick[]=[{value:'€ 30.000',y:30},{value:'€ 25.000',y:70},{value:'€ 20.000',y:110},{value:'€ 15.000',y:150},{value:'€ 10.000',y:190},{value:'€ 5.000',y:230}];
   portfolioColor(i:number):string { return ['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'][i%6]; }
   togglePortfolioMenu(event:MouseEvent,id:string):void { event.stopPropagation(); this.openPortfolioMenu=this.openPortfolioMenu===id?null:id; }
-  choosePortfolioAction(event:MouseEvent,i:number):void { event.stopPropagation(); this.selected=i; this.openPortfolioMenu=null; }
+  choosePortfolioAction(event:MouseEvent,i:number):void { event.stopPropagation(); this.selectPortfolio(i); }
   requestDeletePortfolio(event:MouseEvent,portfolio:Portfolio):void { event.stopPropagation(); this.openPortfolioMenu=null; this.portfolioPendingDelete=portfolio; }
   keepPortfolio():void { if(this.deletingPortfolio)return; this.portfolioPendingDelete=null; }
   confirmDeletePortfolio():void {
@@ -117,5 +130,10 @@ export class RealPortfoliosPageComponent implements OnInit {
     });
   }
   @HostListener('document:click') closePortfolioMenu():void { this.openPortfolioMenu=null; }
-  selectPortfolio(i:number){this.selected=i;this.openPortfolioMenu=null;}
+  selectPortfolio(i:number){
+    this.selected=i;
+    this.openPortfolioMenu=null;
+    const portfolio=this.portfolios[i];
+    this.portfolioSelection.setSelectedPortfolio(portfolio?.id ?? null);
+  }
 }
