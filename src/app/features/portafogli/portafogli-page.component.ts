@@ -69,7 +69,7 @@ export class PortafoliPageComponent implements OnInit {
   isPortfolioNameUnavailable = computed(() => {
     if (this.currentEditingPortfolioId()) return false;
     const name = this.nomePortafoglio().trim().toLocaleLowerCase();
-    return !!name && this.portafogli().some((p) => String(p.nome ?? '').trim().toLocaleLowerCase() === name);
+    return !!name && this.portfolioSelection.portfolioOptions().some((p) => p.label.trim().toLocaleLowerCase() === name);
   });
 
   isTotalValid = computed(() => {
