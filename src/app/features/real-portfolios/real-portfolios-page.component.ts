@@ -22,7 +22,7 @@ interface Operation { date:string; type:'Acquisto'|'Vendita'; ticker:string; qty
 export class RealPortfoliosPageComponent implements OnInit {
   readonly headerActionLabel='AGGIORNA QUOTAZIONI';
   readonly headerActionIcon='sync';
-  readonly headerActionDisabled=false;
+  get headerActionDisabled():boolean { return this.loadingPortfolios || this.portfolios.length===0; }
   readonly headerActionRunning=false;
   readonly headerActionProgress=0;
   runHeaderAction():void {}
