@@ -9,7 +9,7 @@
   </aside>
 
   <section class="feature-content">
-    <header class="page-heading"><div><h1>I tuoi portafogli</h1><p>Gestisci i tuoi investimenti reali, traccia acquisti e vendite e monitora la performance nel tempo.</p></div><app-ui-button icon="add">Nuovo portafoglio</app-ui-button></header>
+    <header class="page-heading"><div><h1>I tuoi portafogli</h1><p>Gestisci i tuoi investimenti reali, traccia acquisti e vendite e monitora la performance nel tempo.</p></div></header>
 
     <div class="portfolio-strip">
       <button *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" (click)="selectPortfolio(i)">
@@ -20,7 +20,7 @@
 
     <div class="toolbar">
       <nav><button class="active">Panoramica</button><button>Composizione</button><button>Operazioni</button><button>Analisi</button><button>Dettagli</button></nav>
-      <div><app-ui-button variant="secondary" icon="settings">Impostazioni</app-ui-button><app-ui-button icon="add">Aggiungi operazione</app-ui-button></div>
+      <div><app-ui-button icon="add">Aggiungi operazione</app-ui-button></div>
     </div>
 
     <div class="kpi-grid">
