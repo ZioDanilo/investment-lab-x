@@ -73,7 +73,7 @@ export class HomePageComponent {
 
   readonly shortcuts: ShortcutCard[] = [
     { title: 'Laboratorio Portafogli', description: 'Costruisci e analizza nuovi portafogli con dati ADB.', accent: 'blue', icon: 'science' },
-    { title: 'I tuoi Portafogli', description: 'Gestisci, confronta e modifica i portafogli salvati.', accent: 'purple', icon: 'folder' },
+    { title: 'I miei Portafogli', description: 'Gestisci, confronta e modifica i portafogli salvati.', accent: 'purple', icon: 'folder' },
     { title: 'Monte Carlo', description: 'Simulazioni avanzate sui portafogli selezionati.', accent: 'green', icon: 'trending_up' },
     { title: 'Ribilanciamento', description: 'Calcola e pianifica le operazioni di ribilanciamento.', accent: 'amber', icon: 'sync' },
     { title: 'ETF & Mercati', description: 'Gestisci il database ETF e consulta le quotazioni interne.', accent: 'cyan', icon: 'bar_chart' },
