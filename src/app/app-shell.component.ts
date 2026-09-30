@@ -12,8 +12,11 @@ import { ApiService } from './core/api/api.service';
   styleUrls: ['./app-shell.component.css']
 })
 export class AppShellComponent {
+  readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/nuovo-etf'];
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
+
+  get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
 
   profileMenuOpen = false;
   isRegeneratingMarketUniverse = false;
