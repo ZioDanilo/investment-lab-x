@@ -7,6 +7,7 @@ import { UiButtonComponent } from '../../shared/components/ui-button/ui-button.c
 import { LineChartComponent, LineChartSeries, LineChartTick } from '../../shared/components/line-chart/line-chart.component';
 import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/chart-legend/chart-legend.component';
 import { ApiService } from '../../core/api/api.service';
+import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; }
 interface Holding { name:string; ticker:string; qty:string; avg:string; value:string; gain:string; weight:string; tone:'positive'|'negative'; }
@@ -42,7 +43,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioPendingDelete:Portfolio|null=null;
   deletingPortfolio=false;
 
-  constructor(private readonly api:ApiService) {}
+  constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {}
 
   ngOnInit():void {
     this.api.getRealPortfolios().subscribe({
@@ -59,7 +60,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     const name=this.portfolioName().trim(); if(!name||this.creating||this.portfolioNameUnavailable)return;
     this.creating=true;
     this.api.createRealPortfolio({name, description:this.portfolioDescription().trim() || null}).subscribe({
-      next:(res:any)=>{if(res?.data)this.portfolios=[...this.portfolios,res.data];this.selected=Math.max(0,this.portfolios.length-1);this.creating=false;this.discardCreatePortfolio();},
+      next:(res:any)=>{if(res?.data)this.portfolios=[...this.portfolios,res.data];this.selected=Math.max(0,this.portfolios.length-1);this.creating=false;this.discardCreatePortfolio();this.portfolioSelection.loadPortfolios();},
       error:()=>{this.creating=false;}
     });
   }
@@ -110,6 +111,7 @@ export class RealPortfoliosPageComponent implements OnInit {
         else if(removedIndex>=0&&removedIndex<this.selected)this.selected--;
         this.deletingPortfolio=false;
         this.portfolioPendingDelete=null;
+        this.portfolioSelection.loadPortfolios();
       },
       error:(error)=>{this.deletingPortfolio=false; console.error('Errore eliminazione portafoglio', error);}
     });
