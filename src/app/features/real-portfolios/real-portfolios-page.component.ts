@@ -73,10 +73,12 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.api.getRealPortfolios().subscribe({
       next:(response:any)=>{
         this.portfolios=Array.isArray(response?.data)?response.data:[];
-        this.selected=0;
+        const selectedId=this.portfolioSelection.selectedPortfolio()?.id;
+        const selectedIndex=selectedId ? this.portfolios.findIndex((portfolio)=>portfolio.id===selectedId) : -1;
+        this.selected=selectedIndex>=0 ? selectedIndex : 0;
         this.loadingPortfolios=false;
-        if (this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
-        else this.portfolioSelection.setSelectedPortfolio(null);
+        if (selectedIndex<0 && this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
+        else if (!this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(null);
       },
       error:()=>{ this.portfolios=[]; this.loadingPortfolios=false; }
     });
