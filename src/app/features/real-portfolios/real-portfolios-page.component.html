@@ -13,7 +13,7 @@
 
     <div class="portfolio-strip">
       <button *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" (click)="selectPortfolio(i)">
-        <span>{{p.name}}</span><span class="portfolio-add-operation" role="button" title="Aggiungi operazione" aria-label="Aggiungi operazione" (click)="$event.stopPropagation()"><span class="operation-label">Aggiungi operazione</span></span>
+        <span>{{p.name}}</span><span class="portfolio-add-operation" role="button" title="Aggiungi operazione" aria-label="Aggiungi operazione" (click)="$event.stopPropagation()"><span class="material-symbols-rounded operation-icon" aria-hidden="true">add</span><span class="operation-label">Operazione</span></span>
       </button>
       <button class="portfolio-choice add" (click)="openCreatePortfolio()"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
     </div>
