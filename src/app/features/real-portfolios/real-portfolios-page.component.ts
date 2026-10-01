@@ -207,6 +207,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   ];
   readonly ticks:LineChartTick[]=[{value:'€ 30.000',y:30},{value:'€ 25.000',y:70},{value:'€ 20.000',y:110},{value:'€ 15.000',y:150},{value:'€ 10.000',y:190},{value:'€ 5.000',y:230}];
   startPortfolioDrag(i:number,event:DragEvent):void {
+    this.openPortfolioMenu=null;
     this.draggedPortfolioIndex=i;
     this.portfolioDragSourceIndex=i;
     this.portfolioDragTargetIndex=i;
@@ -220,6 +221,7 @@ export class RealPortfoliosPageComponent implements OnInit {
         const rect=source.getBoundingClientRect();
         clone.classList.remove('drag-source-empty','drag-shift-left','drag-shift-right');
         clone.classList.add('portfolio-native-drag-image');
+        clone.querySelectorAll('.portfolio-menu,.portfolio-dropdown').forEach(el=>el.remove());
         clone.style.cssText += `;position:fixed;left:0;top:0;width:${rect.width}px;height:${rect.height}px;box-sizing:border-box;opacity:1!important;visibility:visible!important;transform:translate(-200vw,-200vh);background:#07121f!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;`;
         clone.querySelectorAll<HTMLElement>('*').forEach(el=>{el.style.opacity='1';el.style.visibility='visible';});
         document.body.appendChild(clone);
