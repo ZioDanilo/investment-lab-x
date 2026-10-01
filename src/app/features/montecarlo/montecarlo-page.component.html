@@ -87,13 +87,6 @@
             <span>Target</span>
           </div>
 
-          <div *ngIf="draggedKpiPreview" class="kpi-custom-drag-overlay" [style.left.px]="draggedKpiPreviewPosition.left" [style.top.px]="draggedKpiPreviewPosition.top" [style.width.px]="draggedKpiPreviewPosition.width" [style.height.px]="draggedKpiPreviewPosition.height">
-            <div class="kpi-row kpi-custom-drag-overlay__row" [class.target-success]="getKpiTargetStatus(draggedKpiPreview.id)==='success'" [class.target-failure]="getKpiTargetStatus(draggedKpiPreview.id)==='failure'">
-              <div class="kpi-row__metric"><span class="material-symbols-rounded kpi-metric-icon">{{getKpiIcon(draggedKpiPreview.id)}}</span><span class="kpi-row__label">{{draggedKpiPreview.title}}</span><strong class="kpi-row__value">{{draggedKpiPreview.value}}</strong></div>
-              <div class="kpi-row__target"><div class="kpi-target-dropdown"><button type="button" class="kpi-target-trigger"><span>{{kpiTargets[draggedKpiPreview.id]}}</span><span class="material-symbols-rounded kpi-target-chevron">expand_more</span></button></div></div>
-            </div>
-          </div>
-
           <div
             class="kpi-compact-list"
             [class.kpi-compact-list--dragging]="draggedKpiId !== null"
