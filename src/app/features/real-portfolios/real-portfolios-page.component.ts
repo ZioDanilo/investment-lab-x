@@ -113,9 +113,6 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioDragSourceIndex:number|null=null;
   portfolioDragTargetIndex:number|null=null;
   suppressPortfolioDragTransitions=false;
-  portfolioDragOverlayHtml='';
-  portfolioDragOverlayPosition={left:0,top:0,width:0,height:0};
-  portfolioDragPointerOffset={x:0,y:0};
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
     effect(() => {
@@ -223,20 +220,10 @@ export class RealPortfoliosPageComponent implements OnInit {
         const rect=source.getBoundingClientRect();
         clone.style.cssText += `;position:fixed;left:-10000px;top:-10000px;width:${rect.width}px;height:${rect.height}px;box-sizing:border-box;opacity:1;transform:none;`;
         document.body.appendChild(clone);
-        // Keep the native drag mechanism only for events/drop. Its image is made
-        // invisible; our own opaque fixed overlay is the visual that follows the pointer.
-        const transparent=document.createElement('canvas'); transparent.width=1; transparent.height=1;
-        event.dataTransfer.setDragImage(transparent,0,0);
-        this.portfolioDragPointerOffset={x:event.clientX-rect.left,y:event.clientY-rect.top};
-        this.portfolioDragOverlayPosition={left:rect.left,top:rect.top,width:rect.width,height:rect.height};
-        this.portfolioDragOverlayHtml=source.innerHTML;
-        clone.remove();
+        event.dataTransfer.setDragImage(clone,event.clientX-rect.left,event.clientY-rect.top);
+        requestAnimationFrame(()=>clone.remove());
       }
     }
-  }
-  movePortfolioDrag(event:DragEvent):void {
-    if(this.draggedPortfolioIndex===null || (event.clientX===0&&event.clientY===0))return;
-    this.portfolioDragOverlayPosition={...this.portfolioDragOverlayPosition,left:event.clientX-this.portfolioDragPointerOffset.x,top:event.clientY-this.portfolioDragPointerOffset.y};
   }
   allowPortfolioDrop(targetIndex:number,event:DragEvent):void {
     event.preventDefault();
@@ -267,14 +254,13 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.portfolioDragSourceIndex=null;
     this.portfolioDragTargetIndex=null;
     this.portfolioDragOriginalOrder=null;
-    this.portfolioDragOverlayHtml='';
     requestAnimationFrame(()=>requestAnimationFrame(()=>this.suppressPortfolioDragTransitions=false));
     this.api.updateRealPortfolioOrder(this.portfolios.map(p=>p.id)).subscribe({error:(error)=>{console.error('Errore salvataggio ordine portafogli',error);this.loadRealPortfolios();}});
   }
   endPortfolioDrag():void {
     // dragend fires after drop. A successful drop has already cleared the state;
     // otherwise this is a cancelled drag and only the visual preview is reset.
-    this.draggedPortfolioIndex=null; this.portfolioDragSourceIndex=null; this.portfolioDragTargetIndex=null; this.portfolioDragOriginalOrder=null; this.portfolioDragOverlayHtml='';
+    this.draggedPortfolioIndex=null; this.portfolioDragSourceIndex=null; this.portfolioDragTargetIndex=null; this.portfolioDragOriginalOrder=null;
   }
   portfolioDragShift(i:number):'left'|'right'|null {
     const from=this.portfolioDragSourceIndex,to=this.portfolioDragTargetIndex;
