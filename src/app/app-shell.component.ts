@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { PortfolioSelectorComponent } from './shared/portfolio-selector/portfolio-selector.component';
 import { ApiService } from './core/api/api.service';
+import { PortfolioSelectionService } from './core/services/portfolio-selection.service';
 
 @Component({
   selector: 'app-shell',
@@ -16,6 +17,7 @@ export class AppShellComponent {
   readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/nuovo-etf'];
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
+  private readonly portfolioSelection = inject(PortfolioSelectionService);
 
   get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
   get loggedUsername(): string { return localStorage.getItem('investmentLabUsername')?.trim() || ''; }
@@ -79,8 +81,10 @@ export class AppShellComponent {
     event.stopPropagation();
     this.profileMenuOpen = false;
 
+    this.portfolioSelection.resetForLogin();
+
     try {
-      localStorage.clear();
+      localStorage.removeItem('investmentLabUsername');
       sessionStorage.clear();
     } catch {}
 
