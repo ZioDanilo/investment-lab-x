@@ -104,15 +104,24 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     return JSON.stringify(current) !== JSON.stringify(original);
   });
 
-  readonly canRestorePortfolio = computed(() => Boolean(this.portfolioId) && !this.saving());
-  readonly canUpdatePortfolio = computed(() =>
+  readonly selectedPortfolioType = computed(() => this.portfolioSelectionService.selectedPortfolio()?.tipo ?? null);
+  readonly canRestorePortfolio = computed(() =>
     Boolean(this.portfolioId) &&
     !this.saving()
   );
-  readonly canCreatePortfolio = computed(() =>
-    !this.portfolioSelectionService.selectedPortfolio() &&
-    this.isValid() &&
+  readonly canUpdatePortfolio = computed(() =>
+    Boolean(this.portfolioId) &&
+    this.selectedPortfolioType() === 'laboratorio' &&
     !this.saving()
+  );
+  readonly canCreatePortfolio = computed(() => {
+    const selectedType = this.selectedPortfolioType();
+    if (selectedType === 'reale') return false;
+    if (selectedType === 'laboratorio') return !this.saving();
+    return this.isValid() && !this.saving();
+  });
+  readonly createPortfolioActionLabel = computed(() =>
+    this.selectedPortfolioType() === 'laboratorio' ? 'Pubblica portafoglio' : 'Crea portafoglio'
   );
   readonly canConfirmCreatePortfolio = computed(() => this.createPortfolioNameDraft().trim().length > 0 && !this.saving());
 
