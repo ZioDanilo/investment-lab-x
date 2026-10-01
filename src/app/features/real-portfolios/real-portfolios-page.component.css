@@ -144,3 +144,6 @@ input.invalid,
 .operation-cancel{border:1px solid rgba(255,83,102,.72);color:#ff657d}.operation-cancel:hover:not(:disabled){background:rgba(255,82,108,.07)}
 .operation-submit{border:1px solid rgba(37,230,177,.68);color:#25e6b1}.operation-submit:hover:not(:disabled){background:rgba(37,230,177,.07)}
 .operation-dialog-footer button:disabled{opacity:.45;cursor:not-allowed}
+
+.operation-total{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:2px;padding:11px 12px;border:1px solid rgba(122,176,224,.18);border-radius:8px;background:rgba(255,255,255,.025)}
+.operation-total span{color:#aebfd1;font-size:.72rem;font-weight:700}.operation-total strong{color:#edf5ff;font-size:.94rem}
