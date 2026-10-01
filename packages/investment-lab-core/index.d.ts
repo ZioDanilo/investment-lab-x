@@ -83,3 +83,9 @@ export function buildMuCalibrationCurve(...args: any[]): any;
 export function prepareMonteCarloPrecomputation(...args: any[]): any;
 
 export const createDeterministicRandom: (simulationId: number | string, runSeed: number | string) => SeededRandom;
+
+export class FactorProjectionError extends Error { code: string; details: Record<string, unknown>; }
+export function exposureWeightsForUsableHistory(years: number): { historicalWeight: number; structuralWeight: number };
+export function blendFactorExposure(input: any): number;
+export function projectEtfReturnFromFactors(input: any): number;
+export function projectPortfolioReturnFromFactors(input: any): number;
