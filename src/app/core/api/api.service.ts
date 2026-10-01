@@ -70,6 +70,10 @@ export class ApiService {
     return this.http.delete(`${this.apiUrl}/real-portfolios/${id}`);
   }
 
+  getLatestRealPortfolioOperations(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/operations/latest`);
+  }
+
   getRealPortfolioOperations(portfolioId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/operations`);
   }
