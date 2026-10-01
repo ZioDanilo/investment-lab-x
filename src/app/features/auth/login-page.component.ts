@@ -16,20 +16,37 @@ export class LoginPageComponent {
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
   private readonly portfolioSelection = inject(PortfolioSelectionService);
+
   username = '';
   password = '';
-  loggingIn = false;
-  loginError = '';
+  registerMode = false;
+  submitting = false;
+  authError = '';
+  authSuccess = '';
 
-  onLogin(): void {
-    if (this.loggingIn) return;
+  setRegisterMode(registerMode: boolean): void {
+    if (this.submitting) return;
+    this.registerMode = registerMode;
+    this.authError = '';
+    this.authSuccess = '';
+  }
 
+  onSubmit(): void {
+    if (this.submitting || !this.username || !this.password) return;
+    if (this.registerMode) {
+      this.onRegister();
+      return;
+    }
+    this.onLogin();
+  }
+
+  private onLogin(): void {
     const username = this.username;
     const password = this.password;
-    this.loggingIn = true;
-    this.loginError = '';
+    this.submitting = true;
+    this.authError = '';
+    this.authSuccess = '';
 
-    // Login is a hard user boundary: never keep portfolio state from a previous user.
     localStorage.removeItem('investmentLabUsername');
     this.portfolioSelection.resetForLogin();
 
@@ -37,7 +54,7 @@ export class LoginPageComponent {
       next: (response: any) => {
         localStorage.setItem('investmentLabUsername', String(response?.data?.username ?? username));
         this.portfolioSelection.loadPortfolios();
-        this.loggingIn = false;
+        this.submitting = false;
         this.apiService.warmupMarketUniverseCache().subscribe({
           next: () => undefined,
           error: (error) => console.error('[Market Universe warmup]', error)
@@ -45,8 +62,32 @@ export class LoginPageComponent {
         void this.router.navigateByUrl('/home');
       },
       error: () => {
-        this.loggingIn = false;
-        this.loginError = 'Username o password non corretti.';
+        this.submitting = false;
+        this.authError = 'Username o password non corretti.';
+      }
+    });
+  }
+
+  private onRegister(): void {
+    this.submitting = true;
+    this.authError = '';
+    this.authSuccess = '';
+
+    this.apiService.register(this.username, this.password).subscribe({
+      next: (response: any) => {
+        this.submitting = false;
+        this.username = String(response?.data?.username ?? this.username);
+        this.password = '';
+        this.registerMode = false;
+        this.authSuccess = 'Registrazione completata. Ora puoi accedere.';
+      },
+      error: (error) => {
+        this.submitting = false;
+        if (error?.status === 409) {
+          this.authError = 'Username già esistente. Scegline un altro.';
+          return;
+        }
+        this.authError = error?.error?.error || 'Registrazione non riuscita.';
       }
     });
   }
