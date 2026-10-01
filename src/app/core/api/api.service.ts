@@ -78,6 +78,14 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/operations`);
   }
 
+  getRealPortfolioMarketValues(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios/market-values`);
+  }
+
+  getRealPortfolioMarketValue(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/market-value`);
+  }
+
   getRealPortfolioHoldings(portfolioId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/holdings`);
   }
