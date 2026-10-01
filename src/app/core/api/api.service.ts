@@ -23,6 +23,10 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/auth/register`, { username, password });
   }
 
+  checkUsernameAvailability(username: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/auth/username-availability?username=${encodeURIComponent(username)}`);
+  }
+
   // Portfolio endpoints
   getPortfolios(tipo?: 'reale' | 'laboratorio'): Observable<any> {
     const suffix = tipo ? `?tipo=${tipo}` : '';
