@@ -1,17 +1,5 @@
 <section class="montecarlo-page">
   <app-toast></app-toast>
-  <div *ngIf="marketUniverseGenerationInProgress" class="market-universe-generation-wait">
-    <button type="button" class="run-button market-universe-generation-button" disabled aria-live="polite">
-      <span class="run-button__fill" [style.width.%]="marketUniverseGenerationProgress"></span>
-      <span class="run-button__content">
-        <span class="material-symbols-rounded" aria-hidden="true">autorenew</span>
-        <span>Generazione Market Universe</span>
-        <span>{{ marketUniverseGenerationProgress | number:'1.0-1' }}%</span>
-      </span>
-    </button>
-  </div>
-
-<div class="montecarlo-dashboard-state" [class.montecarlo-dashboard-state--hidden]="marketUniverseGenerationInProgress">
 <div class="montecarlo-main-layout">
     <div class="main-grid">
       <div class="left-column">
@@ -318,5 +306,4 @@
       </span>
     </div>
   </article>
-</div>
 </section>
