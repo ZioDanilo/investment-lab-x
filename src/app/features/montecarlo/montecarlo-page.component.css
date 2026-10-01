@@ -3128,3 +3128,8 @@ html, body {
 .montecarlo-dashboard-state--hidden {
   display: none;
 }
+
+/* Unified drag behaviour: source and drag image retain the card's normal appearance. */
+.kpi-row.is-dragging{opacity:1!important;visibility:visible!important}
+.kpi-row[draggable="true"]{cursor:grab;user-select:none}
+.kpi-row[draggable="true"]:active{cursor:grabbing}
