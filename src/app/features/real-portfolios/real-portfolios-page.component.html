@@ -1,7 +1,7 @@
 <div class="portfolio-strip">
-      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" [style.--portfolio-accent]="portfolioColor(i)" (click)="selectPortfolio(i)" draggable="true" (dragstart)="startPortfolioDrag(i,$event)" (dragover)="allowPortfolioDrop($event)" (drop)="dropPortfolio(i,$event)" (dragend)="endPortfolioDrag()">
+      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" [style.--portfolio-accent]="portfolioColor(p)" (click)="selectPortfolio(i)" draggable="true" (dragstart)="startPortfolioDrag(i,$event)" (dragover)="allowPortfolioDrop(i,$event)" (drop)="dropPortfolio(i,$event)" (dragend)="endPortfolioDrag()">
         <div class="portfolio-choice__top">
-          <span class="portfolio-color" [style.background]="portfolioColor(i)"></span>
+          <span class="portfolio-color" [style.background]="portfolioColor(p)"></span>
           <span class="portfolio-name">{{portfolioDisplayName(p)}}</span>
           <div class="portfolio-menu" (click)="$event.stopPropagation()">
             <button type="button" class="portfolio-menu__trigger" aria-label="Azioni portafoglio" aria-haspopup="menu" [attr.aria-expanded]="openPortfolioMenu===p.id" (click)="togglePortfolioMenu($event,p.id)">
