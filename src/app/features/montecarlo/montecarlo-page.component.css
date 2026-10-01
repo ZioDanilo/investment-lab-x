@@ -3138,3 +3138,14 @@ html, body {
 .kpi-row.is-dragging{opacity:1!important;visibility:visible!important;position:relative;z-index:2000!important}
 .kpi-row[draggable="true"]:active{opacity:1!important;z-index:2000!important}
 .kpi-native-drag-image,.kpi-native-drag-image *{opacity:1!important}
+
+/* Final KPI drag-source rule: preserve the row as a drop/layout target, but leave its slot visually empty.
+   The opaque pointer-following clone is rendered separately by the component. */
+.kpi-row.is-dragging{
+  opacity:0!important;
+  visibility:visible!important;
+  background:transparent!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+}
+.kpi-row.is-dragging>*{visibility:hidden!important}
