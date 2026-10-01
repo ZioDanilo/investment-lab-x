@@ -3138,3 +3138,9 @@ html, body {
 .kpi-row.is-dragging{opacity:1!important;visibility:visible!important;position:relative;z-index:2000!important}
 .kpi-row[draggable="true"]:active{opacity:1!important;z-index:2000!important}
 .kpi-native-drag-image,.kpi-native-drag-image *{opacity:1!important}
+
+/* Custom KPI drag visual: source becomes an empty slot; opaque copy follows pointer. */
+.kpi-row.is-dragging{opacity:0!important;visibility:hidden!important}
+.kpi-custom-drag-overlay{position:fixed!important;z-index:10000!important;pointer-events:none!important;opacity:1!important}
+.kpi-custom-drag-overlay__row{width:100%!important;height:100%!important;margin:0!important;opacity:1!important;visibility:visible!important;transform:none!important;display:grid!important;grid-template-columns:minmax(0,4fr) minmax(0,1fr)!important;gap:8px!important}
+.kpi-custom-drag-overlay__row,.kpi-custom-drag-overlay__row *{opacity:1!important;visibility:visible!important}
