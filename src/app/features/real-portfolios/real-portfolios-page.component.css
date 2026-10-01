@@ -156,3 +156,6 @@ input.invalid,
 .portfolio-choice[draggable="true"]{transition:transform .24s ease,border-color .12s ease,box-shadow .12s ease}
 .portfolio-choice.drag-shift-left{transform:translateX(calc(-100% - 8px))}
 .portfolio-choice.drag-shift-right{transform:translateX(calc(100% + 8px))}
+
+/* During drop commit the DOM order and preview transforms settle atomically. */
+.portfolio-strip--settling .portfolio-choice{transition:none!important}
