@@ -151,3 +151,8 @@ input.invalid,
 /* Drag cards keep their exact visual size/style; the whole card is an enlarged hit zone. */
 .portfolio-choice[draggable="true"]{cursor:grab;user-select:none}
 .portfolio-choice[draggable="true"]:active{cursor:grabbing}
+
+/* Smooth horizontal preview matching Monte Carlo reorder semantics. */
+.portfolio-choice[draggable="true"]{transition:transform .24s ease,border-color .12s ease,box-shadow .12s ease}
+.portfolio-choice.drag-shift-left{transform:translateX(calc(-100% - 8px))}
+.portfolio-choice.drag-shift-right{transform:translateX(calc(100% + 8px))}
