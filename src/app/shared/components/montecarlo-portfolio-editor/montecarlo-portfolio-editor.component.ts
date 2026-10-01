@@ -135,7 +135,16 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   readonly createPortfolioActionLabel = computed(() =>
     this.selectedPortfolioType() === 'laboratorio' ? 'Duplica portafoglio' : 'Crea portafoglio'
   );
-  readonly canConfirmCreatePortfolio = computed(() => this.createPortfolioNameDraft().trim().length > 0 && !this.saving());
+  readonly createPortfolioNameUnavailable = computed(() => {
+    const name = this.createPortfolioNameDraft().trim().toLocaleLowerCase();
+    return !!name && this.portfolioSelectionService.portfolioOptions()
+      .some((portfolio) => portfolio.label.trim().toLocaleLowerCase() === name);
+  });
+  readonly canConfirmCreatePortfolio = computed(() =>
+    this.createPortfolioNameDraft().trim().length > 0 &&
+    !this.createPortfolioNameUnavailable() &&
+    !this.saving()
+  );
 
   readonly effectiveEtfs = computed<Etf[]>(() =>
     this.items()
@@ -244,7 +253,8 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       return;
     }
 
-    this.createPortfolioNameDraft.set(this.selectedPortfolioName() || 'Nuovo portafoglio');
+    const isDuplicate = this.selectedPortfolioType() === 'laboratorio';
+    this.createPortfolioNameDraft.set(isDuplicate ? (this.selectedPortfolioName() || '') : 'Nuovo portafoglio');
     this.createDialogVisible.set(true);
   }
 
