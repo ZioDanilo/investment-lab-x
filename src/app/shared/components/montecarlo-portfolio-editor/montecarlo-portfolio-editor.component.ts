@@ -5,7 +5,6 @@ import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../core/api/api.service';
 import { Etf } from '../../../core/models/etf.model';
 import { EtfMacroStatistics } from '../../../core/models/monte-carlo.model';
-import { DialogInputComponent } from '../dialog-input/dialog-input.component';
 import { PortfolioSelectionService } from '../../../core/services/portfolio-selection.service';
 
 export interface MontecarloPortfolioItem {
@@ -57,7 +56,7 @@ interface EtfSearchItem {
 @Component({
   selector: 'app-montecarlo-portfolio-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogInputComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './montecarlo-portfolio-editor.component.html',
   styleUrls: ['./montecarlo-portfolio-editor.component.css']
 })
