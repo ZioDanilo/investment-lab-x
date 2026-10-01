@@ -106,6 +106,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   private operationSearchTimer:any=null;
   private initialized=false;
   private draggedPortfolioIndex:number|null=null;
+  private portfolioDragOriginalOrder:Portfolio[]|null=null;
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
     effect(() => {
@@ -186,23 +187,50 @@ export class RealPortfoliosPageComponent implements OnInit {
     {label:'Capitale investito',color:'#9ab2cf',points:'52,216 95,207 140,199 188,191 235,182 282,174 330,164 378,154 425,145 472,137 520,131 568,124 620,118'}
   ];
   readonly ticks:LineChartTick[]=[{value:'€ 30.000',y:30},{value:'€ 25.000',y:70},{value:'€ 20.000',y:110},{value:'€ 15.000',y:150},{value:'€ 10.000',y:190},{value:'€ 5.000',y:230}];
-  startPortfolioDrag(i:number,event:DragEvent):void { this.draggedPortfolioIndex=i; event.dataTransfer?.setData('text/plain',String(i)); if(event.dataTransfer)event.dataTransfer.effectAllowed='move'; }
-  allowPortfolioDrop(event:DragEvent):void { event.preventDefault(); if(event.dataTransfer)event.dataTransfer.dropEffect='move'; }
-  dropPortfolio(targetIndex:number,event:DragEvent):void {
+  startPortfolioDrag(i:number,event:DragEvent):void {
+    this.draggedPortfolioIndex=i;
+    this.portfolioDragOriginalOrder=[...this.portfolios];
+    if(event.dataTransfer){
+      event.dataTransfer.effectAllowed='move';
+      event.dataTransfer.setData('text/plain',this.portfolios[i]?.id ?? '');
+      const source=event.currentTarget as HTMLElement|null;
+      if(source){
+        const clone=source.cloneNode(true) as HTMLElement;
+        const rect=source.getBoundingClientRect();
+        clone.style.cssText += `;position:fixed;left:-10000px;top:-10000px;width:${rect.width}px;height:${rect.height}px;box-sizing:border-box;opacity:1;transform:none;`;
+        document.body.appendChild(clone);
+        event.dataTransfer.setDragImage(clone,event.clientX-rect.left,event.clientY-rect.top);
+        requestAnimationFrame(()=>clone.remove());
+      }
+    }
+  }
+  allowPortfolioDrop(targetIndex:number,event:DragEvent):void {
     event.preventDefault();
+    if(event.dataTransfer)event.dataTransfer.dropEffect='move';
     const from=this.draggedPortfolioIndex;
     if(from===null || from===targetIndex)return;
-    const selectedId=this.portfolios[this.selected]?.id;
     const reordered=[...this.portfolios];
-    const [moved]=reordered.splice(from,1);reordered.splice(targetIndex,0,moved);
+    const [moved]=reordered.splice(from,1);
+    reordered.splice(targetIndex,0,moved);
     this.portfolios=reordered;
+    this.draggedPortfolioIndex=targetIndex;
+    const selectedId=this.portfolioSelection.selectedPortfolio()?.id;
     const selectedIndex=selectedId?this.portfolios.findIndex(p=>p.id===selectedId):-1;
     if(selectedIndex>=0)this.selected=selectedIndex;
+  }
+  dropPortfolio(_targetIndex:number,event:DragEvent):void {
+    event.preventDefault();
+    if(this.draggedPortfolioIndex===null)return;
     this.draggedPortfolioIndex=null;
+    this.portfolioDragOriginalOrder=null;
     this.api.updateRealPortfolioOrder(this.portfolios.map(p=>p.id)).subscribe({error:(error)=>{console.error('Errore salvataggio ordine portafogli',error);this.loadRealPortfolios();}});
   }
-  endPortfolioDrag():void { this.draggedPortfolioIndex=null; }
-    portfolioColor(i:number):string { return ['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'][i%6]; }
+  endPortfolioDrag():void { this.draggedPortfolioIndex=null; this.portfolioDragOriginalOrder=null; }
+  portfolioColor(portfolio:Portfolio):string {
+    const palette=['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'];
+    let hash=0; for(const ch of portfolio.id)hash=((hash<<5)-hash+ch.charCodeAt(0))|0;
+    return palette[Math.abs(hash)%palette.length];
+  }
   togglePortfolioMenu(event:MouseEvent,id:string):void { event.stopPropagation(); this.openPortfolioMenu=this.openPortfolioMenu===id?null:id; }
   choosePortfolioAction(event:MouseEvent,i:number):void { event.stopPropagation(); this.selectPortfolio(i); }
   openBuyOperation(event:MouseEvent,i:number):void { this.openOperation(event,i,'buy'); }
