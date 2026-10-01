@@ -245,11 +245,26 @@ export class RealPortfoliosPageComponent implements OnInit {
   allowPortfolioDrop(targetIndex:number,event:DragEvent):void {
     event.preventDefault();
     if(event.dataTransfer)event.dataTransfer.dropEffect='move';
-    const from=this.draggedPortfolioIndex;
-    if(from===null || from===targetIndex)return;
-    this.portfolioDragTargetIndex=targetIndex;
+    const from=this.portfolioDragSourceIndex;
+    if(from===null)return;
+
+    // Re-evaluate the target continuously from pointer position, including when
+    // reversing direction during the same drag. Using only the last card entered
+    // leaves a stale target after the first direction change.
+    const card=event.currentTarget as HTMLElement|null;
+    if(!card){this.portfolioDragTargetIndex=targetIndex;return;}
+    const rect=card.getBoundingClientRect();
+    const midpoint=rect.left+rect.width/2;
+    let next=targetIndex;
+    if(event.clientX<midpoint && targetIndex>from) next=targetIndex-1;
+    if(event.clientX>=midpoint && targetIndex<from) next=targetIndex+1;
+    this.portfolioDragTargetIndex=Math.max(0,Math.min(this.portfolios.length-1,next));
   }
-  allowPortfolioStripDrop(event:DragEvent):void { if(this.draggedPortfolioIndex!==null)event.preventDefault(); }
+  allowPortfolioStripDrop(event:DragEvent):void {
+    if(this.draggedPortfolioIndex===null)return;
+    event.preventDefault();
+    if(event.dataTransfer)event.dataTransfer.dropEffect='move';
+  }
   dropPortfolio(targetIndex:number|null,event:DragEvent):void {
     event.stopPropagation();
     if(targetIndex!==null)this.portfolioDragTargetIndex=targetIndex;
