@@ -70,6 +70,38 @@ export class ApiService {
     return this.http.delete(`${this.apiUrl}/real-portfolios/${id}`);
   }
 
+  getLatestRealPortfolioOperations(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/operations/latest`);
+  }
+
+  getRealPortfolioOperations(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/operations`);
+  }
+
+  updateRealPortfolioOrder(portfolioIds: string[]): Observable<any> {
+    return this.http.put(`${this.apiUrl}/real-portfolios/order`, { portfolioIds });
+  }
+
+  getRealPortfolioMarketValues(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios/market-values`);
+  }
+
+  getRealPortfolioMarketValue(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/market-value`);
+  }
+
+  getRealPortfolioHoldings(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/holdings`);
+  }
+
+  createRealPortfolioOperation(portfolioId: string, data: { operationType: 'buy' | 'sell'; etfId: string; operationDate: string; quantity: number; unitPrice: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/real-portfolios/${portfolioId}/operations`, data);
+  }
+
+  refreshRealPortfolioQuotations(portfolioId: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/quotations/real-portfolio/${portfolioId}/refresh`, {});
+  }
+
   // ETF endpoints
   getETFs(): Observable<any> {
     return this.http.get(`${this.apiUrl}/etf`);

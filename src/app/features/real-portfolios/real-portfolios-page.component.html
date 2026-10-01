@@ -1,15 +1,15 @@
-<div class="portfolio-strip">
-      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" [style.--portfolio-accent]="portfolioColor(i)" (click)="selectPortfolio(i)">
+<div class="portfolio-strip" [class.portfolio-strip--settling]="suppressPortfolioDragTransitions" (dragover)="allowPortfolioStripDrop($event)" (drop)="dropPortfolio(null,$event)">
+      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.drag-source-empty]="portfolioDragSourceIndex===i" [class.active]="selected===i" [class.drag-shift-left]="portfolioDragShift(i)==='left'" [class.drag-shift-right]="portfolioDragShift(i)==='right'" [style.--portfolio-accent]="portfolioColor(p)" (click)="selectPortfolio(i)" draggable="true" (dragstart)="startPortfolioDrag(i,$event)" (drag)="movePortfolioDrag($event)" (dragover)="allowPortfolioDrop(i,$event)" (drop)="dropPortfolio(i,$event)" (dragend)="endPortfolioDrag()">
         <div class="portfolio-choice__top">
-          <span class="portfolio-color" [style.background]="portfolioColor(i)"></span>
-          <span class="portfolio-name">{{p.name}}</span>
+          <span class="portfolio-color" [style.background]="portfolioColor(p)"></span>
+          <span class="portfolio-name">{{portfolioDisplayName(p)}}</span>
           <div class="portfolio-menu" (click)="$event.stopPropagation()">
             <button type="button" class="portfolio-menu__trigger" aria-label="Azioni portafoglio" aria-haspopup="menu" [attr.aria-expanded]="openPortfolioMenu===p.id" (click)="togglePortfolioMenu($event,p.id)">
               <span class="material-symbols-rounded">more_vert</span>
             </button>
             <div class="portfolio-dropdown" [class.is-open]="openPortfolioMenu===p.id" role="menu" (click)="$event.stopPropagation()">
-              <button type="button" class="portfolio-dropdown__item" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">add_shopping_cart</span><span>Acquista</span></button>
-              <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--sell" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">sell</span><span>Vendi</span></button>
+              <button type="button" class="portfolio-dropdown__item" role="menuitem" (click)="openBuyOperation($event,i)"><span class="material-symbols-rounded">add_shopping_cart</span><span>Acquista</span></button>
+              <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--sell" role="menuitem" (click)="openSellOperation($event,i)"><span class="material-symbols-rounded">sell</span><span>Vendi</span></button>
               <div class="portfolio-dropdown__separator" aria-hidden="true"></div>
               <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--close" role="menuitem"><span class="material-symbols-rounded">exit_to_app</span><span>Chiudi</span></button>
               <div class="portfolio-dropdown__separator" aria-hidden="true"></div>
@@ -18,11 +18,11 @@
           </div>
         </div>
         <div class="portfolio-choice__metrics">
-          <strong>€ 0,00</strong>
-          <span class="portfolio-return neutral">0,0%</span>
+          <strong>{{formatCurrency(p.totalValue || 0)}}</strong>
+          <span class="portfolio-return" [class]="valueTone(p.gainLoss || 0)">{{formatSignedPercent(p.gainLossPercent || 0)}}</span>
         </div>
       </div>
-      <button class="portfolio-choice add" (click)="openCreatePortfolio()"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
+      <button *ngIf="portfolios.length < 5" class="portfolio-choice add" (click)="openCreatePortfolio()"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
     </div>
 
     <ng-container *ngIf="hasSelectedPortfolio">
@@ -51,7 +51,7 @@
 
     <div class="bottom-grid">
       <app-ui-card title="I tuoi ETF"><div class="table-scroll"><table><thead><tr><th>ETF</th><th>Ticker</th><th>Quantità</th><th>Prezzo medio</th><th>Valore attuale</th><th>Gain/Loss</th><th>Peso</th></tr></thead><tbody><tr *ngFor="let h of holdings"><td><strong>{{h.name}}</strong></td><td>{{h.ticker}}</td><td>{{h.qty}}</td><td>{{h.avg}}</td><td>{{h.value}}</td><td [class]="h.tone">{{h.gain}}</td><td>{{h.weight}}</td></tr></tbody></table></div></app-ui-card>
-      <app-ui-card title="Ultime operazioni"><div class="table-scroll"><table><thead><tr><th>Data</th><th>Operazione</th><th>ETF</th><th>Quantità</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody><tr *ngFor="let o of operations"><td>{{o.date}}</td><td><span class="pill" [class.sell]="o.type==='Vendita'">{{o.type}}</span></td><td>{{o.ticker}}</td><td>{{o.qty}}</td><td>{{o.price}}</td><td>{{o.total}}</td></tr></tbody></table></div></app-ui-card>
+      <app-ui-card title="Ultime operazioni"><div class="table-scroll"><table><thead><tr><th>Data</th><th>Operazione</th><th>ISIN</th><th>ETF</th><th>Quantità</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody><tr *ngFor="let o of operations"><td>{{o.date}}</td><td><span class="pill" [class.sell]="o.type==='Vendita'">{{o.type}}</span></td><td>{{o.isin}}</td><td>{{o.etf}}</td><td>{{o.qty}}</td><td>{{o.price}}</td><td>{{o.total}}</td></tr></tbody></table></div></app-ui-card>
     </div>
     </ng-container>
 
@@ -62,7 +62,7 @@
           <label class="dialog-field"><span>Nome portafoglio</span><input type="text" [ngModel]="portfolioName()" (ngModelChange)="portfolioName.set($event)" [class.invalid]="portfolioNameUnavailable" placeholder="es. Portafoglio principale"><small *ngIf="portfolioNameUnavailable" class="field-error">Questo nome non è utilizzabile: esiste già un portafoglio con questo nome.</small></label>
           <label class="dialog-field"><span>Descrizione</span><textarea [ngModel]="portfolioDescription()" (ngModelChange)="portfolioDescription.set($event)" placeholder="Descrizione facoltativa del portafoglio" rows="3"></textarea></label>
         </div>
-        <footer class="create-dialog-footer"><button type="button" class="discard-btn" (click)="discardCreatePortfolio()"><span class="material-symbols-rounded">close</span>Annulla</button><button type="button" class="create-btn" [disabled]="!portfolioName().trim() || portfolioNameUnavailable || creating" (click)="createPortfolio()"><span class="material-symbols-rounded">add</span>{{creating ? 'Creazione…' : 'Crea'}}</button></footer>
+        <footer class="create-dialog-footer"><button type="button" class="discard-btn" [disabled]="creating" (click)="discardCreatePortfolio()"><span class="material-symbols-rounded">close</span>Annulla</button><button type="button" class="create-btn create-btn--progress" [disabled]="!portfolioName().trim() || portfolioNameUnavailable || creating" (click)="createPortfolio()"><span class="create-btn__fill" [style.width.%]="createProgress"></span><span class="create-btn__content"><span class="material-symbols-rounded">add</span>{{creating ? 'CREAZIONE IN CORSO' : 'Crea'}}</span></button></footer>
       </section>
     </div>
 
@@ -77,5 +77,34 @@
         <span class="material-symbols-rounded">check</span><span>Mantieni</span>
       </button>
     </div>
+  </section>
+</div>
+
+
+<div *ngIf="operationPortfolio" class="operation-overlay">
+  <section class="operation-dialog" role="dialog" aria-modal="true" aria-labelledby="buy-operation-title" (click)="$event.stopPropagation()">
+    <header>
+      <span class="dialog-eyebrow">OPERAZIONE · {{ operationPortfolio.name }}</span>
+      <h2 id="buy-operation-title">{{ operationType === 'buy' ? 'Acquista ETF' : 'Vendi ETF' }}</h2>
+    </header>
+    <div class="operation-dialog-body">
+      <label class="dialog-field operation-etf-field">
+        <span>ETF</span>
+        <input type="text" [ngModel]="operationEtfQuery" (ngModelChange)="searchOperationEtf($event)" placeholder="Cerca per nome, ticker o ISIN" autocomplete="off">
+        <div *ngIf="operationEtfResults.length" class="operation-etf-results">
+          <button type="button" *ngFor="let etf of operationEtfResults" (click)="selectOperationEtf(etf)">
+            <strong>{{ etf.nickname || etf.ticker || etf.name }}</strong><small>{{ etf.isin }}<ng-container *ngIf="operationType === 'sell'"> · Disponibili: {{ etf.quantity }}</ng-container></small>
+          </button>
+        </div>
+      </label>
+      <label class="dialog-field"><span>Data operazione</span><input type="date" [(ngModel)]="operationDate"></label>
+      <label class="dialog-field"><span>Quantità ETF</span><input type="text" inputmode="decimal" [(ngModel)]="operationQuantity" placeholder="0"></label>
+      <label class="dialog-field"><span>Valore unitario ETF (€)</span><input type="text" inputmode="decimal" [(ngModel)]="operationUnitPrice" placeholder="0,00"></label>
+      <div class="operation-total"><span>Totale operazione</span><strong>{{ formatOperationTotal(operationTotal) }}</strong></div>
+    </div>
+    <footer class="operation-dialog-footer">
+      <button type="button" class="operation-cancel" [disabled]="savingOperation" (click)="cancelOperation()">Annulla</button>
+      <button type="button" class="operation-submit" [disabled]="!operationFormValid" (click)="insertOperation()">{{ savingOperation ? 'Inserimento…' : 'Inserisci' }}</button>
+    </footer>
   </section>
 </div>
