@@ -2,7 +2,7 @@
       <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" [style.--portfolio-accent]="portfolioColor(i)" (click)="selectPortfolio(i)">
         <div class="portfolio-choice__top">
           <span class="portfolio-color" [style.background]="portfolioColor(i)"></span>
-          <span class="portfolio-name">{{p.name}}</span>
+          <span class="portfolio-name">{{portfolioDisplayName(p)}}</span>
           <div class="portfolio-menu" (click)="$event.stopPropagation()">
             <button type="button" class="portfolio-menu__trigger" aria-label="Azioni portafoglio" aria-haspopup="menu" [attr.aria-expanded]="openPortfolioMenu===p.id" (click)="togglePortfolioMenu($event,p.id)">
               <span class="material-symbols-rounded">more_vert</span>
@@ -18,8 +18,8 @@
           </div>
         </div>
         <div class="portfolio-choice__metrics">
-          <strong>€ 0,00</strong>
-          <span class="portfolio-return neutral">0,0%</span>
+          <strong>{{formatCurrency(p.totalValue || 0)}}</strong>
+          <span class="portfolio-return" [class]="valueTone(p.gainLoss || 0)">{{formatSignedPercent(p.gainLossPercent || 0)}}</span>
         </div>
       </div>
       <button class="portfolio-choice add" (click)="openCreatePortfolio()"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
