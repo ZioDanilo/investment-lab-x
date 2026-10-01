@@ -187,3 +187,6 @@ input.invalid,
   box-shadow:none!important;
 }
 .portfolio-choice.drag-source-empty>*{visibility:hidden!important}
+
+/* The first two financial KPI cards are a visual pair and must keep identical height. */
+.kpi-grid .kpi-card--primary-pair{height:100%;min-height:86px;box-sizing:border-box}
