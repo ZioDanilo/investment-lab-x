@@ -218,7 +218,8 @@ export class RealPortfoliosPageComponent implements OnInit {
       if(source){
         const clone=source.cloneNode(true) as HTMLElement;
         const rect=source.getBoundingClientRect();
-        clone.style.cssText += `;position:fixed;left:-10000px;top:-10000px;width:${rect.width}px;height:${rect.height}px;box-sizing:border-box;opacity:1;transform:none;`;
+        clone.style.cssText += `;position:fixed;left:-10000px;top:-10000px;width:${rect.width}px;height:${rect.height}px;box-sizing:border-box;opacity:1!important;transform:none;background:#091018;backdrop-filter:none;-webkit-backdrop-filter:none;`;
+        clone.querySelectorAll<HTMLElement>('*').forEach(el=>{el.style.opacity='1';});
         document.body.appendChild(clone);
         event.dataTransfer.setDragImage(clone,event.clientX-rect.left,event.clientY-rect.top);
         requestAnimationFrame(()=>clone.remove());
