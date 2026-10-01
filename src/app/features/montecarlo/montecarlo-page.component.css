@@ -3125,30 +3125,6 @@ html, body {
   font-size: 1.15rem;
 }
 
-.market-universe-generation-progress {
-  width: min(360px, calc(100vw - 32px));
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 52px;
-  align-items: center;
-  gap: 10px;
-  color: rgba(220, 235, 250, .82);
-  font-size: .78rem;
-  font-weight: 700;
-}
-
-.market-universe-generation-progress__track {
-  height: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(124, 160, 198, .16);
-  box-shadow: inset 0 0 0 1px rgba(133, 176, 226, .16);
-}
-
-.market-universe-generation-progress__track > span {
-  display: block;
-  height: 100%;
-  width: 0;
-  border-radius: inherit;
-  background: linear-gradient(90deg, rgba(39, 150, 214, .94), rgba(70, 207, 255, .9));
-  transition: width .25s linear;
+.montecarlo-dashboard-state--hidden {
+  display: none;
 }
