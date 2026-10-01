@@ -113,6 +113,8 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioDragSourceIndex:number|null=null;
   portfolioDragTargetIndex:number|null=null;
   suppressPortfolioDragTransitions=false;
+  portfolioDragPreview:HTMLElement|null=null;
+  portfolioDragPreviewOffset={x:0,y:0};
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
     effect(() => {
@@ -217,21 +219,28 @@ export class RealPortfoliosPageComponent implements OnInit {
       event.dataTransfer.setData('text/plain',this.portfolios[i]?.id ?? '');
       const source=event.currentTarget as HTMLElement|null;
       if(source){
-        const clone=source.cloneNode(true) as HTMLElement;
         const rect=source.getBoundingClientRect();
-        clone.classList.remove('drag-source-empty','drag-shift-left','drag-shift-right');
-        clone.classList.add('portfolio-native-drag-image');
-        clone.querySelectorAll('.portfolio-menu,.portfolio-dropdown').forEach(el=>el.remove());
-        clone.style.cssText += `;position:fixed;left:0;top:0;width:${rect.width}px;height:${rect.height}px;box-sizing:border-box;opacity:1!important;visibility:visible!important;transform:translate(-200vw,-200vh);background:#07121f!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;`;
-        clone.querySelectorAll<HTMLElement>('*').forEach(el=>{el.style.opacity='1';el.style.visibility='visible';});
-        document.body.appendChild(clone);
-        event.dataTransfer.setDragImage(clone,event.clientX-rect.left,event.clientY-rect.top);
-        // Keep the drag-image source alive for the whole native drag. Removing it
-        // on the next frame makes Chromium fall back to its translucent source snapshot.
-        (this as any).portfolioNativeDragImage?.remove();
-        (this as any).portfolioNativeDragImage=clone;
+        this.portfolioDragPreviewOffset={x:event.clientX-rect.left,y:event.clientY-rect.top};
+
+        const preview=source.cloneNode(true) as HTMLElement;
+        preview.classList.remove('drag-source-empty','drag-shift-left','drag-shift-right');
+        preview.classList.add('portfolio-pointer-drag-preview');
+        preview.querySelectorAll('.portfolio-menu,.portfolio-dropdown').forEach(el=>el.remove());
+        preview.style.cssText += `;position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;box-sizing:border-box;opacity:1!important;visibility:visible!important;transform:none!important;background:#07121f!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:2147483647;pointer-events:none;`;
+        preview.querySelectorAll<HTMLElement>('*').forEach(el=>{el.style.opacity='1';el.style.visibility='visible';});
+        document.body.appendChild(preview);
+        this.portfolioDragPreview=preview;
+
+        const transparent=document.createElement('canvas');
+        transparent.width=1; transparent.height=1;
+        event.dataTransfer.setDragImage(transparent,0,0);
       }
     }
+  }
+  movePortfolioDrag(event:DragEvent):void {
+    if(!this.portfolioDragPreview || (event.clientX===0&&event.clientY===0))return;
+    this.portfolioDragPreview.style.left=`${event.clientX-this.portfolioDragPreviewOffset.x}px`;
+    this.portfolioDragPreview.style.top=`${event.clientY-this.portfolioDragPreviewOffset.y}px`;
   }
   allowPortfolioDrop(targetIndex:number,event:DragEvent):void {
     event.preventDefault();
@@ -266,8 +275,8 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.api.updateRealPortfolioOrder(this.portfolios.map(p=>p.id)).subscribe({error:(error)=>{console.error('Errore salvataggio ordine portafogli',error);this.loadRealPortfolios();}});
   }
   endPortfolioDrag():void {
-    (this as any).portfolioNativeDragImage?.remove();
-    (this as any).portfolioNativeDragImage=null;
+    this.portfolioDragPreview?.remove();
+    this.portfolioDragPreview=null;
     // dragend fires after drop. A successful drop has already cleared the state;
     // otherwise this is a cancelled drag and only the visual preview is reset.
     this.draggedPortfolioIndex=null; this.portfolioDragSourceIndex=null; this.portfolioDragTargetIndex=null; this.portfolioDragOriginalOrder=null;
