@@ -24,17 +24,59 @@ export class RealPortfoliosPageComponent implements OnInit {
   readonly headerActionLabel='AGGIORNA QUOTAZIONI';
   readonly headerActionIcon='sync';
   quotationRefreshRunning=false;
+  headerActionProgress=0;
+  private quotationProgressTimer:any=null;
+  private quotationFinishTimer:any=null;
   get headerActionDisabled():boolean { return this.loadingPortfolios || this.portfolios.length===0 || !this.hasSelectedPortfolio || this.quotationRefreshRunning; }
   get headerActionRunning():boolean { return this.quotationRefreshRunning; }
-  readonly headerActionProgress=0;
   runHeaderAction():void {
     const portfolio=this.portfolios[this.selected];
     if(!portfolio || this.quotationRefreshRunning)return;
     this.quotationRefreshRunning=true;
-    this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
-      next:()=>{this.quotationRefreshRunning=false;},
-      error:(error)=>{this.quotationRefreshRunning=false;console.error('Errore aggiornamento quotazioni portafoglio',error);}
+    this.headerActionProgress=1;
+    this.api.getRealPortfolioHoldings(portfolio.id).subscribe({
+      next:(holdingsRes:any)=>{
+        const etfCount=Math.max(1,Array.isArray(holdingsRes?.data)?holdingsRes.data.length:1);
+        this.startQuotationProgress(etfCount);
+        this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
+          next:()=>this.finishQuotationProgress(),
+          error:(error)=>{this.resetQuotationProgress();console.error('Errore aggiornamento quotazioni portafoglio',error);}
+        });
+      },
+      error:()=>{
+        this.startQuotationProgress(1);
+        this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
+          next:()=>this.finishQuotationProgress(),
+          error:(error)=>{this.resetQuotationProgress();console.error('Errore aggiornamento quotazioni portafoglio',error);}
+        });
+      }
     });
+  }
+  private startQuotationProgress(etfCount:number):void {
+    if(this.quotationProgressTimer)clearInterval(this.quotationProgressTimer);
+    const duration=Math.max(1,etfCount)*5000;
+    const started=Date.now();
+    this.quotationProgressTimer=setInterval(()=>{
+      const elapsed=Date.now()-started;
+      this.headerActionProgress=Math.min(80,Math.max(1,Math.round(1+(79*elapsed/duration))));
+      if(this.headerActionProgress>=80){clearInterval(this.quotationProgressTimer);this.quotationProgressTimer=null;}
+    },100);
+  }
+  private finishQuotationProgress():void {
+    if(this.quotationProgressTimer){clearInterval(this.quotationProgressTimer);this.quotationProgressTimer=null;}
+    if(this.quotationFinishTimer)clearInterval(this.quotationFinishTimer);
+    this.quotationFinishTimer=setInterval(()=>{
+      this.headerActionProgress=Math.min(100,this.headerActionProgress+4);
+      if(this.headerActionProgress>=100){
+        clearInterval(this.quotationFinishTimer);this.quotationFinishTimer=null;
+        setTimeout(()=>{this.quotationRefreshRunning=false;this.headerActionProgress=0;},250);
+      }
+    },35);
+  }
+  private resetQuotationProgress():void {
+    if(this.quotationProgressTimer){clearInterval(this.quotationProgressTimer);this.quotationProgressTimer=null;}
+    if(this.quotationFinishTimer){clearInterval(this.quotationFinishTimer);this.quotationFinishTimer=null;}
+    this.headerActionProgress=0;this.quotationRefreshRunning=false;
   }
 
   portfolios:Portfolio[]=[];
