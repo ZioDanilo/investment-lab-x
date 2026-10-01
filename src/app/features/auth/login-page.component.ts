@@ -22,24 +22,32 @@ export class LoginPageComponent {
   loginError = '';
 
   onLogin(): void {
-    const username = this.username.trim();
     if (this.loggingIn) return;
+
+    const username = this.username;
+    const password = this.password;
     this.loggingIn = true;
     this.loginError = '';
 
     // Login is a hard user boundary: never keep portfolio state from a previous user.
     localStorage.removeItem('investmentLabUsername');
     this.portfolioSelection.resetForLogin();
-    // Authentication is intentionally permissive for now: no username/password validation.
-    localStorage.setItem('investmentLabUsername', username);
-    this.portfolioSelection.loadPortfolios();
-    this.loggingIn = false;
-    this.apiService.warmupMarketUniverseCache().subscribe({
-      next: () => undefined,
-      error: (error) => console.error('[Market Universe warmup]', error)
+
+    this.apiService.login(username, password).subscribe({
+      next: (response: any) => {
+        localStorage.setItem('investmentLabUsername', String(response?.data?.username ?? username));
+        this.portfolioSelection.loadPortfolios();
+        this.loggingIn = false;
+        this.apiService.warmupMarketUniverseCache().subscribe({
+          next: () => undefined,
+          error: (error) => console.error('[Market Universe warmup]', error)
+        });
+        void this.router.navigateByUrl('/home');
+      },
+      error: () => {
+        this.loggingIn = false;
+        this.loginError = 'Username o password non corretti.';
+      }
     });
-    void this.router.navigateByUrl('/home');
-
-
   }
 }
