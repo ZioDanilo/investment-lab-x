@@ -108,8 +108,8 @@ export class RealPortfoliosPageComponent implements OnInit {
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
     effect(() => {
-      const refreshVersion = this.portfolioSelection.refreshVersion();
-      if (this.initialized && refreshVersion > 0) this.loadRealPortfolios();
+      // A portfolio selection change only switches the local view; it must not reload real portfolios.
+      this.portfolioSelection.refreshVersion();
 
       const realOptions = this.portfolioSelection.portfolioOptions().filter((option) => option.tipo === 'reale');
       if (realOptions.length && this.portfolios.length) {
