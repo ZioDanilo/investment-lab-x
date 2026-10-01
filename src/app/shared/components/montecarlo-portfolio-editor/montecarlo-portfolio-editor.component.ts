@@ -81,6 +81,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   readonly showSearchResults = signal(false);
   readonly highlightedIndex = signal(0);
   readonly createDialogVisible = signal(false);
+  readonly updateDialogVisible = signal(false);
   readonly createPortfolioNameDraft = signal('');
 
   private searchTimer: number | null = null;
@@ -198,16 +199,18 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     await this.restoreFromBackend();
   }
 
-  async updatePortfolio(): Promise<void> {
-    if (!this.portfolioId || !this.canUpdatePortfolio()) {
-      return;
-    }
+  updatePortfolio(): void {
+    if (!this.portfolioId || !this.canUpdatePortfolio()) return;
+    this.updateDialogVisible.set(true);
+  }
 
-    if (!this.isValid()) {
-      window.alert('La composizione deve avere un totale esatto del 100,00% prima di aggiornare il portafoglio.');
-      return;
-    }
+  closeUpdatePortfolioDialog(): void {
+    this.updateDialogVisible.set(false);
+  }
 
+  confirmUpdatePortfolio(): void {
+    if (!this.portfolioId || !this.canUpdatePortfolio() || !this.isValid()) return;
+    this.updateDialogVisible.set(false);
     this.saving.set(true);
     this.emitState();
 
