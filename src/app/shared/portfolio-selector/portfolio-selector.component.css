@@ -130,3 +130,26 @@
   margin: 7px 10px;
   background: rgba(133, 176, 226, 0.28);
 }
+
+
+/* Portfolio identity mirrors the persistent side-menu icons. */
+.selector-option__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(var(--portfolio-accent-rgb), .32);
+  border-radius: 8px;
+  color: rgb(var(--portfolio-accent-rgb));
+  font-size: 1rem;
+  background: rgba(var(--portfolio-accent-rgb), .06);
+}
+.selector-option__icon--real { --portfolio-accent-rgb: 165, 122, 255; }
+.selector-option__icon--laboratory { --portfolio-accent-rgb: 90, 166, 255; }
+.selector-option:not(.selector-option--placeholder) {
+  gap: 12px;
+}
+.selector-option:not(.selector-option--placeholder) .selector-option__label {
+  padding-left: 2px;
+}
