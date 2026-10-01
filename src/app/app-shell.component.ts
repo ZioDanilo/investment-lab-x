@@ -14,6 +14,12 @@ import { PortfolioSelectionService } from './core/services/portfolio-selection.s
   styleUrls: ['./app-shell.component.css']
 })
 export class AppShellComponent {
+  constructor() {
+    // Services are in-memory: after a browser refresh rebuild the user-scoped data.
+    if (localStorage.getItem('investmentLabUsername')) {
+      this.portfolioSelection.loadPortfolios();
+    }
+  }
   readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/nuovo-etf'];
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
