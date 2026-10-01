@@ -23,10 +23,19 @@ interface Operation { date:string; type:'Acquisto'|'Vendita'; isin:string; etf:s
 export class RealPortfoliosPageComponent implements OnInit {
   readonly headerActionLabel='AGGIORNA QUOTAZIONI';
   readonly headerActionIcon='sync';
-  get headerActionDisabled():boolean { return this.loadingPortfolios || this.portfolios.length===0; }
-  readonly headerActionRunning=false;
+  quotationRefreshRunning=false;
+  get headerActionDisabled():boolean { return this.loadingPortfolios || this.portfolios.length===0 || !this.hasSelectedPortfolio || this.quotationRefreshRunning; }
+  get headerActionRunning():boolean { return this.quotationRefreshRunning; }
   readonly headerActionProgress=0;
-  runHeaderAction():void {}
+  runHeaderAction():void {
+    const portfolio=this.portfolios[this.selected];
+    if(!portfolio || this.quotationRefreshRunning)return;
+    this.quotationRefreshRunning=true;
+    this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
+      next:()=>{this.quotationRefreshRunning=false;},
+      error:(error)=>{this.quotationRefreshRunning=false;console.error('Errore aggiornamento quotazioni portafoglio',error);}
+    });
+  }
 
   portfolios:Portfolio[]=[];
   selected=0;
