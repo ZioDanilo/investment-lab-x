@@ -112,15 +112,6 @@ export class RealPortfoliosPageComponent implements OnInit {
       // A portfolio selection change only switches the local view; it must not reload real portfolios.
       this.portfolioSelection.refreshVersion();
 
-      const realOptions = this.portfolioSelection.portfolioOptions().filter((option) => option.tipo === 'reale');
-      if (realOptions.length && this.portfolios.length) {
-        const byId = new Map(this.portfolios.map((portfolio) => [portfolio.id, portfolio]));
-        const ordered = realOptions.map((option) => byId.get(option.id)).filter((portfolio): portfolio is Portfolio => !!portfolio);
-        if (ordered.length === this.portfolios.length && ordered.some((portfolio, index) => portfolio.id !== this.portfolios[index]?.id)) {
-          this.portfolios = ordered;
-        }
-      }
-
       const selectedId = this.portfolioSelection.selectedPortfolio()?.id;
       if (selectedId) {
         const index = this.portfolios.findIndex((portfolio) => portfolio.id === selectedId);
