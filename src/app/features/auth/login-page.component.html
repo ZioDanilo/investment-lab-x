@@ -11,12 +11,11 @@
     <section class="hero-panel" aria-label="Investment Lab">
       <div class="hero-copy-wrap">
         <div class="hero-copy">
-          <p class="eyebrow">INVESTMENT LAB X</p>
           <h1>
             Costruisci oggi<br />
             i portafogli di <span>domani.</span>
           </h1>
-          <p class="subtitle">Dati. Scenari. Simulazioni. Decisioni migliori.</p>
+          <p class="subtitle">Dati. Scenari. Simulazioni. Decisioni.</p>
         </div>
 
         <div class="quote-block" aria-label="Frase promozionale">
@@ -58,7 +57,7 @@
         </label>
 
         <button type="submit" class="primary-login" [disabled]="submitting || !username || !password">
-          {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Registrati' : 'Entra') }}
+          {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
         </button>
 
         <p class="helper-text helper-text--error" *ngIf="authError">{{ authError }}</p>
