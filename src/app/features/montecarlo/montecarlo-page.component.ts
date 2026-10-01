@@ -43,7 +43,7 @@ interface KpiCard {
 })
 export class MontecarloPageComponent implements OnDestroy {
   readonly headerActionIcon = 'play_arrow';
-  get headerActionLabel(): string { return this.marketUniverseGenerationInProgress ? 'Generazione Market Universe' : this.runButtonLabel; }
+  get headerActionLabel(): string { return this.marketUniverseGenerationInProgress ? '' : this.runButtonLabel; }
   get headerActionDisabled(): boolean { return this.marketUniverseGenerationInProgress || this.editorState()?.state?.isValid !== true || this.isRunning || this.completionHoldActive; }
   get headerActionRunning(): boolean { return this.marketUniverseGenerationInProgress || this.isRunning || this.completionHoldActive; }
   get headerActionProgress(): number { return this.marketUniverseGenerationInProgress ? this.marketUniverseGenerationProgress : this.buttonFillWidth; }
