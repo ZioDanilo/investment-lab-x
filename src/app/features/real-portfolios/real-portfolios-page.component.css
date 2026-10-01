@@ -147,3 +147,7 @@ input.invalid,
 
 .operation-total{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:2px;padding:11px 12px;border:1px solid rgba(122,176,224,.18);border-radius:8px;background:rgba(255,255,255,.025)}
 .operation-total span{color:#aebfd1;font-size:.72rem;font-weight:700}.operation-total strong{color:#edf5ff;font-size:.94rem}
+
+/* Drag cards keep their exact visual size/style; the whole card is an enlarged hit zone. */
+.portfolio-choice[draggable="true"]{cursor:grab;user-select:none}
+.portfolio-choice[draggable="true"]:active{cursor:grabbing}
