@@ -1,5 +1,5 @@
 <div class="portfolio-strip" [class.portfolio-strip--settling]="suppressPortfolioDragTransitions" (dragover)="allowPortfolioStripDrop($event)" (drop)="dropPortfolio(null,$event)">
-      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.is-dragging]="portfolioDragSourceIndex===i" [class.active]="selected===i" [class.drag-shift-left]="portfolioDragShift(i)==='left'" [class.drag-shift-right]="portfolioDragShift(i)==='right'" [style.--portfolio-accent]="portfolioColor(p)" (click)="selectPortfolio(i)" draggable="true" (dragstart)="startPortfolioDrag(i,$event)" (dragover)="allowPortfolioDrop(i,$event)" (drop)="dropPortfolio(i,$event)" (dragend)="endPortfolioDrag()">
+      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" [class.drag-shift-left]="portfolioDragShift(i)==='left'" [class.drag-shift-right]="portfolioDragShift(i)==='right'" [style.--portfolio-accent]="portfolioColor(p)" (click)="selectPortfolio(i)" draggable="true" (dragstart)="startPortfolioDrag(i,$event)" (dragover)="allowPortfolioDrop(i,$event)" (drop)="dropPortfolio(i,$event)" (dragend)="endPortfolioDrag()">
         <div class="portfolio-choice__top">
           <span class="portfolio-color" [style.background]="portfolioColor(p)"></span>
           <span class="portfolio-name">{{portfolioDisplayName(p)}}</span>
