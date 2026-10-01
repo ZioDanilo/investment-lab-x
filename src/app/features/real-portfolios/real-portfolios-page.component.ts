@@ -244,6 +244,15 @@ export class RealPortfoliosPageComponent implements OnInit {
   formatOperationTotal(value:number):string {
     return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number.isFinite(value)?value:0);
   }
+  private refreshPortfolioData(selectedId?:string):void {
+    if(selectedId){
+      const index=this.portfolios.findIndex(p=>p.id===selectedId);
+      if(index>=0)this.selected=index;
+      this.portfolioSelection.setSelectedPortfolio(selectedId);
+    }
+    this.loadOperations();
+    this.loadMarketValues();
+  }
   private loadMarketValues():void {
     this.api.getRealPortfolioMarketValues().subscribe({
       next:(res:any)=>{
@@ -280,7 +289,11 @@ export class RealPortfoliosPageComponent implements OnInit {
     if(!this.operationFormValid || !this.operationPortfolio)return;
     this.savingOperation=true;
     this.api.createRealPortfolioOperation(this.operationPortfolio.id,{operationType:this.operationType,etfId:this.operationEtf.id,operationDate:this.operationDate,quantity:this.parseDecimal(this.operationQuantity),unitPrice:this.parseDecimal(this.operationUnitPrice)}).subscribe({
-      next:()=>{this.savingOperation=false;this.operationPortfolio=null;this.operationEtfResults=[];this.loadOperations();},
+      next:()=>{
+        const selectedId=this.portfolios[this.selected]?.id;
+        this.savingOperation=false;this.operationPortfolio=null;this.operationEtfResults=[];
+        this.refreshPortfolioData(selectedId);
+      },
       error:(error)=>{this.savingOperation=false;console.error('Errore inserimento operazione',error);}
     });
   }
