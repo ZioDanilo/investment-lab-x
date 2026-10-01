@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, computed, effect, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PortfolioStateService } from '../../core/services/portfolio-state.service';
@@ -32,6 +32,7 @@ interface PortfolioEtf {
   styleUrls: ['./portafogli-page.component.css']
 })
 export class PortafoliPageComponent implements OnInit {
+  private initialized = false;
   private apiService = inject(ApiService);
   private portfolioState = inject(PortfolioStateService);
   private portfolioSelection = inject(PortfolioSelectionService);
@@ -77,6 +78,13 @@ export class PortafoliPageComponent implements OnInit {
     return Math.abs(total - 100) < 0.01;
   });
 
+  constructor() {
+    effect(() => {
+      this.portfolioSelection.refreshVersion();
+      if (this.initialized) this.loadPortafogli();
+    });
+  }
+
   portfolioColumns = computed(() => {
     const columns: any[][] = [[], [], []];
     this.portafogli().forEach((portafoglio, index) => {
@@ -86,6 +94,7 @@ export class PortafoliPageComponent implements OnInit {
   });
 
   ngOnInit() {
+    this.initialized = true;
     this.loadPortafogli();
   }
 
