@@ -177,6 +177,3 @@ input.invalid,
 /* Native source must never acquire translucency while dragging. */
 .portfolio-choice[draggable="true"]{opacity:1!important;visibility:visible!important;position:relative;z-index:1}
 .portfolio-choice[draggable="true"]:active{opacity:1!important;z-index:1000}
-
-/* Drag contract: the source slot is empty; only the native drag image follows the pointer. */
-.portfolio-choice.is-dragging{visibility:hidden!important;opacity:0!important}
