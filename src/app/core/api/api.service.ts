@@ -19,6 +19,10 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/auth/login`, { username, password });
   }
 
+  register(username: string, password: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auth/register`, { username, password });
+  }
+
   // Portfolio endpoints
   getPortfolios(tipo?: 'reale' | 'laboratorio'): Observable<any> {
     const suffix = tipo ? `?tipo=${tipo}` : '';
