@@ -107,6 +107,8 @@ export class RealPortfoliosPageComponent implements OnInit {
   private initialized=false;
   private draggedPortfolioIndex:number|null=null;
   private portfolioDragOriginalOrder:Portfolio[]|null=null;
+  portfolioDragSourceIndex:number|null=null;
+  portfolioDragTargetIndex:number|null=null;
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
     effect(() => {
@@ -189,6 +191,8 @@ export class RealPortfoliosPageComponent implements OnInit {
   readonly ticks:LineChartTick[]=[{value:'€ 30.000',y:30},{value:'€ 25.000',y:70},{value:'€ 20.000',y:110},{value:'€ 15.000',y:150},{value:'€ 10.000',y:190},{value:'€ 5.000',y:230}];
   startPortfolioDrag(i:number,event:DragEvent):void {
     this.draggedPortfolioIndex=i;
+    this.portfolioDragSourceIndex=i;
+    this.portfolioDragTargetIndex=i;
     this.portfolioDragOriginalOrder=[...this.portfolios];
     if(event.dataTransfer){
       event.dataTransfer.effectAllowed='move';
@@ -209,23 +213,33 @@ export class RealPortfoliosPageComponent implements OnInit {
     if(event.dataTransfer)event.dataTransfer.dropEffect='move';
     const from=this.draggedPortfolioIndex;
     if(from===null || from===targetIndex)return;
-    const reordered=[...this.portfolios];
-    const [moved]=reordered.splice(from,1);
-    reordered.splice(targetIndex,0,moved);
-    this.portfolios=reordered;
-    this.draggedPortfolioIndex=targetIndex;
-    const selectedId=this.portfolioSelection.selectedPortfolio()?.id;
-    const selectedIndex=selectedId?this.portfolios.findIndex(p=>p.id===selectedId):-1;
-    if(selectedIndex>=0)this.selected=selectedIndex;
+    this.portfolioDragTargetIndex=targetIndex;
   }
   dropPortfolio(_targetIndex:number,event:DragEvent):void {
     event.preventDefault();
     if(this.draggedPortfolioIndex===null)return;
+    const from=this.draggedPortfolioIndex;
+    const to=this.portfolioDragTargetIndex;
+    if(from!==null && to!==null && from!==to){
+      const selectedId=this.portfolios[this.selected]?.id;
+      const reordered=[...this.portfolios];
+      const [moved]=reordered.splice(from,1); reordered.splice(to,0,moved); this.portfolios=reordered;
+      const selectedIndex=selectedId?this.portfolios.findIndex(p=>p.id===selectedId):-1; if(selectedIndex>=0)this.selected=selectedIndex;
+    }
     this.draggedPortfolioIndex=null;
+    this.portfolioDragSourceIndex=null;
+    this.portfolioDragTargetIndex=null;
     this.portfolioDragOriginalOrder=null;
     this.api.updateRealPortfolioOrder(this.portfolios.map(p=>p.id)).subscribe({error:(error)=>{console.error('Errore salvataggio ordine portafogli',error);this.loadRealPortfolios();}});
   }
-  endPortfolioDrag():void { this.draggedPortfolioIndex=null; this.portfolioDragOriginalOrder=null; }
+  endPortfolioDrag():void { this.draggedPortfolioIndex=null; this.portfolioDragSourceIndex=null; this.portfolioDragTargetIndex=null; this.portfolioDragOriginalOrder=null; }
+  portfolioDragShift(i:number):'left'|'right'|null {
+    const from=this.portfolioDragSourceIndex,to=this.portfolioDragTargetIndex;
+    if(from===null||to===null||from===to||i===from)return null;
+    if(to>from && i>from && i<=to)return 'left';
+    if(to<from && i>=to && i<from)return 'right';
+    return null;
+  }
   portfolioColor(portfolio:Portfolio):string {
     const palette=['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'];
     let hash=0; for(const ch of portfolio.id)hash=((hash<<5)-hash+ch.charCodeAt(0))|0;
