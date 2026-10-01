@@ -105,6 +105,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   savingOperation=false;
   private operationSearchTimer:any=null;
   private initialized=false;
+  private draggedPortfolioIndex:number|null=null;
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
     effect(() => {
@@ -159,7 +160,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   openCreatePortfolio():void { this.portfolioName.set(''); this.portfolioDescription.set(''); this.showCreateDialog.set(true); }
   discardCreatePortfolio():void { this.showCreateDialog.set(false); this.portfolioName.set(''); this.portfolioDescription.set(''); }
   createPortfolio():void {
-    const name=this.portfolioName().trim(); if(!name||this.creating||this.portfolioNameUnavailable)return;
+    const name=this.portfolioName().trim(); if(!name||this.creating||this.portfolioNameUnavailable||this.portfolios.length>=5)return;
     this.creating=true;
     this.api.createRealPortfolio({name, description:this.portfolioDescription().trim() || null}).subscribe({
       next:(res:any)=>{if(res?.data)this.portfolios=[...this.portfolios,res.data];this.selected=Math.max(0,this.portfolios.length-1);this.creating=false;this.discardCreatePortfolio();this.portfolioSelection.loadPortfolios();},
@@ -194,7 +195,23 @@ export class RealPortfoliosPageComponent implements OnInit {
     {label:'Capitale investito',color:'#9ab2cf',points:'52,216 95,207 140,199 188,191 235,182 282,174 330,164 378,154 425,145 472,137 520,131 568,124 620,118'}
   ];
   readonly ticks:LineChartTick[]=[{value:'€ 30.000',y:30},{value:'€ 25.000',y:70},{value:'€ 20.000',y:110},{value:'€ 15.000',y:150},{value:'€ 10.000',y:190},{value:'€ 5.000',y:230}];
-  portfolioColor(i:number):string { return ['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'][i%6]; }
+  startPortfolioDrag(i:number,event:DragEvent):void { this.draggedPortfolioIndex=i; event.dataTransfer?.setData('text/plain',String(i)); if(event.dataTransfer)event.dataTransfer.effectAllowed='move'; }
+  allowPortfolioDrop(event:DragEvent):void { event.preventDefault(); if(event.dataTransfer)event.dataTransfer.dropEffect='move'; }
+  dropPortfolio(targetIndex:number,event:DragEvent):void {
+    event.preventDefault();
+    const from=this.draggedPortfolioIndex;
+    if(from===null || from===targetIndex)return;
+    const selectedId=this.portfolios[this.selected]?.id;
+    const reordered=[...this.portfolios];
+    const [moved]=reordered.splice(from,1);reordered.splice(targetIndex,0,moved);
+    this.portfolios=reordered;
+    const selectedIndex=selectedId?this.portfolios.findIndex(p=>p.id===selectedId):-1;
+    if(selectedIndex>=0)this.selected=selectedIndex;
+    this.draggedPortfolioIndex=null;
+    this.api.updateRealPortfolioOrder(this.portfolios.map(p=>p.id)).subscribe({error:(error)=>{console.error('Errore salvataggio ordine portafogli',error);this.loadRealPortfolios();}});
+  }
+  endPortfolioDrag():void { this.draggedPortfolioIndex=null; }
+    portfolioColor(i:number):string { return ['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'][i%6]; }
   togglePortfolioMenu(event:MouseEvent,id:string):void { event.stopPropagation(); this.openPortfolioMenu=this.openPortfolioMenu===id?null:id; }
   choosePortfolioAction(event:MouseEvent,i:number):void { event.stopPropagation(); this.selectPortfolio(i); }
   openBuyOperation(event:MouseEvent,i:number):void { this.openOperation(event,i,'buy'); }
