@@ -184,6 +184,9 @@ export class RealPortfoliosPageComponent implements OnInit {
     const q=this.parseDecimal(this.operationQuantity), p=this.parseDecimal(this.operationUnitPrice);
     return Number.isFinite(q)&&Number.isFinite(p)?q*p:0;
   }
+  formatOperationTotal(value:number):string {
+    return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number.isFinite(value)?value:0);
+  }
   private loadOperations():void {
     const portfolio=this.portfolios[this.selected]; if(!portfolio){this.operations=[];return;}
     this.api.getRealPortfolioOperations(portfolio.id).subscribe({next:(res:any)=>{
