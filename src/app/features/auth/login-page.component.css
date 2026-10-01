@@ -366,3 +366,55 @@
   .message-rotator span { font-size: 0.72rem; }
   .pillars-panel { grid-template-columns: 1fr; padding: 0 16px 16px; }
 }
+
+/* Auth tabs as two physical folder tabs */
+.login-card {
+  overflow: visible;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin-top: 42px;
+}
+
+.auth-tabs {
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: -43px;
+  height: 43px;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border-radius: 0;
+}
+
+.auth-tabs button {
+  flex: 1;
+  height: 43px;
+  border: 1px solid rgba(145, 185, 228, 0.22);
+  border-bottom: 1px solid rgba(145, 185, 228, 0.22);
+  border-radius: 12px 12px 0 0;
+  background: rgba(8, 16, 24, 0.72);
+  color: rgba(206, 224, 241, 0.62);
+}
+
+.auth-tabs button.active {
+  position: relative;
+  background: rgba(9, 17, 24, 0.92);
+  color: #edf6ff;
+  border-color: rgba(119, 201, 255, 0.48);
+  border-bottom-color: rgba(9, 17, 24, 0.92);
+  box-shadow: none;
+}
+
+.auth-tabs button.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 3px;
+  background: rgba(9, 17, 24, 0.92);
+}
