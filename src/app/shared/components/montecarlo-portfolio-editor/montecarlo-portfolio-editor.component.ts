@@ -111,6 +111,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   );
   readonly canCreatePortfolio = computed(() =>
     !this.portfolioSelectionService.selectedPortfolio() &&
+    this.isValid() &&
     !this.saving()
   );
   readonly canConfirmCreatePortfolio = computed(() => this.createPortfolioNameDraft().trim().length > 0 && !this.saving());
