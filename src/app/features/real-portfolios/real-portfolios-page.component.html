@@ -98,8 +98,8 @@
         </div>
       </label>
       <label class="dialog-field"><span>Data operazione</span><input type="date" [(ngModel)]="operationDate"></label>
-      <label class="dialog-field"><span>Quantità ETF</span><input type="number" min="0" step="any" [(ngModel)]="operationQuantity" placeholder="0"></label>
-      <label class="dialog-field"><span>Valore unitario ETF (€)</span><input type="number" min="0" step="any" [(ngModel)]="operationUnitPrice" placeholder="0,00"></label>
+      <label class="dialog-field"><span>Quantità ETF</span><input type="text" inputmode="decimal" [(ngModel)]="operationQuantity" placeholder="0"></label>
+      <label class="dialog-field"><span>Valore unitario ETF (€)</span><input type="text" inputmode="decimal" [(ngModel)]="operationUnitPrice" placeholder="0,00"></label>
       <div class="operation-total"><span>Totale operazione</span><strong>{{ operationTotal | currency:'EUR':'symbol':'1.2-2':'it-IT' }}</strong></div>
     </div>
     <footer class="operation-dialog-footer">
