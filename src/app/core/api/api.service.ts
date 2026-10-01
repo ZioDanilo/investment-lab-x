@@ -173,6 +173,10 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/market-universe/active`);
   }
 
+  getMarketUniverseGenerationStatus(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/generation-status`);
+  }
+
   buildPortfolioProjectionFromActiveMarketUniverse(payload: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/market-universe/portfolio/projection`, payload);
   }
