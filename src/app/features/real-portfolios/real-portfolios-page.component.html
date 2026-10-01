@@ -9,7 +9,7 @@
             </button>
             <div class="portfolio-dropdown" [class.is-open]="openPortfolioMenu===p.id" role="menu" (click)="$event.stopPropagation()">
               <button type="button" class="portfolio-dropdown__item" role="menuitem" (click)="openBuyOperation($event,i)"><span class="material-symbols-rounded">add_shopping_cart</span><span>Acquista</span></button>
-              <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--sell" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">sell</span><span>Vendi</span></button>
+              <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--sell" role="menuitem" (click)="openSellOperation($event,i)"><span class="material-symbols-rounded">sell</span><span>Vendi</span></button>
               <div class="portfolio-dropdown__separator" aria-hidden="true"></div>
               <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--close" role="menuitem"><span class="material-symbols-rounded">exit_to_app</span><span>Chiudi</span></button>
               <div class="portfolio-dropdown__separator" aria-hidden="true"></div>
@@ -85,7 +85,7 @@
   <section class="operation-dialog" role="dialog" aria-modal="true" aria-labelledby="buy-operation-title" (click)="$event.stopPropagation()">
     <header>
       <span class="dialog-eyebrow">OPERAZIONE · {{ operationPortfolio.name }}</span>
-      <h2 id="buy-operation-title">Acquista ETF</h2>
+      <h2 id="buy-operation-title">{{ operationType === 'buy' ? 'Acquista ETF' : 'Vendi ETF' }}</h2>
     </header>
     <div class="operation-dialog-body">
       <label class="dialog-field operation-etf-field">
@@ -93,17 +93,18 @@
         <input type="text" [ngModel]="operationEtfQuery" (ngModelChange)="searchOperationEtf($event)" placeholder="Cerca per nome, ticker o ISIN" autocomplete="off">
         <div *ngIf="operationEtfResults.length" class="operation-etf-results">
           <button type="button" *ngFor="let etf of operationEtfResults" (click)="selectOperationEtf(etf)">
-            <strong>{{ etf.nickname || etf.ticker || etf.name }}</strong><small>{{ etf.isin }}</small>
+            <strong>{{ etf.nickname || etf.ticker || etf.name }}</strong><small>{{ etf.isin }}<ng-container *ngIf="operationType === 'sell'"> · Disponibili: {{ etf.quantity }}</ng-container></small>
           </button>
         </div>
       </label>
       <label class="dialog-field"><span>Data operazione</span><input type="date" [(ngModel)]="operationDate"></label>
       <label class="dialog-field"><span>Quantità ETF</span><input type="number" min="0" step="any" [(ngModel)]="operationQuantity" placeholder="0"></label>
       <label class="dialog-field"><span>Valore unitario ETF (€)</span><input type="number" min="0" step="any" [(ngModel)]="operationUnitPrice" placeholder="0,00"></label>
+      <div class="operation-total"><span>Totale operazione</span><strong>{{ operationTotal | currency:'EUR':'symbol':'1.2-2':'it-IT' }}</strong></div>
     </div>
     <footer class="operation-dialog-footer">
       <button type="button" class="operation-cancel" [disabled]="savingOperation" (click)="cancelOperation()">Annulla</button>
-      <button type="button" class="operation-submit" [disabled]="!operationFormValid" (click)="insertBuyOperation()">{{ savingOperation ? 'Inserimento…' : 'Inserisci' }}</button>
+      <button type="button" class="operation-submit" [disabled]="!operationFormValid" (click)="insertOperation()">{{ savingOperation ? 'Inserimento…' : 'Inserisci' }}</button>
     </footer>
   </section>
 </div>
