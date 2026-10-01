@@ -87,16 +87,25 @@
 
   <div class="editor-loading" *ngIf="loading()">Caricamento composizione…</div>
 
-  <app-dialog-input
-    [visible]="createDialogVisible()"
-    message="Nome del nuovo portafoglio"
-    [value]="createPortfolioNameDraft()"
-    placeholder="Inserisci nome portafoglio"
-    confirmLabel="Crea portafoglio"
-    cancelLabel="Annulla"
-    [confirmDisabled]="!canConfirmCreatePortfolio()"
-    (valueChange)="onCreatePortfolioNameInput($event)"
-    (confirm)="confirmCreatePortfolio()"
-    (cancel)="closeCreatePortfolioDialog()"
-  ></app-dialog-input>
+  <div *ngIf="updateDialogVisible()" class="portfolio-confirm-overlay">
+    <section class="portfolio-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="update-portfolio-title" (click)="$event.stopPropagation()">
+      <h2 id="update-portfolio-title">Sei sicuro di voler aggiornare il portafoglio?</h2>
+      <div class="portfolio-confirm-actions">
+        <button type="button" class="portfolio-confirm-button portfolio-confirm-button--cancel" (click)="closeUpdatePortfolioDialog()">No, non farlo</button>
+        <button type="button" class="portfolio-confirm-button portfolio-confirm-button--confirm" (click)="confirmUpdatePortfolio()">Aggiorna</button>
+      </div>
+    </section>
+  </div>
+
+  <div *ngIf="createDialogVisible()" class="portfolio-confirm-overlay">
+    <section class="portfolio-confirm-dialog portfolio-confirm-dialog--input" role="dialog" aria-modal="true" aria-labelledby="create-portfolio-title" (click)="$event.stopPropagation()">
+      <h2 id="create-portfolio-title">Nome del nuovo portafoglio</h2>
+      <input type="text" class="portfolio-confirm-input" [value]="createPortfolioNameDraft()" placeholder="Inserisci nome portafoglio" maxlength="120"
+        (input)="onCreatePortfolioNameInput($any($event.target).value)" (keydown.enter)="confirmCreatePortfolio()" (keydown.escape)="closeCreatePortfolioDialog()" autofocus />
+      <div class="portfolio-confirm-actions">
+        <button type="button" class="portfolio-confirm-button portfolio-confirm-button--cancel" (click)="closeCreatePortfolioDialog()">Annulla</button>
+        <button type="button" class="portfolio-confirm-button portfolio-confirm-button--confirm" [disabled]="!canConfirmCreatePortfolio()" (click)="confirmCreatePortfolio()">Crea portafoglio</button>
+      </div>
+    </section>
+  </div>
 </section>
