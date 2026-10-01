@@ -162,17 +162,28 @@ export class AppShellComponent implements OnDestroy {
     this.isRegeneratingMarketUniverse = true;
     this.marketUniverseGenerationProgress = 0;
     this.pushMarketUniverseStatusToActivePage();
-    this.startMarketUniversePolling();
     this.profileMenuOpen = false;
 
     try {
+      // Do not poll before the regeneration request has created its GENERATING
+      // run. Otherwise the first status GET can legitimately see the old ACTIVE
+      // universe only and return false, prematurely unlocking the UI.
       const response = await firstValueFrom(this.apiService.regenerateMarketUniverse());
       const payload = response?.data ?? response;
       if (payload?.success === false) {
         throw new Error(payload?.error || 'Market Universe regeneration failed');
       }
+
+      const statusResponse = await firstValueFrom(this.apiService.getMarketUniverseGenerationStatus());
+      if (this.applyMarketUniverseGenerationStatus(statusResponse)) {
+        this.startMarketUniversePolling();
+      }
     } catch (error) {
       console.error('Errore nella rigenerazione del Market Universe', error);
+      this.stopMarketUniversePolling();
+      this.isRegeneratingMarketUniverse = false;
+      this.marketUniverseGenerationProgress = 0;
+      this.pushMarketUniverseStatusToActivePage();
     }
   }
 
