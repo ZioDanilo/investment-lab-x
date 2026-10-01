@@ -1,5 +1,5 @@
 <div class="portfolio-strip" [class.portfolio-strip--settling]="suppressPortfolioDragTransitions" (dragover)="allowPortfolioStripDrop($event)" (drop)="dropPortfolio(null,$event)">
-      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" [class.drag-shift-left]="portfolioDragShift(i)==='left'" [class.drag-shift-right]="portfolioDragShift(i)==='right'" [style.--portfolio-accent]="portfolioColor(p)" (click)="selectPortfolio(i)" draggable="true" (dragstart)="startPortfolioDrag(i,$event)" (dragover)="allowPortfolioDrop(i,$event)" (drop)="dropPortfolio(i,$event)" (dragend)="endPortfolioDrag()">
+      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" [class.drag-shift-left]="portfolioDragShift(i)==='left'" [class.drag-shift-right]="portfolioDragShift(i)==='right'" [style.--portfolio-accent]="portfolioColor(p)" (click)="selectPortfolio(i)" draggable="true" [class.drag-source-placeholder]="portfolioDragSourceIndex===i" (dragstart)="startPortfolioDrag(i,$event)" (drag)="movePortfolioDrag($event)" (dragover)="allowPortfolioDrop(i,$event)" (drop)="dropPortfolio(i,$event)" (dragend)="endPortfolioDrag()">
         <div class="portfolio-choice__top">
           <span class="portfolio-color" [style.background]="portfolioColor(p)"></span>
           <span class="portfolio-name">{{portfolioDisplayName(p)}}</span>
@@ -66,7 +66,7 @@
       </section>
     </div>
 
-<div *ngIf="portfolioPendingDelete" class="delete-confirm-overlay">
+<div *ngIf="portfolioDragOverlayHtml" class="portfolio-drag-overlay" [style.left.px]="portfolioDragOverlayPosition.left" [style.top.px]="portfolioDragOverlayPosition.top" [style.width.px]="portfolioDragOverlayPosition.width" [style.height.px]="portfolioDragOverlayPosition.height"><div class="portfolio-choice portfolio-drag-overlay__card" [innerHTML]="portfolioDragOverlayHtml"></div></div>\n\n<div *ngIf="portfolioPendingDelete" class="delete-confirm-overlay">
   <section class="delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-portfolio-title" (click)="$event.stopPropagation()">
     <h2 id="delete-portfolio-title">Sei sicuro di voler eliminare il portafoglio?</h2>
     <div class="delete-confirm-actions">
