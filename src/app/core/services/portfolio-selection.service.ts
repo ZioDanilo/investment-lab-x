@@ -59,9 +59,8 @@ export class PortfolioSelectionService {
   }
 
   loadPortfolios(): void {
-    this.portfolioOptions.set([]);
-    this.selectedPortfolio.set(null);
-    this.discardWorkingPortfolio();
+    // Keep the selected identity while refreshing the backing list.
+    const selectedBeforeRefresh = this.selectedPortfolio();
     this.loading.set(true);
     this.hasError.set(false);
 
@@ -74,12 +73,11 @@ export class PortfolioSelectionService {
 
         this.portfolioOptions.set(nextOptions);
 
-        const currentSelection = this.selectedPortfolio();
-        const validSelection = currentSelection && nextOptions.some((portfolio: PortfolioOption) => portfolio.id === currentSelection.id)
-          ? currentSelection
+        const refreshedSelection = selectedBeforeRefresh
+          ? nextOptions.find((portfolio: PortfolioOption) => portfolio.id === selectedBeforeRefresh.id) ?? null
           : null;
 
-        this.selectedPortfolio.set(validSelection);
+        this.selectedPortfolio.set(refreshedSelection);
         this.loading.set(false);
         this.refreshVersion.update((version) => version + 1);
       },
