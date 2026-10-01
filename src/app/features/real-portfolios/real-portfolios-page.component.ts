@@ -49,8 +49,8 @@ export class RealPortfoliosPageComponent implements OnInit {
   operationEtfResults:any[]=[];
   operationEtf:any|null=null;
   operationDate=new Date().toISOString().slice(0,10);
-  operationQuantity:number|null=null;
-  operationUnitPrice:number|null=null;
+  operationQuantity:string='';
+  operationUnitPrice:string='';
   savingOperation=false;
   private operationSearchTimer:any=null;
   private initialized=false;
@@ -96,6 +96,7 @@ export class RealPortfoliosPageComponent implements OnInit {
         this.loadingPortfolios=false;
         if (!selectedId && this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
         else if (!this.portfolios.length && !selectedId) this.portfolioSelection.setSelectedPortfolio(null);
+        this.loadOperations();
       },
       error:()=>{ this.portfolios=[]; this.loadingPortfolios=false; }
     });
@@ -128,13 +129,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     {name:'iShares Core EUR Corporate Bond UCITS ETF',ticker:'IUSN',qty:'60,000',avg:'€ 46,11',value:'€ 2.797',gain:'+ € 156  +5,9%',weight:'11,4%',tone:'positive'},
     {name:'iShares Core S&P 500 UCITS ETF',ticker:'CSPX',qty:'15,000',avg:'€ 410,23',value:'€ 1.912',gain:'+ € 303  +18,8%',weight:'7,8%',tone:'positive'}
   ];
-  readonly operations:Operation[]=[
-    {date:'12 gen 2025',type:'Acquisto',ticker:'VWCE',qty:'5,000',price:'€ 92,40',total:'€ 462,00'},
-    {date:'3 dic 2024',type:'Acquisto',ticker:'EIMI',qty:'10,000',price:'€ 34,21',total:'€ 342,10'},
-    {date:'15 ott 2024',type:'Vendita',ticker:'CSPX',qty:'5,000',price:'€ 428,50',total:'€ 2.142,50'},
-    {date:'8 set 2024',type:'Acquisto',ticker:'AGGH',qty:'10,000',price:'€ 46,80',total:'€ 468,00'},
-    {date:'11 lug 2024',type:'Acquisto',ticker:'IUSN',qty:'15,000',price:'€ 44,90',total:'€ 673,50'}
-  ];
+  operations:Operation[]=[];
   readonly stats=[['Rendimento totale','+12,4%','positive'],['Rendimento annuo (TWR)','+8,1%','positive'],['Volatilità annua','11,3%',''],['Sharpe ratio (rf 2%)','0,54',''],['Massimo drawdown','-7,8%','negative'],['Mese migliore','+4,9%','positive'],['Mese peggiore','-4,1%','negative'],['Mesi positivi','18 (66%)','']];
   readonly legend:ChartLegendItem[]=[{label:'Valore di mercato',color:'#2d91ff'},{label:'Capitale investito',color:'#9ab2cf'}];
   readonly series:LineChartSeries[]=[
@@ -151,7 +146,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     event.stopPropagation(); this.selectPortfolio(i); this.openPortfolioMenu=null;
     this.operationPortfolio=this.portfolios[i] ?? null; this.operationType=type;
     this.operationEtfQuery=''; this.operationEtfResults=[]; this.operationEtf=null; this.ownedEtfs=[];
-    this.operationDate=new Date().toISOString().slice(0,10); this.operationQuantity=null; this.operationUnitPrice=null;
+    this.operationDate=new Date().toISOString().slice(0,10); this.operationQuantity=''; this.operationUnitPrice='';
     if(type==='sell' && this.operationPortfolio) this.api.getRealPortfolioHoldings(this.operationPortfolio.id).subscribe({next:(res:any)=>this.ownedEtfs=Array.isArray(res?.data)?res.data:[],error:()=>this.ownedEtfs=[]});
   }
   cancelOperation():void { if(this.savingOperation)return; this.operationPortfolio=null; this.operationEtfResults=[]; }
@@ -172,15 +167,38 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.operationEtfQuery=etf.nickname || etf.ticker || etf.name || etf.isin;
     this.operationEtfResults=[];
   }
-  get operationFormValid():boolean {
-    return !!this.operationPortfolio && !!this.operationEtf?.id && !!this.operationDate && Number(this.operationQuantity)>0 && Number(this.operationUnitPrice)>0 && !this.savingOperation;
+  private parseDecimal(value:string|number|null|undefined):number {
+    const raw=String(value ?? '').trim().replace(/\s/g,'');
+    if(!raw)return NaN;
+    const comma=raw.lastIndexOf(','), dot=raw.lastIndexOf('.');
+    let normalized=raw;
+    if(comma>=0 && dot>=0) normalized=comma>dot ? raw.replace(/\./g,'').replace(',','.') : raw.replace(/,/g,'');
+    else if(comma>=0) normalized=raw.replace(',','.');
+    const parsed=Number(normalized);
+    return Number.isFinite(parsed)?parsed:NaN;
   }
-  get operationTotal():number { return Number(this.operationQuantity||0)*Number(this.operationUnitPrice||0); }
+  get operationFormValid():boolean {
+    return !!this.operationPortfolio && !!this.operationEtf?.id && !!this.operationDate && this.parseDecimal(this.operationQuantity)>0 && this.parseDecimal(this.operationUnitPrice)>0 && !this.savingOperation;
+  }
+  get operationTotal():number {
+    const q=this.parseDecimal(this.operationQuantity), p=this.parseDecimal(this.operationUnitPrice);
+    return Number.isFinite(q)&&Number.isFinite(p)?q*p:0;
+  }
+  private loadOperations():void {
+    const portfolio=this.portfolios[this.selected]; if(!portfolio){this.operations=[];return;}
+    this.api.getRealPortfolioOperations(portfolio.id).subscribe({next:(res:any)=>{
+      const rows=Array.isArray(res?.data)?res.data:[];
+      const nf=new Intl.NumberFormat('it-IT',{minimumFractionDigits:0,maximumFractionDigits:8});
+      const eur=new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2});
+      const df=new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'short',year:'numeric'});
+      this.operations=rows.map((o:any)=>{const q=this.parseDecimal(o.quantity),p=this.parseDecimal(o.unitPrice);return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:o.operationType==='sell'?'Vendita':'Acquisto',ticker:o.etf?.ticker||o.etf?.nickname||o.etf?.isin||'',qty:nf.format(q),price:eur.format(p),total:eur.format(q*p)};});
+    },error:()=>this.operations=[]});
+  }
   insertOperation():void {
     if(!this.operationFormValid || !this.operationPortfolio)return;
     this.savingOperation=true;
-    this.api.createRealPortfolioOperation(this.operationPortfolio.id,{operationType:this.operationType,etfId:this.operationEtf.id,operationDate:this.operationDate,quantity:Number(this.operationQuantity),unitPrice:Number(this.operationUnitPrice)}).subscribe({
-      next:()=>{this.savingOperation=false;this.operationPortfolio=null;this.operationEtfResults=[];},
+    this.api.createRealPortfolioOperation(this.operationPortfolio.id,{operationType:this.operationType,etfId:this.operationEtf.id,operationDate:this.operationDate,quantity:this.parseDecimal(this.operationQuantity),unitPrice:this.parseDecimal(this.operationUnitPrice)}).subscribe({
+      next:()=>{this.savingOperation=false;this.operationPortfolio=null;this.operationEtfResults=[];this.loadOperations();},
       error:(error)=>{this.savingOperation=false;console.error('Errore inserimento operazione',error);}
     });
   }
@@ -210,5 +228,6 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.openPortfolioMenu=null;
     const portfolio=this.portfolios[i];
     this.portfolioSelection.setSelectedPortfolio(portfolio?.id ?? null);
+    this.loadOperations();
   }
 }
