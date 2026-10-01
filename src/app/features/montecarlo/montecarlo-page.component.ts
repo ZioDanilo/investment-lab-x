@@ -984,12 +984,9 @@ export class MontecarloPageComponent {
         dragImage.style.width = `${source.getBoundingClientRect().width}px`;
         dragImage.style.height = `${source.getBoundingClientRect().height}px`;
         document.body.appendChild(dragImage);
-        event.dataTransfer.setDragImage(
-          dragImage,
-          this.draggedKpiPointerOffset.x,
-          this.draggedKpiPointerOffset.y
-        );
-        requestAnimationFrame(() => dragImage.remove());
+        const transparent = document.createElement('canvas'); transparent.width = 1; transparent.height = 1;
+        event.dataTransfer.setDragImage(transparent, 0, 0);
+        dragImage.remove();
       }
     }
   }
