@@ -452,3 +452,8 @@
 .message-rotator:hover span[style] {
   animation-play-state: running;
 }
+
+/* Freeze the visible navbar message while the pointer is over the navbar. */
+.message-navbar:hover .message-rotator span {
+  animation-play-state: paused;
+}
