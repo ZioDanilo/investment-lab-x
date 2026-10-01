@@ -165,19 +165,16 @@ export class AppShellComponent implements OnDestroy {
     this.profileMenuOpen = false;
 
     try {
-      // Do not poll before the regeneration request has created its GENERATING
-      // run. Otherwise the first status GET can legitimately see the old ACTIVE
-      // universe only and return false, prematurely unlocking the UI.
+      // The regeneration endpoint acknowledges the background job immediately.
+      // Keep the UI locked locally and start polling only after that acknowledgement,
+      // when the GENERATING state is already persisted.
       const response = await firstValueFrom(this.apiService.regenerateMarketUniverse());
       const payload = response?.data ?? response;
       if (payload?.success === false) {
         throw new Error(payload?.error || 'Market Universe regeneration failed');
       }
 
-      const statusResponse = await firstValueFrom(this.apiService.getMarketUniverseGenerationStatus());
-      if (this.applyMarketUniverseGenerationStatus(statusResponse)) {
-        this.startMarketUniversePolling();
-      }
+      this.startMarketUniversePolling();
     } catch (error) {
       console.error('Errore nella rigenerazione del Market Universe', error);
       this.stopMarketUniversePolling();
