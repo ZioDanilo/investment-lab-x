@@ -86,6 +86,9 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioName=signal('');
   portfolioDescription=signal('');
   creating=false;
+  createProgress=0;
+  private createProgressTimer:any=null;
+  private createFinishTimer:any=null;
   get portfolioNameUnavailable():boolean {
     const name=this.portfolioName().trim().toLocaleLowerCase();
     return !!name && this.portfolioSelection.portfolioOptions().some((p)=>p.label.trim().toLocaleLowerCase()===name);
@@ -153,13 +156,26 @@ export class RealPortfoliosPageComponent implements OnInit {
   get hasSelectedPortfolio():boolean { return this.portfolios.length>0 && !!this.portfolios[this.selected]; }
 
   openCreatePortfolio():void { this.portfolioName.set(''); this.portfolioDescription.set(''); this.showCreateDialog.set(true); }
-  discardCreatePortfolio():void { this.showCreateDialog.set(false); this.portfolioName.set(''); this.portfolioDescription.set(''); }
+  discardCreatePortfolio():void { if(this.creating)return; this.showCreateDialog.set(false); this.portfolioName.set(''); this.portfolioDescription.set(''); this.resetCreateProgress(); }
+  private startCreateProgress():void {
+    this.resetCreateProgress(); this.creating=true; this.createProgress=1;
+    this.createProgressTimer=setInterval(()=>{ const remaining=80-this.createProgress; if(remaining>0)this.createProgress=Math.min(80,this.createProgress+Math.max(.7,remaining*.09)); },90);
+  }
+  private finishCreateProgress(done:()=>void):void {
+    if(this.createProgressTimer){clearInterval(this.createProgressTimer);this.createProgressTimer=null;}
+    this.createFinishTimer=setInterval(()=>{this.createProgress=Math.min(100,this.createProgress+Math.max(4,(100-this.createProgress)*.32));if(this.createProgress>=100){clearInterval(this.createFinishTimer);this.createFinishTimer=null;setTimeout(()=>{this.creating=false;this.createProgress=0;done();},180);}},35);
+  }
+  private resetCreateProgress():void {
+    if(this.createProgressTimer){clearInterval(this.createProgressTimer);this.createProgressTimer=null;}
+    if(this.createFinishTimer){clearInterval(this.createFinishTimer);this.createFinishTimer=null;}
+    this.createProgress=0; this.creating=false;
+  }
   createPortfolio():void {
     const name=this.portfolioName().trim(); if(!name||this.creating||this.portfolioNameUnavailable||this.portfolios.length>=5)return;
-    this.creating=true;
+    this.startCreateProgress();
     this.api.createRealPortfolio({name, description:this.portfolioDescription().trim() || null}).subscribe({
-      next:(res:any)=>{if(res?.data)this.portfolios=[...this.portfolios,res.data];this.selected=Math.max(0,this.portfolios.length-1);this.creating=false;this.discardCreatePortfolio();this.portfolioSelection.loadPortfolios();},
-      error:()=>{this.creating=false;}
+      next:(res:any)=>this.finishCreateProgress(()=>{if(res?.data)this.portfolios=[...this.portfolios,res.data];this.selected=Math.max(0,this.portfolios.length-1);this.showCreateDialog.set(false);this.portfolioName.set('');this.portfolioDescription.set('');this.portfolioSelection.loadPortfolios();}),
+      error:()=>this.resetCreateProgress()
     });
   }
   get kpis(){
