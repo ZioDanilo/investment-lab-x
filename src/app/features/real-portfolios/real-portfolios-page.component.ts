@@ -215,7 +215,10 @@ export class RealPortfoliosPageComponent implements OnInit {
     if(from===null || from===targetIndex)return;
     this.portfolioDragTargetIndex=targetIndex;
   }
-  dropPortfolio(_targetIndex:number,event:DragEvent):void {
+  allowPortfolioStripDrop(event:DragEvent):void { if(this.draggedPortfolioIndex!==null)event.preventDefault(); }
+  dropPortfolio(targetIndex:number|null,event:DragEvent):void {
+    event.stopPropagation();
+    if(targetIndex!==null)this.portfolioDragTargetIndex=targetIndex;
     event.preventDefault();
     if(this.draggedPortfolioIndex===null)return;
     const from=this.portfolioDragSourceIndex;
@@ -232,7 +235,11 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.portfolioDragOriginalOrder=null;
     this.api.updateRealPortfolioOrder(this.portfolios.map(p=>p.id)).subscribe({error:(error)=>{console.error('Errore salvataggio ordine portafogli',error);this.loadRealPortfolios();}});
   }
-  endPortfolioDrag():void { this.draggedPortfolioIndex=null; this.portfolioDragSourceIndex=null; this.portfolioDragTargetIndex=null; this.portfolioDragOriginalOrder=null; }
+  endPortfolioDrag():void {
+    // dragend fires after drop. A successful drop has already cleared the state;
+    // otherwise this is a cancelled drag and only the visual preview is reset.
+    this.draggedPortfolioIndex=null; this.portfolioDragSourceIndex=null; this.portfolioDragTargetIndex=null; this.portfolioDragOriginalOrder=null;
+  }
   portfolioDragShift(i:number):'left'|'right'|null {
     const from=this.portfolioDragSourceIndex,to=this.portfolioDragTargetIndex;
     if(from===null||to===null||from===to||i===from)return null;
