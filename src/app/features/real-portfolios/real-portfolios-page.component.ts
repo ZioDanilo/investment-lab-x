@@ -9,7 +9,7 @@ import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/c
 import { ApiService } from '../../core/api/api.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
-interface Portfolio { id:string; name:string; description?:string|null; status:string; }
+interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; totalValue?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
 interface Holding { name:string; ticker:string; qty:string; avg:string; value:string; gain:string; weight:string; tone:'positive'|'negative'; }
 interface Operation { date:string; type:'Acquisto'|'Vendita'; isin:string; etf:string; qty:string; price:string; total:string; }
 
@@ -39,7 +39,7 @@ export class RealPortfoliosPageComponent implements OnInit {
         const etfCount=Math.max(1,Array.isArray(holdingsRes?.data)?holdingsRes.data.length:1);
         this.startQuotationProgress(etfCount);
         this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
-          next:()=>this.finishQuotationProgress(),
+          next:()=>{this.loadMarketValues();this.finishQuotationProgress();},
           error:(error)=>{this.resetQuotationProgress();console.error('Errore aggiornamento quotazioni portafoglio',error);}
         });
       },
@@ -148,6 +148,7 @@ export class RealPortfoliosPageComponent implements OnInit {
         if (!selectedId && this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
         else if (!this.portfolios.length && !selectedId) this.portfolioSelection.setSelectedPortfolio(null);
         this.loadOperations();
+        this.loadMarketValues();
       },
       error:()=>{ this.portfolios=[]; this.loadingPortfolios=false; }
     });
@@ -165,14 +166,19 @@ export class RealPortfoliosPageComponent implements OnInit {
       error:()=>{this.creating=false;}
     });
   }
-  readonly kpis=[
-    ['Valore di mercato','€ 24.523','+ € 2.701  (+12,4%)','positive'],
+  get kpis(){
+    const p=this.portfolios[this.selected];
+    const value=p?.totalValue ?? 0, gain=p?.gainLoss ?? 0, pct=p?.gainLossPercent ?? 0;
+    const tone=this.valueTone(gain), sign=gain>0?'+ ':gain<0?'- ':'';
+    return [
+    ['Valore di mercato',this.formatCurrency(value),`${sign}${this.formatCurrency(Math.abs(gain))}  (${this.formatSignedPercent(pct)})`,tone],
     ['Capitale investito','€ 21.822','',''],
     ['Gain/Loss','+ € 2.701','+12,4%','positive'],
     ['Rendimento annuo (TWR)','+8,1%','','positive'],
     ['Volatilità annua','11,3%','',''],
     ['Numero ETF','5','','']
   ];
+  }
   readonly holdings:Holding[]=[
     {name:'Vanguard FTSE All-World UCITS ETF',ticker:'VWCE',qty:'42,000',avg:'€ 78,23',value:'€ 9.367',gain:'+ € 1.421  +17,8%',weight:'38,2%',tone:'positive'},
     {name:'iShares Core MSCI EM IMI UCITS ETF',ticker:'EIMI',qty:'120,000',avg:'€ 32,11',value:'€ 6.009',gain:'+ € 623  +11,6%',weight:'24,5%',tone:'positive'},
@@ -237,6 +243,25 @@ export class RealPortfoliosPageComponent implements OnInit {
   }
   formatOperationTotal(value:number):string {
     return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number.isFinite(value)?value:0);
+  }
+  private loadMarketValues():void {
+    this.api.getRealPortfolioMarketValues().subscribe({
+      next:(res:any)=>{
+        const rows=Array.isArray(res?.data)?res.data:[];
+        const byId=new Map(rows.map((row:any)=>[row.portfolioId,row]));
+        this.portfolios=this.portfolios.map(p=>Object.assign({},p,byId.get(p.id)||{}));
+      },
+      error:(error)=>console.error('Errore caricamento valori portafogli',error)
+    });
+  }
+  formatCurrency(value:number):string { return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value)||0); }
+  formatSignedPercent(value:number):string { const n=Number(value)||0; return `${n>0?'+':''}${new Intl.NumberFormat('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1}).format(n)}%`; }
+  valueTone(value:number):string { return value>0?'positive':value<0?'negative':'neutral'; }
+  portfolioDisplayName(p:Portfolio):string {
+    if(!p.quotationDate)return p.name;
+    const today=new Date().toISOString().slice(0,10);
+    if(p.quotationDate===today)return p.name;
+    return `${p.name} (${new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'long',year:'numeric'}).format(new Date(p.quotationDate+'T12:00:00'))})`;
   }
   private loadOperations():void {
     const portfolio=this.portfolios[this.selected]; if(!portfolio){this.operations=[];return;}
