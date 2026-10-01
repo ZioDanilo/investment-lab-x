@@ -80,7 +80,7 @@
       Aggiorna portafoglio
     </button>
     <button type="button" class="action-btn" (click)="openCreatePortfolioDialog()" [disabled]="!canCreatePortfolio()">
-      Crea portafoglio
+      {{ createPortfolioActionLabel() }}
     </button>
   </div>
   </div>
