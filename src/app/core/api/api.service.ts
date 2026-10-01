@@ -86,6 +86,10 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/real-portfolios/${portfolioId}/operations`, data);
   }
 
+  refreshRealPortfolioQuotations(portfolioId: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/quotation/real-portfolio/${portfolioId}/refresh`, {});
+  }
+
   // ETF endpoints
   getETFs(): Observable<any> {
     return this.http.get(`${this.apiUrl}/etf`);
