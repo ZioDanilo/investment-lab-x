@@ -218,7 +218,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   dropPortfolio(_targetIndex:number,event:DragEvent):void {
     event.preventDefault();
     if(this.draggedPortfolioIndex===null)return;
-    const from=this.draggedPortfolioIndex;
+    const from=this.portfolioDragSourceIndex;
     const to=this.portfolioDragTargetIndex;
     if(from!==null && to!==null && from!==to){
       const selectedId=this.portfolios[this.selected]?.id;
