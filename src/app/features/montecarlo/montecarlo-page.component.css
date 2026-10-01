@@ -3138,3 +3138,7 @@ html, body {
 .kpi-row.is-dragging{opacity:1!important;visibility:visible!important;position:relative;z-index:2000!important}
 .kpi-row[draggable="true"]:active{opacity:1!important;z-index:2000!important}
 .kpi-native-drag-image,.kpi-native-drag-image *{opacity:1!important}
+
+/* Final drag contract: hide the in-list source; the opaque native clone is the only moving card. */
+.kpi-row.is-dragging{visibility:hidden!important;opacity:0!important}
+.kpi-native-drag-image,.kpi-native-drag-image *{visibility:visible!important;opacity:1!important}
