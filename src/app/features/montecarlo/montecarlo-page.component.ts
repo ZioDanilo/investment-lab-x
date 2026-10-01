@@ -207,6 +207,7 @@ export class MontecarloPageComponent {
   draggedKpiPreview: KpiCard | null = null;
   draggedKpiPreviewPosition = { left: 0, top: 0, width: 0, height: 0 };
   private draggedKpiPointerOffset = { x: 0, y: 0 };
+  private kpiDragPreviewElement: HTMLElement | null = null;
   suppressKpiTransitions = false;
   swapTargetId: string | null = null;
   insertTargetIndex: number | null = null;
@@ -975,21 +976,23 @@ export class MontecarloPageComponent {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', kpiId);
 
-      // Use an opaque clone as the native drag image. This follows the pointer
-      // independently from the KPI panel's backdrop-filter/stacking context.
       if (source) {
-        const dragImage = source.cloneNode(true) as HTMLElement;
-        dragImage.classList.remove('is-dragging', 'shift-up', 'shift-down');
-        dragImage.classList.add('kpi-native-drag-image');
-        dragImage.style.width = `${source.getBoundingClientRect().width}px`;
-        dragImage.style.height = `${source.getBoundingClientRect().height}px`;
-        document.body.appendChild(dragImage);
-        event.dataTransfer.setDragImage(
-          dragImage,
-          this.draggedKpiPointerOffset.x,
-          this.draggedKpiPointerOffset.y
-        );
-        requestAnimationFrame(() => dragImage.remove());
+        const rect = source.getBoundingClientRect();
+        this.kpiDragPreviewElement?.remove();
+        const preview = source.cloneNode(true) as HTMLElement;
+        preview.classList.remove('is-dragging', 'shift-up', 'shift-down');
+        preview.classList.add('kpi-pointer-drag-preview');
+        preview.style.cssText += `;position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;box-sizing:border-box;opacity:1!important;visibility:visible!important;transform:none!important;background:#07121f!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:2147483647;pointer-events:none;`;
+        preview.querySelectorAll<HTMLElement>('*').forEach((el) => { el.style.opacity = '1'; el.style.visibility = 'visible'; });
+        document.body.appendChild(preview);
+        this.kpiDragPreviewElement = preview;
+
+        // Keep native HTML5 DnD for hit-testing/drop only. Chromium's native
+        // drag bitmap is translucent, so make it invisible and paint our own.
+        const transparent = document.createElement('canvas');
+        transparent.width = 1;
+        transparent.height = 1;
+        event.dataTransfer.setDragImage(transparent, 0, 0);
       }
     }
   }
@@ -998,11 +1001,17 @@ export class MontecarloPageComponent {
     if (!this.draggedKpiId || (event.clientX === 0 && event.clientY === 0)) {
       return;
     }
+    const left = event.clientX - this.draggedKpiPointerOffset.x;
+    const top = event.clientY - this.draggedKpiPointerOffset.y;
     this.draggedKpiPreviewPosition = {
       ...this.draggedKpiPreviewPosition,
-      left: event.clientX - this.draggedKpiPointerOffset.x,
-      top: event.clientY - this.draggedKpiPointerOffset.y
+      left,
+      top
     };
+    if (this.kpiDragPreviewElement) {
+      this.kpiDragPreviewElement.style.left = `${left}px`;
+      this.kpiDragPreviewElement.style.top = `${top}px`;
+    }
   }
 
   onKpiDragOver(kpiId: string, event: DragEvent): void {
@@ -1187,6 +1196,8 @@ export class MontecarloPageComponent {
   }
 
   private finishDragState(): void {
+    this.kpiDragPreviewElement?.remove();
+    this.kpiDragPreviewElement = null;
     this.draggedKpiId = null;
     this.draggedKpiPreview = null;
     this.swapTargetId = null;
