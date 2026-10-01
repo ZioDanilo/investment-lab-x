@@ -43,6 +43,8 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioPendingDelete:Portfolio|null=null;
   deletingPortfolio=false;
   operationPortfolio:Portfolio|null=null;
+  operationType:'buy'|'sell'='buy';
+  ownedEtfs:any[]=[];
   operationEtfQuery='';
   operationEtfResults:any[]=[];
   operationEtf:any|null=null;
@@ -143,19 +145,25 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioColor(i:number):string { return ['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'][i%6]; }
   togglePortfolioMenu(event:MouseEvent,id:string):void { event.stopPropagation(); this.openPortfolioMenu=this.openPortfolioMenu===id?null:id; }
   choosePortfolioAction(event:MouseEvent,i:number):void { event.stopPropagation(); this.selectPortfolio(i); }
-  openBuyOperation(event:MouseEvent,i:number):void {
-    event.stopPropagation();
-    this.selectPortfolio(i);
-    this.openPortfolioMenu=null;
-    this.operationPortfolio=this.portfolios[i] ?? null;
-    this.operationEtfQuery=''; this.operationEtfResults=[]; this.operationEtf=null;
-    this.operationDate=new Date().toISOString().slice(0,10);
-    this.operationQuantity=null; this.operationUnitPrice=null;
+  openBuyOperation(event:MouseEvent,i:number):void { this.openOperation(event,i,'buy'); }
+  openSellOperation(event:MouseEvent,i:number):void { this.openOperation(event,i,'sell'); }
+  private openOperation(event:MouseEvent,i:number,type:'buy'|'sell'):void {
+    event.stopPropagation(); this.selectPortfolio(i); this.openPortfolioMenu=null;
+    this.operationPortfolio=this.portfolios[i] ?? null; this.operationType=type;
+    this.operationEtfQuery=''; this.operationEtfResults=[]; this.operationEtf=null; this.ownedEtfs=[];
+    this.operationDate=new Date().toISOString().slice(0,10); this.operationQuantity=null; this.operationUnitPrice=null;
+    if(type==='sell' && this.operationPortfolio) this.api.getRealPortfolioHoldings(this.operationPortfolio.id).subscribe({next:(res:any)=>this.ownedEtfs=Array.isArray(res?.data)?res.data:[],error:()=>this.ownedEtfs=[]});
   }
   cancelOperation():void { if(this.savingOperation)return; this.operationPortfolio=null; this.operationEtfResults=[]; }
   searchOperationEtf(value:string):void {
     this.operationEtfQuery=value; this.operationEtf=null;
     if(this.operationSearchTimer) clearTimeout(this.operationSearchTimer);
+    if(value.trim().length<1){this.operationEtfResults=[];return;}
+    if(this.operationType==='sell') {
+      const q=value.trim().toLocaleLowerCase();
+      this.operationEtfResults=this.ownedEtfs.filter((etf:any)=>[etf.nickname,etf.ticker,etf.name,etf.isin].some(v=>String(v??'').toLocaleLowerCase().includes(q)));
+      return;
+    }
     if(value.trim().length<3){this.operationEtfResults=[];return;}
     this.operationSearchTimer=setTimeout(()=>this.api.searchETF(value.trim()).subscribe({next:(res:any)=>this.operationEtfResults=Array.isArray(res?.data)?res.data:[],error:()=>this.operationEtfResults=[]}),250);
   }
@@ -167,10 +175,11 @@ export class RealPortfoliosPageComponent implements OnInit {
   get operationFormValid():boolean {
     return !!this.operationPortfolio && !!this.operationEtf?.id && !!this.operationDate && Number(this.operationQuantity)>0 && Number(this.operationUnitPrice)>0 && !this.savingOperation;
   }
-  insertBuyOperation():void {
+  get operationTotal():number { return Number(this.operationQuantity||0)*Number(this.operationUnitPrice||0); }
+  insertOperation():void {
     if(!this.operationFormValid || !this.operationPortfolio)return;
     this.savingOperation=true;
-    this.api.createRealPortfolioOperation(this.operationPortfolio.id,{operationType:'buy',etfId:this.operationEtf.id,operationDate:this.operationDate,quantity:Number(this.operationQuantity),unitPrice:Number(this.operationUnitPrice)}).subscribe({
+    this.api.createRealPortfolioOperation(this.operationPortfolio.id,{operationType:this.operationType,etfId:this.operationEtf.id,operationDate:this.operationDate,quantity:Number(this.operationQuantity),unitPrice:Number(this.operationUnitPrice)}).subscribe({
       next:()=>{this.savingOperation=false;this.operationPortfolio=null;this.operationEtfResults=[];},
       error:(error)=>{this.savingOperation=false;console.error('Errore inserimento operazione',error);}
     });
