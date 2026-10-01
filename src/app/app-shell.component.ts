@@ -58,7 +58,7 @@ export class AppShellComponent implements OnDestroy {
   }
   get featureActionProgress(): number {
     return this.isMonteCarloPage && this.isRegeneratingMarketUniverse
-      ? this.marketUniverseGenerationProgress
+      ? Math.max(1, this.marketUniverseGenerationProgress)
       : (this.activeFeaturePage?.headerActionProgress ?? 0);
   }
   private get isMonteCarloPage(): boolean { return this.router.url.startsWith('/monte-carlo'); }
