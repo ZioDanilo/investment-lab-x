@@ -619,3 +619,6 @@
 .portfolio-confirm-button--confirm{border:1px solid rgba(37,230,177,.68);color:#25e6b1}
 .portfolio-confirm-button--confirm:hover:not(:disabled){background:rgba(37,230,177,.07);border-color:#25e6b1;color:#69f1c9}
 .portfolio-confirm-button:disabled{opacity:.5;cursor:not-allowed}
+
+.portfolio-confirm-input.invalid{border-color:rgba(255,83,102,.78);box-shadow:0 0 0 2px rgba(255,83,102,.08)}
+.portfolio-confirm-error{display:block;margin:-10px 0 14px;color:#ff657d;font-size:.7rem;line-height:1.3}
