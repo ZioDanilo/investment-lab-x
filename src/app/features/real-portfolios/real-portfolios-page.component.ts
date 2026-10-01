@@ -109,6 +109,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   private portfolioDragOriginalOrder:Portfolio[]|null=null;
   portfolioDragSourceIndex:number|null=null;
   portfolioDragTargetIndex:number|null=null;
+  suppressPortfolioDragTransitions=false;
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
     effect(() => {
@@ -229,10 +230,15 @@ export class RealPortfoliosPageComponent implements OnInit {
       const [moved]=reordered.splice(from,1); reordered.splice(to,0,moved); this.portfolios=reordered;
       const selectedIndex=selectedId?this.portfolios.findIndex(p=>p.id===selectedId):-1; if(selectedIndex>=0)this.selected=selectedIndex;
     }
+    // Disable preview transforms in the same frame as the DOM reorder. Otherwise,
+    // on right-to-left drops the shifted sibling briefly keeps its translateX
+    // after moving to its new grid cell and performs a second visible animation.
+    this.suppressPortfolioDragTransitions=true;
     this.draggedPortfolioIndex=null;
     this.portfolioDragSourceIndex=null;
     this.portfolioDragTargetIndex=null;
     this.portfolioDragOriginalOrder=null;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>this.suppressPortfolioDragTransitions=false));
     this.api.updateRealPortfolioOrder(this.portfolios.map(p=>p.id)).subscribe({error:(error)=>{console.error('Errore salvataggio ordine portafogli',error);this.loadRealPortfolios();}});
   }
   endPortfolioDrag():void {
