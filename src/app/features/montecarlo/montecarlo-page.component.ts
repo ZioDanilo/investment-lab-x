@@ -44,7 +44,7 @@ interface KpiCard {
 export class MontecarloPageComponent {
   readonly headerActionIcon = 'play_arrow';
   get headerActionLabel(): string { return this.runButtonLabel; }
-  get headerActionDisabled(): boolean { return this.editorState()?.state?.isValid !== true || this.isRunning || this.completionHoldActive; }
+  get headerActionDisabled(): boolean { return this.marketUniverseGenerationInProgress || this.editorState()?.state?.isValid !== true || this.isRunning || this.completionHoldActive; }
   get headerActionRunning(): boolean { return this.isRunning || this.completionHoldActive; }
   get headerActionProgress(): number { return this.buttonFillWidth; }
   runHeaderAction(): void { this.runSimulation(); }
@@ -90,6 +90,12 @@ export class MontecarloPageComponent {
   private progressAnimationIntervalId: ReturnType<typeof setInterval> | null = null;
   private progressAnimationStartedAt = 0;
   private progressAnimationCeiling = 60;
+  marketUniverseGenerationInProgress = false;
+  marketUniverseGenerationProgress = 0;
+  marketUniverseGenerationCurrentRecords = 0;
+  marketUniverseGenerationMissingRecords = 0;
+  private marketUniverseGenerationPollTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private marketUniverseGenerationPollActive = false;
   isRegeneratingMarketUniverse = false;
   marketUniverseStatusMessage: string | null = null;
   kpis: KpiCard[] = [...this.defaultKpis];
@@ -114,6 +120,11 @@ export class MontecarloPageComponent {
       const portfolioId = this.selectedPortfolio()?.id ?? null;
       void this.loadPortfolioKpiConfiguration(portfolioId);
     });
+  }
+
+  setMarketUniverseGenerationStatus(inProgress: boolean, progress: number): void {
+    this.marketUniverseGenerationInProgress = inProgress;
+    this.marketUniverseGenerationProgress = Math.max(0, Math.min(100, Number(progress) || 0));
   }
 
   private resetPortfolioKpiConfiguration(): void {
@@ -818,11 +829,11 @@ export class MontecarloPageComponent {
   }
 
   async runSimulation(): Promise<void> {
-    this.kpiResultValues = {};
-    if (this.editorState()?.state?.isValid !== true || this.isRunning) {
+    if (this.editorState()?.state?.isValid !== true || this.isRunning || this.marketUniverseGenerationInProgress) {
       return;
     }
 
+    this.kpiResultValues = {};
     this.isRunning = true;
     this.startProgressAnimation();
     this.resetKpis();

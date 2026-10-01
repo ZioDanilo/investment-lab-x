@@ -122,3 +122,6 @@ input.invalid,
 .form-input.invalid {
   border-color: #ff6b6b;
 }
+
+.portfolio-dropdown__item--close{color:#f4c95d}
+.portfolio-dropdown__item--close .material-symbols-rounded{color:#f4c95d}

@@ -3098,3 +3098,33 @@ html, body {
     overflow:visible!important;
   }
 }
+
+
+/* Market Universe regeneration gate for Monte Carlo. The dashboard remains
+   mounted in component state but is not rendered while the 360k rows rebuild. */
+.market-universe-generation-wait {
+  min-height: calc(100vh - 150px);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.market-universe-generation-button {
+  min-width: min(360px, calc(100vw - 32px));
+  cursor: default !important;
+}
+
+.market-universe-generation-button:disabled {
+  opacity: 1;
+}
+
+.market-universe-generation-button .material-symbols-outlined {
+  font-size: 1.15rem;
+}
+
+.montecarlo-dashboard-state--hidden {
+  display: none;
+}

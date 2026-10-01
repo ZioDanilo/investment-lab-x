@@ -5,7 +5,6 @@ import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../core/api/api.service';
 import { Etf } from '../../../core/models/etf.model';
 import { EtfMacroStatistics } from '../../../core/models/monte-carlo.model';
-import { DialogInputComponent } from '../dialog-input/dialog-input.component';
 import { PortfolioSelectionService } from '../../../core/services/portfolio-selection.service';
 
 export interface MontecarloPortfolioItem {
@@ -57,7 +56,7 @@ interface EtfSearchItem {
 @Component({
   selector: 'app-montecarlo-portfolio-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogInputComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './montecarlo-portfolio-editor.component.html',
   styleUrls: ['./montecarlo-portfolio-editor.component.css']
 })
@@ -81,6 +80,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   readonly showSearchResults = signal(false);
   readonly highlightedIndex = signal(0);
   readonly createDialogVisible = signal(false);
+  readonly updateDialogVisible = signal(false);
   readonly createPortfolioNameDraft = signal('');
 
   private searchTimer: number | null = null;
@@ -104,16 +104,47 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     return JSON.stringify(current) !== JSON.stringify(original);
   });
 
-  readonly canRestorePortfolio = computed(() => Boolean(this.portfolioId) && !this.saving());
+  readonly selectedNavbarPortfolio = computed(() => this.portfolioSelectionService.selectedPortfolio());
+  readonly selectedPortfolioType = computed(() => this.selectedNavbarPortfolio()?.tipo ?? null);
+  readonly hasSelectedNavbarPortfolio = computed(() => Boolean(this.selectedNavbarPortfolio()));
+
+  readonly canRestorePortfolio = computed(() =>
+    this.hasSelectedNavbarPortfolio() &&
+    !this.saving()
+  );
+
   readonly canUpdatePortfolio = computed(() =>
-    Boolean(this.portfolioId) &&
+    this.selectedPortfolioType() === 'laboratorio' &&
+    this.isValid() &&
     !this.saving()
   );
-  readonly canCreatePortfolio = computed(() =>
-    Boolean(this.portfolioId) &&
+
+  readonly canCreatePortfolio = computed(() => {
+    const selectedType = this.selectedPortfolioType();
+
+    // No selection: a new portfolio can be created only from a valid 100% composition.
+    if (!selectedType) return this.isValid() && !this.saving();
+
+    // Real portfolios can only be restored: they must never be overwritten or duplicated here.
+    if (selectedType === 'reale') return false;
+
+    // Laboratory/simulated portfolios can be duplicated only from a valid 100% composition.
+    return this.isValid() && !this.saving();
+  });
+
+  readonly createPortfolioActionLabel = computed(() =>
+    this.selectedPortfolioType() === 'laboratorio' ? 'Duplica portafoglio' : 'Crea portafoglio'
+  );
+  readonly createPortfolioNameUnavailable = computed(() => {
+    const name = this.createPortfolioNameDraft().trim().toLocaleLowerCase();
+    return !!name && this.portfolioSelectionService.portfolioOptions()
+      .some((portfolio) => portfolio.label.trim().toLocaleLowerCase() === name);
+  });
+  readonly canConfirmCreatePortfolio = computed(() =>
+    this.createPortfolioNameDraft().trim().length > 0 &&
+    !this.createPortfolioNameUnavailable() &&
     !this.saving()
   );
-  readonly canConfirmCreatePortfolio = computed(() => this.createPortfolioNameDraft().trim().length > 0 && !this.saving());
 
   readonly effectiveEtfs = computed<Etf[]>(() =>
     this.items()
@@ -156,27 +187,38 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   }
 
   async restoreFromBackend(): Promise<void> {
-    if (!this.portfolioId) {
-      return;
-    }
+    const selected = this.portfolioSelectionService.selectedPortfolio();
+    const portfolioId = selected?.id ?? this.portfolioId;
+    if (!portfolioId) return;
 
-    await this.loadPortfolioComposition(this.portfolioId);
+    // Restore must discard every temporary/session edit and reload the persisted state.
+    this.portfolioSelectionService.discardWorkingPortfolio();
+    this.items.set([]);
+    this.originalItems.set([]);
+    this.currentWeightValues.set({});
+    this.searchQuery.set('');
+    this.searchResults.set([]);
+    this.showSearchResults.set(false);
+
+    await this.loadPortfolioComposition(portfolioId, true);
   }
 
   async restorePortfolio(): Promise<void> {
     await this.restoreFromBackend();
   }
 
-  async updatePortfolio(): Promise<void> {
-    if (!this.portfolioId || !this.canUpdatePortfolio()) {
-      return;
-    }
+  updatePortfolio(): void {
+    if (!this.portfolioId || !this.canUpdatePortfolio()) return;
+    this.updateDialogVisible.set(true);
+  }
 
-    if (!this.isValid()) {
-      window.alert('La composizione deve avere un totale esatto del 100,00% prima di aggiornare il portafoglio.');
-      return;
-    }
+  closeUpdatePortfolioDialog(): void {
+    this.updateDialogVisible.set(false);
+  }
 
+  confirmUpdatePortfolio(): void {
+    if (!this.portfolioId || !this.canUpdatePortfolio() || !this.isValid()) return;
+    this.updateDialogVisible.set(false);
     this.saving.set(true);
     this.emitState();
 
@@ -211,7 +253,8 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       return;
     }
 
-    this.createPortfolioNameDraft.set(this.selectedPortfolioName() || 'Nuovo portafoglio');
+    const isDuplicate = this.selectedPortfolioType() === 'laboratorio';
+    this.createPortfolioNameDraft.set(isDuplicate ? (this.selectedPortfolioName() || '') : 'Nuovo portafoglio');
     this.createDialogVisible.set(true);
   }
 
@@ -247,6 +290,8 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
           this.selectedPortfolioName.set(name.trim());
           this.portfolioSaved.emit(newId);
         }
+        // Creation/duplication changes the global portfolio set: refresh every consumer.
+        this.portfolioSelectionService.loadPortfolios();
         this.saving.set(false);
         this.emitState();
       },
@@ -270,12 +315,12 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     };
   }
 
-  async loadPortfolioComposition(portfolioId: string): Promise<void> {
+  async loadPortfolioComposition(portfolioId: string, forceBackend = false): Promise<void> {
     this.loading.set(true);
     this.emitState();
 
     const existingSessionPortfolio = this.portfolioSelectionService.workingPortfolio();
-    if (this.portfolioSelectionService.currentWorkingPortfolioId() === portfolioId && existingSessionPortfolio) {
+    if (!forceBackend && this.portfolioSelectionService.currentWorkingPortfolioId() === portfolioId && existingSessionPortfolio) {
       const mapped = existingSessionPortfolio.holdings.map((holding: any) => this.mapWorkingHoldingToItem(holding));
 
       this.items.set(mapped);
