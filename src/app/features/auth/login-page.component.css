@@ -418,3 +418,21 @@
   height: 3px;
   background: rgba(9, 17, 24, 0.92);
 }
+
+/* Join the two auth tabs into one continuous tab strip */
+.auth-tabs {
+  gap: 0;
+}
+
+.auth-tabs button:first-child {
+  border-radius: 12px 0 0 0;
+}
+
+.auth-tabs button:last-child {
+  border-radius: 0 12px 0 0;
+  margin-left: -1px;
+}
+
+.auth-tabs button.active {
+  z-index: 2;
+}
