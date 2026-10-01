@@ -11,6 +11,8 @@
               <button type="button" class="portfolio-dropdown__item" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">add_shopping_cart</span><span>Acquista</span></button>
               <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--sell" role="menuitem" (click)="choosePortfolioAction($event,i)"><span class="material-symbols-rounded">sell</span><span>Vendi</span></button>
               <div class="portfolio-dropdown__separator" aria-hidden="true"></div>
+              <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--close" role="menuitem"><span class="material-symbols-rounded">exit_to_app</span><span>Chiudi</span></button>
+              <div class="portfolio-dropdown__separator" aria-hidden="true"></div>
               <button type="button" class="portfolio-dropdown__item portfolio-dropdown__item--delete" role="menuitem" (click)="requestDeletePortfolio($event,p)"><span class="material-symbols-rounded">delete</span><span>Elimina</span></button>
             </div>
           </div>
