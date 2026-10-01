@@ -189,12 +189,15 @@ export class RealPortfoliosPageComponent implements OnInit {
   }
   private loadOperations():void {
     const portfolio=this.portfolios[this.selected]; if(!portfolio){this.operations=[];return;}
-    this.api.getRealPortfolioOperations(portfolio.id).subscribe({next:(res:any)=>{
+    this.api.getLatestRealPortfolioOperations(portfolio.id).subscribe({next:(res:any)=>{
       const rows=Array.isArray(res?.data)?res.data:[];
       const nf=new Intl.NumberFormat('it-IT',{minimumFractionDigits:0,maximumFractionDigits:8});
       const eur=new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2});
       const df=new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'short',year:'numeric'});
-      this.operations=rows.map((o:any)=>{const q=this.parseDecimal(o.quantity),p=this.parseDecimal(o.unitPrice);return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:o.operationType==='sell'?'Vendita':'Acquisto',ticker:o.etf?.ticker||o.etf?.nickname||o.etf?.isin||'',qty:nf.format(q),price:eur.format(p),total:eur.format(q*p)};});
+      this.operations=rows.map((o:any)=>{
+        const q=this.parseDecimal(o.quantity),p=this.parseDecimal(o.unitPrice);
+        return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:o.operationType==='sell'?'Vendita':'Acquisto',ticker:o.etf?.ticker||o.etf?.nickname||o.etf?.isin||'',qty:nf.format(q),price:eur.format(p),total:eur.format(q*p)};
+      });
     },error:()=>this.operations=[]});
   }
   insertOperation():void {
