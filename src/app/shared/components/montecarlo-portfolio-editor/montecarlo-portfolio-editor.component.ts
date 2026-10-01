@@ -280,6 +280,8 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
           this.selectedPortfolioName.set(name.trim());
           this.portfolioSaved.emit(newId);
         }
+        // Creation/duplication changes the global portfolio set: refresh every consumer.
+        this.portfolioSelectionService.loadPortfolios();
         this.saving.set(false);
         this.emitState();
       },
