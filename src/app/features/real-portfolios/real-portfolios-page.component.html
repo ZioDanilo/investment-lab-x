@@ -51,7 +51,7 @@
 
     <div class="bottom-grid">
       <app-ui-card title="I tuoi ETF"><div class="table-scroll"><table><thead><tr><th>ETF</th><th>Ticker</th><th>Quantità</th><th>Prezzo medio</th><th>Valore attuale</th><th>Gain/Loss</th><th>Peso</th></tr></thead><tbody><tr *ngFor="let h of holdings"><td><strong>{{h.name}}</strong></td><td>{{h.ticker}}</td><td>{{h.qty}}</td><td>{{h.avg}}</td><td>{{h.value}}</td><td [class]="h.tone">{{h.gain}}</td><td>{{h.weight}}</td></tr></tbody></table></div></app-ui-card>
-      <app-ui-card title="Ultime operazioni"><div class="table-scroll"><table><thead><tr><th>Data</th><th>Operazione</th><th>ETF</th><th>Quantità</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody><tr *ngFor="let o of operations"><td>{{o.date}}</td><td><span class="pill" [class.sell]="o.type==='Vendita'">{{o.type}}</span></td><td>{{o.ticker}}</td><td>{{o.qty}}</td><td>{{o.price}}</td><td>{{o.total}}</td></tr></tbody></table></div></app-ui-card>
+      <app-ui-card title="Ultime operazioni"><div class="table-scroll"><table><thead><tr><th>Data</th><th>Operazione</th><th>ISIN</th><th>ETF</th><th>Quantità</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody><tr *ngFor="let o of operations"><td>{{o.date}}</td><td><span class="pill" [class.sell]="o.type==='Vendita'">{{o.type}}</span></td><td>{{o.isin}}</td><td>{{o.etf}}</td><td>{{o.qty}}</td><td>{{o.price}}</td><td>{{o.total}}</td></tr></tbody></table></div></app-ui-card>
     </div>
     </ng-container>
 
