@@ -3133,3 +3133,8 @@ html, body {
 .kpi-row.is-dragging{opacity:1!important;visibility:visible!important}
 .kpi-row[draggable="true"]{cursor:grab;user-select:none}
 .kpi-row[draggable="true"]:active{cursor:grabbing}
+
+/* Dragged KPI remains fully opaque and above sibling cards. */
+.kpi-row.is-dragging{opacity:1!important;visibility:visible!important;position:relative;z-index:2000!important}
+.kpi-row[draggable="true"]:active{opacity:1!important;z-index:2000!important}
+.kpi-native-drag-image,.kpi-native-drag-image *{opacity:1!important}
