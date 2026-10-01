@@ -23,16 +23,51 @@ export class LoginPageComponent {
   submitting = false;
   authError = '';
   authSuccess = '';
+  usernameTaken = false;
+  private usernameCheckTimer?: ReturnType<typeof setTimeout>;
 
   setRegisterMode(registerMode: boolean): void {
     if (this.submitting) return;
     this.registerMode = registerMode;
     this.authError = '';
     this.authSuccess = '';
+    this.usernameTaken = false;
+  }
+
+  onUsernameChange(value: string): void {
+    this.usernameTaken = false;
+    this.authError = '';
+    if (!this.registerMode) return;
+
+    if (this.usernameCheckTimer) clearTimeout(this.usernameCheckTimer);
+    const username = String(value ?? '').trim();
+    if (!username) return;
+
+    this.usernameCheckTimer = setTimeout(() => this.checkUsernameAvailability(), 350);
+  }
+
+  checkUsernameAvailability(): void {
+    if (!this.registerMode) return;
+    const username = this.username.trim();
+    if (!username) {
+      this.usernameTaken = false;
+      return;
+    }
+
+    this.apiService.checkUsernameAvailability(username).subscribe({
+      next: (response: any) => {
+        if (this.username.trim().toLowerCase() !== username.toLowerCase()) return;
+        this.usernameTaken = response?.data?.available === false;
+      },
+      error: () => {
+        // Registration itself remains the authoritative uniqueness check.
+        this.usernameTaken = false;
+      }
+    });
   }
 
   onSubmit(): void {
-    if (this.submitting || !this.username || !this.password) return;
+    if (this.submitting || !this.username || !this.password || (this.registerMode && this.usernameTaken)) return;
     if (this.registerMode) {
       this.onRegister();
       return;
