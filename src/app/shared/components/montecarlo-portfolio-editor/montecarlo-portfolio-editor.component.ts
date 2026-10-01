@@ -115,6 +115,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
 
   readonly canUpdatePortfolio = computed(() =>
     this.selectedPortfolioType() === 'laboratorio' &&
+    this.isValid() &&
     !this.saving()
   );
 
@@ -127,8 +128,8 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     // Real portfolios can only be restored: they must never be overwritten or duplicated here.
     if (selectedType === 'reale') return false;
 
-    // Laboratory/simulated portfolios can always be duplicated once selected.
-    return !this.saving();
+    // Laboratory/simulated portfolios can be duplicated only from a valid 100% composition.
+    return this.isValid() && !this.saving();
   });
 
   readonly createPortfolioActionLabel = computed(() =>
@@ -177,11 +178,20 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   }
 
   async restoreFromBackend(): Promise<void> {
-    if (!this.portfolioId) {
-      return;
-    }
+    const selected = this.portfolioSelectionService.selectedPortfolio();
+    const portfolioId = selected?.id ?? this.portfolioId;
+    if (!portfolioId) return;
 
-    await this.loadPortfolioComposition(this.portfolioId);
+    // Restore must discard every temporary/session edit and reload the persisted state.
+    this.portfolioSelectionService.discardWorkingPortfolio();
+    this.items.set([]);
+    this.originalItems.set([]);
+    this.currentWeightValues.set({});
+    this.searchQuery.set('');
+    this.searchResults.set([]);
+    this.showSearchResults.set(false);
+
+    await this.loadPortfolioComposition(portfolioId, true);
   }
 
   async restorePortfolio(): Promise<void> {
@@ -291,12 +301,12 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     };
   }
 
-  async loadPortfolioComposition(portfolioId: string): Promise<void> {
+  async loadPortfolioComposition(portfolioId: string, forceBackend = false): Promise<void> {
     this.loading.set(true);
     this.emitState();
 
     const existingSessionPortfolio = this.portfolioSelectionService.workingPortfolio();
-    if (this.portfolioSelectionService.currentWorkingPortfolioId() === portfolioId && existingSessionPortfolio) {
+    if (!forceBackend && this.portfolioSelectionService.currentWorkingPortfolioId() === portfolioId && existingSessionPortfolio) {
       const mapped = existingSessionPortfolio.holdings.map((holding: any) => this.mapWorkingHoldingToItem(holding));
 
       this.items.set(mapped);
