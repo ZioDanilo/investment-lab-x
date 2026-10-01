@@ -26,12 +26,8 @@
     </div>
 
     <ng-container *ngIf="hasSelectedPortfolio">
-    <div class="toolbar">
-      <nav><button class="active">Panoramica</button><button>Composizione</button><button>Operazioni</button><button>Analisi</button><button>Dettagli</button></nav>
-    </div>
-
     <div class="kpi-grid">
-      <app-ui-card *ngFor="let k of kpis" [compact]="true"><span class="kpi-label">{{k[0]}}</span><strong class="kpi-value" [class]="k[3]">{{k[1]}}</strong><small [class]="k[3]">{{k[2]}}</small></app-ui-card>
+      <app-ui-card *ngFor="let k of kpis; let kpiIndex=index" [compact]="true" [class.kpi-card--primary-pair]="kpiIndex < 2"><span class="kpi-label">{{k[0]}}</span><strong class="kpi-value" [class]="k[3]">{{k[1]}}</strong><small [class]="k[3]" [class.kpi-empty-line]="kpiIndex === 1 || kpiIndex >= 3">{{(kpiIndex === 1 || kpiIndex >= 3) ? '\u00A0' : k[2]}}</small></app-ui-card>
     </div>
 
     <div class="main-grid">
@@ -70,11 +66,11 @@
   <section class="delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-portfolio-title" (click)="$event.stopPropagation()">
     <h2 id="delete-portfolio-title">Sei sicuro di voler eliminare il portafoglio?</h2>
     <div class="delete-confirm-actions">
-      <button type="button" class="delete-confirm-button delete-confirm-button--delete" [disabled]="deletingPortfolio" (click)="confirmDeletePortfolio()">
-        <span class="material-symbols-rounded">delete</span><span>{{ deletingPortfolio ? 'Eliminazione…' : 'Elimina' }}</span>
-      </button>
       <button type="button" class="delete-confirm-button delete-confirm-button--keep" [disabled]="deletingPortfolio" (click)="keepPortfolio()">
         <span class="material-symbols-rounded">check</span><span>Mantieni</span>
+      </button>
+      <button type="button" class="delete-confirm-button delete-confirm-button--delete" [disabled]="deletingPortfolio" (click)="confirmDeletePortfolio()">
+        <span class="material-symbols-rounded">delete</span><span>{{ deletingPortfolio ? 'Eliminazione…' : 'Elimina' }}</span>
       </button>
     </div>
   </section>

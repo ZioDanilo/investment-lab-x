@@ -187,3 +187,10 @@ input.invalid,
   box-shadow:none!important;
 }
 .portfolio-choice.drag-source-empty>*{visibility:hidden!important}
+
+/* The first two financial KPI cards are a visual pair and must keep identical height. */
+.kpi-grid .kpi-card--primary-pair{height:100%;min-height:86px;box-sizing:border-box}
+
+/* Equal-height financial KPI pair: the class is on the app-ui-card host, so stretch its inner shared card too. */
+.kpi-grid .kpi-card--primary-pair{align-self:stretch}
+.kpi-grid .kpi-card--primary-pair .ui-card{height:100%;min-height:86px;box-sizing:border-box}
