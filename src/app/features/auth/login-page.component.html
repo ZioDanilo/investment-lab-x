@@ -1,103 +1,72 @@
 <div class="login-page">
-  <header class="top-nav landing-nav" aria-label="Navigation landing">
-    <div class="brand-group" aria-label="Investment Lab brand">
-      <div class="brand-mark">
-        <span class="brand-mark__dot"></span>
-        <span class="brand-mark__dot brand-mark__dot--small"></span>
-      </div>
-      <div class="brand-copy">
-        <span class="brand-name">INVESTMENT LAB</span>
-      </div>
-    </div>
-
-    <nav class="landing-links" aria-label="Link landing">
-      <a href="javascript:void(0)">Funzionalità</a>
-      <a href="javascript:void(0)">Metodo</a>
-    </nav>
-
-    <button type="button" class="login-pill" (click)="onLogin()">Accedi</button>
-  </header>
-
   <main class="landing-shell">
-    <section class="hero-panel" aria-label="Hero landing">
+    <section class="hero-panel" aria-label="Investment Lab">
       <div class="hero-copy-wrap">
-        <p class="eyebrow">INVESTMENT LAB X</p>
-        <h1>
-          Costruisci oggi<br />
-          i portafogli di <span>domani.</span>
-        </h1>
-        <p class="subtitle">Dati. Scenari. Simulazioni. Decisioni migliori.</p>
+        <div class="brand-group" aria-label="Investment Lab brand">
+          <div class="brand-mark">
+            <span class="brand-mark__dot"></span>
+            <span class="brand-mark__dot brand-mark__dot--small"></span>
+          </div>
+          <span class="brand-name">INVESTMENT LAB</span>
+        </div>
+
+        <div class="hero-copy">
+          <p class="eyebrow">INVESTMENT LAB X</p>
+          <h1>
+            Costruisci oggi<br />
+            i portafogli di <span>domani.</span>
+          </h1>
+          <p class="subtitle">Dati. Scenari. Simulazioni. Decisioni migliori.</p>
+        </div>
+
+        <div class="quote-block" aria-label="Frase promozionale">
+          <span class="quote-bar"></span>
+          <p>“Better portfolios<br />for a more certain tomorrow.”</p>
+        </div>
       </div>
 
-      <form class="login-card" aria-label="Form di login" (ngSubmit)="onLogin()">
-        <h2>Accedi a Investment Lab</h2>
+      <form class="login-card" [attr.aria-label]="registerMode ? 'Form di registrazione' : 'Form di login'" (ngSubmit)="onSubmit()">
+        <div class="auth-tabs" role="tablist" aria-label="Accesso o registrazione">
+          <button type="button" role="tab" [class.active]="!registerMode" [attr.aria-selected]="!registerMode" (click)="setRegisterMode(false)">Accedi</button>
+          <button type="button" role="tab" [class.active]="registerMode" [attr.aria-selected]="registerMode" (click)="setRegisterMode(true)">Registrati</button>
+        </div>
+
+        <h2>{{ registerMode ? 'Crea il tuo account' : 'Accedi a Investment Lab' }}</h2>
+
         <label class="field">
           <span>Username</span>
-          <input type="text" [(ngModel)]="username" autocomplete="username" aria-label="Username" />
+          <input
+            type="text"
+            name="username"
+            [(ngModel)]="username"
+            autocomplete="username"
+            aria-label="Username"
+            required
+          />
         </label>
+
         <label class="field">
           <span>Password</span>
-          <input type="password" [(ngModel)]="password" autocomplete="current-password" aria-label="Password" (keyup.enter)="onLogin()" />
+          <input
+            type="password"
+            name="password"
+            [(ngModel)]="password"
+            [autocomplete]="registerMode ? 'new-password' : 'current-password'"
+            aria-label="Password"
+            required
+          />
         </label>
 
+        <button type="submit" class="primary-login" [disabled]="submitting || !username || !password">
+          {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Registrati' : 'Entra') }}
+        </button>
 
-        <button type="submit" class="primary-login" [disabled]="loggingIn">{{ loggingIn ? 'Accesso...' : 'Entra' }}</button>
-        <p class="helper-text" *ngIf="loginError">{{ loginError }}</p>
-        <p class="helper-text">Accedi al tuo laboratorio di investimento.</p>
+        <p class="helper-text helper-text--error" *ngIf="authError">{{ authError }}</p>
+        <p class="helper-text helper-text--success" *ngIf="authSuccess">{{ authSuccess }}</p>
+        <p class="helper-text">
+          {{ registerMode ? 'Scegli username e password per creare il tuo profilo.' : 'Accedi al tuo laboratorio di investimento.' }}
+        </p>
       </form>
-
-      <div class="quote-block" aria-label="Frase promozionale">
-        <span class="quote-bar"></span>
-        <p>“Better portfolios<br />for a more certain tomorrow.”</p>
-      </div>
-    </section>
-
-    <section class="stats-panel" aria-label="Statistiche generiche">
-      <h3>Investment Lab in numeri</h3>
-      <div class="stats-grid">
-        <article>
-          <strong>312</strong>
-          <span>ETF disponibili</span>
-        </article>
-        <article>
-          <strong>4</strong>
-          <span>Scenari macro</span>
-        </article>
-        <article>
-          <strong>100 anni</strong>
-          <span>Orizzonte massimo Monte Carlo</span>
-        </article>
-        <article>
-          <strong>100.000+</strong>
-          <span>Percorsi simulabili</span>
-        </article>
-      </div>
-    </section>
-
-    <section class="workflow-panel" aria-label="Workflow del prodotto">
-      <h3>Dal dato al portafoglio</h3>
-      <div class="workflow-grid">
-        <article>
-          <span class="step">01</span>
-          <h4>Costruisci</h4>
-          <p>Combina ETF e definisci l'allocazione.</p>
-        </article>
-        <article>
-          <span class="step">02</span>
-          <h4>Valuta</h4>
-          <p>Analizza rendimento, rischio, drawdown, correlazioni e scenari ADB.</p>
-        </article>
-        <article>
-          <span class="step">03</span>
-          <h4>Simula</h4>
-          <p>Sottoponi i portafogli selezionati al Monte Carlo.</p>
-        </article>
-        <article>
-          <span class="step">04</span>
-          <h4>Ribilancia</h4>
-          <p>Trasforma il portafoglio target in operazioni concrete.</p>
-        </article>
-      </div>
     </section>
   </main>
 </div>
