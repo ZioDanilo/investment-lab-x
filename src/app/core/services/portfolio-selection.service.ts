@@ -26,6 +26,8 @@ export class PortfolioSelectionService {
   readonly originalPortfolioSnapshot = signal<WorkingPortfolioSnapshot | null>(null);
   readonly loading = signal(false);
   readonly hasError = signal(false);
+  // Increments after every successful global portfolio reload so all portfolio views can refresh.
+  readonly refreshVersion = signal(0);
 
   constructor() {}
 
@@ -79,6 +81,7 @@ export class PortfolioSelectionService {
 
         this.selectedPortfolio.set(validSelection);
         this.loading.set(false);
+        this.refreshVersion.update((version) => version + 1);
       },
       error: () => {
         this.portfolioOptions.set([]);
