@@ -70,6 +70,10 @@ export class ApiService {
     return this.http.delete(`${this.apiUrl}/real-portfolios/${id}`);
   }
 
+  createRealPortfolioOperation(portfolioId: string, data: { operationType: 'buy' | 'sell'; etfId: string; operationDate: string; quantity: number; unitPrice: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/real-portfolios/${portfolioId}/operations`, data);
+  }
+
   // ETF endpoints
   getETFs(): Observable<any> {
     return this.http.get(`${this.apiUrl}/etf`);
