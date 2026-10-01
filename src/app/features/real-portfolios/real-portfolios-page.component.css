@@ -177,3 +177,13 @@ input.invalid,
 /* Native source must never acquire translucency while dragging. */
 .portfolio-choice[draggable="true"]{opacity:1!important;visibility:visible!important;position:relative;z-index:1}
 .portfolio-choice[draggable="true"]:active{opacity:1!important;z-index:1000}
+
+/* While dragging, keep the source grid slot but remove every painted part of its card. */
+.portfolio-choice.drag-source-empty{
+  opacity:0!important;
+  visibility:visible!important;
+  border-color:transparent!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.portfolio-choice.drag-source-empty>*{visibility:hidden!important}
