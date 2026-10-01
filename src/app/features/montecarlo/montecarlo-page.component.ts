@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy, ViewChild, effect, inject, signal } from '@angular/core';
+import { Component, HostListener, ViewChild, effect, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { MonteCarloStatisticsEngine } from '../../core/engines/monte-carlo-statistics.engine';
@@ -41,12 +41,12 @@ interface KpiCard {
   templateUrl: './montecarlo-page.component.html',
   styleUrls: ['./montecarlo-page.component.css']
 })
-export class MontecarloPageComponent implements OnDestroy {
+export class MontecarloPageComponent {
   readonly headerActionIcon = 'play_arrow';
-  get headerActionLabel(): string { return this.marketUniverseGenerationInProgress ? '' : this.runButtonLabel; }
+  get headerActionLabel(): string { return this.runButtonLabel; }
   get headerActionDisabled(): boolean { return this.marketUniverseGenerationInProgress || this.editorState()?.state?.isValid !== true || this.isRunning || this.completionHoldActive; }
-  get headerActionRunning(): boolean { return this.marketUniverseGenerationInProgress || this.isRunning || this.completionHoldActive; }
-  get headerActionProgress(): number { return this.marketUniverseGenerationInProgress ? this.marketUniverseGenerationProgress : this.buttonFillWidth; }
+  get headerActionRunning(): boolean { return this.isRunning || this.completionHoldActive; }
+  get headerActionProgress(): number { return this.buttonFillWidth; }
   runHeaderAction(): void { this.runSimulation(); }
 
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
@@ -122,75 +122,9 @@ export class MontecarloPageComponent implements OnDestroy {
     });
   }
 
-  ngOnDestroy(): void {
-    this.stopMarketUniverseGenerationPolling();
-  }
-
-  private stopMarketUniverseGenerationPolling(): void {
-    this.marketUniverseGenerationPollActive = false;
-    if (this.marketUniverseGenerationPollTimeoutId !== null) {
-      clearTimeout(this.marketUniverseGenerationPollTimeoutId);
-      this.marketUniverseGenerationPollTimeoutId = null;
-    }
-  }
-
-  private applyMarketUniverseGenerationStatus(status: any): boolean {
-    const data = status?.data ?? status ?? {};
-    const inProgress = data?.inProgress === true;
+  setMarketUniverseGenerationStatus(inProgress: boolean, progress: number): void {
     this.marketUniverseGenerationInProgress = inProgress;
-
-    if (!inProgress) {
-      this.marketUniverseGenerationProgress = 0;
-      this.marketUniverseGenerationCurrentRecords = 360000;
-      this.marketUniverseGenerationMissingRecords = 0;
-      return false;
-    }
-
-    this.marketUniverseGenerationCurrentRecords = Math.max(0, Number(data?.currentRecords) || 0);
-    this.marketUniverseGenerationMissingRecords = Math.max(0, Number(data?.missingRecords) || 0);
-    this.marketUniverseGenerationProgress = Math.max(0, Math.min(100,
-      Number.isFinite(Number(data?.progressPercentage))
-        ? Number(data.progressPercentage)
-        : (this.marketUniverseGenerationCurrentRecords / 360000) * 100
-    ));
-    return true;
-  }
-
-  private async pollMarketUniverseGenerationUntilComplete(): Promise<void> {
-    this.stopMarketUniverseGenerationPolling();
-    this.marketUniverseGenerationPollActive = true;
-
-    const poll = async (): Promise<void> => {
-      if (!this.marketUniverseGenerationPollActive) {
-        return;
-      }
-
-      try {
-        const response = await firstValueFrom(this.apiService.getMarketUniverseGenerationStatus());
-        const inProgress = this.applyMarketUniverseGenerationStatus(response);
-        if (!inProgress) {
-          this.stopMarketUniverseGenerationPolling();
-          return;
-        }
-      } catch (error) {
-        console.error('[Market Universe generation status polling]', error);
-      }
-
-      if (this.marketUniverseGenerationPollActive) {
-        this.marketUniverseGenerationPollTimeoutId = setTimeout(() => void poll(), 3000);
-      }
-    };
-
-    this.marketUniverseGenerationPollTimeoutId = setTimeout(() => void poll(), 3000);
-  }
-
-  private async blockSimulationIfMarketUniverseIsGenerating(): Promise<boolean> {
-    const response = await firstValueFrom(this.apiService.getMarketUniverseGenerationStatus());
-    const inProgress = this.applyMarketUniverseGenerationStatus(response);
-    if (inProgress) {
-      void this.pollMarketUniverseGenerationUntilComplete();
-    }
-    return inProgress;
+    this.marketUniverseGenerationProgress = Math.max(0, Math.min(100, Number(progress) || 0));
   }
 
   private resetPortfolioKpiConfiguration(): void {
@@ -896,15 +830,6 @@ export class MontecarloPageComponent implements OnDestroy {
 
   async runSimulation(): Promise<void> {
     if (this.editorState()?.state?.isValid !== true || this.isRunning || this.marketUniverseGenerationInProgress) {
-      return;
-    }
-
-    try {
-      if (await this.blockSimulationIfMarketUniverseIsGenerating()) {
-        return;
-      }
-    } catch (error) {
-      console.error('[Market Universe generation status]', error);
       return;
     }
 
