@@ -104,24 +104,35 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     return JSON.stringify(current) !== JSON.stringify(original);
   });
 
-  readonly selectedPortfolioType = computed(() => this.portfolioSelectionService.selectedPortfolio()?.tipo ?? null);
+  readonly selectedNavbarPortfolio = computed(() => this.portfolioSelectionService.selectedPortfolio());
+  readonly selectedPortfolioType = computed(() => this.selectedNavbarPortfolio()?.tipo ?? null);
+  readonly hasSelectedNavbarPortfolio = computed(() => Boolean(this.selectedNavbarPortfolio()));
+
   readonly canRestorePortfolio = computed(() =>
-    Boolean(this.portfolioId) &&
+    this.hasSelectedNavbarPortfolio() &&
     !this.saving()
   );
+
   readonly canUpdatePortfolio = computed(() =>
-    Boolean(this.portfolioId) &&
     this.selectedPortfolioType() === 'laboratorio' &&
     !this.saving()
   );
+
   readonly canCreatePortfolio = computed(() => {
     const selectedType = this.selectedPortfolioType();
+
+    // No selection: a new portfolio can be created only from a valid 100% composition.
+    if (!selectedType) return this.isValid() && !this.saving();
+
+    // Real portfolios can only be restored: they must never be overwritten or duplicated here.
     if (selectedType === 'reale') return false;
-    if (selectedType === 'laboratorio') return !this.saving();
-    return this.isValid() && !this.saving();
+
+    // Laboratory/simulated portfolios can always be duplicated once selected.
+    return !this.saving();
   });
+
   readonly createPortfolioActionLabel = computed(() =>
-    this.selectedPortfolioType() === 'laboratorio' ? 'Pubblica portafoglio' : 'Crea portafoglio'
+    this.selectedPortfolioType() === 'laboratorio' ? 'Duplica portafoglio' : 'Crea portafoglio'
   );
   readonly canConfirmCreatePortfolio = computed(() => this.createPortfolioNameDraft().trim().length > 0 && !this.saving());
 
