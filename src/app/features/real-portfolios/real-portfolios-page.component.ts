@@ -9,7 +9,7 @@ import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/c
 import { ApiService } from '../../core/api/api.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
-interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; totalValue?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
+interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; totalValue?:number; contributedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
 interface Holding { name:string; ticker:string; qty:string; avg:string; value:string; gain:string; weight:string; tone:'positive'|'negative'; }
 interface Operation { date:string; type:'Acquisto'|'Vendita'; isin:string; etf:string; qty:string; price:string; total:string; }
 
@@ -172,7 +172,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     const tone=this.valueTone(gain), sign=gain>0?'+ ':gain<0?'- ':'';
     return [
     ['Valore di mercato',this.formatCurrency(value),`${sign}${this.formatCurrency(Math.abs(gain))}  (${this.formatSignedPercent(pct)})`,tone],
-    ['Capitale investito','€ 21.822','',''],
+    ['Capitale investito',this.formatCurrencyTrailing(p?.contributedCapital ?? 0),'',''],
     ['Gain/Loss','+ € 2.701','+12,4%','positive'],
     ['Rendimento annuo (TWR)','+8,1%','','positive'],
     ['Volatilità annua','11,3%','',''],
@@ -263,6 +263,7 @@ export class RealPortfoliosPageComponent implements OnInit {
       error:(error)=>console.error('Errore caricamento valori portafogli',error)
     });
   }
+  formatCurrencyTrailing(value:number):string { return `${new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value)||0)} €`; }
   formatCurrency(value:number):string { return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value)||0); }
   formatSignedPercent(value:number):string { const n=Number(value)||0; return `${n>0?'+':''}${new Intl.NumberFormat('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1}).format(n)}%`; }
   valueTone(value:number):string { return value>0?'positive':value<0?'negative':'neutral'; }
