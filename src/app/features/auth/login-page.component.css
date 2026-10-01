@@ -45,17 +45,17 @@
   transform: translateY(100%);
   color: rgba(225, 238, 249, 0.88);
   font-size: 0.82rem;
-  animation: rotate-message 20s infinite;
+  animation: rotate-message 40s infinite;
 }
 
 .message-rotator span:nth-child(1) { animation-delay: 0s; }
-.message-rotator span:nth-child(2) { animation-delay: 5s; }
-.message-rotator span:nth-child(3) { animation-delay: 10s; }
-.message-rotator span:nth-child(4) { animation-delay: 15s; }
+.message-rotator span:nth-child(2) { animation-delay: 10s; }
+.message-rotator span:nth-child(3) { animation-delay: 20s; }
+.message-rotator span:nth-child(4) { animation-delay: 30s; }
 
 @keyframes rotate-message {
   0% { opacity: 0; transform: translateY(100%); }
-  5%, 22% { opacity: 1; transform: translateY(0); }
+  2.5%, 23.5% { opacity: 1; transform: translateY(0); }
   25%, 100% { opacity: 0; transform: translateY(-100%); }
 }
 
@@ -441,4 +441,14 @@
   margin: -8px 0 0;
   color: #ff9d9d;
   font-size: 0.72rem;
+}
+
+/* Hover keeps the current message visible, but the animation clock keeps running.
+   When hover ends, the current timeline state is revealed immediately. */
+.message-rotator:hover span {
+  animation-play-state: running;
+}
+
+.message-rotator:hover span[style] {
+  animation-play-state: running;
 }
