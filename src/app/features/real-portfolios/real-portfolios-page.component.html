@@ -1,5 +1,5 @@
 <div class="portfolio-strip">
-      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" [style.--portfolio-accent]="portfolioColor(i)" (click)="selectPortfolio(i)">
+      <div *ngFor="let p of portfolios;let i=index" class="portfolio-choice" [class.active]="selected===i" [style.--portfolio-accent]="portfolioColor(i)" (click)="selectPortfolio(i)" draggable="true" (dragstart)="startPortfolioDrag(i,$event)" (dragover)="allowPortfolioDrop($event)" (drop)="dropPortfolio(i,$event)" (dragend)="endPortfolioDrag()">
         <div class="portfolio-choice__top">
           <span class="portfolio-color" [style.background]="portfolioColor(i)"></span>
           <span class="portfolio-name">{{portfolioDisplayName(p)}}</span>
@@ -22,7 +22,7 @@
           <span class="portfolio-return" [class]="valueTone(p.gainLoss || 0)">{{formatSignedPercent(p.gainLossPercent || 0)}}</span>
         </div>
       </div>
-      <button class="portfolio-choice add" (click)="openCreatePortfolio()"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
+      <button *ngIf="portfolios.length < 5" class="portfolio-choice add" (click)="openCreatePortfolio()"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
     </div>
 
     <ng-container *ngIf="hasSelectedPortfolio">
