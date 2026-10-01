@@ -42,9 +42,13 @@ export class RealPortfoliosPageComponent implements OnInit {
   openPortfolioMenu:string|null=null;
   portfolioPendingDelete:Portfolio|null=null;
   deletingPortfolio=false;
+  private initialized=false;
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
     effect(() => {
+      const refreshVersion = this.portfolioSelection.refreshVersion();
+      if (this.initialized && refreshVersion > 0) this.loadRealPortfolios();
+
       const realOptions = this.portfolioSelection.portfolioOptions().filter((option) => option.tipo === 'reale');
       if (realOptions.length && this.portfolios.length) {
         const byId = new Map(this.portfolios.map((portfolio) => [portfolio.id, portfolio]));
@@ -66,6 +70,12 @@ export class RealPortfoliosPageComponent implements OnInit {
   }
 
   ngOnInit():void {
+    this.initialized=true;
+    this.loadRealPortfolios();
+  }
+
+  private loadRealPortfolios():void {
+    this.loadingPortfolios=true;
     this.api.getRealPortfolios().subscribe({
       next:(response:any)=>{
         this.portfolios=Array.isArray(response?.data)?response.data:[];
