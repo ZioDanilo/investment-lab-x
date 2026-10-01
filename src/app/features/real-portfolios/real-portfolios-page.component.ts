@@ -42,6 +42,15 @@ export class RealPortfoliosPageComponent implements OnInit {
   openPortfolioMenu:string|null=null;
   portfolioPendingDelete:Portfolio|null=null;
   deletingPortfolio=false;
+  operationPortfolio:Portfolio|null=null;
+  operationEtfQuery='';
+  operationEtfResults:any[]=[];
+  operationEtf:any|null=null;
+  operationDate=new Date().toISOString().slice(0,10);
+  operationQuantity:number|null=null;
+  operationUnitPrice:number|null=null;
+  savingOperation=false;
+  private operationSearchTimer:any=null;
   private initialized=false;
 
   constructor(private readonly api:ApiService, private readonly portfolioSelection:PortfolioSelectionService) {
@@ -134,6 +143,38 @@ export class RealPortfoliosPageComponent implements OnInit {
   portfolioColor(i:number):string { return ['#2d91ff','#9b67ed','#21c7c7','#31d48d','#f9be48','#ff6b8a'][i%6]; }
   togglePortfolioMenu(event:MouseEvent,id:string):void { event.stopPropagation(); this.openPortfolioMenu=this.openPortfolioMenu===id?null:id; }
   choosePortfolioAction(event:MouseEvent,i:number):void { event.stopPropagation(); this.selectPortfolio(i); }
+  openBuyOperation(event:MouseEvent,i:number):void {
+    event.stopPropagation();
+    this.selectPortfolio(i);
+    this.openPortfolioMenu=null;
+    this.operationPortfolio=this.portfolios[i] ?? null;
+    this.operationEtfQuery=''; this.operationEtfResults=[]; this.operationEtf=null;
+    this.operationDate=new Date().toISOString().slice(0,10);
+    this.operationQuantity=null; this.operationUnitPrice=null;
+  }
+  cancelOperation():void { if(this.savingOperation)return; this.operationPortfolio=null; this.operationEtfResults=[]; }
+  searchOperationEtf(value:string):void {
+    this.operationEtfQuery=value; this.operationEtf=null;
+    if(this.operationSearchTimer) clearTimeout(this.operationSearchTimer);
+    if(value.trim().length<3){this.operationEtfResults=[];return;}
+    this.operationSearchTimer=setTimeout(()=>this.api.searchETF(value.trim()).subscribe({next:(res:any)=>this.operationEtfResults=Array.isArray(res?.data)?res.data:[],error:()=>this.operationEtfResults=[]}),250);
+  }
+  selectOperationEtf(etf:any):void {
+    this.operationEtf=etf;
+    this.operationEtfQuery=etf.nickname || etf.ticker || etf.name || etf.isin;
+    this.operationEtfResults=[];
+  }
+  get operationFormValid():boolean {
+    return !!this.operationPortfolio && !!this.operationEtf?.id && !!this.operationDate && Number(this.operationQuantity)>0 && Number(this.operationUnitPrice)>0 && !this.savingOperation;
+  }
+  insertBuyOperation():void {
+    if(!this.operationFormValid || !this.operationPortfolio)return;
+    this.savingOperation=true;
+    this.api.createRealPortfolioOperation(this.operationPortfolio.id,{operationType:'buy',etfId:this.operationEtf.id,operationDate:this.operationDate,quantity:Number(this.operationQuantity),unitPrice:Number(this.operationUnitPrice)}).subscribe({
+      next:()=>{this.savingOperation=false;this.operationPortfolio=null;this.operationEtfResults=[];},
+      error:(error)=>{this.savingOperation=false;console.error('Errore inserimento operazione',error);}
+    });
+  }
   requestDeletePortfolio(event:MouseEvent,portfolio:Portfolio):void { event.stopPropagation(); this.openPortfolioMenu=null; this.portfolioPendingDelete=portfolio; }
   keepPortfolio():void { if(this.deletingPortfolio)return; this.portfolioPendingDelete=null; }
   confirmDeletePortfolio():void {
