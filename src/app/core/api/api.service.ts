@@ -243,4 +243,8 @@ export class ApiService {
   generateFactorUniverseSample(payload: { scenario: string; intensity: number; seed: number }): Observable<any> {
     return this.http.post(`${this.apiUrl}/factor-engine/universe/sample`, payload);
   }
+
+  runFactorUniverseStatisticalTest(payload: { scenario: string; intensity: number; seed: number; samples: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/factor-engine/universe/statistical-test`, payload);
+  }
 }
