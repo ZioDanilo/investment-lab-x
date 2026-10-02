@@ -68,6 +68,11 @@
         </button>
         <pre class="factor-test-result" *ngIf="factorTestResult" [class.ok]="factorTestOk">{{ factorTestResult }}</pre>
 
+        <button type="button" class="factor-test-button" [disabled]="etfValidationRunning" (click)="testEtfHistoricalValidation()">
+          {{ etfValidationRunning ? 'Test ETF in corso...' : 'Test ETF Validation Engine' }}
+        </button>
+        <pre class="factor-test-result" *ngIf="etfValidationResult" [class.ok]="etfValidationOk">{{ etfValidationResult }}</pre>
+
         <p class="helper-text helper-text--error" *ngIf="authError">{{ authError }}</p>
         <p class="helper-text helper-text--success" *ngIf="authSuccess">{{ authSuccess }}</p>
         <p class="helper-text">
