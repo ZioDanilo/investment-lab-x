@@ -167,6 +167,11 @@ export class MonteCarloStatisticsEngine {
   static calculateLinearPercentile(values: number[], percentile: number): number {
     if (values.length === 0) return 0;
     const sorted = [...values].sort((a, b) => a - b);
+    return this.calculateLinearPercentileFromSorted(sorted, percentile);
+  }
+
+  private static calculateLinearPercentileFromSorted(sorted: number[], percentile: number): number {
+    if (sorted.length === 0) return 0;
     if (sorted.length === 1) return sorted[0];
     const position = (sorted.length - 1) * (percentile / 100);
     const lowerIndex = Math.floor(position);
@@ -1186,11 +1191,12 @@ export class MonteCarloStatisticsEngine {
     logScenarioStatsPhase('observed_episode_summary');
 
     const returnPercentilesStartedAt = performance.now();
-    const returnP1 = pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 1) : 0;
-    const returnP5 = pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 5) : 0;
-    const returnP50 = pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 50) : 0;
-    const returnP95 = pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 95) : 0;
-    const returnP99 = pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 99) : 0;
+    const sortedPathReturns = pathReturns.length > 0 ? [...pathReturns].sort((a, b) => a - b) : [];
+    const returnP1 = this.calculateLinearPercentileFromSorted(sortedPathReturns, 1);
+    const returnP5 = this.calculateLinearPercentileFromSorted(sortedPathReturns, 5);
+    const returnP50 = this.calculateLinearPercentileFromSorted(sortedPathReturns, 50);
+    const returnP95 = this.calculateLinearPercentileFromSorted(sortedPathReturns, 95);
+    const returnP99 = this.calculateLinearPercentileFromSorted(sortedPathReturns, 99);
     console.info('[Monte Carlo V2 telemetry] scenario statistics detail', {
       phase: 'return_percentiles',
       durationMs: Number((performance.now() - returnPercentilesStartedAt).toFixed(2)),
