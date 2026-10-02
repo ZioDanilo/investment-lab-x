@@ -231,4 +231,16 @@ export class ApiService {
   healthCheck(): Observable<any> {
     return this.http.get(`${this.apiUrl}/health`);
   }
+  // Factor Engine V2 diagnostic endpoints
+  getFactorUniverseReadiness(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/factor-engine/universe/readiness`);
+  }
+
+  getFactorUniversePreview(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/factor-engine/universe/preview`);
+  }
+
+  generateFactorUniverseSample(payload: { scenario: string; intensity: number; seed: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/factor-engine/universe/sample`, payload);
+  }
 }
