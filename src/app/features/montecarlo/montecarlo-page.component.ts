@@ -3,6 +3,9 @@ import { Component, HostListener, ViewChild, effect, inject, signal } from '@ang
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { MonteCarloStatisticsEngine } from '../../core/engines/monte-carlo-statistics.engine';
+import { MonteCarloCoordinator } from '../../core/engines/monte-carlo-coordinator';
+import { buildMonteCarloSnapshotRequest, buildMonteCarloUserInput } from '../../core/monte-carlo-ui-flow';
+import { validateMonteCarloRunContract } from '../../core/validation/monte-carlo-contract.validator';
 import { MarketUniverseBinaryTransport, type DecodedMarketUniverseBinary } from '../../core/market-universe/market-universe-binary-transport';
 import { MonteCarloResult } from '../../core/models/monte-carlo-contracts.model';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
@@ -48,6 +51,11 @@ export class MontecarloPageComponent {
   get headerActionRunning(): boolean { return this.isRunning || this.completionHoldActive; }
   get headerActionProgress(): number { return this.buttonFillWidth; }
   runHeaderAction(): void { this.runSimulation(); }
+  readonly secondaryHeaderActionIcon = 'science';
+  get secondaryHeaderActionLabel(): string { return this.isRunningV2 ? 'SIMULAZIONE V2 IN CORSO' : 'AVVIA SIMULAZIONE V2'; }
+  get secondaryHeaderActionDisabled(): boolean { return this.marketUniverseGenerationInProgress || this.editorState()?.state?.isValid !== true || this.isRunning || this.isRunningV2 || this.completionHoldActive; }
+  get secondaryHeaderActionRunning(): boolean { return this.isRunningV2; }
+  runSecondaryHeaderAction(): void { void this.runSimulationV2(); }
 
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
   private readonly apiService = inject(ApiService);
@@ -84,6 +92,7 @@ export class MontecarloPageComponent {
   } | null = null;
 
   isRunning = false;
+  isRunningV2 = false;
   simulationProgress = 0;
   completionHoldActive = false;
   private completionHoldTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -929,6 +938,113 @@ export class MontecarloPageComponent {
       this.stopProgressAnimation();
       this.simulationProgress = 0;
       this.clearCompletionHold();
+    }
+  }
+
+
+  async runSimulationV2(): Promise<void> {
+    if (this.editorState()?.state?.isValid !== true || this.isRunning || this.isRunningV2 || this.marketUniverseGenerationInProgress) {
+      return;
+    }
+
+    const editorItems = this.editorState()?.state?.currentItems ?? [];
+    const composition = editorItems
+      .map((item: any) => ({
+        isin: String(item?.isin ?? '').trim().toUpperCase(),
+        weight: Number(item?.weight ?? 0) / 100
+      }))
+      .filter((item: { isin: string; weight: number }) => item.isin && Number.isFinite(item.weight) && item.weight > 0);
+
+    if (composition.length === 0) {
+      this.showToast('Nessuna posizione valida nella composizione temporanea.');
+      return;
+    }
+
+    this.isRunningV2 = true;
+    this.kpiResultValues = {};
+    this.resetKpis();
+
+    try {
+      await this.saveCurrentPortfolioKpiConfiguration();
+
+      const snapshotRequest = buildMonteCarloSnapshotRequest(composition);
+      const snapshotResponse = await firstValueFrom(this.apiService.getMonteCarloSnapshot(snapshotRequest));
+      const snapshot = snapshotResponse?.data;
+      if (!snapshot) {
+        throw new Error('Snapshot Monte Carlo V2 non disponibile.');
+      }
+
+      const input = buildMonteCarloUserInput(composition, 100000, 30);
+      validateMonteCarloRunContract(input, snapshot);
+
+      const coordinator = new MonteCarloCoordinator({
+        input,
+        snapshot,
+        mode: 'COMPLETE',
+        advancedStatistics: false,
+        profilingEnabled: false
+      });
+      const outcome = await coordinator.run();
+
+      if (outcome.status !== 'success' || !outcome.result) {
+        throw new Error(outcome.error?.message ?? 'Simulazione Monte Carlo V2 non completata.');
+      }
+
+      const result = outcome.result;
+      this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
+      this.updateDonutSegments();
+
+      const cagrSamples = Array.isArray(result.distributionSamples?.cagr) ? result.distributionSamples.cagr : [];
+      const maxDrawdownSamples = Array.isArray(result.distributionSamples?.maxDrawdown) ? result.distributionSamples.maxDrawdown : [];
+      this.finalReturnDistribution = this.buildFinalReturnDistribution(cagrSamples.map((cagr) => ({ cagr })));
+      this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(maxDrawdownSamples.map((maxDrawdown) => ({ maxDrawdown })));
+
+      const representativeCapital = Array.isArray(result.representativePath?.capital) ? result.representativePath.capital : [];
+      const annualCapital = representativeCapital
+        .filter((point) => Number(point.month) > 0 && Number(point.month) % 12 === 0)
+        .map((point) => ({ year: Number(point.month) / 12, capital: Number(point.capital) }))
+        .filter((point) => Number.isFinite(point.year) && point.year <= 30 && Number.isFinite(point.capital));
+
+      let previousCapital = 100000;
+      const currentEvolution = annualCapital.map((point) => {
+        const annualReturn = previousCapital > 0 ? (point.capital / previousCapital) - 1 : 0;
+        previousCapital = point.capital;
+        return { year: point.year, annualReturn };
+      });
+
+      if (this.portfolioEvolution.length > 0) {
+        this.portfolioEvolutionHistory = [this.portfolioEvolution, ...this.portfolioEvolutionHistory].slice(0, 2);
+      }
+      this.portfolioEvolution = currentEvolution;
+      this.clearHistogramHover();
+      this.clearMaxDrawdownHover();
+
+      const positiveReturnProbability = cagrSamples.length > 0
+        ? cagrSamples.filter((value) => Number(value) > 0).length / cagrSamples.length
+        : null;
+
+      this.kpiResultValues = {
+        expectedReturn: Number.isFinite(result.mainKpis?.robustCagr) ? Number(result.mainKpis.robustCagr) : null,
+        volatility: Number.isFinite(result.mainKpis?.volatility) ? Number(result.mainKpis.volatility) : null,
+        positiveReturnProbability,
+        recoveryPeriod: Number.isFinite(result.mainKpis?.recoveryTimeMonths) ? Number(result.mainKpis.recoveryTimeMonths) : null,
+        averageMaxDrawdown: Number.isFinite(result.mainKpis?.robustMaxDrawdown) ? Math.abs(Number(result.mainKpis.robustMaxDrawdown)) : null
+      };
+
+      this.kpis = this.mergeKpiValuesPreservingOrder([
+        { id: 'expectedReturn', title: 'Rendimento annuo', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo · V2', tone: 'cyan' },
+        { id: 'volatility', title: 'Volatilità', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua · V2', tone: 'violet' },
+        { id: 'positiveReturnProbability', title: 'Rendimento positivo (30 anni)', value: this.formatPercent(positiveReturnProbability), description: 'Scenari con rendimento > 0 · V2', tone: 'blue' },
+        { id: 'recoveryPeriod', title: 'Periodo di recupero', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even · V2', tone: 'amber' },
+        { id: 'averageMaxDrawdown', title: 'Drawdown', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media · V2', tone: 'red' }
+      ]);
+    } catch (error: any) {
+      console.error('[Monte Carlo V2]', error);
+      const message = error?.error?.error?.message ?? error?.error?.message ?? error?.message ?? 'Errore durante la simulazione Monte Carlo V2.';
+      this.showToast(message);
+      this.kpis = this.mergeKpiValuesPreservingOrder(this.defaultKpis);
+    } finally {
+      this.isRunningV2 = false;
     }
   }
 
