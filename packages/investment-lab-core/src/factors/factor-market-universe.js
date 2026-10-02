@@ -2,6 +2,19 @@ import { FactorProjectionError, projectEtfReturnFromFactors } from './factor-pro
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+export const FACTOR_RETURN_MODES = Object.freeze({
+  COMPOUNDED_RETURN: 'compounded_return',
+  ADDITIVE_SHOCK: 'additive_shock'
+});
+
+const monthlyFactorLocation = (annualValue, returnMode) => {
+  if (returnMode === FACTOR_RETURN_MODES.ADDITIVE_SHOCK) return annualValue / 12;
+  if (annualValue <= -1) {
+    throw new FactorProjectionError('INVALID_ANNUAL_FACTOR_RETURN', 'Compounded factor expected return must be greater than -100%', { annualValue, returnMode });
+  }
+  return Math.pow(1 + annualValue, 1 / 12) - 1;
+};
+
 const cholesky = (matrix) => {
   const n = matrix.length;
   const out = Array.from({ length: n }, () => Array(n).fill(0));
@@ -55,7 +68,11 @@ export const generateMonthlyFactorReturns = (snapshot, scenario, intensity, rand
     if (!general || !stressed) throw new FactorProjectionError('MISSING_FACTOR_STATISTICS', 'Factor statistics are incomplete', { factorId: factor.id, scenario });
     const annualMean = Number(general.expectedReturn) + (Number(stressed.expectedReturn) - Number(general.expectedReturn)) * normalizedIntensity;
     const annualVol = Math.max(0, Number(general.volatility) + (Number(stressed.volatility) - Number(general.volatility)) * normalizedIntensity);
-    const monthlyMean = Math.pow(1 + annualMean, 1 / 12) - 1;
+    const returnMode = factor.returnMode || FACTOR_RETURN_MODES.COMPOUNDED_RETURN;
+    if (!Object.values(FACTOR_RETURN_MODES).includes(returnMode)) {
+      throw new FactorProjectionError('INVALID_FACTOR_RETURN_MODE', 'Unsupported factor return mode', { factorId: factor.id, returnMode });
+    }
+    const monthlyMean = monthlyFactorLocation(annualMean, returnMode);
     const monthlyVol = annualVol / Math.sqrt(12);
     factorReturns[factor.id] = monthlyMean + correlated[index] * monthlyVol;
   });
