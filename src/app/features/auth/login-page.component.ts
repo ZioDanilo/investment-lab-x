@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../core/api/api.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
@@ -24,6 +25,9 @@ export class LoginPageComponent {
   authError = '';
   authSuccess = '';
   usernameTaken = false;
+  factorTestRunning = false;
+  factorTestResult = '';
+  factorTestOk = false;
   private usernameCheckTimer?: ReturnType<typeof setTimeout>;
 
   setRegisterMode(registerMode: boolean): void {
@@ -62,6 +66,36 @@ export class LoginPageComponent {
       error: () => {
         // Registration itself remains the authoritative uniqueness check.
         this.usernameTaken = false;
+      }
+    });
+  }
+
+  testFactorEngineV2(): void {
+    if (this.factorTestRunning) return;
+    this.factorTestRunning = true;
+    this.factorTestResult = 'Test Factor Engine V2 in corso...';
+    this.factorTestOk = false;
+
+    forkJoin({
+      readiness: this.apiService.getFactorUniverseReadiness(),
+      preview: this.apiService.getFactorUniversePreview(),
+      sample: this.apiService.generateFactorUniverseSample({ scenario: 'expansion', intensity: 0.5, seed: 42 })
+    }).subscribe({
+      next: (result) => {
+        this.factorTestRunning = false;
+        this.factorTestOk = true;
+        this.factorTestResult = JSON.stringify(result, null, 2);
+        console.group('[Factor Engine V2 test]');
+        console.log('readiness', result.readiness);
+        console.log('preview', result.preview);
+        console.log('sample', result.sample);
+        console.groupEnd();
+      },
+      error: (error) => {
+        this.factorTestRunning = false;
+        this.factorTestOk = false;
+        this.factorTestResult = JSON.stringify({ status: error?.status, message: error?.message, error: error?.error }, null, 2);
+        console.error('[Factor Engine V2 test]', error);
       }
     });
   }
