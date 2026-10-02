@@ -979,7 +979,6 @@ export class MontecarloPageComponent {
     this.resetKpis();
 
     try {
-      await this.saveCurrentPortfolioKpiConfiguration();
 
       const projection = await this.requestBinarySimulationProjectionV2(composition);
       const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
