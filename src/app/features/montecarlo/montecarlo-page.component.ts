@@ -399,7 +399,8 @@ export class MontecarloPageComponent {
 
   private buildScenarioPathFromMonthEntries(
     monthEntries: Array<{ month?: number; year?: number; scenario?: string }>,
-    horizonYears: number
+    horizonYears: number,
+    alreadyOrdered = false
   ): { years: Array<{ year: number; scenario: 'expansion' | 'soft_landing' | 'recession' | 'stagflation'; durationInCurrentScenario: number }>; frequencies: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', number> } {
     const frequencies: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', number> = {
       expansion: 0,
@@ -409,7 +410,10 @@ export class MontecarloPageComponent {
     };
     const yearBuckets = new Map<number, Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', number>>();
 
-    for (const entry of [...monthEntries].sort((left: any, right: any) => Number(left?.month ?? 0) - Number(right?.month ?? 0))) {
+    const orderedEntries = alreadyOrdered
+      ? monthEntries
+      : [...monthEntries].sort((left: any, right: any) => Number(left?.month ?? 0) - Number(right?.month ?? 0));
+    for (const entry of orderedEntries) {
       const month = Number(entry?.month ?? 0);
       const year = Number(entry?.year ?? (month > 0 ? Math.floor((month - 1) / 12) + 1 : 1));
       const scenario = this.normalizeScenarioKey(entry?.scenario ?? 'expansion');
@@ -515,7 +519,6 @@ export class MontecarloPageComponent {
     const totalMonths = Number(decoded.monthCount || 0);
 
     for (let pathId = 0; pathId < totalPaths; pathId += 1) {
-      const monthlyReturns = [] as number[];
       const months = [] as any[];
       const baseIndex = pathId * totalMonths;
 
@@ -525,7 +528,6 @@ export class MontecarloPageComponent {
         const scenarioCode = modeScenarioCache[flatIndex] ?? 0;
         const scenario = MarketUniverseBinaryTransport.decodeScenarioCode(scenarioCode);
         const intensity = Number(modeIntensityCache[flatIndex] ?? 0);
-        monthlyReturns.push(weightedReturn);
         months.push({
           monthIndex,
           scenario,
@@ -536,8 +538,8 @@ export class MontecarloPageComponent {
 
       pathEntries.push({
         pathId,
-        monthlyReturns,
-        months
+        months,
+        monthsOrdered: true
       });
     }
 
@@ -698,10 +700,11 @@ export class MontecarloPageComponent {
         ? rawPath.monthlyReturns.map((value: any) => Number(value) || 0)
         : [];
       const monthEntries = Array.isArray(rawPath?.months) ? rawPath.months : [];
-      const normalizedMonths = monthEntries.length > 0
+      const orderedMonthEntries = rawPath?.monthsOrdered === true
         ? monthEntries
-            .slice()
-            .sort((left: any, right: any) => Number(left?.monthIndex ?? 0) - Number(right?.monthIndex ?? 0))
+        : monthEntries.slice().sort((left: any, right: any) => Number(left?.monthIndex ?? 0) - Number(right?.monthIndex ?? 0));
+      const normalizedMonths = monthEntries.length > 0
+        ? orderedMonthEntries
             .map((entry: any, monthIndex: number) => {
               const weightedReturn = Number(entry?.weightedReturn ?? entry?.return ?? 0);
               const month = Number(entry?.monthIndex ?? monthIndex) + 1;
@@ -793,14 +796,17 @@ export class MontecarloPageComponent {
       let previousEndingCapital = initialCapital;
       for (let yearIndex = 1; yearIndex <= horizonYears; yearIndex += 1) {
         const year = yearIndex;
-        const entries = monthly.filter((entry: any) => Number(entry.year) === year);
+        const startIndex = (yearIndex - 1) * 12;
+        const endIndex = Math.min(startIndex + 12, monthly.length);
+        const firstEntry = startIndex < monthly.length ? monthly[startIndex] : null;
+        const lastEntry = endIndex > startIndex ? monthly[endIndex - 1] : null;
         const startingCapital = year === 1 ? initialCapital : previousEndingCapital;
-        const endingCapital = entries.length > 0 ? entries[entries.length - 1].endingCapital : startingCapital;
+        const endingCapital = lastEntry?.endingCapital ?? startingCapital;
         const portfolioReturn = startingCapital > 0 ? (endingCapital / startingCapital) - 1 : 0;
         const annualYear = {
           year,
-          scenario: entries[0]?.scenario ?? 'expansion',
-          durationInCurrentScenario: entries.length || 1,
+          scenario: firstEntry?.scenario ?? 'expansion',
+          durationInCurrentScenario: Math.max(endIndex - startIndex, 1),
           etfReturns: [],
           portfolioReturn,
           startingCapital,
@@ -812,7 +818,7 @@ export class MontecarloPageComponent {
         previousEndingCapital = endingCapital;
       }
 
-      const scenarioPath = this.buildScenarioPathFromMonthEntries(normalizedMonths, horizonYears);
+      const scenarioPath = this.buildScenarioPathFromMonthEntries(normalizedMonths, horizonYears, rawPath?.monthsOrdered === true);
       const finalCapital = monthly.length > 0 ? monthly[monthly.length - 1].endingCapital : initialCapital;
       const totalReturn = finalCapital / initialCapital - 1;
       const cagr = Math.pow(Math.max(finalCapital / initialCapital, Number.EPSILON), 1 / Math.max(horizonYears, 1)) - 1;
@@ -849,12 +855,23 @@ export class MontecarloPageComponent {
       } as any;
     };
 
+    const pathBuildStartedAt = performance.now();
     const paths = pathEntries.map(buildPathResult);
-    return MonteCarloStatisticsEngine.buildOfficialResult(paths, horizonYears, initialCapital, {
+    const pathBuildMs = performance.now() - pathBuildStartedAt;
+
+    const statisticsStartedAt = performance.now();
+    const officialResult = MonteCarloStatisticsEngine.buildOfficialResult(paths, horizonYears, initialCapital, {
       performanceDiagnostics: { redrawCount: 0, rejectRate: 0 },
       matricesCoherent: true,
       advancedStatisticsEnabled: false
     });
+    const statisticsEngineMs = performance.now() - statisticsStartedAt;
+
+    console.info('[Monte Carlo V2 telemetry] statistics detail', {
+      pathBuildMs: Number(pathBuildMs.toFixed(2)),
+      statisticsEngineMs: Number(statisticsEngineMs.toFixed(2))
+    });
+    return officialResult;
   }
 
   onEditorStateChange(change: MontecarloPortfolioEditorChange): void {
