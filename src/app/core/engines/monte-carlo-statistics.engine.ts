@@ -799,8 +799,6 @@ export class MonteCarloStatisticsEngine {
       if (path.finalCapital === 0) return -1;
       return this.calculatePathCagr(path.initialCapital, path.finalCapital, horizonYears);
     });
-    logScenarioStatsPhase('diagnostics_resolution');
-
     const maxDrawdownValues = paths.map((path) => path.maxDrawdown);
     const completedRecoveryTimes = paths.flatMap((path) => {
       const value = path.maxRecoveryTimeMonths;
@@ -838,8 +836,6 @@ export class MonteCarloStatisticsEngine {
     profileEvent?.('REPRESENTATIVE_PATH_START', performance.now(), { pathsLength: paths.length });
     const representativePath = this.selectRepresentativePath(paths, robustCagr);
     profileEvent?.('REPRESENTATIVE_PATH_END', performance.now(), { pathsLength: paths.length });
-    logScenarioStatsPhase('collect_returns_and_base_moments', { returnSamples: pathReturns.length });
-
     const flatDiagnostics = statisticsInput && !statisticsInput.diagnostics && (('correlations' in statisticsInput) || ('generalBenchmark' in statisticsInput) || ('performance' in statisticsInput) || ('matricesCoherent' in statisticsInput)) ? (statisticsInput as any) : statisticsInput?.diagnostics;
     const advancedStatisticsEnabled = statisticsInput?.advancedStatisticsEnabled ?? true;
     profileEvent?.('ADVANCED_CORRELATION_START', performance.now(), { pathsLength: paths.length });
@@ -1041,7 +1037,7 @@ export class MonteCarloStatisticsEngine {
     const correlationDiagnostics = statisticsInput?.correlationDiagnostics ?? flatDiagnostics?.correlations
       ?? (this.hasMeaningfulCorrelationDiagnostics(pathCorrelationDiagnostics) ? pathCorrelationDiagnostics : {});
     const generalBenchmark = statisticsInput?.generalBenchmark ?? flatDiagnostics?.generalBenchmark ?? pathGeneralBenchmark;
-    const performance = statisticsInput?.performanceDiagnostics ?? flatDiagnostics?.performance;
+    const perfDiagnostics = statisticsInput?.performanceDiagnostics ?? flatDiagnostics?.performance;
     const advancedStatisticsEnabled = statisticsInput?.advancedStatisticsEnabled ?? true;
     const canonicalCorrelationDiagnostics = advancedStatisticsEnabled ? this.createCanonicalCorrelationBundle(correlationDiagnostics) : undefined;
     const indicatorMatrix = advancedStatisticsEnabled ? canonicalCorrelationDiagnostics : undefined;
@@ -1291,7 +1287,7 @@ export class MonteCarloStatisticsEngine {
           reason: 'advancedStatisticsEnabled=false'
         }
       }),
-      performance: performance ?? { redrawCount: null, rejectRate: null }
+      performance: perfDiagnostics ?? { redrawCount: null, rejectRate: null }
     };
 
     logScenarioStatsPhase('assemble_statistics_result');
