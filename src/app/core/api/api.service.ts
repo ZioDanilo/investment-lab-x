@@ -247,4 +247,8 @@ export class ApiService {
   runFactorUniverseStatisticalTest(payload: { scenario: string; intensity: number; seed: number; samples: number }): Observable<any> {
     return this.http.post(`${this.apiUrl}/factor-engine/universe/statistical-test`, payload);
   }
+
+  evaluateEtfHistoricalValidation(payload: { etfId?: string; isin?: string; rows: Array<{ date?: string; realReturn: number; modelReturn: number }> }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/factor-engine/validation/etf/evaluate`, payload);
+  }
 }
