@@ -44,15 +44,10 @@ interface KpiCard {
 export class MontecarloPageComponent {
   readonly headerActionIcon = 'play_arrow';
   get headerActionLabel(): string { return this.runButtonLabel; }
-  get headerActionDisabled(): boolean { return this.editorState()?.state?.isValid !== true || this.isRunning || this.isRunningV2 || this.completionHoldActive; }
+  get headerActionDisabled(): boolean { return this.marketUniverseGenerationInProgress || this.editorState()?.state?.isValid !== true || this.isRunning || this.completionHoldActive; }
   get headerActionRunning(): boolean { return this.isRunning || this.completionHoldActive; }
   get headerActionProgress(): number { return this.buttonFillWidth; }
   runHeaderAction(): void { this.runSimulation(); }
-  readonly secondaryHeaderActionIcon = 'science';
-  get secondaryHeaderActionLabel(): string { return this.isRunningV2 ? 'SIMULAZIONE V2 IN CORSO' : 'AVVIA SIMULAZIONE V2'; }
-  get secondaryHeaderActionDisabled(): boolean { return this.marketUniverseGenerationInProgress || this.editorState()?.state?.isValid !== true || this.isRunning || this.isRunningV2 || this.completionHoldActive; }
-  get secondaryHeaderActionRunning(): boolean { return this.isRunningV2; }
-  runSecondaryHeaderAction(): void { void this.runSimulationV2(); }
 
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
   private readonly apiService = inject(ApiService);
@@ -89,7 +84,6 @@ export class MontecarloPageComponent {
   } | null = null;
 
   isRunning = false;
-  isRunningV2 = false;
   simulationProgress = 0;
   completionHoldActive = false;
   private completionHoldTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -859,36 +853,71 @@ export class MontecarloPageComponent {
     const paths = pathEntries.map(buildPathResult);
     const pathBuildMs = performance.now() - pathBuildStartedAt;
 
-    const statisticsStartedAt = performance.now();
-    const statisticsPhases = new Map<string, number>();
-    const profileEvent = (event: string, timestamp = performance.now()): void => {
-      if (event.endsWith('_START')) {
-        statisticsPhases.set(event.slice(0, -6), timestamp);
-        return;
-      }
-      if (!event.endsWith('_END')) return;
-      const phase = event.slice(0, -4);
-      const startedAt = statisticsPhases.get(phase);
-      if (startedAt === undefined) return;
-      console.info('[Monte Carlo V2 telemetry] statistics phase', {
-        phase,
-        durationMs: Number((timestamp - startedAt).toFixed(2))
-      });
-      statisticsPhases.delete(phase);
-    };
-    const officialResult = MonteCarloStatisticsEngine.buildOfficialResult(paths, horizonYears, initialCapital, {
-      performanceDiagnostics: { redrawCount: 0, rejectRate: 0 },
-      matricesCoherent: true,
-      advancedStatisticsEnabled: false,
-      profileEvent
+    const cagrValues = paths.map((path: any) => Number(path.cagr ?? 0));
+    const maxDrawdownValues = paths.map((path: any) => Number(path.maxDrawdown ?? 0));
+    const completedRecoveryTimes = paths
+      .map((path: any) => path.maxRecoveryTimeMonths)
+      .filter((value: any): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0);
+    const pathVolatilities = paths.map((path: any) => {
+      const monthlyReturns = Array.isArray(path.monthly)
+        ? path.monthly.map((entry: any) => Number(entry.portfolioReturn)).filter((value: number) => Number.isFinite(value))
+        : [];
+      return MonteCarloStatisticsEngine.calculatePathVolatility(monthlyReturns);
     });
-    const statisticsEngineMs = performance.now() - statisticsStartedAt;
 
-    console.info('[Monte Carlo V2 telemetry] statistics detail', {
+    const robustCagr = MonteCarloStatisticsEngine.calculateTrimmedMean5Percent(cagrValues);
+    const q95MaxDrawdown = MonteCarloStatisticsEngine.calculateLinearPercentile(maxDrawdownValues, 95);
+    const robustMaxDrawdown = MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(q95MaxDrawdown, horizonYears);
+    const volatility = MonteCarloStatisticsEngine.calculateTrimmedMean5Percent(pathVolatilities);
+    const recoveryTimeMonths = completedRecoveryTimes.length > 0
+      ? MonteCarloStatisticsEngine.calculateTrimmedMean5Percent(completedRecoveryTimes)
+      : null;
+    const representativePath = MonteCarloStatisticsEngine.selectRepresentativePath(paths, robustCagr);
+
+    const scenarioFrequencies = { expansion: 0, soft_landing: 0, recession: 0, stagflation: 0 };
+    for (const path of paths as any[]) {
+      const frequencies = path?.scenarioPath?.frequencies ?? {};
+      scenarioFrequencies.expansion += Number(frequencies.expansion ?? 0);
+      scenarioFrequencies.soft_landing += Number(frequencies.soft_landing ?? 0);
+      scenarioFrequencies.recession += Number(frequencies.recession ?? 0);
+      scenarioFrequencies.stagflation += Number(frequencies.stagflation ?? 0);
+    }
+    const scenarioTotal = Object.values(scenarioFrequencies).reduce((sum, value) => sum + value, 0) || 1;
+    for (const key of Object.keys(scenarioFrequencies) as Array<keyof typeof scenarioFrequencies>) {
+      scenarioFrequencies[key] /= scenarioTotal;
+    }
+
+    // V2 runtime result: calculate only values consumed by the Monte Carlo page.
+    // Validation/control statistics, capital fan and technical checks remain available
+    // in the legacy V1 engine but are intentionally not executed by the production V2 action.
+    const displayResult = {
+      mainKpis: {
+        robustCagr,
+        robustMaxDrawdown,
+        worstCaseMaxDrawdown: MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(
+          maxDrawdownValues.length > 0 ? Math.max(...maxDrawdownValues) : 0,
+          horizonYears
+        ),
+        volatility,
+        recoveryTimeMonths
+      },
+      percentiles: {} as any,
+      capitalFan: [],
+      representativePath,
+      statistics: { scenario: { frequencies: scenarioFrequencies } },
+      technicalChecks: null,
+      distributionSamples: {
+        cagr: cagrValues,
+        maxDrawdown: maxDrawdownValues
+      },
+      performanceMetrics: null
+    } as MonteCarloResult;
+
+    console.info('[Monte Carlo V2 telemetry] display statistics', {
       pathBuildMs: Number(pathBuildMs.toFixed(2)),
-      statisticsEngineMs: Number(statisticsEngineMs.toFixed(2))
+      paths: paths.length
     });
-    return officialResult;
+    return displayResult;
   }
 
   onEditorStateChange(change: MontecarloPortfolioEditorChange): void {
@@ -911,8 +940,6 @@ export class MontecarloPageComponent {
     this.resetKpis();
 
     try {
-      await this.saveCurrentPortfolioKpiConfiguration();
-
       // The editor is the source of truth for a simulation. Its composition can
       // intentionally differ from the persisted portfolio until the user chooses
       // "Aggiorna portafoglio"; fetching the DB portfolio here would therefore
@@ -939,7 +966,7 @@ export class MontecarloPageComponent {
       // A simulation click only applies the selected portfolio weights and derives
       // portfolio paths/KPIs; it must never regenerate the Monte Carlo universe.
       this.advanceProgressStage(62);
-      const projection = await this.requestBinarySimulationProjection(positions);
+      const projection = await this.requestBinarySimulationProjectionV2(positions);
       this.advanceProgressStage(80);
       const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
       this.advanceProgressStage(92);
@@ -1003,102 +1030,6 @@ export class MontecarloPageComponent {
     }
   }
 
-
-  async runSimulationV2(): Promise<void> {
-    if (this.editorState()?.state?.isValid !== true || this.isRunning || this.isRunningV2 || this.marketUniverseGenerationInProgress) {
-      return;
-    }
-
-    const editorItems = this.editorState()?.state?.currentItems ?? [];
-    const composition = editorItems
-      .map((item: any) => ({
-        isin: String(item?.isin ?? '').trim().toUpperCase(),
-        weight: Number(item?.weight ?? 0) / 100
-      }))
-      .filter((item: { isin: string; weight: number }) => item.isin && Number.isFinite(item.weight) && item.weight > 0);
-
-    if (composition.length === 0) {
-      this.showToast('Nessuna posizione valida nella composizione temporanea.');
-      return;
-    }
-
-    this.isRunningV2 = true;
-    this.kpiResultValues = {};
-    this.resetKpis();
-
-    const simulationStartedAt = performance.now();
-
-    try {
-
-      const projectionStartedAt = performance.now();
-      const projection = await this.requestBinarySimulationProjectionV2(composition);
-      const projectionReadyAt = performance.now();
-      const statisticsStartedAt = performance.now();
-      const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
-      const statisticsReadyAt = performance.now();
-      this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
-      this.updateDonutSegments();
-
-      const cagrSamples = Array.isArray(result.distributionSamples?.cagr) ? result.distributionSamples.cagr : [];
-      const maxDrawdownSamples = Array.isArray(result.distributionSamples?.maxDrawdown) ? result.distributionSamples.maxDrawdown : [];
-      this.finalReturnDistribution = this.buildFinalReturnDistribution(cagrSamples.map((cagr) => ({ cagr })));
-      this.maxDrawdownDistribution = this.buildMaxDrawdownDistribution(maxDrawdownSamples.map((maxDrawdown) => ({ maxDrawdown })));
-
-      const representativeCapital = Array.isArray(result.representativePath?.capital) ? result.representativePath.capital : [];
-      const annualCapital = representativeCapital
-        .filter((point) => Number(point.month) > 0 && Number(point.month) % 12 === 0)
-        .map((point) => ({ year: Number(point.month) / 12, capital: Number(point.capital) }))
-        .filter((point) => Number.isFinite(point.year) && point.year <= 30 && Number.isFinite(point.capital));
-
-      let previousCapital = 100000;
-      const currentEvolution = annualCapital.map((point) => {
-        const annualReturn = previousCapital > 0 ? (point.capital / previousCapital) - 1 : 0;
-        previousCapital = point.capital;
-        return { year: point.year, annualReturn };
-      });
-
-      if (this.portfolioEvolution.length > 0) {
-        this.portfolioEvolutionHistory = [this.portfolioEvolution, ...this.portfolioEvolutionHistory].slice(0, 2);
-      }
-      this.portfolioEvolution = currentEvolution;
-      this.clearHistogramHover();
-      this.clearMaxDrawdownHover();
-
-      const positiveReturnProbability = cagrSamples.length > 0
-        ? cagrSamples.filter((value) => Number(value) > 0).length / cagrSamples.length
-        : null;
-
-      this.kpiResultValues = {
-        expectedReturn: Number.isFinite(result.mainKpis?.robustCagr) ? Number(result.mainKpis.robustCagr) : null,
-        volatility: Number.isFinite(result.mainKpis?.volatility) ? Number(result.mainKpis.volatility) : null,
-        positiveReturnProbability,
-        recoveryPeriod: Number.isFinite(result.mainKpis?.recoveryTimeMonths) ? Number(result.mainKpis.recoveryTimeMonths) : null,
-        averageMaxDrawdown: Number.isFinite(result.mainKpis?.robustMaxDrawdown) ? Math.abs(Number(result.mainKpis.robustMaxDrawdown)) : null
-      };
-
-      this.kpis = this.mergeKpiValuesPreservingOrder([
-        { id: 'expectedReturn', title: 'Rendimento annuo', value: this.formatPercent(result.mainKpis?.robustCagr), description: 'CAGR annuo · V2', tone: 'cyan' },
-        { id: 'volatility', title: 'Volatilità', value: this.formatPercent(result.mainKpis?.volatility), description: 'Deviazione standard annua · V2', tone: 'violet' },
-        { id: 'positiveReturnProbability', title: 'Rendimento positivo (30 anni)', value: this.formatPercent(positiveReturnProbability), description: 'Scenari con rendimento > 0 · V2', tone: 'blue' },
-        { id: 'recoveryPeriod', title: 'Periodo di recupero', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even · V2', tone: 'amber' },
-        { id: 'averageMaxDrawdown', title: 'Drawdown', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media · V2', tone: 'red' }
-      ]);
-      console.info('[Monte Carlo V2 telemetry] total', {
-        selectedAssets: composition.length,
-        projectionRequestMs: Number((projectionReadyAt - projectionStartedAt).toFixed(2)),
-        statisticsKpiMs: Number((statisticsReadyAt - statisticsStartedAt).toFixed(2)),
-        uiPostProcessingMs: Number((performance.now() - statisticsReadyAt).toFixed(2)),
-        totalClickToResultMs: Number((performance.now() - simulationStartedAt).toFixed(2))
-      });
-    } catch (error: any) {
-      console.error('[Monte Carlo V2]', error);
-      const message = error?.error?.error?.message ?? error?.error?.message ?? error?.message ?? 'Errore durante la simulazione Monte Carlo V2.';
-      this.showToast(message);
-      this.kpis = this.mergeKpiValuesPreservingOrder(this.defaultKpis);
-    } finally {
-      this.isRunningV2 = false;
-    }
-  }
 
   private mergeKpiValuesPreservingOrder(updatedKpis: KpiCard[]): KpiCard[] {
     const updatedById = new Map(updatedKpis.map((kpi) => [kpi.id, kpi]));
