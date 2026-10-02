@@ -860,10 +860,27 @@ export class MontecarloPageComponent {
     const pathBuildMs = performance.now() - pathBuildStartedAt;
 
     const statisticsStartedAt = performance.now();
+    const statisticsPhases = new Map<string, number>();
+    const profileEvent = (event: string, timestamp = performance.now()): void => {
+      if (event.endsWith('_START')) {
+        statisticsPhases.set(event.slice(0, -6), timestamp);
+        return;
+      }
+      if (!event.endsWith('_END')) return;
+      const phase = event.slice(0, -4);
+      const startedAt = statisticsPhases.get(phase);
+      if (startedAt === undefined) return;
+      console.info('[Monte Carlo V2 telemetry] statistics phase', {
+        phase,
+        durationMs: Number((timestamp - startedAt).toFixed(2))
+      });
+      statisticsPhases.delete(phase);
+    };
     const officialResult = MonteCarloStatisticsEngine.buildOfficialResult(paths, horizonYears, initialCapital, {
       performanceDiagnostics: { redrawCount: 0, rejectRate: 0 },
       matricesCoherent: true,
-      advancedStatisticsEnabled: false
+      advancedStatisticsEnabled: false,
+      profileEvent
     });
     const statisticsEngineMs = performance.now() - statisticsStartedAt;
 
