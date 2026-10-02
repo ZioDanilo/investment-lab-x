@@ -83,17 +83,24 @@ export class LoginPageComponent {
       readiness: this.apiService.getFactorUniverseReadiness(),
       preview: this.apiService.getFactorUniversePreview(),
       sample: this.apiService.generateFactorUniverseSample({ scenario: 'expansion', intensity: 0.5, seed: 42 }),
-      statisticalTest: this.apiService.runFactorUniverseStatisticalTest({ scenario: 'expansion', intensity: 0.5, seed: 42, samples: 100000 })
+      expansion: this.apiService.runFactorUniverseStatisticalTest({ scenario: 'expansion', intensity: 0.5, seed: 42, samples: 100000 }),
+      softLanding: this.apiService.runFactorUniverseStatisticalTest({ scenario: 'soft_landing', intensity: 0.5, seed: 42, samples: 100000 }),
+      recession: this.apiService.runFactorUniverseStatisticalTest({ scenario: 'recession', intensity: 0.5, seed: 42, samples: 100000 }),
+      stagflation: this.apiService.runFactorUniverseStatisticalTest({ scenario: 'stagflation', intensity: 0.5, seed: 42, samples: 100000 })
     }).subscribe({
       next: (result) => {
         this.factorTestRunning = false;
-        this.factorTestOk = result.statisticalTest?.data?.pass === true;
+        const scenarioTests = [result.expansion, result.softLanding, result.recession, result.stagflation];
+        this.factorTestOk = scenarioTests.every(test => test?.data?.pass === true);
         this.factorTestResult = JSON.stringify(result, null, 2);
         console.group('[Factor Engine V2 test]');
         console.log('readiness', result.readiness);
         console.log('preview', result.preview);
         console.log('sample', result.sample);
-        console.log('statisticalTest', result.statisticalTest);
+        console.log('expansion', result.expansion);
+        console.log('softLanding', result.softLanding);
+        console.log('recession', result.recession);
+        console.log('stagflation', result.stagflation);
         console.groupEnd();
       },
       error: (error) => {
