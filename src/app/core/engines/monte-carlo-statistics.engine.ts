@@ -799,6 +799,8 @@ export class MonteCarloStatisticsEngine {
       if (path.finalCapital === 0) return -1;
       return this.calculatePathCagr(path.initialCapital, path.finalCapital, horizonYears);
     });
+    logScenarioStatsPhase('diagnostics_resolution');
+
     const maxDrawdownValues = paths.map((path) => path.maxDrawdown);
     const completedRecoveryTimes = paths.flatMap((path) => {
       const value = path.maxRecoveryTimeMonths;
@@ -836,6 +838,8 @@ export class MonteCarloStatisticsEngine {
     profileEvent?.('REPRESENTATIVE_PATH_START', performance.now(), { pathsLength: paths.length });
     const representativePath = this.selectRepresentativePath(paths, robustCagr);
     profileEvent?.('REPRESENTATIVE_PATH_END', performance.now(), { pathsLength: paths.length });
+    logScenarioStatsPhase('collect_returns_and_base_moments', { returnSamples: pathReturns.length });
+
     const flatDiagnostics = statisticsInput && !statisticsInput.diagnostics && (('correlations' in statisticsInput) || ('generalBenchmark' in statisticsInput) || ('performance' in statisticsInput) || ('matricesCoherent' in statisticsInput)) ? (statisticsInput as any) : statisticsInput?.diagnostics;
     const advancedStatisticsEnabled = statisticsInput?.advancedStatisticsEnabled ?? true;
     profileEvent?.('ADVANCED_CORRELATION_START', performance.now(), { pathsLength: paths.length });
@@ -927,6 +931,19 @@ export class MonteCarloStatisticsEngine {
       advancedStatisticsEnabled?: boolean;
     }
   ): Record<string, unknown> {
+    const scenarioStatsStartedAt = performance.now();
+    let scenarioStatsMark = scenarioStatsStartedAt;
+    const logScenarioStatsPhase = (phase: string, details: Record<string, unknown> = {}): void => {
+      const now = performance.now();
+      console.info('[Monte Carlo V2 telemetry] scenario statistics detail', {
+        phase,
+        durationMs: Number((now - scenarioStatsMark).toFixed(2)),
+        elapsedMs: Number((now - scenarioStatsStartedAt).toFixed(2)),
+        ...details
+      });
+      scenarioStatsMark = now;
+    };
+
     const scenarioFrequencies: Record<MacroScenario, number> = {
       expansion: 0,
       recession: 0,
@@ -979,6 +996,8 @@ export class MonteCarloStatisticsEngine {
       }
     }
 
+    logScenarioStatsPhase('scenario_frequency_duration_transitions');
+
     const intensityValues: number[] = [];
     const intensityBands = {
       '0-20': 0,
@@ -998,6 +1017,8 @@ export class MonteCarloStatisticsEngine {
         else if (intensity >= 0.8 && intensity <= 1.0) intensityBands['80-100'] += 1;
       }
     }
+
+    logScenarioStatsPhase('collect_intensity_values', { intensitySamples: intensityValues.length });
 
     const pathReturns = (paths.flatMap((path) => path.monthly ?? []).map((entry) => entry.portfolioReturn ?? 0)).filter((value) => Number.isFinite(value));
     const meanReturn = pathReturns.length > 0 ? pathReturns.reduce((sum, value) => sum + value, 0) / pathReturns.length : 0;
@@ -1029,6 +1050,8 @@ export class MonteCarloStatisticsEngine {
     const drawdownPercentiles = this.buildPercentileSet(maxDrawdownValues);
     const generalBenchmarkCAGR = generalBenchmark ? (generalBenchmark.simulatedLongTermReturn ?? meanReturn) : null;
     const generalBenchmarkVolatility = generalBenchmark ? (generalBenchmark.simulatedVolatility ?? returnVolatility) : null;
+    logScenarioStatsPhase('drawdown_percentiles');
+
     const returnGenerationAggregate = paths.reduce((aggregate, path) => {
       const range = (path as any).returnDiagnostics ?? null;
       if (!range) return aggregate;
@@ -1075,6 +1098,8 @@ export class MonteCarloStatisticsEngine {
       effectiveRangeRejectedVectors: 0,
       byEtfScenario: {} as Record<string, any>
     });
+    logScenarioStatsPhase('return_generation_aggregate');
+
     const macroSummary: Record<string, unknown> = {};
     for (const scenario of MACRO_SCENARIOS) {
       const pathEpisodeDurations: number[] = [];
@@ -1151,6 +1176,8 @@ export class MonteCarloStatisticsEngine {
         p95Intensity,
       };
     }
+    logScenarioStatsPhase('macro_summary', { scenarios: MACRO_SCENARIOS.length });
+
     const observedEpisodeDurations = paths.flatMap((path) => path.scenarioPath?.years ?? []).map((entry) => entry.durationInCurrentScenario).filter((value) => Number.isFinite(value) && value >= 0);
     const averageObservedMonthsPerScenario = observedEpisodeDurations.length > 0
       ? observedEpisodeDurations.reduce((sum, value) => sum + value, 0) / observedEpisodeDurations.length
@@ -1159,6 +1186,21 @@ export class MonteCarloStatisticsEngine {
     const canonicalRedrawCount = returnGenerationAggregate.rejectedVectors;
     const canonicalRejectRate = returnGenerationAggregate.candidateVectors > 0 ? returnGenerationAggregate.rejectedVectors / returnGenerationAggregate.candidateVectors : 0;
     const canonicalPhysicalFloorRejectRate = returnGenerationAggregate.candidateVectors > 0 ? returnGenerationAggregate.physicalFloorRejectedVectors / returnGenerationAggregate.candidateVectors : 0;
+
+    logScenarioStatsPhase('observed_episode_summary');
+
+    const returnPercentilesStartedAt = performance.now();
+    const returnP1 = pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 1) : 0;
+    const returnP5 = pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 5) : 0;
+    const returnP50 = pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 50) : 0;
+    const returnP95 = pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 95) : 0;
+    const returnP99 = pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 99) : 0;
+    console.info('[Monte Carlo V2 telemetry] scenario statistics detail', {
+      phase: 'return_percentiles',
+      durationMs: Number((performance.now() - returnPercentilesStartedAt).toFixed(2)),
+      returnSamples: pathReturns.length
+    });
+    scenarioStatsMark = performance.now();
 
     const baseStatistics = {
       advancedStatisticsEnabled,
@@ -1205,11 +1247,11 @@ export class MonteCarloStatisticsEngine {
         monthlyVolatility: returnVolatility,
         annualizedVolatility: returnVolatility * Math.sqrt(12),
         minimumMonthlyReturn: pathReturns.length > 0 ? this.computeMin(pathReturns) : 0,
-        p1: pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 1) : 0,
-        p5: pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 5) : 0,
-        p50: pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 50) : 0,
-        p95: pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 95) : 0,
-        p99: pathReturns.length > 0 ? this.calculateLinearPercentile(pathReturns, 99) : 0,
+        p1: returnP1,
+        p5: returnP5,
+        p50: returnP50,
+        p95: returnP95,
+        p99: returnP99,
         maximumMonthlyReturn: pathReturns.length > 0 ? this.computeMax(pathReturns) : 0,
       },
       drawdown: {
@@ -1252,6 +1294,7 @@ export class MonteCarloStatisticsEngine {
       performance: performance ?? { redrawCount: null, rejectRate: null }
     };
 
+    logScenarioStatsPhase('assemble_statistics_result');
     return baseStatistics;
   }
 
