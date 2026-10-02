@@ -28,6 +28,9 @@ export class LoginPageComponent {
   factorTestRunning = false;
   factorTestResult = '';
   factorTestOk = false;
+  etfValidationRunning = false;
+  etfValidationResult = '';
+  etfValidationOk = false;
   private usernameCheckTimer?: ReturnType<typeof setTimeout>;
 
   setRegisterMode(registerMode: boolean): void {
@@ -98,6 +101,43 @@ export class LoginPageComponent {
         this.factorTestOk = false;
         this.factorTestResult = JSON.stringify({ status: error?.status, message: error?.message, error: error?.error }, null, 2);
         console.error('[Factor Engine V2 test]', error);
+      }
+    });
+  }
+
+  testEtfHistoricalValidation(): void {
+    if (this.etfValidationRunning) return;
+    this.etfValidationRunning = true;
+    this.etfValidationOk = false;
+    this.etfValidationResult = 'Test Historical Validation Engine in corso...';
+
+    const rows = [
+      { date: '2025-01', realReturn: 0.021, modelReturn: 0.019 },
+      { date: '2025-02', realReturn: -0.014, modelReturn: -0.012 },
+      { date: '2025-03', realReturn: 0.008, modelReturn: 0.009 },
+      { date: '2025-04', realReturn: 0.027, modelReturn: 0.024 },
+      { date: '2025-05', realReturn: -0.006, modelReturn: -0.004 },
+      { date: '2025-06', realReturn: 0.016, modelReturn: 0.015 },
+      { date: '2025-07', realReturn: 0.011, modelReturn: 0.010 },
+      { date: '2025-08', realReturn: -0.019, modelReturn: -0.017 },
+      { date: '2025-09', realReturn: 0.023, modelReturn: 0.021 },
+      { date: '2025-10', realReturn: 0.007, modelReturn: 0.008 },
+      { date: '2025-11', realReturn: -0.009, modelReturn: -0.008 },
+      { date: '2025-12', realReturn: 0.018, modelReturn: 0.016 }
+    ];
+
+    this.apiService.evaluateEtfHistoricalValidation({ isin: 'DIAGNOSTIC_TEST', rows }).subscribe({
+      next: (result: any) => {
+        this.etfValidationRunning = false;
+        this.etfValidationOk = result?.success === true && result?.data?.status === 'diagnostic_only';
+        this.etfValidationResult = JSON.stringify(result, null, 2);
+        console.log('[ETF Historical Validation test]', result);
+      },
+      error: (error) => {
+        this.etfValidationRunning = false;
+        this.etfValidationOk = false;
+        this.etfValidationResult = JSON.stringify({ status: error?.status, message: error?.message, error: error?.error }, null, 2);
+        console.error('[ETF Historical Validation test]', error);
       }
     });
   }
