@@ -47,7 +47,7 @@ interface KpiCard {
 export class MontecarloPageComponent {
   readonly headerActionIcon = 'play_arrow';
   get headerActionLabel(): string { return this.runButtonLabel; }
-  get headerActionDisabled(): boolean { return this.marketUniverseGenerationInProgress || this.editorState()?.state?.isValid !== true || this.isRunning || this.completionHoldActive; }
+  get headerActionDisabled(): boolean { return this.marketUniverseGenerationInProgress || this.editorState()?.state?.isValid !== true || this.isRunning || this.isRunningV2 || this.completionHoldActive; }
   get headerActionRunning(): boolean { return this.isRunning || this.completionHoldActive; }
   get headerActionProgress(): number { return this.buttonFillWidth; }
   runHeaderAction(): void { this.runSimulation(); }
