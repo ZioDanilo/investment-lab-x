@@ -63,6 +63,11 @@
           {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
         </button>
 
+        <button type="button" class="factor-test-button" [disabled]="factorTestRunning" (click)="testFactorEngineV2()">
+          {{ factorTestRunning ? 'Test V2 in corso...' : 'Test Factor Engine V2' }}
+        </button>
+        <pre class="factor-test-result" *ngIf="factorTestResult" [class.ok]="factorTestOk">{{ factorTestResult }}</pre>
+
         <p class="helper-text helper-text--error" *ngIf="authError">{{ authError }}</p>
         <p class="helper-text helper-text--success" *ngIf="authSuccess">{{ authSuccess }}</p>
         <p class="helper-text">
