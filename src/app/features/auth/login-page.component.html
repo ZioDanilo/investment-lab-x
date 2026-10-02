@@ -64,7 +64,7 @@
         </button>
 
         <button type="button" class="factor-test-button" [disabled]="factorTestRunning" (click)="testFactorEngineV2()">
-          {{ factorTestRunning ? 'Test V2 in corso...' : 'Test Factor Engine V2' }}
+          {{ factorTestRunning ? 'Test V2.1 in corso...' : 'Test Factor Engine V2.1 (4 scenari)' }}
         </button>
         <pre class="factor-test-result" *ngIf="factorTestResult" [class.ok]="factorTestOk">{{ factorTestResult }}</pre>
 
