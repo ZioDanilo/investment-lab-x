@@ -63,6 +63,11 @@ export class AppShellComponent implements OnDestroy {
   }
   private get isMonteCarloPage(): boolean { return this.router.url.startsWith('/monte-carlo'); }
   runFeatureAction(): void { this.activeFeaturePage?.runHeaderAction?.(); }
+  get secondaryFeatureActionLabel(): string { return this.activeFeaturePage?.secondaryHeaderActionLabel ?? ''; }
+  get secondaryFeatureActionIcon(): string { return this.activeFeaturePage?.secondaryHeaderActionIcon ?? ''; }
+  get secondaryFeatureActionDisabled(): boolean { return this.activeFeaturePage?.secondaryHeaderActionDisabled ?? false; }
+  get secondaryFeatureActionRunning(): boolean { return this.activeFeaturePage?.secondaryHeaderActionRunning ?? false; }
+  runSecondaryFeatureAction(): void { this.activeFeaturePage?.runSecondaryHeaderAction?.(); }
 
   profileMenuOpen = false;
   isRegeneratingMarketUniverse = false;
