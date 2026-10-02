@@ -457,3 +457,30 @@
 .message-navbar:hover .message-rotator span {
   animation-play-state: paused;
 }
+
+
+.factor-test-button {
+  height: 36px;
+  border: 1px dashed rgba(103, 210, 255, 0.45);
+  border-radius: 9px;
+  background: rgba(103, 210, 255, 0.06);
+  color: rgba(223, 245, 255, 0.88);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.factor-test-button:disabled { opacity: .55; cursor: default; }
+.factor-test-result {
+  max-height: 160px;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  border-radius: 8px;
+  background: rgba(3, 9, 14, .72);
+  color: #ffb4b4;
+  font: 11px/1.35 Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.factor-test-result.ok { color: #8fe0b0; }
