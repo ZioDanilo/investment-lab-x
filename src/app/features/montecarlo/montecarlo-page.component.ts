@@ -657,7 +657,9 @@ export class MontecarloPageComponent {
   }
 
   private async requestBinarySimulationProjectionV2(holdings: Array<{ isin: string; weight: number }>): Promise<any> {
+    const requestStartedAt = performance.now();
     const response = await firstValueFrom(this.apiService.buildBinaryPortfolioProjectionV2({ holdings }));
+    const responseReceivedAt = performance.now();
     if (!response) {
       throw new Error('Binary Market Universe V2 response was empty.');
     }
@@ -666,11 +668,23 @@ export class MontecarloPageComponent {
       : (response as ArrayBufferView)?.buffer instanceof ArrayBuffer
         ? (response as ArrayBufferView).buffer
         : new Uint8Array(response as ArrayBuffer | number[]).buffer;
+    const decodeStartedAt = performance.now();
     const decoded = MarketUniverseBinaryTransport.decode(arrayBuffer);
+    const binaryDecodeMs = performance.now() - decodeStartedAt;
     if (decoded.payloadType !== 'FULL') {
       throw new Error('Market Universe V2 must return a FULL binary projection.');
     }
-    return this.normalizeBinaryProjectionProjection(decoded);
+    const normalizeStartedAt = performance.now();
+    const projection = this.normalizeBinaryProjectionProjection(decoded);
+    const normalizeMs = performance.now() - normalizeStartedAt;
+    console.info('[Monte Carlo V2 telemetry] transport/decode', {
+      holdings: holdings.length,
+      responseBytes: arrayBuffer.byteLength,
+      httpAndBackendMs: Number((responseReceivedAt - requestStartedAt).toFixed(2)),
+      binaryDecodeMs: Number(binaryDecodeMs.toFixed(2)),
+      normalizeProjectionMs: Number(normalizeMs.toFixed(2))
+    });
+    return projection;
   }
 
   private buildOfficialResultFromProjection(projection: any, initialCapital: number, horizonYears: number): MonteCarloResult {
@@ -978,10 +992,16 @@ export class MontecarloPageComponent {
     this.kpiResultValues = {};
     this.resetKpis();
 
+    const simulationStartedAt = performance.now();
+
     try {
 
+      const projectionStartedAt = performance.now();
       const projection = await this.requestBinarySimulationProjectionV2(composition);
+      const projectionReadyAt = performance.now();
+      const statisticsStartedAt = performance.now();
       const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
+      const statisticsReadyAt = performance.now();
       this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
       this.updateDonutSegments();
 
@@ -1029,6 +1049,13 @@ export class MontecarloPageComponent {
         { id: 'recoveryPeriod', title: 'Periodo di recupero', value: this.formatMonths(result.mainKpis?.recoveryTimeMonths), description: 'Tempo medio al break-even · V2', tone: 'amber' },
         { id: 'averageMaxDrawdown', title: 'Drawdown', value: this.formatPercent(result.mainKpis?.robustMaxDrawdown), description: 'Perdita massima media · V2', tone: 'red' }
       ]);
+      console.info('[Monte Carlo V2 telemetry] total', {
+        selectedAssets: composition.length,
+        projectionRequestMs: Number((projectionReadyAt - projectionStartedAt).toFixed(2)),
+        statisticsKpiMs: Number((statisticsReadyAt - statisticsStartedAt).toFixed(2)),
+        uiPostProcessingMs: Number((performance.now() - statisticsReadyAt).toFixed(2)),
+        totalClickToResultMs: Number((performance.now() - simulationStartedAt).toFixed(2))
+      });
     } catch (error: any) {
       console.error('[Monte Carlo V2]', error);
       const message = error?.error?.error?.message ?? error?.error?.message ?? error?.message ?? 'Errore durante la simulazione Monte Carlo V2.';
