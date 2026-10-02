@@ -103,7 +103,7 @@ export class AppShellComponent implements OnDestroy {
 
   private async refreshMarketUniverseGenerationStatus(): Promise<void> {
     try {
-      const response = await firstValueFrom(this.apiService.getMarketUniverseGenerationStatus());
+      const response = await firstValueFrom(this.apiService.getMarketUniverseV2GenerationStatus());
       if (this.applyMarketUniverseGenerationStatus(response)) {
         this.startMarketUniversePolling();
       }
@@ -121,7 +121,7 @@ export class AppShellComponent implements OnDestroy {
     const poll = async (): Promise<void> => {
       if (!this.marketUniversePolling) return;
       try {
-        const response = await firstValueFrom(this.apiService.getMarketUniverseGenerationStatus());
+        const response = await firstValueFrom(this.apiService.getMarketUniverseV2GenerationStatus());
         if (!this.applyMarketUniverseGenerationStatus(response)) {
           this.stopMarketUniversePolling();
           return;
@@ -173,7 +173,7 @@ export class AppShellComponent implements OnDestroy {
       // The regeneration endpoint acknowledges the background job immediately.
       // Keep the UI locked locally and start polling only after that acknowledgement,
       // when the GENERATING state is already persisted.
-      const response = await firstValueFrom(this.apiService.regenerateMarketUniverse());
+      const response = await firstValueFrom(this.apiService.regenerateMarketUniverseV2());
       const payload = response?.data ?? response;
       if (payload?.success === false) {
         throw new Error(payload?.error || 'Market Universe regeneration failed');

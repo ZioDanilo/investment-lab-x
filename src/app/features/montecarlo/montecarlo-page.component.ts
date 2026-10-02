@@ -3,9 +3,6 @@ import { Component, HostListener, ViewChild, effect, inject, signal } from '@ang
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { MonteCarloStatisticsEngine } from '../../core/engines/monte-carlo-statistics.engine';
-import { MonteCarloCoordinator } from '../../core/engines/monte-carlo-coordinator';
-import { buildMonteCarloSnapshotRequest, buildMonteCarloUserInput } from '../../core/monte-carlo-ui-flow';
-import { validateMonteCarloRunContract } from '../../core/validation/monte-carlo-contract.validator';
 import { MarketUniverseBinaryTransport, type DecodedMarketUniverseBinary } from '../../core/market-universe/market-universe-binary-transport';
 import { MonteCarloResult } from '../../core/models/monte-carlo-contracts.model';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
@@ -381,7 +378,7 @@ export class MontecarloPageComponent {
     this.marketUniverseStatusMessage = 'RIGENERAZIONE...';
 
     try {
-      const response = await firstValueFrom(this.apiService.regenerateMarketUniverse());
+      const response = await firstValueFrom(this.apiService.regenerateMarketUniverseV2());
       const payload = response?.data ?? response;
       const assetCount = Number(payload?.assetCount ?? payload?.assets?.length ?? 0);
       const incompleteCount = Number(payload?.incompleteAssetCount ?? 0);
@@ -657,6 +654,23 @@ export class MontecarloPageComponent {
     }
 
     throw lastError instanceof Error ? lastError : new Error('Binary Market Universe request failed.');
+  }
+
+  private async requestBinarySimulationProjectionV2(holdings: Array<{ isin: string; weight: number }>): Promise<any> {
+    const response = await firstValueFrom(this.apiService.buildBinaryPortfolioProjectionV2({ holdings }));
+    if (!response) {
+      throw new Error('Binary Market Universe V2 response was empty.');
+    }
+    const arrayBuffer = response instanceof ArrayBuffer
+      ? response
+      : (response as ArrayBufferView)?.buffer instanceof ArrayBuffer
+        ? (response as ArrayBufferView).buffer
+        : new Uint8Array(response as ArrayBuffer | number[]).buffer;
+    const decoded = MarketUniverseBinaryTransport.decode(arrayBuffer);
+    if (decoded.payloadType !== 'FULL') {
+      throw new Error('Market Universe V2 must return a FULL binary projection.');
+    }
+    return this.normalizeBinaryProjectionProjection(decoded);
   }
 
   private buildOfficialResultFromProjection(projection: any, initialCapital: number, horizonYears: number): MonteCarloResult {
@@ -967,30 +981,8 @@ export class MontecarloPageComponent {
     try {
       await this.saveCurrentPortfolioKpiConfiguration();
 
-      const snapshotRequest = buildMonteCarloSnapshotRequest(composition);
-      const snapshotResponse = await firstValueFrom(this.apiService.getMonteCarloSnapshot(snapshotRequest));
-      const snapshot = snapshotResponse?.data;
-      if (!snapshot) {
-        throw new Error('Snapshot Monte Carlo V2 non disponibile.');
-      }
-
-      const input = buildMonteCarloUserInput(composition, 100000, 30);
-      validateMonteCarloRunContract(input, snapshot);
-
-      const coordinator = new MonteCarloCoordinator({
-        input,
-        snapshot,
-        mode: 'COMPLETE',
-        advancedStatistics: false,
-        profilingEnabled: false
-      });
-      const outcome = await coordinator.run();
-
-      if (outcome.status !== 'success' || !outcome.result) {
-        throw new Error(outcome.error?.message ?? 'Simulazione Monte Carlo V2 non completata.');
-      }
-
-      const result = outcome.result;
+      const projection = await this.requestBinarySimulationProjectionV2(composition);
+      const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
       this.macroScenarioDistribution = this.buildMacroSegmentsFromFrequencies(result?.statistics?.scenario?.frequencies);
       this.updateDonutSegments();
 

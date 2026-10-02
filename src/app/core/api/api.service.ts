@@ -227,6 +227,21 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/market-universe/regenerate`, {});
   }
 
+  // Market Universe V2: ETF-oriented persistence, no application warm-up cache.
+  getMarketUniverseV2GenerationStatus(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/v2/generation-status`);
+  }
+
+  regenerateMarketUniverseV2(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/market-universe/v2/regenerate`, {});
+  }
+
+  buildBinaryPortfolioProjectionV2(payload: any): Observable<ArrayBuffer> {
+    return this.http.post(`${this.apiUrl}/market-universe/v2/portfolio/projection/binary`, payload, {
+      responseType: 'arraybuffer'
+    });
+  }
+
   // Health check
   healthCheck(): Observable<any> {
     return this.http.get(`${this.apiUrl}/health`);
