@@ -372,7 +372,7 @@ export class MontecarloPageComponent {
     this.marketUniverseStatusMessage = 'RIGENERAZIONE...';
 
     try {
-      const response = await firstValueFrom(this.apiService.regenerateMarketUniverse());
+      const response = await firstValueFrom(this.apiService.regenerateMarketUniverseV2());
       const payload = response?.data ?? response;
       const assetCount = Number(payload?.assetCount ?? payload?.assets?.length ?? 0);
       const incompleteCount = Number(payload?.incompleteAssetCount ?? 0);
@@ -393,7 +393,8 @@ export class MontecarloPageComponent {
 
   private buildScenarioPathFromMonthEntries(
     monthEntries: Array<{ month?: number; year?: number; scenario?: string }>,
-    horizonYears: number
+    horizonYears: number,
+    alreadyOrdered = false
   ): { years: Array<{ year: number; scenario: 'expansion' | 'soft_landing' | 'recession' | 'stagflation'; durationInCurrentScenario: number }>; frequencies: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', number> } {
     const frequencies: Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', number> = {
       expansion: 0,
@@ -403,7 +404,10 @@ export class MontecarloPageComponent {
     };
     const yearBuckets = new Map<number, Record<'expansion' | 'soft_landing' | 'recession' | 'stagflation', number>>();
 
-    for (const entry of [...monthEntries].sort((left: any, right: any) => Number(left?.month ?? 0) - Number(right?.month ?? 0))) {
+    const orderedEntries = alreadyOrdered
+      ? monthEntries
+      : [...monthEntries].sort((left: any, right: any) => Number(left?.month ?? 0) - Number(right?.month ?? 0));
+    for (const entry of orderedEntries) {
       const month = Number(entry?.month ?? 0);
       const year = Number(entry?.year ?? (month > 0 ? Math.floor((month - 1) / 12) + 1 : 1));
       const scenario = this.normalizeScenarioKey(entry?.scenario ?? 'expansion');
@@ -509,7 +513,6 @@ export class MontecarloPageComponent {
     const totalMonths = Number(decoded.monthCount || 0);
 
     for (let pathId = 0; pathId < totalPaths; pathId += 1) {
-      const monthlyReturns = [] as number[];
       const months = [] as any[];
       const baseIndex = pathId * totalMonths;
 
@@ -519,7 +522,6 @@ export class MontecarloPageComponent {
         const scenarioCode = modeScenarioCache[flatIndex] ?? 0;
         const scenario = MarketUniverseBinaryTransport.decodeScenarioCode(scenarioCode);
         const intensity = Number(modeIntensityCache[flatIndex] ?? 0);
-        monthlyReturns.push(weightedReturn);
         months.push({
           monthIndex,
           scenario,
@@ -530,8 +532,8 @@ export class MontecarloPageComponent {
 
       pathEntries.push({
         pathId,
-        monthlyReturns,
-        months
+        months,
+        monthsOrdered: true
       });
     }
 
@@ -650,6 +652,37 @@ export class MontecarloPageComponent {
     throw lastError instanceof Error ? lastError : new Error('Binary Market Universe request failed.');
   }
 
+  private async requestBinarySimulationProjectionV2(holdings: Array<{ isin: string; weight: number }>): Promise<any> {
+    const requestStartedAt = performance.now();
+    const response = await firstValueFrom(this.apiService.buildBinaryPortfolioProjectionV2({ holdings }));
+    const responseReceivedAt = performance.now();
+    if (!response) {
+      throw new Error('Binary Market Universe V2 response was empty.');
+    }
+    const arrayBuffer = response instanceof ArrayBuffer
+      ? response
+      : (response as ArrayBufferView)?.buffer instanceof ArrayBuffer
+        ? (response as ArrayBufferView).buffer
+        : new Uint8Array(response as ArrayBuffer | number[]).buffer;
+    const decodeStartedAt = performance.now();
+    const decoded = MarketUniverseBinaryTransport.decode(arrayBuffer);
+    const binaryDecodeMs = performance.now() - decodeStartedAt;
+    if (decoded.payloadType !== 'FULL') {
+      throw new Error('Market Universe V2 must return a FULL binary projection.');
+    }
+    const normalizeStartedAt = performance.now();
+    const projection = this.normalizeBinaryProjectionProjection(decoded);
+    const normalizeMs = performance.now() - normalizeStartedAt;
+    console.info('[Monte Carlo V2 telemetry] transport/decode', {
+      holdings: holdings.length,
+      responseBytes: arrayBuffer.byteLength,
+      httpAndBackendMs: Number((responseReceivedAt - requestStartedAt).toFixed(2)),
+      binaryDecodeMs: Number(binaryDecodeMs.toFixed(2)),
+      normalizeProjectionMs: Number(normalizeMs.toFixed(2))
+    });
+    return projection;
+  }
+
   private buildOfficialResultFromProjection(projection: any, initialCapital: number, horizonYears: number): MonteCarloResult {
     const pathEntries = Array.isArray(projection?.paths) ? projection.paths : [];
     if (pathEntries.length === 0) {
@@ -661,10 +694,11 @@ export class MontecarloPageComponent {
         ? rawPath.monthlyReturns.map((value: any) => Number(value) || 0)
         : [];
       const monthEntries = Array.isArray(rawPath?.months) ? rawPath.months : [];
-      const normalizedMonths = monthEntries.length > 0
+      const orderedMonthEntries = rawPath?.monthsOrdered === true
         ? monthEntries
-            .slice()
-            .sort((left: any, right: any) => Number(left?.monthIndex ?? 0) - Number(right?.monthIndex ?? 0))
+        : monthEntries.slice().sort((left: any, right: any) => Number(left?.monthIndex ?? 0) - Number(right?.monthIndex ?? 0));
+      const normalizedMonths = monthEntries.length > 0
+        ? orderedMonthEntries
             .map((entry: any, monthIndex: number) => {
               const weightedReturn = Number(entry?.weightedReturn ?? entry?.return ?? 0);
               const month = Number(entry?.monthIndex ?? monthIndex) + 1;
@@ -756,14 +790,17 @@ export class MontecarloPageComponent {
       let previousEndingCapital = initialCapital;
       for (let yearIndex = 1; yearIndex <= horizonYears; yearIndex += 1) {
         const year = yearIndex;
-        const entries = monthly.filter((entry: any) => Number(entry.year) === year);
+        const startIndex = (yearIndex - 1) * 12;
+        const endIndex = Math.min(startIndex + 12, monthly.length);
+        const firstEntry = startIndex < monthly.length ? monthly[startIndex] : null;
+        const lastEntry = endIndex > startIndex ? monthly[endIndex - 1] : null;
         const startingCapital = year === 1 ? initialCapital : previousEndingCapital;
-        const endingCapital = entries.length > 0 ? entries[entries.length - 1].endingCapital : startingCapital;
+        const endingCapital = lastEntry?.endingCapital ?? startingCapital;
         const portfolioReturn = startingCapital > 0 ? (endingCapital / startingCapital) - 1 : 0;
         const annualYear = {
           year,
-          scenario: entries[0]?.scenario ?? 'expansion',
-          durationInCurrentScenario: entries.length || 1,
+          scenario: firstEntry?.scenario ?? 'expansion',
+          durationInCurrentScenario: Math.max(endIndex - startIndex, 1),
           etfReturns: [],
           portfolioReturn,
           startingCapital,
@@ -775,7 +812,7 @@ export class MontecarloPageComponent {
         previousEndingCapital = endingCapital;
       }
 
-      const scenarioPath = this.buildScenarioPathFromMonthEntries(normalizedMonths, horizonYears);
+      const scenarioPath = this.buildScenarioPathFromMonthEntries(normalizedMonths, horizonYears, rawPath?.monthsOrdered === true);
       const finalCapital = monthly.length > 0 ? monthly[monthly.length - 1].endingCapital : initialCapital;
       const totalReturn = finalCapital / initialCapital - 1;
       const cagr = Math.pow(Math.max(finalCapital / initialCapital, Number.EPSILON), 1 / Math.max(horizonYears, 1)) - 1;
@@ -812,12 +849,75 @@ export class MontecarloPageComponent {
       } as any;
     };
 
+    const pathBuildStartedAt = performance.now();
     const paths = pathEntries.map(buildPathResult);
-    return MonteCarloStatisticsEngine.buildOfficialResult(paths, horizonYears, initialCapital, {
-      performanceDiagnostics: { redrawCount: 0, rejectRate: 0 },
-      matricesCoherent: true,
-      advancedStatisticsEnabled: false
+    const pathBuildMs = performance.now() - pathBuildStartedAt;
+
+    const cagrValues = paths.map((path: any) => Number(path.cagr ?? 0));
+    const maxDrawdownValues = paths.map((path: any) => Number(path.maxDrawdown ?? 0));
+    const completedRecoveryTimes = paths
+      .map((path: any) => path.maxRecoveryTimeMonths)
+      .filter((value: any): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0);
+    const pathVolatilities = paths.map((path: any) => {
+      const monthlyReturns = Array.isArray(path.monthly)
+        ? path.monthly.map((entry: any) => Number(entry.portfolioReturn)).filter((value: number) => Number.isFinite(value))
+        : [];
+      return MonteCarloStatisticsEngine.calculatePathVolatility(monthlyReturns);
     });
+
+    const robustCagr = MonteCarloStatisticsEngine.calculateTrimmedMean5Percent(cagrValues);
+    const q95MaxDrawdown = MonteCarloStatisticsEngine.calculateLinearPercentile(maxDrawdownValues, 95);
+    const robustMaxDrawdown = MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(q95MaxDrawdown, horizonYears);
+    const volatility = MonteCarloStatisticsEngine.calculateTrimmedMean5Percent(pathVolatilities);
+    const recoveryTimeMonths = completedRecoveryTimes.length > 0
+      ? MonteCarloStatisticsEngine.calculateTrimmedMean5Percent(completedRecoveryTimes)
+      : null;
+    const representativePath = MonteCarloStatisticsEngine.selectRepresentativePath(paths, robustCagr);
+
+    const scenarioFrequencies = { expansion: 0, soft_landing: 0, recession: 0, stagflation: 0 };
+    for (const path of paths as any[]) {
+      const frequencies = path?.scenarioPath?.frequencies ?? {};
+      scenarioFrequencies.expansion += Number(frequencies.expansion ?? 0);
+      scenarioFrequencies.soft_landing += Number(frequencies.soft_landing ?? 0);
+      scenarioFrequencies.recession += Number(frequencies.recession ?? 0);
+      scenarioFrequencies.stagflation += Number(frequencies.stagflation ?? 0);
+    }
+    const scenarioTotal = Object.values(scenarioFrequencies).reduce((sum, value) => sum + value, 0) || 1;
+    for (const key of Object.keys(scenarioFrequencies) as Array<keyof typeof scenarioFrequencies>) {
+      scenarioFrequencies[key] /= scenarioTotal;
+    }
+
+    // V2 runtime result: calculate only values consumed by the Monte Carlo page.
+    // Validation/control statistics, capital fan and technical checks remain available
+    // in the legacy V1 engine but are intentionally not executed by the production V2 action.
+    const displayResult = {
+      mainKpis: {
+        robustCagr,
+        robustMaxDrawdown,
+        worstCaseMaxDrawdown: MonteCarloStatisticsEngine.normalizeDrawdownTo30Years(
+          maxDrawdownValues.length > 0 ? Math.max(...maxDrawdownValues) : 0,
+          horizonYears
+        ),
+        volatility,
+        recoveryTimeMonths
+      },
+      percentiles: {} as any,
+      capitalFan: [],
+      representativePath,
+      statistics: { scenario: { frequencies: scenarioFrequencies } },
+      technicalChecks: null,
+      distributionSamples: {
+        cagr: cagrValues,
+        maxDrawdown: maxDrawdownValues
+      },
+      performanceMetrics: null
+    } as MonteCarloResult;
+
+    console.info('[Monte Carlo V2 telemetry] display statistics', {
+      pathBuildMs: Number(pathBuildMs.toFixed(2)),
+      paths: paths.length
+    });
+    return displayResult;
   }
 
   onEditorStateChange(change: MontecarloPortfolioEditorChange): void {
@@ -830,7 +930,7 @@ export class MontecarloPageComponent {
   }
 
   async runSimulation(): Promise<void> {
-    if (this.editorState()?.state?.isValid !== true || this.isRunning || this.marketUniverseGenerationInProgress) {
+    if (this.editorState()?.state?.isValid !== true || this.isRunning) {
       return;
     }
 
@@ -840,8 +940,6 @@ export class MontecarloPageComponent {
     this.resetKpis();
 
     try {
-      await this.saveCurrentPortfolioKpiConfiguration();
-
       // The editor is the source of truth for a simulation. Its composition can
       // intentionally differ from the persisted portfolio until the user chooses
       // "Aggiorna portafoglio"; fetching the DB portfolio here would therefore
@@ -868,7 +966,7 @@ export class MontecarloPageComponent {
       // A simulation click only applies the selected portfolio weights and derives
       // portfolio paths/KPIs; it must never regenerate the Monte Carlo universe.
       this.advanceProgressStage(62);
-      const projection = await this.requestBinarySimulationProjection(positions);
+      const projection = await this.requestBinarySimulationProjectionV2(positions);
       this.advanceProgressStage(80);
       const result = this.buildOfficialResultFromProjection(projection, 100000, 30);
       this.advanceProgressStage(92);
@@ -931,6 +1029,7 @@ export class MontecarloPageComponent {
       this.clearCompletionHold();
     }
   }
+
 
   private mergeKpiValuesPreservingOrder(updatedKpis: KpiCard[]): KpiCard[] {
     const updatedById = new Map(updatedKpis.map((kpi) => [kpi.id, kpi]));
