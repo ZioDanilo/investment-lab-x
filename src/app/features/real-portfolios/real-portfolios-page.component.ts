@@ -39,14 +39,14 @@ export class RealPortfoliosPageComponent implements OnInit {
         const etfCount=Math.max(1,Array.isArray(holdingsRes?.data)?holdingsRes.data.length:1);
         this.startQuotationProgress(etfCount);
         this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
-          next:()=>{this.loadMarketValues();this.finishQuotationProgress();},
+          next:()=>{this.loadMarketValues();this.loadHoldings();this.finishQuotationProgress();},
           error:(error)=>{this.resetQuotationProgress();console.error('Errore aggiornamento quotazioni portafoglio',error);}
         });
       },
       error:()=>{
         this.startQuotationProgress(1);
         this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
-          next:()=>this.finishQuotationProgress(),
+          next:()=>{this.loadMarketValues();this.loadHoldings();this.finishQuotationProgress();},
           error:(error)=>{this.resetQuotationProgress();console.error('Errore aggiornamento quotazioni portafoglio',error);}
         });
       }
@@ -188,10 +188,10 @@ export class RealPortfoliosPageComponent implements OnInit {
     return [
     ['Valore di mercato',this.formatCurrency(value),`${sign}${this.formatCurrency(Math.abs(gain))}  (${this.formatSignedPercent(pct)})`,tone],
     ['Capitale investito',this.formatCurrencyTrailing(p?.investedCapital ?? 0),'',''],
-    ['Gain/Loss','+ € 2.701','+12,4%','positive'],
+    ['Gain/Loss',`${sign}${this.formatCurrency(Math.abs(gain))}`,this.formatSignedPercent(pct),tone],
     ['Rendimento annuo (TWR)','+8,1%','','positive'],
     ['Volatilità annua','11,3%','',''],
-    ['Numero ETF','5','','']
+    ['Numero ETF',String(this.holdings.length),'','']
   ];
   }
   holdings:Holding[]=[];
