@@ -11,7 +11,7 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; totalValue?:number; contributedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
 interface Holding { name:string; ticker:string; qty:string; avg:string; value:string; gain:string; weight:string; tone:'positive'|'negative'; }
-interface Operation { date:string; type:'Acquisto'|'Vendita'; isin:string; etf:string; qty:string; price:string; total:string; }
+interface Operation { date:string; type:'Acquisto'|'Vendita'|'Ritenuta'; isin:string; etf:string; qty:string; price:string; total:string; }
 
 @Component({
   selector:'app-real-portfolios-page',
@@ -395,7 +395,8 @@ export class RealPortfoliosPageComponent implements OnInit {
       const df=new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'short',year:'numeric'});
       this.operations=rows.map((o:any)=>{
         const q=this.parseDecimal(o.quantity),p=this.parseDecimal(o.unitPrice);
-        return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:o.operationType==='sell'?'Vendita':'Acquisto',isin:o.etf?.isin||'',etf:o.etf?.nickname||o.etf?.name||o.etf?.ticker||'',qty:nf.format(q),price:eur.format(p),total:eur.format(q*p)};
+        if(o.operationType==='tax') return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:'Ritenuta' as const,isin:'—',etf:'Ritenuta fiscale 26%',qty:'—',price:'—',total:eur.format(Number(o.total ?? -p))};
+        return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:o.operationType==='sell'?'Vendita' as const:'Acquisto' as const,isin:o.etf?.isin||'',etf:o.etf?.nickname||o.etf?.name||o.etf?.ticker||'',qty:nf.format(q),price:eur.format(p),total:eur.format(q*p)};
       });
     },error:()=>this.operations=[]});
   }
