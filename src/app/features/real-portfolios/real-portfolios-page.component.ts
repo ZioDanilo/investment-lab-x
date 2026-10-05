@@ -32,23 +32,23 @@ export class RealPortfoliosPageComponent implements OnInit {
   runHeaderAction():void {
     const portfolio=this.portfolios[this.selected];
     if(!portfolio || this.quotationRefreshRunning)return;
+
+    // The refresh POST must be the first request. Previously a preliminary GET
+    // /holdings could be satisfied with HTTP 304 and prevent the refresh chain
+    // from reaching EODHD in some browser/cache paths.
     this.quotationRefreshRunning=true;
     this.headerActionProgress=1;
-    this.api.getRealPortfolioHoldings(portfolio.id).subscribe({
-      next:(holdingsRes:any)=>{
-        const etfCount=Math.max(1,Array.isArray(holdingsRes?.data)?holdingsRes.data.length:1);
-        this.startQuotationProgress(etfCount);
-        this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
-          next:()=>{this.loadMarketValues();this.loadHoldings();this.finishQuotationProgress();},
-          error:(error)=>{this.resetQuotationProgress();console.error('Errore aggiornamento quotazioni portafoglio',error);}
-        });
+    this.startQuotationProgress(Math.max(1,this.holdings.length));
+
+    this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
+      next:()=>{
+        this.loadMarketValues();
+        this.loadHoldings();
+        this.finishQuotationProgress();
       },
-      error:()=>{
-        this.startQuotationProgress(1);
-        this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
-          next:()=>{this.loadMarketValues();this.loadHoldings();this.finishQuotationProgress();},
-          error:(error)=>{this.resetQuotationProgress();console.error('Errore aggiornamento quotazioni portafoglio',error);}
-        });
+      error:(error)=>{
+        this.resetQuotationProgress();
+        console.error('Errore aggiornamento quotazioni portafoglio',error);
       }
     });
   }
