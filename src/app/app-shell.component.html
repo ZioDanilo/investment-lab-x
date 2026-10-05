@@ -42,6 +42,9 @@
         <span class="app-feature-action__fill" [style.width.%]="featureActionProgress"></span>
         <span class="app-feature-action__content"><span class="material-symbols-rounded">{{ featureActionIcon }}</span><span>{{ featureActionLabel }}</span></span>
       </button>
+      <button *ngIf="secondaryFeatureActionLabel" type="button" class="app-feature-action app-feature-action--secondary" [class.is-running]="secondaryFeatureActionRunning" [disabled]="secondaryFeatureActionDisabled" (click)="runSecondaryFeatureAction()">
+        <span class="app-feature-action__content"><span class="material-symbols-rounded">{{ secondaryFeatureActionIcon }}</span><span>{{ secondaryFeatureActionLabel }}</span></span>
+      </button>
     </div>
     <aside *ngIf="showFeatureSidebar" class="app-feature-sidebar" aria-label="Navigazione ETFolio">
       <a class="app-feature-menu-card app-feature-menu-card--blue" routerLink="/laboratorio-portafogli" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">science</span><span>Laboratorio Portafogli</span></a>

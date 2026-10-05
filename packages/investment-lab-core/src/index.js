@@ -11,3 +11,7 @@ export const createDeterministicRandom = (simulationId, runSeed) => {
   const baseSeed = derivePathSeed(runSeed, simulationId);
   return new SeededRandom(baseSeed);
 };
+
+export { FactorProjectionError, exposureWeightsForUsableHistory, blendFactorExposure, projectEtfReturnFromFactors, projectPortfolioReturnFromFactors } from './factors/factor-projection.js';
+
+export { FACTOR_RETURN_MODES, buildFactorCorrelationMatrix, generateMonthlyFactorReturns, generateMonthlyEtfReturnsFromFactors } from './factors/factor-market-universe.js';

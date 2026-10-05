@@ -227,8 +227,43 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/market-universe/regenerate`, {});
   }
 
+  // Market Universe V2: ETF-oriented persistence, no application warm-up cache.
+  getMarketUniverseV2GenerationStatus(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/v2/generation-status`);
+  }
+
+  regenerateMarketUniverseV2(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/market-universe/v2/regenerate`, {});
+  }
+
+  buildBinaryPortfolioProjectionV2(payload: any): Observable<ArrayBuffer> {
+    return this.http.post(`${this.apiUrl}/market-universe/v2/portfolio/projection/binary`, payload, {
+      responseType: 'arraybuffer'
+    });
+  }
+
   // Health check
   healthCheck(): Observable<any> {
     return this.http.get(`${this.apiUrl}/health`);
+  }
+  // Factor Engine V2 diagnostic endpoints
+  getFactorUniverseReadiness(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/factor-engine/universe/readiness`);
+  }
+
+  getFactorUniversePreview(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/factor-engine/universe/preview`);
+  }
+
+  generateFactorUniverseSample(payload: { scenario: string; intensity: number; seed: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/factor-engine/universe/sample`, payload);
+  }
+
+  runFactorUniverseStatisticalTest(payload: { scenario: string; intensity: number; seed: number; samples: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/factor-engine/universe/statistical-test`, payload);
+  }
+
+  evaluateEtfHistoricalValidation(payload: { etfId?: string; isin?: string; rows: Array<{ date?: string; realReturn: number; modelReturn: number }> }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/factor-engine/validation/etf/evaluate`, payload);
   }
 }
