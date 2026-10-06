@@ -10,7 +10,7 @@ import { ApiService } from '../../core/api/api.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
-interface Holding { name:string; nickname:string; ticker:string; qty:string; avg:string; price:string; value:string; marketValue:number|null; gain:string; weight:string; tone:'positive'|'negative'|'neutral'; }
+interface Holding { name:string; nickname:string; ticker:string; assetClass:string; qty:string; avg:string; price:string; value:string; marketValue:number|null; gain:string; weight:string; tone:'positive'|'negative'|'neutral'; }
 interface Operation { date:string; type:'Acquisto'|'Vendita'|'Ritenuta'; isin:string; etf:string; qty:string; price:string; total:string; }
 
 @Component({
@@ -199,10 +199,19 @@ export class RealPortfoliosPageComponent implements OnInit {
   readonly compositionColors=['#2d91ff','#64a7ff','#21c7c7','#31d48d','#9b67ed','#f9be48','#ff6b8a','#7c9cff'];
   get compositionTotal():number { return this.holdings.reduce((sum,h)=>sum+(h.marketValue ?? 0),0); }
   get compositionItems():Array<{label:string;value:number;weight:number;color:string}> {
-    if(this.compositionTab!=='etf' || this.compositionTotal<=0)return [];
-    return this.holdings
-      .filter(h=>h.marketValue!==null && h.marketValue>0)
-      .map((h,index)=>({label:h.nickname||h.name,value:h.marketValue!,weight:h.marketValue!/this.compositionTotal*100,color:this.compositionColors[index%this.compositionColors.length]}));
+    if(this.compositionTotal<=0)return [];
+    if(this.compositionTab==='etf') {
+      return this.holdings
+        .filter(h=>h.marketValue!==null && h.marketValue>0)
+        .map((h,index)=>({label:h.nickname||h.name,value:h.marketValue!,weight:h.marketValue!/this.compositionTotal*100,color:this.compositionColors[index%this.compositionColors.length]}));
+    }
+    const grouped=new Map<string,number>();
+    for(const holding of this.holdings) {
+      if(holding.marketValue===null || holding.marketValue<=0)continue;
+      const label=holding.assetClass?.trim() || 'Non classificato';
+      grouped.set(label,(grouped.get(label)||0)+holding.marketValue);
+    }
+    return Array.from(grouped.entries()).map(([label,value],index)=>({label,value,weight:value/this.compositionTotal*100,color:this.compositionColors[index%this.compositionColors.length]}));
   }
   get compositionDonutStyle():string {
     const items=this.compositionItems;
@@ -211,7 +220,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     const stops=items.map(item=>{const start=cursor;cursor+=item.weight;return `${item.color} ${start}% ${cursor}%`;});
     return `conic-gradient(${stops.join(',')})`;
   }
-  setCompositionTab(tab:'etf'|'asset'):void { this.compositionTab=tab; }
+  setCompositionTab(tab:'etf'|'asset'):void { this.compositionTab=tab; this.compositionHoverIndex=null; }
   compositionHoverIndex:number|null=null;
   compositionTooltip={x:0,y:0};
   compositionOffset(index:number):number {
@@ -428,6 +437,7 @@ export class RealPortfoliosPageComponent implements OnInit {
             name:row.nickname||row.name||row.ticker||row.isin,
             nickname:row.nickname||row.ticker||row.name||row.isin,
             ticker:row.ticker||'—',
+            assetClass:row.assetClass||'',
             qty:nf.format(Number(row.quantity)||0),
             avg:eur.format(Number(row.averageCost)||0),
             price:row.currentPrice==null?'—':eur.format(Number(row.currentPrice)),
