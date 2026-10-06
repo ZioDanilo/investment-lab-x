@@ -222,7 +222,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   }
   setCompositionTab(tab:'etf'|'asset'):void { this.compositionTab=tab; this.compositionHoverIndex=null; }
   compositionHoverIndex:number|null=null;
-  compositionTooltip={x:0,y:0};
+  compositionTooltip={x:0,y:0,visible:false};
   compositionOffset(index:number):number {
     return -this.compositionItems.slice(0,index).reduce((sum,item)=>sum+item.weight,0);
   }
@@ -246,9 +246,9 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.moveCompositionTooltip(event);
   }
   moveCompositionTooltip(event:MouseEvent):void {
-    this.compositionTooltip={x:event.clientX+12,y:event.clientY-12};
+    this.compositionTooltip={x:event.clientX+14,y:event.clientY-14,visible:true};
   }
-  leaveComposition():void { this.compositionHoverIndex=null; }
+  leaveComposition():void { this.compositionHoverIndex=null; this.compositionTooltip={...this.compositionTooltip,visible:false}; }
   operations:Operation[]=[];
   readonly stats=[['Rendimento totale','+12,4%','positive'],['Rendimento annuo (TWR)','+8,1%','positive'],['Volatilità annua','11,3%',''],['Sharpe ratio (rf 2%)','0,54',''],['Massimo drawdown','-7,8%','negative'],['Mese migliore','+4,9%','positive'],['Mese peggiore','-4,1%','negative'],['Mesi positivi','18 (66%)','']];
   readonly legend:ChartLegendItem[]=[{label:'Valore di mercato',color:'#2d91ff'},{label:'Capitale investito',color:'#9ab2cf'}];
