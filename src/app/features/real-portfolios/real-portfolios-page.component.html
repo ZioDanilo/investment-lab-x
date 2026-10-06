@@ -58,7 +58,7 @@
                   [class.donut-slice--dimmed]="compositionHoverIndex!==null && compositionHoverIndex!==i"
                   [attr.stroke]="item.color" [attr.stroke-dasharray]="item.weight + ' ' + (100-item.weight)"
                   [attr.stroke-dashoffset]="compositionOffset(i)"
-                  (mouseenter)="hoverComposition(i,$event)" (mousemove)="moveCompositionTooltip($event)"></circle>
+                  (mouseenter)="hoverComposition(i,$event)" (mouseenter)="hoverComposition(compositionHoverIndex,$event)" (mousemove)="moveCompositionTooltip($event)"></circle>
               </g>
               <circle *ngIf="compositionHoverIndex!==null && compositionItems[compositionHoverIndex]" class="donut-slice donut-slice--lifted"
                 cx="50" cy="50" r="38" pathLength="100"
@@ -71,7 +71,7 @@
             <div class="donut-center"><strong>{{formatCurrency(compositionTotal)}}</strong></div>
           </div>
           <ul><li *ngFor="let item of compositionItems"><i [style.background]="item.color"></i><span>{{item.label}}</span></li></ul>
-          <div *ngIf="compositionHoverIndex!==null && compositionItems[compositionHoverIndex]" class="composition-tooltip"
+          <div *ngIf="compositionTooltip.visible && compositionHoverIndex!==null && compositionItems[compositionHoverIndex]" class="composition-tooltip"
             [style.left.px]="compositionTooltip.x" [style.top.px]="compositionTooltip.y">
             <i [style.background]="compositionItems[compositionHoverIndex].color"></i>
             <span>{{compositionItems[compositionHoverIndex].label}}</span>
