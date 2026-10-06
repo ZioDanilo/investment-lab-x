@@ -125,15 +125,14 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     // No selection: a new portfolio can be created only from a valid 100% composition.
     if (!selectedType) return this.isValid() && !this.saving();
 
-    // Real portfolios can only be restored: they must never be overwritten or duplicated here.
-    if (selectedType === 'reale') return false;
-
-    // Laboratory/simulated portfolios can be duplicated only from a valid 100% composition.
+    // Both real and laboratory portfolios can be duplicated from the current
+    // temporary composition. Real portfolios remain read-only: only the new
+    // laboratory copy is persisted through createPortfolio().
     return this.isValid() && !this.saving();
   });
 
   readonly createPortfolioActionLabel = computed(() =>
-    this.selectedPortfolioType() === 'laboratorio' ? 'Duplica portafoglio' : 'Crea portafoglio'
+    this.hasSelectedNavbarPortfolio() ? 'Duplica portafoglio' : 'Crea portafoglio'
   );
   readonly createPortfolioNameUnavailable = computed(() => {
     const name = this.createPortfolioNameDraft().trim().toLocaleLowerCase();
@@ -253,7 +252,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       return;
     }
 
-    const isDuplicate = this.selectedPortfolioType() === 'laboratorio';
+    const isDuplicate = this.hasSelectedNavbarPortfolio();
     this.createPortfolioNameDraft.set(isDuplicate ? (this.selectedPortfolioName() || '') : 'Nuovo portafoglio');
     this.createDialogVisible.set(true);
   }
@@ -323,15 +322,39 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     if (!forceBackend && this.portfolioSelectionService.currentWorkingPortfolioId() === portfolioId && existingSessionPortfolio) {
       const mapped = existingSessionPortfolio.holdings.map((holding: any) => this.mapWorkingHoldingToItem(holding));
 
-      this.items.set(mapped);
-      this.originalItems.set(mapped.map((item: MontecarloPortfolioItem) => ({ ...item })));
-      this.currentWeightValues.set(Object.fromEntries(mapped.map((item: MontecarloPortfolioItem) => [String(item.etfId), item.weight])));
-      this.selectedPortfolioName.set(existingSessionPortfolio.name || '');
-      this.searchQuery.set('');
-      this.searchResults.set([]);
-      this.showSearchResults.set(false);
-      this.loading.set(false);
-      this.emitState();
+      this.applyLoadedComposition(portfolioId, existingSessionPortfolio.name || '', mapped, false);
+      return;
+    }
+
+    if (this.selectedPortfolioType() === 'reale') {
+      this.apiService.getRealPortfolioHoldings(portfolioId).subscribe({
+        next: (response: any) => {
+          const holdings = Array.isArray(response?.data) ? response.data : [];
+          const totalMarketValue = holdings.reduce(
+            (sum: number, holding: any) => sum + Math.max(0, Number(holding?.marketValue) || 0),
+            0
+          );
+
+          const mapped = holdings
+            .filter((holding: any) => holding?.etfId || holding?.etf?.id || holding?.isin || holding?.etf?.isin)
+            .map((holding: any) => {
+              const marketValue = Math.max(0, Number(holding?.marketValue) || 0);
+              const weight = totalMarketValue > 0 ? (marketValue / totalMarketValue) * 100 : 0;
+              return this.mapRealHoldingToItem(holding, weight);
+            });
+
+          this.applyLoadedComposition(
+            portfolioId,
+            this.selectedNavbarPortfolio()?.label || '',
+            mapped,
+            true
+          );
+        },
+        error: () => {
+          this.loading.set(false);
+          this.emitState();
+        }
+      });
       return;
     }
 
@@ -339,35 +362,77 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       next: (response: any) => {
         const holdings = response?.data?.holdings || [];
         const mapped = holdings.map((holding: any) => this.mapDbHoldingToItem(holding));
-        const snapshot = {
-          id: portfolioId,
-          name: response?.data?.name || response?.name || response?.data?.nome || response?.nome || '',
-          holdings: mapped.map((item: MontecarloPortfolioItem) => ({
-            etfId: item.etfId,
-            isin: item.isin,
-            ticker: item.ticker,
-            nickname: item.nickname,
-            fullName: item.fullName,
-            weight: item.weight
-          }))
-        };
+        const name = response?.data?.name || response?.name || response?.data?.nome || response?.nome || '';
 
-        this.portfolioSelectionService.restoreWorkingPortfolio(portfolioId, snapshot);
-        this.items.set(mapped);
-        this.originalItems.set(mapped.map((item: MontecarloPortfolioItem) => ({ ...item })));
-        this.currentWeightValues.set(Object.fromEntries(mapped.map((item: MontecarloPortfolioItem) => [String(item.etfId), item.weight])));
-        this.selectedPortfolioName.set(snapshot.name || '');
-        this.searchQuery.set('');
-        this.searchResults.set([]);
-        this.showSearchResults.set(false);
-        this.loading.set(false);
-        this.emitState();
+        this.applyLoadedComposition(portfolioId, name, mapped, true);
       },
       error: () => {
         this.loading.set(false);
         this.emitState();
       }
     });
+  }
+
+  private applyLoadedComposition(
+    portfolioId: string,
+    name: string,
+    mapped: MontecarloPortfolioItem[],
+    persistAsWorkingPortfolio: boolean
+  ): void {
+    if (persistAsWorkingPortfolio) {
+      this.portfolioSelectionService.restoreWorkingPortfolio(portfolioId, {
+        id: portfolioId,
+        name,
+        holdings: mapped.map((item: MontecarloPortfolioItem) => ({
+          etfId: item.etfId,
+          isin: item.isin,
+          ticker: item.ticker,
+          nickname: item.nickname,
+          fullName: item.fullName,
+          weight: item.weight
+        }))
+      });
+    }
+
+    this.items.set(mapped);
+    this.originalItems.set(mapped.map((item: MontecarloPortfolioItem) => ({ ...item })));
+    this.currentWeightValues.set(Object.fromEntries(mapped.map((item: MontecarloPortfolioItem) => [String(item.etfId), item.weight])));
+    this.selectedPortfolioName.set(name);
+    this.searchQuery.set('');
+    this.searchResults.set([]);
+    this.showSearchResults.set(false);
+    this.loading.set(false);
+    this.emitState();
+  }
+
+  private mapRealHoldingToItem(holding: any, weight: number): MontecarloPortfolioItem {
+    const etf = holding?.etf ?? {};
+    const normalizedWeight = this.clampWeight(weight);
+    const isin = holding?.isin || etf?.isin || '';
+    const ticker = holding?.ticker || etf?.ticker || '';
+    const nickname = holding?.nickname || etf?.nickname || holding?.name || etf?.name || ticker || isin || 'ETF';
+    const fullName = holding?.fullName || holding?.name || etf?.name || holding?.description || etf?.description || nickname;
+
+    return {
+      etfId: String(holding?.etfId || etf?.id || isin),
+      isin,
+      ticker,
+      nickname,
+      fullName,
+      description: holding?.description || etf?.description || fullName,
+      weight: normalizedWeight,
+      originalWeight: normalizedWeight,
+      macroStatistics: holding?.macroStatistics || etf?.macroStatistics || etf?.macro_statistics,
+      expectedReturn: holding?.expectedReturn ?? etf?.expectedReturn ?? 0,
+      volatility: holding?.volatility ?? etf?.volatility ?? 0,
+      maxDrawdown: holding?.maxDrawdown ?? etf?.maxDrawdown ?? 0,
+      ter: holding?.ter ?? etf?.ter ?? etf?.expense ?? 0,
+      liquidity: holding?.liquidity ?? etf?.liquidity ?? 5,
+      recession: holding?.recession ?? etf?.recession ?? 0,
+      stagflation: holding?.stagflation ?? etf?.stagflation ?? 0,
+      isAddedTemporarily: false,
+      displayValue: this.formatWeight(normalizedWeight)
+    };
   }
 
   onSearchInput(value: string): void {
