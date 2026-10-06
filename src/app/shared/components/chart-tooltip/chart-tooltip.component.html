@@ -1,0 +1,4 @@
+<div class="chart-tooltip" [class.chart-tooltip--drawdown]="variant === 'drawdown'">
+  <ng-container *ngIf="label; else valueOnly">{{ label }}: {{ value }}</ng-container>
+  <ng-template #valueOnly>{{ value }}</ng-template>
+</div>
