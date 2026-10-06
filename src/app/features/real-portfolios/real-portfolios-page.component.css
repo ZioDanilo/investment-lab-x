@@ -202,3 +202,8 @@ input.invalid,
 .composition .donut strong{font-size:.72rem;white-space:nowrap}
 .composition li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .composition--empty{min-height:142px}
+
+/* Composition legend: every current ETF must remain visible; legend identifies slices by nickname only. */
+.composition{align-items:center}
+.composition ul{min-width:0}
+.composition li{grid-template-columns:10px minmax(0,1fr);padding:4px 0}
