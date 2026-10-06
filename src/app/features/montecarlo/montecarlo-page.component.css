@@ -916,25 +916,8 @@
 .histogram-tooltip {
   position: absolute;
   transform: translate(-50%, -100%);
-  min-width: 68px;
-  padding: 6px 9px;
-  border-radius: 6px;
-  border: 1px solid rgba(135, 176, 214, 0.22);
-  background: rgba(9, 16, 24, 0.92);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
-  color: #edf7ff;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.2;
   pointer-events: none !important;
   z-index: 10;
-  white-space: nowrap;
-}
-
-.histogram-tooltip--drawdown {
-  border-color: rgba(255, 120, 137, 0.32);
-  background: rgba(38, 16, 21, 0.94);
-  color: #ffdfe5;
 }
 
 .histogram-plot--compact {
