@@ -10,7 +10,7 @@ import { ApiService } from '../../core/api/api.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
-interface Holding { name:string; ticker:string; qty:string; avg:string; price:string; value:string; gain:string; weight:string; tone:'positive'|'negative'|'neutral'; }
+interface Holding { name:string; nickname:string; ticker:string; qty:string; avg:string; price:string; value:string; marketValue:number|null; gain:string; weight:string; tone:'positive'|'negative'|'neutral'; }
 interface Operation { date:string; type:'Acquisto'|'Vendita'|'Ritenuta'; isin:string; etf:string; qty:string; price:string; total:string; }
 
 @Component({
@@ -195,6 +195,23 @@ export class RealPortfoliosPageComponent implements OnInit {
   ];
   }
   holdings:Holding[]=[];
+  compositionTab:'etf'|'asset'='etf';
+  readonly compositionColors=['#2d91ff','#64a7ff','#21c7c7','#31d48d','#9b67ed','#f9be48','#ff6b8a','#7c9cff'];
+  get compositionTotal():number { return this.holdings.reduce((sum,h)=>sum+(h.marketValue ?? 0),0); }
+  get compositionItems():Array<{label:string;value:number;weight:number;color:string}> {
+    if(this.compositionTab!=='etf' || this.compositionTotal<=0)return [];
+    return this.holdings
+      .filter(h=>h.marketValue!==null && h.marketValue>0)
+      .map((h,index)=>({label:h.nickname||h.name,value:h.marketValue!,weight:h.marketValue!/this.compositionTotal*100,color:this.compositionColors[index%this.compositionColors.length]}));
+  }
+  get compositionDonutStyle():string {
+    const items=this.compositionItems;
+    if(!items.length)return 'conic-gradient(rgba(77,125,181,.18) 0 100%)';
+    let cursor=0;
+    const stops=items.map(item=>{const start=cursor;cursor+=item.weight;return `${item.color} ${start}% ${cursor}%`;});
+    return `conic-gradient(${stops.join(',')})`;
+  }
+  setCompositionTab(tab:'etf'|'asset'):void { this.compositionTab=tab; }
   operations:Operation[]=[];
   readonly stats=[['Rendimento totale','+12,4%','positive'],['Rendimento annuo (TWR)','+8,1%','positive'],['Volatilità annua','11,3%',''],['Sharpe ratio (rf 2%)','0,54',''],['Massimo drawdown','-7,8%','negative'],['Mese migliore','+4,9%','positive'],['Mese peggiore','-4,1%','negative'],['Mesi positivi','18 (66%)','']];
   readonly legend:ChartLegendItem[]=[{label:'Valore di mercato',color:'#2d91ff'},{label:'Capitale investito',color:'#9ab2cf'}];
@@ -388,11 +405,13 @@ export class RealPortfoliosPageComponent implements OnInit {
           const sign=gain>0?'+ ':gain<0?'- ':'';
           return {
             name:row.nickname||row.name||row.ticker||row.isin,
+            nickname:row.nickname||row.ticker||row.name||row.isin,
             ticker:row.ticker||'—',
             qty:nf.format(Number(row.quantity)||0),
             avg:eur.format(Number(row.averageCost)||0),
             price:row.currentPrice==null?'—':eur.format(Number(row.currentPrice)),
             value:row.marketValue==null?'—':eur.format(marketValue),
+            marketValue:row.marketValue==null?null:marketValue,
             gain:row.gainLoss==null?'—':`${sign}${eur.format(Math.abs(gain))}  (${this.formatSignedPercent(gainPct)})`,
             weight:row.marketValue==null||totalMarketValue<=0?'—':this.formatSignedPercent(marketValue/totalMarketValue*100).replace('+',''),
             tone:gain>0?'positive':gain<0?'negative':'neutral'
