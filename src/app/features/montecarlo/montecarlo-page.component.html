@@ -201,9 +201,7 @@
                 </g>
               </svg>
 
-              <div *ngIf="histogramTooltipPercentage !== null && histogramTooltipPercentage !== undefined" class="histogram-tooltip" [style.left.px]="histogramTooltipPosition.left" [style.top.px]="histogramTooltipPosition.top">
-                {{ histogramTooltipPercentage }}
-              </div>
+              <app-chart-tooltip *ngIf="histogramTooltipPercentage !== null && histogramTooltipPercentage !== undefined" class="histogram-tooltip" [style.left.px]="histogramTooltipPosition.left" [style.top.px]="histogramTooltipPosition.top" [value]="histogramTooltipPercentage"></app-chart-tooltip>
             </div>
           </article>
 
@@ -255,9 +253,7 @@
                 <line x1="190" x2="190" y1="20" y2="190" class="marker marker--red" />
               </svg>
 
-              <div *ngIf="maxDrawdownTooltipPercentage !== null && maxDrawdownTooltipPercentage !== undefined" class="histogram-tooltip histogram-tooltip--drawdown" [style.left.px]="maxDrawdownTooltipPosition.left" [style.top.px]="maxDrawdownTooltipPosition.top">
-                {{ maxDrawdownTooltipPercentage }}
-              </div>
+              <app-chart-tooltip *ngIf="maxDrawdownTooltipPercentage !== null && maxDrawdownTooltipPercentage !== undefined" class="histogram-tooltip" [style.left.px]="maxDrawdownTooltipPosition.left" [style.top.px]="maxDrawdownTooltipPosition.top" variant="drawdown" [value]="maxDrawdownTooltipPercentage"></app-chart-tooltip>
             </div>
           </article>
         </div>
