@@ -196,7 +196,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   }
   holdings:Holding[]=[];
   compositionTab:'etf'|'asset'='etf';
-  readonly compositionColors=['#2d91ff','#64a7ff','#21c7c7','#31d48d','#9b67ed','#f9be48','#ff6b8a','#7c9cff'];
+  readonly compositionColors=['#2D91FF','#31D48D','#FF526C','#FF9F43','#9B67ED','#21C7C7','#F9BE48','#E96BA8','#64A7FF','#86D957'];
   get compositionTotal():number { return this.holdings.reduce((sum,h)=>sum+(h.marketValue ?? 0),0); }
   get compositionItems():Array<{label:string;value:number;weight:number;color:string}> {
     if(this.compositionTotal<=0)return [];
@@ -232,7 +232,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     const before=items.slice(0,index).reduce((sum,item)=>sum+item.weight,0);
     const angle=(before+(items[index]?.weight??0)/2)*3.6-90;
     const radians=angle*Math.PI/180;
-    return `translate(${(Math.cos(radians)*3).toFixed(2)} ${(Math.sin(radians)*3).toFixed(2)})`;
+    return `translate(${(Math.cos(radians)*10.8).toFixed(2)} ${(Math.sin(radians)*10.8).toFixed(2)})`;
   }
   hoverComposition(index:number,event:MouseEvent):void {
     this.compositionHoverIndex=index;
