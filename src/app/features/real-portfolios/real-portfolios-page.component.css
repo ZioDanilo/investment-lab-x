@@ -220,7 +220,4 @@ input.invalid,
 .donut-slice--lifted{pointer-events:auto;stroke-linecap:butt;filter:url(#donutLiftShadow) brightness(1.13) saturate(1.12) drop-shadow(-1px -1px .7px rgba(255,255,255,.18));transition:transform .2s cubic-bezier(.2,.85,.2,1),filter .2s ease;transform-box:view-box;transform-origin:50px 50px}
 .donut-center{position:relative;z-index:2;width:82px;height:82px;border-radius:50%;background:linear-gradient(145deg,rgba(14,31,48,.98),rgba(5,14,24,.99));display:flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;text-align:center;pointer-events:none;box-shadow:inset 2px 2px 6px rgba(115,183,235,.055),inset -3px -4px 9px rgba(0,0,0,.28),0 2px 7px rgba(0,0,0,.16)}
 .donut-center strong{font-size:.72rem;white-space:nowrap}
-.composition-tooltip{position:fixed;z-index:6000;pointer-events:none;display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid rgba(132,190,238,.34);border-radius:8px;background:linear-gradient(145deg,rgba(14,27,41,.94),rgba(5,13,22,.96));backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);box-shadow:0 10px 28px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.055);transform:translateY(-100%);font-size:.68rem;color:#edf5ff}
-.composition-tooltip i{display:block;width:8px;height:8px;border-radius:50%;flex:0 0 auto}
-.composition-tooltip span{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c9d8e8}
-.composition-tooltip strong{font-size:.7rem;color:#fff;white-space:nowrap}
+.composition-tooltip{position:fixed;z-index:6000;pointer-events:none;transform:translate(10px,-100%);display:block}
