@@ -234,8 +234,10 @@ export class RealPortfoliosPageComponent implements OnInit {
     // native coordinates so the translated slice moves exactly away from the centre.
     const angle=(before+(items[index]?.weight??0)/2)*3.6;
     const radians=angle*Math.PI/180;
-    const distance=8;
-    return `translate(${(Math.cos(radians)*distance).toFixed(2)} ${(Math.sin(radians)*distance).toFixed(2)})`;
+    const distance=2.8;
+    const dx=Math.cos(radians)*distance;
+    const dy=Math.sin(radians)*distance;
+    return `translate(${dx.toFixed(2)} ${dy.toFixed(2)}) scale(1.06)`;
   }
   hoverComposition(index:number,event:MouseEvent):void {
     this.compositionHoverIndex=index;
