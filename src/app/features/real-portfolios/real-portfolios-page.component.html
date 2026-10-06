@@ -38,8 +38,12 @@
       </app-ui-card>
 
       <app-ui-card title="Composizione attuale">
-        <div class="seg-tabs"><button class="active">Per ETF</button><button>Per asset class</button></div>
-        <div class="composition"><div class="donut"><div><strong>€ 24.523</strong><small>Totale</small></div></div><ul><li><i class="c1"></i>VWCE <b>38,2%</b></li><li><i class="c2"></i>EIMI <b>24,5%</b></li><li><i class="c3"></i>AGGH <b>18,1%</b></li><li><i class="c4"></i>IUSN <b>11,4%</b></li><li><i class="c5"></i>CSPX <b>7,8%</b></li></ul></div>
+        <div class="seg-tabs"><button [class.active]="compositionTab==='etf'" (click)="setCompositionTab('etf')">Per ETF</button><button [class.active]="compositionTab==='asset'" (click)="setCompositionTab('asset')">Per asset class</button></div>
+        <div *ngIf="compositionTab==='etf'" class="composition">
+          <div class="donut" [style.background]="compositionDonutStyle"><div><strong>{{formatCurrency(compositionTotal)}}</strong></div></div>
+          <ul><li *ngFor="let item of compositionItems"><i [style.background]="item.color"></i><span>{{item.label}}</span><b>{{item.weight | number:'1.1-1':'it-IT'}}%</b></li></ul>
+        </div>
+        <div *ngIf="compositionTab==='asset'" class="composition composition--empty"></div>
       </app-ui-card>
 
       <app-ui-card title="Statistiche"><div class="stats"><div *ngFor="let s of stats"><span>{{s[0]}}</span><b [class]="s[2]">{{s[1]}}</b></div></div></app-ui-card>
