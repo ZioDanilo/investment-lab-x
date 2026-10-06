@@ -40,8 +40,22 @@
       <app-ui-card title="Composizione attuale">
         <div class="seg-tabs"><button [class.active]="compositionTab==='etf'" (click)="setCompositionTab('etf')">Per ETF</button><button [class.active]="compositionTab==='asset'" (click)="setCompositionTab('asset')">Per asset class</button></div>
         <div *ngIf="compositionTab==='etf'" class="composition">
-          <div class="donut" [style.background]="compositionDonutStyle"><div><strong>{{formatCurrency(compositionTotal)}}</strong></div></div>
+          <div class="donut donut--interactive">
+            <svg class="donut-svg" viewBox="0 0 100 100" (mouseleave)="leaveComposition()">
+              <circle class="donut-track" cx="50" cy="50" r="38" pathLength="100"></circle>
+              <circle *ngFor="let item of compositionItems; let i=index" class="donut-slice" cx="50" cy="50" r="38" pathLength="100"
+                [attr.stroke]="item.color" [attr.stroke-dasharray]="item.weight + ' ' + (100-item.weight)"
+                [attr.stroke-dashoffset]="compositionOffset(i)" [attr.transform]="compositionSliceTransform(i)"
+                (mouseenter)="hoverComposition(i,$event)" (mousemove)="moveCompositionTooltip($event)"></circle>
+            </svg>
+            <div class="donut-center"><strong>{{formatCurrency(compositionTotal)}}</strong></div>
+          </div>
           <ul><li *ngFor="let item of compositionItems"><i [style.background]="item.color"></i><span>{{item.label}}</span></li></ul>
+          <div *ngIf="compositionHoverIndex!==null && compositionItems[compositionHoverIndex]" class="composition-tooltip"
+            [style.left.px]="compositionTooltip.x" [style.top.px]="compositionTooltip.y">
+            <i [style.background]="compositionItems[compositionHoverIndex].color"></i>
+            <strong>{{compositionItems[compositionHoverIndex].weight | number:'1.1-1':'it-IT'}}%</strong>
+          </div>
         </div>
         <div *ngIf="compositionTab==='asset'" class="composition composition--empty"></div>
       </app-ui-card>
