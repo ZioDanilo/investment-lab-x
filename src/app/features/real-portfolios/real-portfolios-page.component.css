@@ -194,3 +194,11 @@ input.invalid,
 /* Equal-height financial KPI pair: the class is on the app-ui-card host, so stretch its inner shared card too. */
 .kpi-grid .kpi-card--primary-pair{align-self:stretch}
 .kpi-grid .kpi-card--primary-pair .ui-card{height:100%;min-height:86px;box-sizing:border-box}
+
+
+/* Live real-portfolio composition. The donut colors and legend are driven by current holdings. */
+.composition .donut{background:rgba(77,125,181,.18)}
+.composition .donut>div{padding:0 6px;box-sizing:border-box;text-align:center}
+.composition .donut strong{font-size:.72rem;white-space:nowrap}
+.composition li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.composition--empty{min-height:142px}
