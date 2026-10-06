@@ -8,6 +8,7 @@ import { MonteCarloResult } from '../../core/models/monte-carlo-contracts.model'
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import { MontecarloPortfolioEditorComponent, type MontecarloPortfolioEditorChange } from '../../shared/components/montecarlo-portfolio-editor/montecarlo-portfolio-editor.component';
 import { ToastComponent } from '../../shared/components/toast/toast.component';
+import { ChartTooltipComponent } from '../../shared/components/chart-tooltip/chart-tooltip.component';
 import {
   buildCagrHistogramFromPaths,
   buildDrawdownDisplayGeometry,
@@ -37,7 +38,7 @@ interface KpiCard {
 @Component({
   selector: 'app-montecarlo-page',
   standalone: true,
-  imports: [CommonModule, MontecarloPortfolioEditorComponent, ToastComponent],
+  imports: [CommonModule, MontecarloPortfolioEditorComponent, ToastComponent, ChartTooltipComponent],
   templateUrl: './montecarlo-page.component.html',
   styleUrls: ['./montecarlo-page.component.css']
 })
