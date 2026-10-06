@@ -212,6 +212,27 @@ export class RealPortfoliosPageComponent implements OnInit {
     return `conic-gradient(${stops.join(',')})`;
   }
   setCompositionTab(tab:'etf'|'asset'):void { this.compositionTab=tab; }
+  compositionHoverIndex:number|null=null;
+  compositionTooltip={x:0,y:0};
+  compositionOffset(index:number):number {
+    return -this.compositionItems.slice(0,index).reduce((sum,item)=>sum+item.weight,0);
+  }
+  compositionSliceTransform(index:number):string {
+    if(this.compositionHoverIndex!==index)return 'translate(0 0)';
+    const items=this.compositionItems;
+    const before=items.slice(0,index).reduce((sum,item)=>sum+item.weight,0);
+    const angle=(before+(items[index]?.weight??0)/2)*3.6-90;
+    const radians=angle*Math.PI/180;
+    return `translate(${(Math.cos(radians)*3).toFixed(2)} ${(Math.sin(radians)*3).toFixed(2)})`;
+  }
+  hoverComposition(index:number,event:MouseEvent):void {
+    this.compositionHoverIndex=index;
+    this.moveCompositionTooltip(event);
+  }
+  moveCompositionTooltip(event:MouseEvent):void {
+    this.compositionTooltip={x:event.clientX+12,y:event.clientY-12};
+  }
+  leaveComposition():void { this.compositionHoverIndex=null; }
   operations:Operation[]=[];
   readonly stats=[['Rendimento totale','+12,4%','positive'],['Rendimento annuo (TWR)','+8,1%','positive'],['Volatilità annua','11,3%',''],['Sharpe ratio (rf 2%)','0,54',''],['Massimo drawdown','-7,8%','negative'],['Mese migliore','+4,9%','positive'],['Mese peggiore','-4,1%','negative'],['Mesi positivi','18 (66%)','']];
   readonly legend:ChartLegendItem[]=[{label:'Valore di mercato',color:'#2d91ff'},{label:'Capitale investito',color:'#9ab2cf'}];
