@@ -234,10 +234,12 @@ export class RealPortfoliosPageComponent implements OnInit {
     // native coordinates so the translated slice moves exactly away from the centre.
     const angle=(before+(items[index]?.weight??0)/2)*3.6;
     const radians=angle*Math.PI/180;
-    const distance=2.8;
+    const distance=1.6;
     const dx=Math.cos(radians)*distance;
     const dy=Math.sin(radians)*distance;
-    return `translate(${dx.toFixed(2)} ${dy.toFixed(2)}) scale(1.06)`;
+    // A small outward translation plus scale reads as elevation; the base slice is
+    // hidden while this overlay is active, so the interaction never duplicates it.
+    return `translate(${dx.toFixed(2)} ${dy.toFixed(2)}) scale(1.045)`;
   }
   hoverComposition(index:number,event:MouseEvent):void {
     this.compositionHoverIndex=index;
