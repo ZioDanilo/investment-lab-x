@@ -230,9 +230,12 @@ export class RealPortfoliosPageComponent implements OnInit {
     if(this.compositionHoverIndex!==index)return 'translate(0 0)';
     const items=this.compositionItems;
     const before=items.slice(0,index).reduce((sum,item)=>sum+item.weight,0);
-    const angle=(before+(items[index]?.weight??0)/2)*3.6-90;
+    // The whole SVG is already rotated -90deg: calculate the slice midpoint in its
+    // native coordinates so the translated slice moves exactly away from the centre.
+    const angle=(before+(items[index]?.weight??0)/2)*3.6;
     const radians=angle*Math.PI/180;
-    return `translate(${(Math.cos(radians)*10.8).toFixed(2)} ${(Math.sin(radians)*10.8).toFixed(2)})`;
+    const distance=8;
+    return `translate(${(Math.cos(radians)*distance).toFixed(2)} ${(Math.sin(radians)*distance).toFixed(2)})`;
   }
   hoverComposition(index:number,event:MouseEvent):void {
     this.compositionHoverIndex=index;
