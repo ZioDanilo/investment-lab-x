@@ -54,6 +54,7 @@
           <div *ngIf="compositionHoverIndex!==null && compositionItems[compositionHoverIndex]" class="composition-tooltip"
             [style.left.px]="compositionTooltip.x" [style.top.px]="compositionTooltip.y">
             <i [style.background]="compositionItems[compositionHoverIndex].color"></i>
+            <span>{{compositionItems[compositionHoverIndex].label}}</span>
             <strong>{{compositionItems[compositionHoverIndex].weight | number:'1.1-1':'it-IT'}}%</strong>
           </div>
         </div>
