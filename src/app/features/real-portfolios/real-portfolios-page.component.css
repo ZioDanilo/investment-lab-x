@@ -207,3 +207,16 @@ input.invalid,
 .composition{align-items:center}
 .composition ul{min-width:0}
 .composition li{grid-template-columns:10px minmax(0,1fr);padding:4px 0}
+
+/* Interactive ETF composition donut: hovered slice lifts radially and exposes a compact cursor tooltip. */
+.donut--interactive{position:relative;background:none!important;display:grid;place-items:center;overflow:visible}
+.donut-svg{position:absolute;inset:-7px;width:calc(100% + 14px);height:calc(100% + 14px);overflow:visible;transform:rotate(-90deg)}
+.donut-track,.donut-slice{fill:none;stroke-width:18}
+.donut-track{stroke:rgba(77,125,181,.18)}
+.donut-slice{cursor:pointer;transition:transform .16s ease,filter .16s ease;transform-box:view-box;transform-origin:50px 50px}
+.donut-slice:hover{filter:drop-shadow(0 4px 5px rgba(0,0,0,.38))}
+.donut-center{position:relative;z-index:2;width:82px;height:82px;border-radius:50%;background:#091523;display:flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;text-align:center;pointer-events:none}
+.donut-center strong{font-size:.72rem;white-space:nowrap}
+.composition-tooltip{position:fixed;z-index:6000;pointer-events:none;display:flex;align-items:center;gap:7px;padding:6px 9px;border:1px solid rgba(122,176,224,.32);border-radius:7px;background:rgba(7,16,27,.96);box-shadow:0 8px 20px rgba(0,0,0,.34);transform:translateY(-100%);font-size:.68rem;color:#edf5ff}
+.composition-tooltip i{display:block;width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.composition-tooltip strong{font-size:.7rem}
