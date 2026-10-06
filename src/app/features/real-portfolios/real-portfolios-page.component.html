@@ -44,7 +44,7 @@
             <svg class="donut-svg" viewBox="0 0 100 100" (mouseleave)="leaveComposition()">
               <defs>
                 <filter id="donutAmbientGlow" x="-40%" y="-40%" width="180%" height="180%">
-                  <feGaussianBlur stdDeviation="1.15" result="blur"></feGaussianBlur>
+                  <feGaussianBlur stdDeviation=".65" result="blur"></feGaussianBlur>
                   <feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
                 </filter>
                 <filter id="donutLiftGlow" x="-60%" y="-60%" width="220%" height="220%">
@@ -52,7 +52,7 @@
                   <feOffset in="shadowBlur" dx="0" dy="2.4" result="shadowOffset"></feOffset>
                   <feFlood flood-color="#000000" flood-opacity=".58" result="shadowColor"></feFlood>
                   <feComposite in="shadowColor" in2="shadowOffset" operator="in" result="shadow"></feComposite>
-                  <feGaussianBlur in="SourceGraphic" stdDeviation=".9" result="colorGlow"></feGaussianBlur>
+                  <feGaussianBlur in="SourceGraphic" stdDeviation=".45" result="colorGlow"></feGaussianBlur>
                   <feMerge><feMergeNode in="shadow"></feMergeNode><feMergeNode in="colorGlow"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
                 </filter>
               </defs>
