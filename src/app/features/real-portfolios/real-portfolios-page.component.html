@@ -41,7 +41,7 @@
         <div class="seg-tabs"><button [class.active]="compositionTab==='etf'" (click)="setCompositionTab('etf')">Per ETF</button><button [class.active]="compositionTab==='asset'" (click)="setCompositionTab('asset')">Per asset class</button></div>
         <div *ngIf="compositionTab==='etf'" class="composition">
           <div class="donut" [style.background]="compositionDonutStyle"><div><strong>{{formatCurrency(compositionTotal)}}</strong></div></div>
-          <ul><li *ngFor="let item of compositionItems"><i [style.background]="item.color"></i><span>{{item.label}}</span><b>{{item.weight | number:'1.1-1':'it-IT'}}%</b></li></ul>
+          <ul><li *ngFor="let item of compositionItems"><i [style.background]="item.color"></i><span>{{item.label}}</span></li></ul>
         </div>
         <div *ngIf="compositionTab==='asset'" class="composition composition--empty"></div>
       </app-ui-card>
