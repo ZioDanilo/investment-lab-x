@@ -6,17 +6,18 @@ import { UiCardComponent } from '../../shared/components/ui-card/ui-card.compone
 import { UiButtonComponent } from '../../shared/components/ui-button/ui-button.component';
 import { LineChartComponent, LineChartSeries, LineChartTick } from '../../shared/components/line-chart/line-chart.component';
 import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/chart-legend/chart-legend.component';
+import { ChartTooltipComponent } from '../../shared/components/chart-tooltip/chart-tooltip.component';
 import { ApiService } from '../../core/api/api.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
-interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; totalValue?:number; contributedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
-interface Holding { name:string; ticker:string; qty:string; avg:string; value:string; gain:string; weight:string; tone:'positive'|'negative'; }
-interface Operation { date:string; type:'Acquisto'|'Vendita'; isin:string; etf:string; qty:string; price:string; total:string; }
+interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
+interface Holding { name:string; nickname:string; ticker:string; assetClass:string; qty:string; avg:string; price:string; value:string; marketValue:number|null; gain:string; weight:string; tone:'positive'|'negative'|'neutral'; }
+interface Operation { date:string; type:'Acquisto'|'Vendita'|'Ritenuta'; isin:string; etf:string; qty:string; price:string; total:string; }
 
 @Component({
   selector:'app-real-portfolios-page',
   standalone:true,
-  imports:[CommonModule,FormsModule,RouterLink,UiCardComponent,UiButtonComponent,LineChartComponent,ChartLegendComponent],
+  imports:[CommonModule,FormsModule,RouterLink,UiCardComponent,UiButtonComponent,LineChartComponent,ChartLegendComponent,ChartTooltipComponent],
   templateUrl:'./real-portfolios-page.component.html',
   styleUrls:['./real-portfolios-page.component.css']
 })
@@ -32,23 +33,23 @@ export class RealPortfoliosPageComponent implements OnInit {
   runHeaderAction():void {
     const portfolio=this.portfolios[this.selected];
     if(!portfolio || this.quotationRefreshRunning)return;
+
+    // The refresh POST must be the first request. Previously a preliminary GET
+    // /holdings could be satisfied with HTTP 304 and prevent the refresh chain
+    // from reaching EODHD in some browser/cache paths.
     this.quotationRefreshRunning=true;
     this.headerActionProgress=1;
-    this.api.getRealPortfolioHoldings(portfolio.id).subscribe({
-      next:(holdingsRes:any)=>{
-        const etfCount=Math.max(1,Array.isArray(holdingsRes?.data)?holdingsRes.data.length:1);
-        this.startQuotationProgress(etfCount);
-        this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
-          next:()=>{this.loadMarketValues();this.finishQuotationProgress();},
-          error:(error)=>{this.resetQuotationProgress();console.error('Errore aggiornamento quotazioni portafoglio',error);}
-        });
+    this.startQuotationProgress(Math.max(1,this.holdings.length));
+
+    this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
+      next:()=>{
+        this.loadMarketValues();
+        this.loadHoldings();
+        this.finishQuotationProgress();
       },
-      error:()=>{
-        this.startQuotationProgress(1);
-        this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
-          next:()=>this.finishQuotationProgress(),
-          error:(error)=>{this.resetQuotationProgress();console.error('Errore aggiornamento quotazioni portafoglio',error);}
-        });
+      error:(error)=>{
+        this.resetQuotationProgress();
+        console.error('Errore aggiornamento quotazioni portafoglio',error);
       }
     });
   }
@@ -150,6 +151,7 @@ export class RealPortfoliosPageComponent implements OnInit {
         else if (!this.portfolios.length && !selectedId) this.portfolioSelection.setSelectedPortfolio(null);
         this.loadOperations();
         this.loadMarketValues();
+        this.loadHoldings();
       },
       error:()=>{ this.portfolios=[]; this.loadingPortfolios=false; }
     });
@@ -182,24 +184,72 @@ export class RealPortfoliosPageComponent implements OnInit {
   }
   get kpis(){
     const p=this.portfolios[this.selected];
-    const value=p?.totalValue ?? 0, gain=p?.gainLoss ?? 0, pct=p?.gainLossPercent ?? 0;
+    const value=p?.marketValue ?? 0, gain=p?.gainLoss ?? 0, pct=p?.gainLossPercent ?? 0;
     const tone=this.valueTone(gain), sign=gain>0?'+ ':gain<0?'- ':'';
     return [
     ['Valore di mercato',this.formatCurrency(value),`${sign}${this.formatCurrency(Math.abs(gain))}  (${this.formatSignedPercent(pct)})`,tone],
-    ['Capitale investito',this.formatCurrencyTrailing(p?.contributedCapital ?? 0),'',''],
-    ['Gain/Loss','+ € 2.701','+12,4%','positive'],
+    ['Capitale investito',this.formatCurrencyTrailing(p?.investedCapital ?? 0),'',''],
+    ['Gain/Loss',`${sign}${this.formatCurrency(Math.abs(gain))}`,this.formatSignedPercent(pct),tone],
     ['Rendimento annuo (TWR)','+8,1%','','positive'],
     ['Volatilità annua','11,3%','',''],
-    ['Numero ETF','5','','']
+    ['Numero ETF',String(this.holdings.length),'','']
   ];
   }
-  readonly holdings:Holding[]=[
-    {name:'Vanguard FTSE All-World UCITS ETF',ticker:'VWCE',qty:'42,000',avg:'€ 78,23',value:'€ 9.367',gain:'+ € 1.421  +17,8%',weight:'38,2%',tone:'positive'},
-    {name:'iShares Core MSCI EM IMI UCITS ETF',ticker:'EIMI',qty:'120,000',avg:'€ 32,11',value:'€ 6.009',gain:'+ € 623  +11,6%',weight:'24,5%',tone:'positive'},
-    {name:'iShares Core Global Aggregate Bond UCITS ETF',ticker:'AGGH',qty:'85,000',avg:'€ 47,20',value:'€ 4.438',gain:'+ € 198  +4,7%',weight:'18,1%',tone:'positive'},
-    {name:'iShares Core EUR Corporate Bond UCITS ETF',ticker:'IUSN',qty:'60,000',avg:'€ 46,11',value:'€ 2.797',gain:'+ € 156  +5,9%',weight:'11,4%',tone:'positive'},
-    {name:'iShares Core S&P 500 UCITS ETF',ticker:'CSPX',qty:'15,000',avg:'€ 410,23',value:'€ 1.912',gain:'+ € 303  +18,8%',weight:'7,8%',tone:'positive'}
-  ];
+  holdings:Holding[]=[];
+  compositionTab:'etf'|'asset'='etf';
+  readonly compositionColors=['#2D91FF','#31D48D','#FF526C','#FF9F43','#9B67ED','#21C7C7','#F9BE48','#E96BA8','#64A7FF','#86D957'];
+  get compositionTotal():number { return this.holdings.reduce((sum,h)=>sum+(h.marketValue ?? 0),0); }
+  get compositionItems():Array<{label:string;value:number;weight:number;color:string}> {
+    if(this.compositionTotal<=0)return [];
+    if(this.compositionTab==='etf') {
+      return this.holdings
+        .filter(h=>h.marketValue!==null && h.marketValue>0)
+        .map((h,index)=>({label:h.nickname||h.name,value:h.marketValue!,weight:h.marketValue!/this.compositionTotal*100,color:this.compositionColors[index%this.compositionColors.length]}));
+    }
+    const grouped=new Map<string,number>();
+    for(const holding of this.holdings) {
+      if(holding.marketValue===null || holding.marketValue<=0)continue;
+      const label=holding.assetClass?.trim() || 'Non classificato';
+      grouped.set(label,(grouped.get(label)||0)+holding.marketValue);
+    }
+    return Array.from(grouped.entries()).map(([label,value],index)=>({label,value,weight:value/this.compositionTotal*100,color:this.compositionColors[index%this.compositionColors.length]}));
+  }
+  get compositionDonutStyle():string {
+    const items=this.compositionItems;
+    if(!items.length)return 'conic-gradient(rgba(77,125,181,.18) 0 100%)';
+    let cursor=0;
+    const stops=items.map(item=>{const start=cursor;cursor+=item.weight;return `${item.color} ${start}% ${cursor}%`;});
+    return `conic-gradient(${stops.join(',')})`;
+  }
+  setCompositionTab(tab:'etf'|'asset'):void { this.compositionTab=tab; this.compositionHoverIndex=null; }
+  compositionHoverIndex:number|null=null;
+  compositionTooltip={x:0,y:0,visible:false};
+  compositionOffset(index:number):number {
+    return -this.compositionItems.slice(0,index).reduce((sum,item)=>sum+item.weight,0);
+  }
+  compositionSliceTransform(index:number):string {
+    if(this.compositionHoverIndex!==index)return 'translate(0 0)';
+    const items=this.compositionItems;
+    const before=items.slice(0,index).reduce((sum,item)=>sum+item.weight,0);
+    // The whole SVG is already rotated -90deg: calculate the slice midpoint in its
+    // native coordinates so the translated slice moves exactly away from the centre.
+    const angle=(before+(items[index]?.weight??0)/2)*3.6;
+    const radians=angle*Math.PI/180;
+    const distance=.45;
+    const dx=Math.cos(radians)*distance;
+    const dy=Math.sin(radians)*distance;
+    // A small outward translation plus scale reads as elevation; the base slice is
+    // hidden while this overlay is active, so the interaction never duplicates it.
+    return `translate(${dx.toFixed(2)} ${dy.toFixed(2)}) scale(1.035)`;
+  }
+  hoverComposition(index:number,event:MouseEvent):void {
+    this.compositionHoverIndex=index;
+    this.moveCompositionTooltip(event);
+  }
+  moveCompositionTooltip(event:MouseEvent):void {
+    this.compositionTooltip={x:event.clientX+14,y:event.clientY-14,visible:true};
+  }
+  leaveComposition():void { this.compositionHoverIndex=null; this.compositionTooltip={...this.compositionTooltip,visible:false}; }
   operations:Operation[]=[];
   readonly stats=[['Rendimento totale','+12,4%','positive'],['Rendimento annuo (TWR)','+8,1%','positive'],['Volatilità annua','11,3%',''],['Sharpe ratio (rf 2%)','0,54',''],['Massimo drawdown','-7,8%','negative'],['Mese migliore','+4,9%','positive'],['Mese peggiore','-4,1%','negative'],['Mesi positivi','18 (66%)','']];
   readonly legend:ChartLegendItem[]=[{label:'Valore di mercato',color:'#2d91ff'},{label:'Capitale investito',color:'#9ab2cf'}];
@@ -365,6 +415,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     }
     this.loadOperations();
     this.loadMarketValues();
+    this.loadHoldings();
   }
   private loadMarketValues():void {
     this.api.getRealPortfolioMarketValues().subscribe({
@@ -374,6 +425,39 @@ export class RealPortfoliosPageComponent implements OnInit {
         this.portfolios=this.portfolios.map(p=>Object.assign({},p,byId.get(p.id)||{}));
       },
       error:(error)=>console.error('Errore caricamento valori portafogli',error)
+    });
+  }
+  private loadHoldings():void {
+    const portfolio=this.portfolios[this.selected];
+    if(!portfolio){this.holdings=[];return;}
+    this.api.getRealPortfolioHoldings(portfolio.id).subscribe({
+      next:(res:any)=>{
+        const rows=Array.isArray(res?.data)?res.data:[];
+        const totalMarketValue=rows.reduce((sum:number,row:any)=>sum+(Number(row.marketValue)||0),0);
+        const nf=new Intl.NumberFormat('it-IT',{minimumFractionDigits:0,maximumFractionDigits:8});
+        const eur=new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2});
+        this.holdings=rows.map((row:any)=>{
+          const gain=Number(row.gainLoss)||0;
+          const gainPct=Number(row.gainLossPercent)||0;
+          const marketValue=Number(row.marketValue)||0;
+          const sign=gain>0?'+ ':gain<0?'- ':'';
+          return {
+            name:row.nickname||row.name||row.ticker||row.isin,
+            nickname:row.nickname||row.ticker||row.name||row.isin,
+            ticker:row.ticker||'—',
+            assetClass:row.assetClass||'',
+            qty:nf.format(Number(row.quantity)||0),
+            avg:eur.format(Number(row.averageCost)||0),
+            price:row.currentPrice==null?'—':eur.format(Number(row.currentPrice)),
+            value:row.marketValue==null?'—':eur.format(marketValue),
+            marketValue:row.marketValue==null?null:marketValue,
+            gain:row.gainLoss==null?'—':`${sign}${eur.format(Math.abs(gain))}  (${this.formatSignedPercent(gainPct)})`,
+            weight:row.marketValue==null||totalMarketValue<=0?'—':this.formatSignedPercent(marketValue/totalMarketValue*100).replace('+',''),
+            tone:gain>0?'positive':gain<0?'negative':'neutral'
+          } as Holding;
+        });
+      },
+      error:()=>this.holdings=[]
     });
   }
   formatCurrencyTrailing(value:number):string { return `${new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value)||0)} €`; }
@@ -395,7 +479,8 @@ export class RealPortfoliosPageComponent implements OnInit {
       const df=new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'short',year:'numeric'});
       this.operations=rows.map((o:any)=>{
         const q=this.parseDecimal(o.quantity),p=this.parseDecimal(o.unitPrice);
-        return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:o.operationType==='sell'?'Vendita':'Acquisto',isin:o.etf?.isin||'',etf:o.etf?.nickname||o.etf?.name||o.etf?.ticker||'',qty:nf.format(q),price:eur.format(p),total:eur.format(q*p)};
+        if(o.operationType==='tax') return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:'Ritenuta' as const,isin:'—',etf:'Ritenuta fiscale 26%',qty:'—',price:'—',total:eur.format(Number(o.total ?? -p))};
+        return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:o.operationType==='sell'?'Vendita' as const:'Acquisto' as const,isin:o.etf?.isin||'',etf:o.etf?.nickname||o.etf?.name||o.etf?.ticker||'',qty:nf.format(q),price:eur.format(p),total:eur.format(q*p)};
       });
     },error:()=>this.operations=[]});
   }
@@ -438,5 +523,6 @@ export class RealPortfoliosPageComponent implements OnInit {
     const portfolio=this.portfolios[i];
     this.portfolioSelection.setSelectedPortfolio(portfolio?.id ?? null);
     this.loadOperations();
+    this.loadHoldings();
   }
 }

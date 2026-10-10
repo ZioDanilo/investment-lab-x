@@ -18,7 +18,7 @@
           </div>
         </div>
         <div class="portfolio-choice__metrics">
-          <strong>{{formatCurrency(p.totalValue || 0)}}</strong>
+          <strong>{{formatCurrency(p.marketValue || 0)}}</strong>
           <span class="portfolio-return" [class]="valueTone(p.gainLoss || 0)">{{formatSignedPercent(p.gainLossPercent || 0)}}</span>
         </div>
       </div>
@@ -38,16 +38,53 @@
       </app-ui-card>
 
       <app-ui-card title="Composizione attuale">
-        <div class="seg-tabs"><button class="active">Per ETF</button><button>Per asset class</button></div>
-        <div class="composition"><div class="donut"><div><strong>€ 24.523</strong><small>Totale</small></div></div><ul><li><i class="c1"></i>VWCE <b>38,2%</b></li><li><i class="c2"></i>EIMI <b>24,5%</b></li><li><i class="c3"></i>AGGH <b>18,1%</b></li><li><i class="c4"></i>IUSN <b>11,4%</b></li><li><i class="c5"></i>CSPX <b>7,8%</b></li></ul></div>
+        <div class="seg-tabs"><button [class.active]="compositionTab==='etf'" (click)="setCompositionTab('etf')">Per ETF</button><button [class.active]="compositionTab==='asset'" (click)="setCompositionTab('asset')">Per asset class</button></div>
+        <div class="composition">
+          <div class="donut donut--interactive">
+            <svg class="donut-svg" viewBox="0 0 100 100" (mouseleave)="leaveComposition()">
+              <defs>
+                <filter id="donutLiftShadow" x="-60%" y="-60%" width="220%" height="220%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="1.45" result="blur"></feGaussianBlur>
+                  <feOffset in="blur" dx="1.4" dy="2.3" result="offset"></feOffset>
+                  <feFlood flood-color="#000000" flood-opacity=".58" result="shadowColor"></feFlood>
+                  <feComposite in="shadowColor" in2="offset" operator="in" result="shadow"></feComposite>
+                  <feMerge><feMergeNode in="shadow"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+                </filter>
+              </defs>
+              <circle class="donut-track" cx="50" cy="50" r="38" pathLength="100"></circle>
+              <g class="donut-slices">
+                <circle *ngFor="let item of compositionItems; let i=index" class="donut-slice" cx="50" cy="50" r="38" pathLength="100"
+                  [class.donut-slice--hidden]="compositionHoverIndex===i"
+                  [class.donut-slice--dimmed]="compositionHoverIndex!==null && compositionHoverIndex!==i"
+                  [attr.stroke]="item.color" [attr.stroke-dasharray]="item.weight + ' ' + (100-item.weight)"
+                  [attr.stroke-dashoffset]="compositionOffset(i)"
+                  (mouseenter)="hoverComposition(i,$event)" (mouseenter)="hoverComposition(compositionHoverIndex,$event)" (mousemove)="moveCompositionTooltip($event)"></circle>
+              </g>
+              <circle *ngIf="compositionHoverIndex!==null && compositionItems[compositionHoverIndex]" class="donut-slice donut-slice--lifted"
+                cx="50" cy="50" r="38" pathLength="100"
+                [attr.stroke]="compositionItems[compositionHoverIndex].color"
+                [attr.stroke-dasharray]="compositionItems[compositionHoverIndex].weight + ' ' + (100-compositionItems[compositionHoverIndex].weight)"
+                [attr.stroke-dashoffset]="compositionOffset(compositionHoverIndex)"
+                [attr.transform]="compositionSliceTransform(compositionHoverIndex)"
+                (mousemove)="moveCompositionTooltip($event)"></circle>
+            </svg>
+            <div class="donut-center"><strong>{{formatCurrency(compositionTotal)}}</strong></div>
+          </div>
+          <ul><li *ngFor="let item of compositionItems"><i [style.background]="item.color"></i><span>{{item.label}}</span></li></ul>
+          <app-chart-tooltip *ngIf="compositionTooltip.visible && compositionHoverIndex!==null && compositionItems[compositionHoverIndex]"
+            class="composition-tooltip" [style.left.px]="compositionTooltip.x" [style.top.px]="compositionTooltip.y"
+            [label]="compositionItems[compositionHoverIndex].label"
+            [value]="(compositionItems[compositionHoverIndex].weight | number:'1.1-1':'it-IT') + '%'">
+          </app-chart-tooltip>
+        </div>
       </app-ui-card>
 
       <app-ui-card title="Statistiche"><div class="stats"><div *ngFor="let s of stats"><span>{{s[0]}}</span><b [class]="s[2]">{{s[1]}}</b></div></div></app-ui-card>
     </div>
 
     <div class="bottom-grid">
-      <app-ui-card title="I tuoi ETF"><div class="table-scroll"><table><thead><tr><th>ETF</th><th>Ticker</th><th>Quantità</th><th>Prezzo medio</th><th>Valore attuale</th><th>Gain/Loss</th><th>Peso</th></tr></thead><tbody><tr *ngFor="let h of holdings"><td><strong>{{h.name}}</strong></td><td>{{h.ticker}}</td><td>{{h.qty}}</td><td>{{h.avg}}</td><td>{{h.value}}</td><td [class]="h.tone">{{h.gain}}</td><td>{{h.weight}}</td></tr></tbody></table></div></app-ui-card>
-      <app-ui-card title="Ultime operazioni"><div class="table-scroll"><table><thead><tr><th>Data</th><th>Operazione</th><th>ISIN</th><th>ETF</th><th>Quantità</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody><tr *ngFor="let o of operations"><td>{{o.date}}</td><td><span class="pill" [class.sell]="o.type==='Vendita'">{{o.type}}</span></td><td>{{o.isin}}</td><td>{{o.etf}}</td><td>{{o.qty}}</td><td>{{o.price}}</td><td>{{o.total}}</td></tr></tbody></table></div></app-ui-card>
+      <app-ui-card title="I miei ETF"><div class="table-scroll"><table><thead><tr><th>ETF</th><th>Ticker</th><th>Quantità</th><th>Prezzo medio di carico</th><th>Prezzo</th><th>Valore attuale</th><th>Gain/Loss</th><th>Peso</th></tr></thead><tbody><tr *ngFor="let h of holdings"><td><strong>{{h.name}}</strong></td><td>{{h.ticker}}</td><td>{{h.qty}}</td><td>{{h.avg}}</td><td>{{h.price}}</td><td>{{h.value}}</td><td [class]="h.tone">{{h.gain}}</td><td>{{h.weight}}</td></tr></tbody></table></div></app-ui-card>
+      <app-ui-card title="Ultime operazioni"><div class="table-scroll"><table><thead><tr><th>Data</th><th>Operazione</th><th>ISIN</th><th>ETF</th><th>Quantità</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody><tr *ngFor="let o of operations"><td>{{o.date}}</td><td><span class="pill" [class.sell]="o.type==='Vendita'" [class.tax]="o.type==='Ritenuta'">{{o.type}}</span></td><td>{{o.isin}}</td><td>{{o.etf}}</td><td>{{o.qty}}</td><td>{{o.price}}</td><td>{{o.total}}</td></tr></tbody></table></div></app-ui-card>
     </div>
     </ng-container>
 
