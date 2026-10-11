@@ -25,7 +25,7 @@ export class AppShellComponent implements OnDestroy {
   ngOnDestroy(): void {
     this.stopMarketUniversePolling();
   }
-  readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/nuovo-etf'];
+  readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/trend-following'];
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
   private readonly portfolioSelection = inject(PortfolioSelectionService);
