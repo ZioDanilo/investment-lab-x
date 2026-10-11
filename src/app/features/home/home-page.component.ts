@@ -79,7 +79,7 @@ export class HomePageComponent {
     { title: 'Monte Carlo', description: 'Simulazioni avanzate sui portafogli selezionati.', accent: 'green', icon: 'trending_up' },
     { title: 'Ribilanciamento', description: 'Calcola e pianifica le operazioni di ribilanciamento.', accent: 'amber', icon: 'sync' },
     { title: 'ETF & Mercati', description: 'Gestisci il database ETF e consulta le quotazioni interne.', accent: 'cyan', icon: 'bar_chart' },
-    { title: 'Nuovo ETF', description: 'Aggiungi un nuovo ETF al database di ETFolio.', accent: 'blue', icon: 'add' }
+    { title: 'Trend Following', description: 'Esplora e analizza strategie di trend following sugli ETF.', accent: 'blue', icon: 'show_chart' }
   ];
 
   readonly portfolios: PortfolioRow[] = [
