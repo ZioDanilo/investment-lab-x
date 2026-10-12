@@ -441,3 +441,31 @@
 @media (max-width:1180px) {
   .rebalance-target-selector { margin:0 auto; justify-content:center; }
 }
+
+/* The target selector shares the exact left edge and width of the navbar selector. */
+@media (min-width:1181px) {
+  .rebalance-target-selector { justify-content:flex-start; }
+  .rebalance-target-selector > app-portfolio-selector { width:100%; }
+  .rebalance-target-selector .rebalance-cash-selector {
+    position:absolute;
+    left:calc(100% + 150px);
+    top:50%;
+    transform:translateY(-50%);
+    display:flex;
+    align-items:center;
+    gap:12px;
+    white-space:nowrap;
+    color:#d9eaff;
+    font-size:.78rem;
+    font-weight:700;
+  }
+  .rebalance-cash-selector app-money-input { width:150px; }
+  @supports (left: anchor(left)) {
+    .rebalance-target-selector { width:anchor-size(width); }
+  }
+}
+@media (max-width:1180px) {
+  .rebalance-target-selector {flex-wrap:wrap;gap:10px}
+  .rebalance-cash-selector {display:inline-flex;align-items:center;gap:8px}
+  .rebalance-cash-selector app-money-input {width:140px}
+}
