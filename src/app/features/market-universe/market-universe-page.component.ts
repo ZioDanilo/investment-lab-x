@@ -8,15 +8,6 @@ type SortField = 'name' | 'ticker' | 'assetClass' | 'ter' | 'expectedReturn' | '
 type SortDirection = 'asc' | 'desc';
 type AssetStatus = 'COMPLETE' | 'INCOMPLETE' | 'LEGACY';
 
-interface CorrelationRow {
-  targetIsin: string;
-  targetName: string;
-  expansion: number | null;
-  softLanding: number | null;
-  recession: number | null;
-  stagflation: number | null;
-}
-
 @Component({
   selector: 'app-market-universe-page',
   standalone: true,
@@ -38,9 +29,6 @@ export class MarketUniversePageComponent implements OnInit {
   readonly categoryFilter = signal('');
   readonly currencyFilter = signal('');
   readonly providerFilter = signal('');
-  readonly correlationRows = signal<CorrelationRow[]>([]);
-  readonly correlationsLoading = signal(false);
-  readonly correlationError = signal('');
 
   readonly scenarioLabels: Record<string, string> = {
     general: 'General',
@@ -150,8 +138,6 @@ export class MarketUniversePageComponent implements OnInit {
   private loadAssets(): void {
     this.loading.set(true);
     this.error.set('');
-    this.correlationError.set('');
-    this.correlationRows.set([]);
 
     this.api.getMarketUniverseAssets().subscribe({
       next: (response: any) => {
@@ -162,10 +148,8 @@ export class MarketUniversePageComponent implements OnInit {
           const currentSelection = this.selectedAsset();
           const nextSelection = assets.find((asset: MarketAsset) => asset.isin === currentSelection?.isin) ?? assets[0];
           this.selectedAsset.set(nextSelection);
-          this.loadCorrelations(nextSelection.isin);
         } else {
           this.selectedAsset.set(null);
-          this.correlationRows.set([]);
         }
 
         this.loading.set(false);
@@ -175,7 +159,6 @@ export class MarketUniversePageComponent implements OnInit {
         this.error.set(err?.error?.error || 'Errore nel caricamento del Market Universe');
         this.assets.set([]);
         this.selectedAsset.set(null);
-        this.correlationRows.set([]);
         this.loading.set(false);
       }
     });
@@ -183,7 +166,6 @@ export class MarketUniversePageComponent implements OnInit {
 
   selectAsset(asset: MarketAsset): void {
     this.selectedAsset.set(asset);
-    this.loadCorrelations(asset.isin);
   }
 
   resetFilters(): void {
@@ -236,65 +218,6 @@ export class MarketUniversePageComponent implements OnInit {
     const hasMacroCoverage = !!(asset.general || asset.expansion || asset.soft_landing || asset.recession || asset.stagflation);
 
     return hasRequiredFields && hasMacroCoverage ? 'COMPLETE' : 'INCOMPLETE';
-  }
-
-  private loadCorrelations(isin: string): void {
-    if (!isin) {
-      this.correlationRows.set([]);
-      this.correlationError.set('');
-      return;
-    }
-
-    this.correlationsLoading.set(true);
-    this.correlationError.set('');
-
-    this.api.getCorrelations(isin).subscribe({
-      next: (response: any) => {
-        const rows = Array.isArray(response?.data) ? response.data : [];
-        const map = new Map<string, { isin: string; name: string; expansion: number | null; soft_landing: number | null; recession: number | null; stagflation: number | null }>();
-
-        for (const row of rows) {
-          const counterpart = String(row.isin1 ?? '').trim().toUpperCase() === String(isin ?? '').trim().toUpperCase()
-            ? String(row.isin2 ?? '').trim().toUpperCase()
-            : String(row.isin1 ?? '').trim().toUpperCase();
-
-          const targetAsset = this.assets().find((asset) => String(asset.isin).trim().toUpperCase() === counterpart);
-
-          if (!counterpart || !targetAsset) {
-            continue;
-          }
-
-          map.set(counterpart, {
-            isin: counterpart,
-            name: targetAsset.name,
-            expansion: this.toNumber(row.expansion),
-            soft_landing: this.toNumber(row.soft_landing),
-            recession: this.toNumber(row.recession),
-            stagflation: this.toNumber(row.stagflation)
-          });
-        }
-
-        this.correlationRows.set(Array.from(map.values()).map((entry) => ({
-          targetIsin: entry.isin,
-          targetName: entry.name,
-          expansion: entry.expansion,
-          softLanding: entry.soft_landing,
-          recession: entry.recession,
-          stagflation: entry.stagflation
-        })));
-        this.correlationsLoading.set(false);
-      },
-      error: () => {
-        this.correlationError.set('Correlazioni non disponibili per questo asset.');
-        this.correlationRows.set([]);
-        this.correlationsLoading.set(false);
-      }
-    });
-  }
-
-  private toNumber(value: unknown): number | null {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
   }
 
   formatPercent(value: number | null | undefined): string {
