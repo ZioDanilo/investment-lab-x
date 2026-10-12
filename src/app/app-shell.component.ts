@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy, inject } from '@angular/core';
+import { AfterViewInit, Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { PortfolioSelectorComponent } from './shared/portfolio-selector/portfolio-selector.component';
@@ -15,7 +15,7 @@ import { PortfolioSelectionService } from './core/services/portfolio-selection.s
   templateUrl: './app-shell.component.html',
   styleUrls: ['./app-shell.component.css']
 })
-export class AppShellComponent implements OnDestroy {
+export class AppShellComponent implements OnDestroy, AfterViewInit {
   constructor() {
     // Services are in-memory: after a browser refresh rebuild the user-scoped data.
     if (localStorage.getItem('investmentLabUsername')) {
@@ -24,7 +24,27 @@ export class AppShellComponent implements OnDestroy {
     }
   }
 
+  rebalanceTargetLeft = 0;
+  private targetResizeObserver: ResizeObserver | null = null;
+  ngAfterViewInit(): void {
+    this.alignRebalanceSelector();
+    if (typeof ResizeObserver !== 'undefined') {
+      this.targetResizeObserver = new ResizeObserver(() => this.alignRebalanceSelector());
+      const navbar = document.querySelector('.nav-links > app-portfolio-selector');
+      const row = document.querySelector('.app-feature-action-row');
+      if (navbar) this.targetResizeObserver.observe(navbar);
+      if (row) this.targetResizeObserver.observe(row);
+    }
+  }
+  @HostListener('window:resize')
+  alignRebalanceSelector(): void {
+    const navbar = document.querySelector('.nav-links > app-portfolio-selector .selector-trigger');
+    const row = document.querySelector('.app-feature-action-row');
+    if (!navbar || !row) return;
+    this.rebalanceTargetLeft = navbar.getBoundingClientRect().left - row.getBoundingClientRect().left;
+  }
   ngOnDestroy(): void {
+    this.targetResizeObserver?.disconnect();
     this.stopMarketUniversePolling();
   }
   readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/trend-following'];
