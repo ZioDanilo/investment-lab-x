@@ -12,7 +12,7 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
   styleUrls: ['./portfolio-selector.component.css']
 })
 export class PortfolioSelectorComponent {
-  @Input() mode: 'reale' | 'laboratorio' = 'reale';
+  @Input() mode: 'reale' | 'laboratorio' | 'auto' = 'auto';
   @Input() showLabel = true;
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
@@ -22,15 +22,23 @@ export class PortfolioSelectorComponent {
   readonly options = this.portfolioSelectionService.portfolioOptions;
   readonly realOptions = computed(() => this.options().filter((option) => option.tipo === 'reale'));
   readonly laboratoryOptions = computed(() => this.options().filter((option) => option.tipo === 'laboratorio'));
-  readonly realOnly = computed(() => this.mode === 'reale');
+  readonly effectiveMode = computed((): 'reale' | 'laboratorio' | 'all' => {
+    if (this.mode !== 'auto') return this.mode;
+    const url = this.currentUrl();
+    return url.startsWith('/portafogli') || url.startsWith('/ribilanciamento') ? 'reale' : 'all';
+  });
+  readonly visibleOptions = computed(() => this.effectiveMode() === 'reale' ? this.realOptions() : this.effectiveMode() === 'laboratorio' ? this.laboratoryOptions() : this.options());
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
   readonly visibleSelectedPortfolio = computed(() => {
     const selected = this.selectedPortfolio();
-    const expected = this.mode;
-    if (expected === 'reale') return selected?.tipo === 'reale' ? selected : null;
-    // The simulated target is independent of the real portfolio in the navbar. // A simulated selection is hidden in the global navbar.
-    const rememberedId = this.portfolioSelectionService.lastLaboratoryPortfolioId();
-    return this.options().find(option => option.id === rememberedId && option.tipo === expected) ?? null;
+    const mode = this.effectiveMode();
+    if (mode === 'laboratorio') {
+      const id = this.portfolioSelectionService.lastLaboratoryPortfolioId();
+      return this.laboratoryOptions().find(option => option.id === id) ?? null;
+    }
+    if (mode === 'reale') return selected?.tipo === 'reale' ? selected : null;
+    // Restore the last globally selected portfolio when the route allows both types.
+    return selected;
   });
   readonly loading = this.portfolioSelectionService.loading;
   readonly hasError = this.portfolioSelectionService.hasError;
@@ -63,7 +71,7 @@ export class PortfolioSelectorComponent {
   }
 
   selectPortfolio(portfolioId: string | null): void {
-    if (this.mode === 'laboratorio') {
+    if (this.effectiveMode() === 'laboratorio') {
       this.portfolioSelectionService.lastLaboratoryPortfolioId.set(portfolioId);
     } else {
       this.portfolioSelectionService.setSelectedPortfolio(portfolioId);
