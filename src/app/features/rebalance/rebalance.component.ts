@@ -4,6 +4,7 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
 import { ApiService } from '../../core/api/api.service';
 import { RebalanceInputService } from '../../core/services/rebalance-input.service';
 import { RebalanceRow } from '../../core/models/rebalance.model';
+import { optimizeRebalance } from './rebalance-optimizer';
 
 interface RealHolding {
   isin: string;
@@ -35,15 +36,32 @@ export class RebalanceComponent {
   readonly loadingHoldings = signal(false);
   readonly targetHoldings = signal<Array<{isin:string;etfName:string;targetWeight:number}>>([]);
   readonly targetLoading = signal(false);
+  readonly targetError = signal(false);
+  readonly pricesByIsin = signal<Record<string,number>>({});
   private targetRequestVersion = 0;
   readonly holdingsError = signal(false);
   private requestVersion = 0;
 
   constructor() {
+    this.api.getAllEtfs().subscribe({
+      next: (response:any) => {
+        const data = response?.data ?? response;
+        const list:any[] = Array.isArray(data) ? data : Array.isArray(data?.etfs) ? data.etfs : [];
+        const prices:Record<string,number> = {};
+        for(const etf of list){
+          const isin=String(etf.isin ?? '').toUpperCase();
+          const price=Number(etf.quotation ?? etf.latestQuotation ?? etf.latestPrice ?? etf.currentPrice ?? etf.price);
+          if(isin && Number.isFinite(price) && price>0) prices[isin]=price;
+        }
+        this.pricesByIsin.set(prices);
+      },
+      error: () => this.pricesByIsin.set({})
+    });
     effect((onCleanup) => {
       const id = this.selection.lastLaboratoryPortfolioId();
       const version = ++this.targetRequestVersion;
       this.targetHoldings.set([]);
+      this.targetError.set(false);
       if (!id) { this.targetLoading.set(false); return; }
       const working = this.selection.workingPortfolio();
       if (working?.id === id) {
@@ -62,6 +80,7 @@ export class RebalanceComponent {
         error: () => {
           if (version !== this.targetRequestVersion) return;
           this.targetHoldings.set([]);
+          this.targetError.set(true);
           this.targetLoading.set(false);
         }
       });
@@ -133,12 +152,37 @@ export class RebalanceComponent {
     const missingTargetRows: RebalanceRow[] = this.targetHoldings()
       .filter(t => !realIsins.has(t.isin))
       .map(t => ({
-        etfName: t.etfName, isin: t.isin, quantity: 0, marketPrice: 0,
+        etfName: t.etfName, isin: t.isin, quantity: 0, marketPrice: this.pricesByIsin()[t.isin] ?? 0,
         marketValue: 0, currentWeight: 0, targetWeight: t.targetWeight,
         targetValue: 0, deltaEur: 0, deltaQuantity: 0
       }));
     return [...realRows, ...missingTargetRows];
   });
+  readonly feePerOperation = 20;
+  readonly optimization = computed(() => {
+    if(!this.selectedRealPortfolio() || !this.selection.lastLaboratoryPortfolioId() ||
+       this.loadingHoldings() || this.targetLoading() || this.holdingsError() || this.targetError()) return null;
+    const rows=this.rows();
+    if(!rows.length)return null;
+    return optimizeRebalance(rows.map(r=>({
+      isin:r.isin,quantity:r.quantity,price:r.marketPrice,targetWeight:r.targetWeight
+    })),this.cashToAdd(),this.feePerOperation);
+  });
+  readonly missingPrices = computed(() => this.rows().filter(r=>r.marketPrice<=0).map(r=>r.isin));
+  readonly optimizedRows = computed<RebalanceRow[]>(() => {
+    const result=this.optimization();
+    const rows=this.rows();
+    if(!result)return rows;
+    const net=this.totalValue()+this.cashToAdd()-result.transactionCosts;
+    return rows.map((r,i)=>{
+      const deltaQuantity=result.quantities[i]-r.quantity;
+      const targetValue=r.targetWeight*net;
+      return {...r,targetValue,deltaQuantity,deltaEur:deltaQuantity*r.marketPrice};
+    });
+  });
+  readonly operationCount = computed(() => this.optimization()?.operationCount ?? 0);
+  readonly transactionCosts = computed(() => this.optimization()?.transactionCosts ?? 0);
+  readonly remainingCash = computed(() => this.optimization()?.cashRemaining ?? 0);
   readonly totalValue = computed(() => this.rows().reduce((sum, row) => sum + row.marketValue, 0));
   readonly totalInvestable = computed(() => this.totalValue() + this.cashToAdd());
 }
