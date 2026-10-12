@@ -40,11 +40,58 @@ export class RebalanceComponent {
   readonly targetLoading = signal(false);
   readonly targetError = signal(false);
   readonly pricesByIsin = signal<Record<string,number>>({});
+  readonly quotationDates = signal<Record<string, string>>({});
+  readonly refreshingIsins = signal<string[]>([]);
+  readonly quotationErrors = signal<Record<string, string>>({});
+  readonly todayRome = new Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Rome', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date());
   private targetRequestVersion = 0;
   readonly holdingsError = signal(false);
   private requestVersion = 0;
 
+  needsQuotationRefresh(isin: string): boolean {
+    return this.quotationDates()[isin.toUpperCase()] !== this.todayRome;
+  }
+
+  refreshQuotation(isin: string): void {
+    const key = isin.toUpperCase();
+    if (!key || this.refreshingIsins().includes(key) || !this.needsQuotationRefresh(key)) return;
+    this.refreshingIsins.update(keys => [...keys, key]);
+    this.quotationErrors.update(errors => { const next = {...errors}; delete next[key]; return next; });
+    this.api.refreshSingleEodhdQuotation(key).subscribe({
+      next: (response: any) => {
+        const quote = response?.data;
+        const price = Number(quote?.quotation);
+        const date = String(quote?.date || '');
+        if (!Number.isFinite(price) || price <= 0 || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) {
+          this.quotationErrors.update(errors => ({...errors, [key]: 'Quotazione non disponibile da EODHD'}));
+          return;
+        }
+        this.quotationDates.update(dates => ({...dates, [key]: date}));
+        this.pricesByIsin.update(prices => ({...prices, [key]: price}));
+        this.holdings.update(items => items.map(h => h.isin.toUpperCase() === key ? {...h, currentPrice:price, marketValue:Number(h.quantity)*price} : h));
+        if (date !== this.todayRome) this.quotationErrors.update(errors => ({...errors, [key]: `Ultima chiusura disponibile: ${date}`}));
+      },
+      error: (error: any) => this.quotationErrors.update(errors => ({...errors, [key]: error?.error?.error || 'Aggiornamento non riuscito'})),
+      complete: () => this.refreshingIsins.update(keys => keys.filter(value => value !== key))
+    });
+  }
+
   constructor() {
+    effect((onCleanup) => {
+      const isins = [...new Set([...this.holdings().map(h => h.isin.toUpperCase()), ...this.targetHoldings().map(t => t.isin.toUpperCase())])].filter(Boolean);
+      if (!isins.length) { this.quotationDates.set({}); return; }
+      const subscription = forkJoin(isins.map(isin => this.api.getLatestStoredQuotation(isin).pipe(
+        map((response:any) => ({isin, date:String(response?.data?.[0]?.date || '')})),
+        catchError(() => of({isin, date:''}))
+      ))).subscribe(quotes => {
+        this.quotationDates.update(previous => {
+          const next:Record<string,string> = {};
+          for (const quote of quotes) next[quote.isin] = previous[quote.isin] > quote.date ? previous[quote.isin] : quote.date;
+          return next;
+        });
+      });
+      onCleanup(() => subscription.unsubscribe());
+    }, {allowSignalWrites:true});
     effect((onCleanup) => {
       const target = this.targetHoldings();
       this.pricesByIsin.set({});
