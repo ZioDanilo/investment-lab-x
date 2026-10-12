@@ -469,3 +469,18 @@
   .rebalance-cash-selector {display:inline-flex;align-items:center;gap:8px}
   .rebalance-cash-selector app-money-input {width:140px}
 }
+
+/* Pixel-accurate left alignment is measured against the actual navbar trigger. */
+@media (min-width:1181px) {
+  .rebalance-target-selector {
+    transform:translateY(-50%);
+    justify-content:flex-start;
+    width:280px;
+  }
+  .rebalance-target-selector > app-portfolio-selector { flex:0 0 280px; }
+  .rebalance-target-selector .rebalance-cash-selector {
+    left:calc(100% + 22px);
+    gap:10px;
+  }
+  .rebalance-cash-selector app-money-input { width:150px; }
+}
