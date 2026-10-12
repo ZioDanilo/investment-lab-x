@@ -2,10 +2,6 @@
   <h2>Ribilanciamento</h2>
   <h1>{{totalValue() | currency:'EUR':'symbol':'1.2-2'}}</h1>
   <div class="muted">Controvalore portafogli aggregati</div>
-  <p>
-    Liquidità da aggiungere:
-    <input type="number" [value]="cashToAdd()" (input)="setCash($any($event.target).value)">
-  </p>
   <h3>Totale investibile: {{totalInvestable() | currency:'EUR':'symbol':'1.2-2'}}</h3>
 </div>
 
