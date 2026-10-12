@@ -159,6 +159,7 @@ export class RebalanceComponent {
     return [...realRows, ...missingTargetRows];
   });
   readonly feePerOperation = 20;
+  readonly selectionTargetReady = computed(() => !!this.selection.lastLaboratoryPortfolioId());
   readonly optimization = computed(() => {
     if(!this.selectedRealPortfolio() || !this.selection.lastLaboratoryPortfolioId() ||
        this.loadingHoldings() || this.targetLoading() || this.holdingsError() || this.targetError()) return null;
