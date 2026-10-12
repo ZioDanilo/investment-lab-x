@@ -27,8 +27,8 @@ export class PortfolioSelectorComponent {
   readonly visibleSelectedPortfolio = computed(() => {
     const selected = this.selectedPortfolio();
     const expected = this.mode;
-    if (selected?.tipo === expected) return selected;
-    if (expected === 'reale') return null; // A simulated selection is hidden in the global navbar.
+    if (expected === 'reale') return selected?.tipo === 'reale' ? selected : null;
+    // The simulated target is independent of the real portfolio in the navbar. // A simulated selection is hidden in the global navbar.
     const rememberedId = this.portfolioSelectionService.lastLaboratoryPortfolioId();
     return this.options().find(option => option.id === rememberedId && option.tipo === expected) ?? null;
   });
@@ -63,8 +63,11 @@ export class PortfolioSelectorComponent {
   }
 
   selectPortfolio(portfolioId: string | null): void {
-    if (portfolioId) this.portfolioSelectionService.setSelectedPortfolio(portfolioId);
-    else this.portfolioSelectionService.setSelectedPortfolio(null);
+    if (this.mode === 'laboratorio') {
+      this.portfolioSelectionService.lastLaboratoryPortfolioId.set(portfolioId);
+    } else {
+      this.portfolioSelectionService.setSelectedPortfolio(portfolioId);
+    }
     this.isOpen = false;
   }
 }
