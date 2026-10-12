@@ -6,7 +6,6 @@ import { MontecarloPageComponent } from './features/montecarlo/montecarlo-page.c
 import { MarketUniversePageComponent } from './features/market-universe/market-universe-page.component';
 import { PortafoliPageComponent } from './features/portafogli/portafogli-page.component';
 import { RebalanceComponent } from './features/rebalance/rebalance.component';
-import { NewEtfPageComponent } from './features/new-etf/new-etf-page.component';
 import { RealPortfoliosPageComponent } from './features/real-portfolios/real-portfolios-page.component';
 import { TrendFollowingPageComponent } from './features/trend-following/trend-following-page.component';
 import { authGuard } from './core/guards/auth.guard';
@@ -25,7 +24,6 @@ export const appRoutes: Routes = [
       { path: 'monte-carlo', component: MontecarloPageComponent },
       { path: 'ribilanciamento', component: RebalanceComponent },
       { path: 'market-universe', component: MarketUniversePageComponent },
-      { path: 'nuovo-etf', component: NewEtfPageComponent },
       { path: 'trend-following', component: TrendFollowingPageComponent }
     ]
   },
