@@ -7,7 +7,10 @@
 
 <div class="card">
   <h2>Tabella elaborazione</h2>
-  <table>
+  <p class="muted" *ngIf="!selectedRealPortfolio()">Seleziona un portafoglio reale dalla navbar per visualizzare gli ETF.</p>
+  <p class="muted" *ngIf="selectedRealPortfolio() && loadingHoldings()">Caricamento ETF del portafoglio...</p>
+  <p class="muted" *ngIf="selectedRealPortfolio() && holdingsError()">Impossibile caricare le posizioni del portafoglio.</p>
+  <table *ngIf="selectedRealPortfolio() && !loadingHoldings() && !holdingsError() && rows().length">
     <tr>
       <th>ETF</th><th>ISIN</th><th>Q.tà</th><th>Prezzo</th><th>Controvalore</th><th>Peso attuale</th><th>Peso target</th><th>Δ €</th><th>Q.tà da fare</th>
     </tr>
@@ -18,11 +21,12 @@
       <td class="num">{{row.marketPrice | currency:'EUR':'symbol':'1.2-4'}}</td>
       <td class="num">{{row.marketValue | currency:'EUR':'symbol':'1.2-2'}}</td>
       <td class="num">{{row.currentWeight | percent:'1.2-2'}}</td>
-      <td class="num">{{row.targetWeight | percent:'1.2-2'}}</td>
-      <td class="num">{{row.deltaEur | currency:'EUR':'symbol':'1.2-2'}}</td>
-      <td class="num">{{row.deltaQuantity}}</td>
+      <td class="num">—</td>
+      <td class="num">—</td>
+      <td class="num">—</td>
     </tr>
   </table>
+  <p class="muted" *ngIf="selectedRealPortfolio() && !loadingHoldings() && !holdingsError() && !rows().length">Il portafoglio non contiene ETF.</p>
 </div>
 
 <div class="grid2">
