@@ -126,7 +126,12 @@ export class RealPortfoliosPageComponent implements OnInit {
       const selectedId = this.portfolioSelection.selectedPortfolio()?.id;
       if (selectedId) {
         const index = this.portfolios.findIndex((portfolio) => portfolio.id === selectedId);
-        if (index >= 0 && index !== this.selected) this.selected = index;
+        if (index >= 0 && index !== this.selected) {
+          this.selected = index;
+          this.loadOperations();
+          this.loadHoldings();
+          this.loadHistory();
+        }
         return;
       }
 
@@ -148,8 +153,11 @@ export class RealPortfoliosPageComponent implements OnInit {
         const selectedIndex=selectedId ? this.portfolios.findIndex((portfolio)=>portfolio.id===selectedId) : -1;
         this.selected=selectedIndex>=0 ? selectedIndex : 0;
         this.loadingPortfolios=false;
-        if (!selectedId && this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
-        else if (!this.portfolios.length && !selectedId) this.portfolioSelection.setSelectedPortfolio(null);
+        if (this.portfolios.length && selectedIndex < 0) {
+          // Keep the global selection when it is a laboratory portfolio;
+          // select the first real card locally and synchronize the navbar on entry.
+          this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
+        } else if (!this.portfolios.length && !selectedId) this.portfolioSelection.setSelectedPortfolio(null);
         this.loadOperations();
         this.loadMarketValues();
         this.loadHoldings();
