@@ -151,12 +151,6 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/etf/search/justetf?isin=${isin}`);
   }
 
-  // Get all ETF correlations from DB
-  getCorrelations(isin1?: string): Observable<any> {
-    const params = isin1 ? `?isin1=${isin1}` : '';
-    return this.http.get(`${this.apiUrl}/correlations${params}`);
-  }
-
   // Search ETF by ISIN or description
   searchETF(query: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/portfolio/search-etf?q=${query}`);
