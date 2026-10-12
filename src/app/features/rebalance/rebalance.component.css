@@ -6,3 +6,24 @@
 .rebalance-table th,.rebalance-table td{vertical-align:middle;box-sizing:border-box}
 .rebalance-table th:nth-child(n+3),.rebalance-table td:nth-child(n+3){text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .rebalance-table th:nth-child(-n+2),.rebalance-table td:nth-child(-n+2){text-align:left}
+
+
+/* ETFolio – visual language shared with Portafogli and Monte Carlo */
+:host{display:block;min-width:0;color:#e6edf7}
+:host .card{min-width:0;margin-bottom:10px;padding:12px 14px;border:1px solid rgba(91,139,179,.38);border-radius:15px;background:rgba(8,17,27,.82);box-shadow:inset 0 1px 0 rgba(255,255,255,.025);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+:host .card h2{margin:0 0 10px;color:#eaf1fa;font-size:1rem;font-weight:750;letter-spacing:-.025em}
+:host .rebalance-summary{padding:14px 18px;border-color:rgba(68,155,231,.48);background:linear-gradient(105deg,rgba(14,37,58,.94),rgba(8,17,27,.83))}
+:host .rebalance-summary h2{margin:0;font-size:1.1rem;line-height:1.45;text-align:center}
+:host .muted{color:#a8b8ca;font-size:.8rem;line-height:1.5}
+:host .rebalance-table{width:100%;border-collapse:collapse;font-size:.77rem;color:#e5edf6}
+:host .rebalance-table th{padding:11px 10px;background:rgba(18,39,57,.85);color:#a9bbcd;font-size:.71rem;font-weight:700;text-transform:uppercase;letter-spacing:.02em;border-bottom:1px solid rgba(99,145,181,.28)}
+:host .rebalance-table td{padding:10px;border-bottom:1px solid rgba(91,139,179,.18);line-height:1.35}
+:host .rebalance-table tr:nth-child(odd):not(:first-child){background:rgba(20,39,54,.19)}
+:host .rebalance-table tr:hover:not(:first-child){background:rgba(43,101,148,.16)}
+:host .rebalance-table td:first-child{font-weight:650}
+:host .rebalance-table td:nth-child(2){color:#a8b8ca;font-size:.72rem}
+:host .rebalance-table tr.green td:nth-last-child(-n+2){color:#20dbb0;font-weight:700}
+:host .rebalance-table tr.red td:nth-last-child(-n+2){color:#ff647c;font-weight:700}
+:host .rebalance-table .num{font-variant-numeric:tabular-nums}
+@media(max-width:1100px){:host .card:not(.rebalance-summary){overflow-x:auto;scrollbar-width:thin}:host .rebalance-table{min-width:950px}}
+@media(max-width:700px){:host .card{padding:10px;border-radius:12px}:host .rebalance-summary h2{font-size:.95rem}:host .rebalance-table th,:host .rebalance-table td{padding:9px 8px}}
