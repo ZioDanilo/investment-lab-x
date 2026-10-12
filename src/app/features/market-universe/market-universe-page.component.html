@@ -221,36 +221,6 @@
         </div>
       </section>
 
-      <section class="detail-section">
-        <h3>Correlations</h3>
-
-        <div *ngIf="correlationsLoading()" class="inline-message">Loading correlations...</div>
-        <div *ngIf="!correlationsLoading() && correlationError()" class="inline-message inline-message--error">{{ correlationError() }}</div>
-        <div *ngIf="!correlationsLoading() && !correlationError() && correlationRows().length === 0" class="inline-message">No correlation data available.</div>
-
-        <div *ngIf="!correlationsLoading() && correlationRows().length > 0" class="correlation-table-wrap">
-          <table class="correlation-table">
-            <thead>
-              <tr>
-                <th>Asset</th>
-                <th>Expansion</th>
-                <th>Soft Landing</th>
-                <th>Recession</th>
-                <th>Stagflation</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let row of correlationRows()">
-                <td>{{ row.targetName || row.targetIsin }}</td>
-                <td>{{ formatValue(row.expansion) }}</td>
-                <td>{{ formatValue(row.softLanding) }}</td>
-                <td>{{ formatValue(row.recession) }}</td>
-                <td>{{ formatValue(row.stagflation) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
     </aside>
   </div>
 </div>
