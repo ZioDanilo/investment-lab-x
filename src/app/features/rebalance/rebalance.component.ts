@@ -1,5 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import { ApiService } from '../../core/api/api.service';
 import { RebalanceInputService } from '../../core/services/rebalance-input.service';
@@ -43,20 +45,22 @@ export class RebalanceComponent {
   private requestVersion = 0;
 
   constructor() {
-    this.api.getAllEtfs().subscribe({
-      next: (response:any) => {
-        const data = response?.data ?? response;
-        const list:any[] = Array.isArray(data) ? data : Array.isArray(data?.etfs) ? data.etfs : [];
-        const prices:Record<string,number> = {};
-        for(const etf of list){
-          const isin=String(etf.isin ?? '').toUpperCase();
-          const price=Number(etf.quotation ?? etf.latestQuotation ?? etf.latestPrice ?? etf.currentPrice ?? etf.price);
-          if(isin && Number.isFinite(price) && price>0) prices[isin]=price;
-        }
-        this.pricesByIsin.set(prices);
-      },
-      error: () => this.pricesByIsin.set({})
-    });
+    effect((onCleanup) => {
+      const target = this.targetHoldings();
+      this.pricesByIsin.set({});
+      if (!target.length) return;
+      const subscription = forkJoin(target.map(t =>
+        this.api.getLatestStoredQuotation(t.isin).pipe(
+          map((response:any) => ({isin:t.isin,price:Number(response?.data?.[0]?.quotation)})),
+          catchError(() => of({isin:t.isin,price:0}))
+        )
+      )).subscribe(prices => {
+        const byIsin:Record<string,number>={};
+        for(const quote of prices)if(Number.isFinite(quote.price)&&quote.price>0)byIsin[quote.isin]=quote.price;
+        this.pricesByIsin.set(byIsin);
+      });
+      onCleanup(() => subscription.unsubscribe());
+    }, {allowSignalWrites:true});
     effect((onCleanup) => {
       const id = this.selection.lastLaboratoryPortfolioId();
       const version = ++this.targetRequestVersion;
