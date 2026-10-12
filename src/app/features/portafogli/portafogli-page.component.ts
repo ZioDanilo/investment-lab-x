@@ -95,6 +95,11 @@ export class PortafoliPageComponent implements OnInit {
 
   ngOnInit() {
     this.initialized = true;
+    const remembered = this.portfolioSelection.lastLaboratoryPortfolioId();
+    const current = this.portfolioSelection.selectedPortfolio();
+    if (remembered && current?.tipo !== 'laboratorio' && this.portfolioSelection.portfolioOptions().some(p => p.id === remembered)) {
+      this.portfolioSelection.setSelectedPortfolio(remembered);
+    }
     this.loadPortafogli();
   }
 
