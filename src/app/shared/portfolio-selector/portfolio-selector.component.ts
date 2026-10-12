@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
@@ -12,6 +12,8 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
   styleUrls: ['./portfolio-selector.component.css']
 })
 export class PortfolioSelectorComponent {
+  @Input() mode: 'reale' | 'laboratorio' = 'reale';
+  @Input() showLabel = true;
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly router = inject(Router);
@@ -20,11 +22,14 @@ export class PortfolioSelectorComponent {
   readonly options = this.portfolioSelectionService.portfolioOptions;
   readonly realOptions = computed(() => this.options().filter((option) => option.tipo === 'reale'));
   readonly laboratoryOptions = computed(() => this.options().filter((option) => option.tipo === 'laboratorio'));
-  readonly realOnly = computed(() => this.currentUrl().startsWith('/portafogli') || this.currentUrl().startsWith('/ribilanciamento'));
+  readonly realOnly = computed(() => this.mode === 'reale');
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;
   readonly visibleSelectedPortfolio = computed(() => {
     const selected = this.selectedPortfolio();
-    return selected && (!this.realOnly() || selected.tipo === 'reale') ? selected : null;
+    const expected = this.mode;
+    if (selected?.tipo === expected) return selected;
+    const rememberedId = expected === 'reale' ? this.portfolioSelectionService.lastRealPortfolioId() : this.portfolioSelectionService.lastLaboratoryPortfolioId();
+    return this.options().find(option => option.id === rememberedId && option.tipo === expected) ?? null;
   });
   readonly loading = this.portfolioSelectionService.loading;
   readonly hasError = this.portfolioSelectionService.hasError;
@@ -57,7 +62,8 @@ export class PortfolioSelectorComponent {
   }
 
   selectPortfolio(portfolioId: string | null): void {
-    this.portfolioSelectionService.setSelectedPortfolio(portfolioId);
+    if (portfolioId) this.portfolioSelectionService.setSelectedPortfolio(portfolioId);
+    else this.portfolioSelectionService.setSelectedPortfolio(null);
     this.isOpen = false;
   }
 }
