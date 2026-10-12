@@ -146,19 +146,9 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/etf/add`, { isin, descrizione, nickname });
   }
 
-  // Add ETF + correlations atomically (single transaction)
-  addEtfWithCorrelations(isin: string, descrizione: string, nome: string, nickname: string | null, ticker: string, quotation: number | null, correlations: any[], macroStatistics?: any, generalStats?: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/etf/add-with-correlations`, { isin, descrizione, nome, nickname, ticker, quotation, correlations, macro_statistics: macroStatistics, general_stats: generalStats });
-  }
-
   // Search ETF on JustETF
   searchJustETF(isin: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/etf/search/justetf?isin=${isin}`);
-  }
-
-  // Save ETF correlations
-  saveCorrelations(payload: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/correlations`, payload);
   }
 
   // Get all ETF correlations from DB
