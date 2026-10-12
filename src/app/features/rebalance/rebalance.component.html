@@ -1,8 +1,5 @@
-<div class="card" style="text-align:center">
-  <h2>Ribilanciamento</h2>
-  <h1>{{totalValue() | currency:'EUR':'symbol':'1.2-2'}}</h1>
-  <div class="muted">Controvalore portafoglio reale</div>
-  <h3>Totale investibile: {{totalInvestable() | currency:'EUR':'symbol':'1.2-2'}}</h3>
+<div class="card rebalance-summary">
+  <h2>Ribilanciamento da {{totalValue() | currency:'EUR':'symbol':'1.2-2'}} a {{totalInvestable() | currency:'EUR':'symbol':'1.2-2'}}</h2>
 </div>
 
 <div class="card">
@@ -16,9 +13,9 @@
   <p class="muted" *ngIf="!selectedRealPortfolio()">Seleziona un portafoglio reale dalla navbar per visualizzare gli ETF.</p>
   <p class="muted" *ngIf="selectedRealPortfolio() && loadingHoldings()">Caricamento ETF del portafoglio...</p>
   <p class="muted" *ngIf="selectedRealPortfolio() && holdingsError()">Impossibile caricare le posizioni del portafoglio.</p>
-  <table *ngIf="selectedRealPortfolio() && !loadingHoldings() && !holdingsError() && optimizedRows().length">
+  <table class="rebalance-table" *ngIf="selectedRealPortfolio() && !loadingHoldings() && !holdingsError() && optimizedRows().length">
     <tr>
-      <th>ETF</th><th>ISIN</th><th>Q.tà</th><th>Prezzo</th><th>Controvalore</th><th>Peso attuale</th><th>Peso target</th><th>Δ €</th><th>Q.tà da fare</th>
+      <th>ETF</th><th>ISIN</th><th class="num">Q.tà</th><th class="num">Prezzo</th><th class="num">Controvalore</th><th class="num">Peso attuale</th><th class="num">Peso target</th><th class="num">Δ €</th><th class="num">Q.tà da fare</th>
     </tr>
     <tr *ngFor="let row of optimizedRows()" [ngClass]="row.deltaEur > 0 ? 'green' : row.deltaEur < 0 ? 'red' : ''">
       <td>{{row.etfName}}</td>
