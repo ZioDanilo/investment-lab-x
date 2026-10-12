@@ -3,7 +3,7 @@
     <div class="title-block">
       <p class="eyebrow">Market Universe</p>
       <h1>Market Universe</h1>
-      <p class="page-subtitle">Gestione degli strumenti finanziari disponibili in ETFolio</p>
+      <p class="page-subtitle">Anteprima dimostrativa con dati fittizi, non collegata al database</p>
     </div>
 
     <div class="header-actions">
@@ -11,10 +11,6 @@
       <button type="button" class="primary-button" disabled title="Add Asset disponibile in una fase successiva">Add Asset</button>
     </div>
   </header>
-
-  <div *ngIf="legacyFallbackActive()" class="legacy-banner">
-    Legacy fallback active: alcuni asset stanno usando dati storici legacy invece della source backend.
-  </div>
 
   <section class="stats-grid" aria-label="KPI Market Universe">
     <article class="stat-card">
