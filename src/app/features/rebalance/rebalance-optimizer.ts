@@ -77,7 +77,7 @@ export function optimizeRebalance(
   // selling an overweight holding even when cash is initially exhausted.
   const limit=Math.min(300,Math.max(40,n*18));
   for(let iteration=0;iteration<limit;iteration++){
-    let next=best;
+    let next: RebalanceResult = best;
     const current=best.quantities;
     const consider=(trial:number[])=>{
       const result=evaluate(trial);
