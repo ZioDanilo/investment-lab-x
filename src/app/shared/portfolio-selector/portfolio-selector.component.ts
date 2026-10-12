@@ -28,7 +28,8 @@ export class PortfolioSelectorComponent {
     const selected = this.selectedPortfolio();
     const expected = this.mode;
     if (selected?.tipo === expected) return selected;
-    const rememberedId = expected === 'reale' ? this.portfolioSelectionService.lastRealPortfolioId() : this.portfolioSelectionService.lastLaboratoryPortfolioId();
+    if (expected === 'reale') return null; // A simulated selection is hidden in the global navbar.
+    const rememberedId = this.portfolioSelectionService.lastLaboratoryPortfolioId();
     return this.options().find(option => option.id === rememberedId && option.tipo === expected) ?? null;
   });
   readonly loading = this.portfolioSelectionService.loading;
