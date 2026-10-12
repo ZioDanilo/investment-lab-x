@@ -82,8 +82,8 @@ export class PortfolioSelectionService {
           : null;
 
         this.selectedPortfolio.set(refreshedSelection);
-        if (this.lastLaboratoryPortfolioId() && !nextOptions.some(p => p.id === this.lastLaboratoryPortfolioId() && p.tipo === 'laboratorio')) this.lastLaboratoryPortfolioId.set(null);
-        if (this.lastRealPortfolioId() && !nextOptions.some(p => p.id === this.lastRealPortfolioId() && p.tipo === 'reale')) this.lastRealPortfolioId.set(null);
+        if (this.lastLaboratoryPortfolioId() && !nextOptions.some((p: PortfolioOption) => p.id === this.lastLaboratoryPortfolioId() && p.tipo === 'laboratorio')) this.lastLaboratoryPortfolioId.set(null);
+        if (this.lastRealPortfolioId() && !nextOptions.some((p: PortfolioOption) => p.id === this.lastRealPortfolioId() && p.tipo === 'reale')) this.lastRealPortfolioId.set(null);
         this.loading.set(false);
         this.refreshVersion.update((version) => version + 1);
       },
