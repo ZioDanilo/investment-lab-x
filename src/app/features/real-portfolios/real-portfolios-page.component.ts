@@ -45,6 +45,7 @@ export class RealPortfoliosPageComponent implements OnInit {
       next:()=>{
         this.loadMarketValues();
         this.loadHoldings();
+        this.loadHistory();
         this.finishQuotationProgress();
       },
       error:(error)=>{
@@ -152,6 +153,7 @@ export class RealPortfoliosPageComponent implements OnInit {
         this.loadOperations();
         this.loadMarketValues();
         this.loadHoldings();
+        this.loadHistory();
       },
       error:()=>{ this.portfolios=[]; this.loadingPortfolios=false; }
     });
@@ -253,11 +255,51 @@ export class RealPortfoliosPageComponent implements OnInit {
   operations:Operation[]=[];
   readonly stats=[['Rendimento totale','+12,4%','positive'],['Rendimento annuo (TWR)','+8,1%','positive'],['Volatilità annua','11,3%',''],['Sharpe ratio (rf 2%)','0,54',''],['Massimo drawdown','-7,8%','negative'],['Mese migliore','+4,9%','positive'],['Mese peggiore','-4,1%','negative'],['Mesi positivi','18 (66%)','']];
   readonly legend:ChartLegendItem[]=[{label:'Valore di mercato',color:'#2d91ff'},{label:'Capitale investito',color:'#9ab2cf'}];
-  readonly series:LineChartSeries[]=[
-    {label:'Valore di mercato',color:'#2d91ff',points:'52,205 95,193 140,181 188,174 235,158 282,166 330,145 378,132 425,119 472,111 520,116 568,100 620,94'},
-    {label:'Capitale investito',color:'#9ab2cf',points:'52,216 95,207 140,199 188,191 235,182 282,174 330,164 378,154 425,145 472,137 520,131 568,124 620,118'}
-  ];
-  readonly ticks:LineChartTick[]=[{value:'€ 30.000',y:30},{value:'€ 25.000',y:70},{value:'€ 20.000',y:110},{value:'€ 15.000',y:150},{value:'€ 10.000',y:190},{value:'€ 5.000',y:230}];
+  history:Array<{date:string;month:string;marketValue:number|null;netContributions:number;valuation:string;estimatedPositions:number}>=[];
+  historyPeriod:'1Y'|'3Y'|'5Y'|'MAX'='MAX';
+  historyLoading=false;
+  get visibleHistory(){ const months=this.historyPeriod==='MAX'?Infinity:this.historyPeriod==='1Y'?12:this.historyPeriod==='3Y'?36:60; return this.history.slice(-months); }
+  setHistoryPeriod(period:'1Y'|'3Y'|'5Y'|'MAX'):void { this.historyPeriod=period; }
+  private loadHistory():void {
+    const portfolio=this.portfolios[this.selected];
+    if(!portfolio){this.history=[];return;}
+    this.historyLoading=true;
+    this.api.getRealPortfolioHistory(portfolio.id).subscribe({
+      next:(response:any)=>{
+        if(this.portfolios[this.selected]?.id!==portfolio.id)return;
+        this.history=Array.isArray(response?.data)?response.data:[];
+        this.historyLoading=false;
+      },
+      error:(error)=>{this.historyLoading=false;this.history=[];console.error('Errore storico portafoglio',error);}
+    });
+  }
+  get historyMonths():string[] {
+    const rows=this.visibleHistory;
+    if(!rows.length)return [];
+    const indexes=[0,Math.floor((rows.length-1)/4),Math.floor((rows.length-1)/2),Math.floor(3*(rows.length-1)/4),rows.length-1];
+    return [...new Set(indexes)].map(i=>new Intl.DateTimeFormat('it-IT',{month:'short',year:'numeric'}).format(new Date(rows[i].date+'T12:00:00')));
+  }
+  private get chartScale(){
+    const rows=this.visibleHistory;
+    const values=rows.flatMap(r=>[r.netContributions,...(r.marketValue===null?[]:[r.marketValue])]).filter(Number.isFinite);
+    const lo=Math.min(0,...values),hi=Math.max(1,...values);
+    const padding=(hi-lo)*.08 || 1;
+    return {min:lo-padding,max:hi+padding};
+  }
+  get ticks():LineChartTick[]{
+    const {min,max}=this.chartScale;
+    return Array.from({length:6},(_,i)=>({value:new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(max-(max-min)*i/5),y:30+40*i}));
+  }
+  get series():LineChartSeries[]{
+    const rows=this.visibleHistory,{min,max}=this.chartScale;
+    const x=(i:number)=>rows.length===1?340:52+i*568/(rows.length-1);
+    const y=(value:number)=>230-(value-min)*200/(max-min);
+    const make=(key:'marketValue'|'netContributions',label:string,color:string):LineChartSeries=>{
+      // Break missing market valuations into separate segments rather than drawing fictitious values.
+      return {label,color,points:rows.map((r,i)=>r[key]===null?'':`${x(i).toFixed(1)},${y(Number(r[key])).toFixed(1)}`).filter(Boolean).join(' ')};
+    };
+    return [make('marketValue','Valore di mercato','#2d91ff'),make('netContributions','Capitale netto versato','#9ab2cf')];
+  }
   startPortfolioDrag(i:number,event:DragEvent):void {
     this.openPortfolioMenu=null;
     this.draggedPortfolioIndex=i;
@@ -416,6 +458,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.loadOperations();
     this.loadMarketValues();
     this.loadHoldings();
+    this.loadHistory();
   }
   private loadMarketValues():void {
     this.api.getRealPortfolioMarketValues().subscribe({
@@ -524,5 +567,6 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.portfolioSelection.setSelectedPortfolio(portfolio?.id ?? null);
     this.loadOperations();
     this.loadHoldings();
+    this.loadHistory();
   }
 }
