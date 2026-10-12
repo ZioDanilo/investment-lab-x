@@ -34,3 +34,12 @@
 :host .rebalance-table th.num,
 :host .rebalance-table td:nth-child(n+3),
 :host .rebalance-table th:nth-child(n+3){font-family:"Manrope","Segoe UI",sans-serif;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* Individual EODHD refresh controls */
+:host .rebalance-etf-name{display:inline-flex;align-items:center;gap:8px}
+:host .quote-refresh{display:inline-flex;align-items:center;justify-content:center;flex:0 0 23px;width:23px;height:23px;padding:0;border:1px solid rgba(47,173,245,.52);border-radius:7px;background:linear-gradient(145deg,rgba(30,146,224,.28),rgba(8,54,100,.48));color:#50c9ff;font-family:"Manrope",sans-serif;font-size:21px;line-height:1;cursor:pointer;box-shadow:inset 0 1px 0 rgba(150,221,255,.13);transition:background .2s,border-color .2s,box-shadow .2s}
+:host .quote-refresh:hover:not(:disabled){border-color:#54c9ff;background:linear-gradient(145deg,rgba(30,167,255,.42),rgba(10,74,132,.6));box-shadow:0 0 12px rgba(32,169,255,.22)}
+:host .quote-refresh:disabled{cursor:wait;opacity:.55}
+:host .quote-refresh.is-loading span{display:inline-block;animation:quote-refresh-spin .85s linear infinite}
+:host .quote-error{display:block;margin-top:3px;color:#ff8b9a;font-size:.68rem;font-weight:500}
+@keyframes quote-refresh-spin{to{transform:rotate(360deg)}}
