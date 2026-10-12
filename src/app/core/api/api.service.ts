@@ -106,6 +106,10 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/real-portfolios/${portfolioId}/operations`, data);
   }
 
+  refreshSingleEodhdQuotation(isin: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/quotations/single/${encodeURIComponent(isin)}/refresh`, {});
+  }
+
   refreshRealPortfolioQuotations(portfolioId: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/quotations/real-portfolio/${portfolioId}/refresh`, {});
   }
