@@ -1,7 +1,7 @@
 <div class="card" style="text-align:center">
   <h2>Ribilanciamento</h2>
   <h1>{{totalValue() | currency:'EUR':'symbol':'1.2-2'}}</h1>
-  <div class="muted">Controvalore portafogli aggregati</div>
+  <div class="muted">Controvalore portafoglio reale</div>
   <h3>Totale investibile: {{totalInvestable() | currency:'EUR':'symbol':'1.2-2'}}</h3>
 </div>
 
@@ -27,15 +27,4 @@
     </tr>
   </table>
   <p class="muted" *ngIf="selectedRealPortfolio() && !loadingHoldings() && !holdingsError() && !rows().length">Il portafoglio non contiene ETF.</p>
-</div>
-
-<div class="grid2">
-  <div class="card paste-area">
-    <h2>Export Portafoglio 1</h2>
-    <textarea rows="12" style="width:100%" [value]="portfolio1Text()" (input)="portfolio1Text.set($any($event.target).value)" placeholder="Incolla qui l'export broker completo con intestazioni"></textarea>
-  </div>
-  <div class="card paste-area">
-    <h2>Export Portafoglio 2</h2>
-    <textarea rows="12" style="width:100%" [value]="portfolio2Text()" (input)="portfolio2Text.set($any($event.target).value)" placeholder="Incolla qui l'export broker completo con intestazioni"></textarea>
-  </div>
 </div>
