@@ -274,38 +274,56 @@ export class RealPortfoliosPageComponent implements OnInit {
     });
   }
   get historyMonths():string[] {
-    const rows=this.visibleHistory;
+    const rows=this.visiblePerformance;
     if(!rows.length)return [];
     const indexes=[0,Math.floor((rows.length-1)/4),Math.floor((rows.length-1)/2),Math.floor(3*(rows.length-1)/4),rows.length-1];
     return [...new Set(indexes)].map(i=>new Intl.DateTimeFormat('it-IT',{month:'short',year:'numeric'}).format(new Date(rows[i].date+'T12:00:00')));
   }
+  // Approximate cash-flow-adjusted monthly returns (Modified Dietz with
+  // mid-month weighting when only month-end valuations are available).
+  // Purchases/sales are flows, not investment performance.
+  get performanceHistory():Array<{month:string;date:string;returnPct:number|null;estimated:boolean}>{
+    let previousValue=0,previousContributions=0,wealthIndex=1;
+    return this.history.map((point,index)=>{
+      const end=point.marketValue;
+      const flow=point.netContributions-previousContributions;
+      const denominator=index===0?point.netContributions:previousValue+flow*.5;
+      const monthlyReturn=end===null||denominator<=0?null:(end-(index===0?0:previousValue)-flow)/denominator;
+      if(monthlyReturn!==null && Number.isFinite(monthlyReturn))wealthIndex*=Math.max(0,1+monthlyReturn);
+      const result={month:point.month,date:point.date,returnPct:end===null||!Number.isFinite(wealthIndex)?null:(wealthIndex-1)*100,estimated:point.valuation!=='market'};
+      if(end!==null)previousValue=end;
+      previousContributions=point.netContributions;
+      return result;
+    });
+  }
+  get visiblePerformance(){
+    const months=this.historyPeriod==='MAX'?Infinity:this.historyPeriod==='1Y'?12:this.historyPeriod==='3Y'?36:60;
+    return this.performanceHistory.slice(-months);
+  }
   private get chartScale(){
-    const rows=this.visibleHistory;
-    const values=rows.flatMap(r=>[r.netContributions,...(r.marketValue===null?[]:[r.marketValue])]).filter(Number.isFinite);
-    if(!values.length)return {min:0,max:1};
-    const low=Math.min(...values),high=Math.max(...values);
-    const min=Math.min(0,low);
-    const max=Math.max(1,high);
-    const rawStep=(max-min)/4 || 1;
-    const magnitude=Math.pow(10,Math.floor(Math.log10(rawStep)));
-    const niceStep=([1,2,2.5,5,10].find(n=>n*magnitude>=rawStep) || 10)*magnitude;
-    return {min:Math.floor(min/niceStep)*niceStep,max:Math.ceil(max/niceStep)*niceStep || niceStep};
+    const values=this.visiblePerformance.map(p=>p.returnPct).filter((v):v is number=>v!==null&&Number.isFinite(v));
+    if(!values.length)return {min:-5,max:5};
+    const low=Math.min(0,...values),high=Math.max(0,...values);
+    const span=Math.max(high-low,1);
+    const roughStep=span/4;
+    const magnitude=Math.pow(10,Math.floor(Math.log10(roughStep)));
+    const step=([1,2,2.5,5,10].find(n=>n*magnitude>=roughStep)||10)*magnitude;
+    const min=Math.floor((low-step*.15)/step)*step;
+    const max=Math.ceil((high+step*.15)/step)*step;
+    return {min,max:max>min?max:min+step};
   }
   get ticks():LineChartTick[]{
     const {min,max}=this.chartScale;
     return Array.from({length:5},(_,i)=>({
-      value:new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(max-(max-min)*i/4),
+      value:new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(max-(max-min)*i/4)+'%',
       y:35+47.5*i
     }));
   }
   get series():LineChartSeries[]{
-    const rows=this.visibleHistory,{min,max}=this.chartScale;
-    const x=(i:number)=>rows.length===1?360:110+i*510/(rows.length-1);
+    const rows=this.visiblePerformance,{min,max}=this.chartScale;
+    const x=(i:number)=>rows.length===1?365:70+i*550/(rows.length-1);
     const y=(value:number)=>225-(value-min)*190/(max-min);
-    const make=(key:'marketValue'|'netContributions',label:string,color:string):LineChartSeries=>({
-      label,color,points:rows.map((r,i)=>r[key]===null?'':`${x(i).toFixed(1)},${y(Number(r[key])).toFixed(1)}`).filter(Boolean).join(' ')
-    });
-    return [make('marketValue','Valore di mercato','#2d91ff'),make('netContributions','Capitale netto versato','#9ab2cf')];
+    return [{label:'Rendimento cumulato',color:'#2586d9',points:rows.map((r,i)=>r.returnPct===null?'':`${x(i).toFixed(1)},${y(r.returnPct).toFixed(1)}`).filter(Boolean).join(' ')}];
   }
   startPortfolioDrag(i:number,event:DragEvent):void {
     this.openPortfolioMenu=null;
