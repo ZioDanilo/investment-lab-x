@@ -90,6 +90,10 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/market-value`);
   }
 
+  getRealPortfolioHistory(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/history`);
+  }
+
   getRealPortfolioHoldings(portfolioId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/holdings`);
   }
