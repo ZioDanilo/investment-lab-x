@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, finalize, map } from 'rxjs/operators';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import { ApiService } from '../../core/api/api.service';
 import { RebalanceInputService } from '../../core/services/rebalance-input.service';
@@ -57,7 +57,7 @@ export class RebalanceComponent {
     if (!key || this.refreshingIsins().includes(key) || !this.needsQuotationRefresh(key)) return;
     this.refreshingIsins.update(keys => [...keys, key]);
     this.quotationErrors.update(errors => { const next = {...errors}; delete next[key]; return next; });
-    this.api.refreshSingleEodhdQuotation(key).subscribe({
+    this.api.refreshSingleEodhdQuotation(key).pipe(finalize(() => this.refreshingIsins.update(keys => keys.filter(value => value !== key)))).subscribe({
       next: (response: any) => {
         const quote = response?.data;
         const price = Number(quote?.quotation);
@@ -71,8 +71,7 @@ export class RebalanceComponent {
         this.holdings.update(items => items.map(h => h.isin.toUpperCase() === key ? {...h, currentPrice:price, marketValue:Number(h.quantity)*price} : h));
         if (date !== this.todayRome) this.quotationErrors.update(errors => ({...errors, [key]: `Ultima chiusura disponibile: ${date}`}));
       },
-      error: (error: any) => this.quotationErrors.update(errors => ({...errors, [key]: error?.error?.error || 'Aggiornamento non riuscito'})),
-      complete: () => this.refreshingIsins.update(keys => keys.filter(value => value !== key))
+      error: (error: any) => this.quotationErrors.update(errors => ({...errors, [key]: error?.error?.error || 'Aggiornamento non riuscito'}))
     });
   }
 
