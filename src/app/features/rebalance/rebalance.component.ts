@@ -2,6 +2,7 @@ import { Component, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PortfolioStateService } from '../../core/services/portfolio-state.service';
+import { RebalanceInputService } from '../../core/services/rebalance-input.service';
 import { RebalanceEngine } from '../../core/engines/rebalance.engine';
 
 @Component({
@@ -14,9 +15,9 @@ import { RebalanceEngine } from '../../core/engines/rebalance.engine';
 export class RebalanceComponent {
   portfolio1Text = signal('');
   portfolio2Text = signal('');
-  cashToAdd = signal(0);
+  cashToAdd = this.rebalanceInputs.cashToAdd;
 
-  constructor(public state: PortfolioStateService) {}
+  constructor(public state: PortfolioStateService, public rebalanceInputs: RebalanceInputService) {}
 
   positions1 = computed(() => RebalanceEngine.parseBrokerExport(this.portfolio1Text()));
   positions2 = computed(() => RebalanceEngine.parseBrokerExport(this.portfolio2Text()));
@@ -26,6 +27,6 @@ export class RebalanceComponent {
   totalInvestable = computed(() => this.totalValue() + this.cashToAdd());
 
   setCash(value: string): void {
-    this.cashToAdd.set(Number(value) || 0);
+    this.rebalanceInputs.setCash(value);
   }
 }
