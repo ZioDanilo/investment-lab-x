@@ -38,7 +38,7 @@
 
   <main class="route-content" [class.route-content--feature]="showFeatureSidebar">
     <div *ngIf="showFeatureSidebar" class="app-feature-action-row">
-      <div *ngIf="isRebalancePage" class="rebalance-target-selector"><span>Portafoglio target</span><app-portfolio-selector mode="laboratorio" [showLabel]="false"></app-portfolio-selector><label class="rebalance-cash-selector"><span>Liquidità da aggiungere</span><app-money-input label="Liquidità da aggiungere" [value]="rebalanceInputs.cashToAdd()" (valueChange)="rebalanceInputs.setCash($event)"></app-money-input></label></div>
+      <div *ngIf="isRebalancePage" class="rebalance-target-selector" [style.left.px]="rebalanceTargetLeft"><span>Portafoglio target</span><app-portfolio-selector mode="laboratorio" [showLabel]="false"></app-portfolio-selector><label class="rebalance-cash-selector"><span>Liquidità da aggiungere</span><app-money-input label="Liquidità da aggiungere" [value]="rebalanceInputs.cashToAdd()" (valueChange)="rebalanceInputs.setCash($event)"></app-money-input></label></div>
       <button *ngIf="featureActionLabel" type="button" class="app-feature-action" [class.is-running]="featureActionRunning" [disabled]="featureActionDisabled" (click)="runFeatureAction()">
         <span class="app-feature-action__fill" [style.width.%]="featureActionProgress"></span>
         <span class="app-feature-action__content"><span class="material-symbols-rounded">{{ featureActionIcon }}</span><span>{{ featureActionLabel }}</span></span>
