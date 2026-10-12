@@ -282,22 +282,29 @@ export class RealPortfoliosPageComponent implements OnInit {
   private get chartScale(){
     const rows=this.visibleHistory;
     const values=rows.flatMap(r=>[r.netContributions,...(r.marketValue===null?[]:[r.marketValue])]).filter(Number.isFinite);
-    const lo=Math.min(0,...values),hi=Math.max(1,...values);
-    const padding=(hi-lo)*.08 || 1;
-    return {min:lo-padding,max:hi+padding};
+    if(!values.length)return {min:0,max:1};
+    const low=Math.min(...values),high=Math.max(...values);
+    const min=Math.min(0,low);
+    const max=Math.max(1,high);
+    const rawStep=(max-min)/4 || 1;
+    const magnitude=Math.pow(10,Math.floor(Math.log10(rawStep)));
+    const niceStep=([1,2,2.5,5,10].find(n=>n*magnitude>=rawStep) || 10)*magnitude;
+    return {min:Math.floor(min/niceStep)*niceStep,max:Math.ceil(max/niceStep)*niceStep || niceStep};
   }
   get ticks():LineChartTick[]{
     const {min,max}=this.chartScale;
-    return Array.from({length:6},(_,i)=>({value:new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(max-(max-min)*i/5),y:30+40*i}));
+    return Array.from({length:5},(_,i)=>({
+      value:new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(max-(max-min)*i/4),
+      y:35+47.5*i
+    }));
   }
   get series():LineChartSeries[]{
     const rows=this.visibleHistory,{min,max}=this.chartScale;
-    const x=(i:number)=>rows.length===1?340:52+i*568/(rows.length-1);
-    const y=(value:number)=>230-(value-min)*200/(max-min);
-    const make=(key:'marketValue'|'netContributions',label:string,color:string):LineChartSeries=>{
-      // Break missing market valuations into separate segments rather than drawing fictitious values.
-      return {label,color,points:rows.map((r,i)=>r[key]===null?'':`${x(i).toFixed(1)},${y(Number(r[key])).toFixed(1)}`).filter(Boolean).join(' ')};
-    };
+    const x=(i:number)=>rows.length===1?360:110+i*510/(rows.length-1);
+    const y=(value:number)=>225-(value-min)*190/(max-min);
+    const make=(key:'marketValue'|'netContributions',label:string,color:string):LineChartSeries=>({
+      label,color,points:rows.map((r,i)=>r[key]===null?'':`${x(i).toFixed(1)},${y(Number(r[key])).toFixed(1)}`).filter(Boolean).join(' ')
+    });
     return [make('marketValue','Valore di mercato','#2d91ff'),make('netContributions','Capitale netto versato','#9ab2cf')];
   }
   startPortfolioDrag(i:number,event:DragEvent):void {
