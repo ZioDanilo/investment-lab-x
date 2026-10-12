@@ -3,13 +3,15 @@ import { Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { PortfolioSelectorComponent } from './shared/portfolio-selector/portfolio-selector.component';
+import { MoneyInputComponent } from './shared/inputs/money-input.component';
+import { RebalanceInputService } from './core/services/rebalance-input.service';
 import { ApiService } from './core/api/api.service';
 import { PortfolioSelectionService } from './core/services/portfolio-selection.service';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent, MoneyInputComponent],
   templateUrl: './app-shell.component.html',
   styleUrls: ['./app-shell.component.css']
 })
@@ -27,6 +29,7 @@ export class AppShellComponent implements OnDestroy {
   }
   readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/trend-following'];
   private readonly router = inject(Router);
+  readonly rebalanceInputs = inject(RebalanceInputService);
   private readonly apiService = inject(ApiService);
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
