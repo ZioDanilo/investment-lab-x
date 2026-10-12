@@ -28,10 +28,10 @@
       <span class="selector-option__label selector-option__label--placeholder" [title]="triggerPlaceholder">{{ triggerPlaceholder }}</span>
     </button>
 
-    <button *ngFor="let option of (realOnly() ? realOptions() : laboratoryOptions())" type="button" class="selector-option" role="option"
+    <button *ngFor="let option of visibleOptions()" type="button" class="selector-option" role="option"
       [attr.aria-selected]="visibleSelectedPortfolio()?.id === option.id" [class.is-selected]="visibleSelectedPortfolio()?.id === option.id"
       (click)="selectPortfolio(option.id)">
-      <span class="selector-option__icon material-symbols-rounded" [ngClass]="realOnly() ? 'selector-option__icon--real' : 'selector-option__icon--laboratory'" aria-hidden="true">{{ realOnly() ? 'folder' : 'science' }}</span>
+      <span class="selector-option__icon material-symbols-rounded" [ngClass]="option.tipo === 'reale' ? 'selector-option__icon--real' : 'selector-option__icon--laboratory'" aria-hidden="true">{{ option.tipo === 'reale' ? 'folder' : 'science' }}</span>
       <span class="selector-option__label" [title]="option.label">{{ option.label }}</span>
     </button>
 
