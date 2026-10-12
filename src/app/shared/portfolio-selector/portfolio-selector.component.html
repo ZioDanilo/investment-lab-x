@@ -35,14 +35,5 @@
       <span class="selector-option__label" [title]="option.label">{{ option.label }}</span>
     </button>
 
-    <ng-container *ngIf="false">
-      <div class="selector-section-divider" *ngIf="realOptions().length && laboratoryOptions().length"></div>
-      <button *ngFor="let option of laboratoryOptions()" type="button" class="selector-option" role="option"
-        [attr.aria-selected]="visibleSelectedPortfolio()?.id === option.id" [class.is-selected]="visibleSelectedPortfolio()?.id === option.id"
-        (click)="selectPortfolio(option.id)">
-        <span class="selector-option__icon selector-option__icon--laboratory material-symbols-rounded" aria-hidden="true">science</span>
-        <span class="selector-option__label" [title]="option.label">{{ option.label }}</span>
-      </button>
-    </ng-container>
   </div>
 </div>
