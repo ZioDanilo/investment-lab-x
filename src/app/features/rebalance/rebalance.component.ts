@@ -118,6 +118,9 @@ export class RebalanceComponent {
 
   private normalizeTargetHoldings(raw: any): Array<{isin:string;etfName:string;targetWeight:number}> {
     const items = Array.isArray(raw) ? raw : [];
+    const weights = items.map((item:any) => Number(item.weight ?? item.peso ?? item.PortfolioEtf?.weight ?? 0));
+    const totalWeight = weights.reduce((sum:number, weight:number) => sum + (Number.isFinite(weight) ? weight : 0), 0);
+    const divisor = totalWeight > 1.001 ? 100 : 1;
     return items.map((item: any) => {
       const etf = item.etf ?? item.ETF ?? item;
       const isin = String(item.isin ?? etf.isin ?? '').trim().toUpperCase();
@@ -125,7 +128,7 @@ export class RebalanceComponent {
       return {
         isin,
         etfName: String(item.nickname ?? etf.nickname ?? item.fullName ?? etf.name ?? etf.ticker ?? isin),
-        targetWeight: Number.isFinite(weight) ? (weight > 1 ? weight / 100 : weight) : 0
+        targetWeight: Number.isFinite(weight) ? weight / divisor : 0
       };
     }).filter((item: {isin:string}) => !!item.isin);
   }
