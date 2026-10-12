@@ -484,3 +484,19 @@
   }
   .rebalance-cash-selector app-money-input { width:150px; }
 }
+
+/* Final alignment rule: use the measured navbar trigger position, not the
+   centered fallback or CSS anchor (which can override the inline left). */
+@media (min-width:1181px) {
+  .rebalance-target-selector {
+    position:absolute;
+    left:0;
+    transform:translateY(-50%);
+    position-anchor:auto;
+    justify-content:flex-start;
+  }
+  .rebalance-target-selector > app-portfolio-selector {
+    flex:0 0 280px;
+    width:280px;
+  }
+}
