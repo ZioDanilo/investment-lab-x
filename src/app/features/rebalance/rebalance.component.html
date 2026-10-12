@@ -7,14 +7,20 @@
 
 <div class="card">
   <h2>Tabella elaborazione</h2>
+  <p class="muted" *ngIf="!selectionTargetReady()">Seleziona un portafoglio target simulato per calcolare gli ordini.</p>
+  <p class="muted" *ngIf="targetLoading()">Caricamento portafoglio target...</p>
+  <p class="muted" *ngIf="targetError()">Impossibile caricare il portafoglio target.</p>
+  <p class="muted" *ngIf="missingPrices().length">Ottimizzazione sospesa: quotazioni mancanti per {{missingPrices().join(', ')}}.</p>
+  <p class="muted" *ngIf="selectionTargetReady() && !targetLoading() && !targetError() && !missingPrices().length && !optimization()">Ottimizzazione non disponibile: verifica pesi target al 100% e quotazioni valide.</p>
+  <p class="muted" *ngIf="optimization()">{{operationCount()}} operazioni · {{transactionCosts() | currency:'EUR':'symbol':'1.2-2'}} riservati per costi (20 € per operazione) · Liquidità residua {{remainingCash() | currency:'EUR':'symbol':'1.2-2'}}</p>
   <p class="muted" *ngIf="!selectedRealPortfolio()">Seleziona un portafoglio reale dalla navbar per visualizzare gli ETF.</p>
   <p class="muted" *ngIf="selectedRealPortfolio() && loadingHoldings()">Caricamento ETF del portafoglio...</p>
   <p class="muted" *ngIf="selectedRealPortfolio() && holdingsError()">Impossibile caricare le posizioni del portafoglio.</p>
-  <table *ngIf="selectedRealPortfolio() && !loadingHoldings() && !holdingsError() && rows().length">
+  <table *ngIf="selectedRealPortfolio() && !loadingHoldings() && !holdingsError() && optimizedRows().length">
     <tr>
       <th>ETF</th><th>ISIN</th><th>Q.tà</th><th>Prezzo</th><th>Controvalore</th><th>Peso attuale</th><th>Peso target</th><th>Δ €</th><th>Q.tà da fare</th>
     </tr>
-    <tr *ngFor="let row of rows()" [ngClass]="row.deltaEur > 0 ? 'green' : row.deltaEur < 0 ? 'red' : ''">
+    <tr *ngFor="let row of optimizedRows()" [ngClass]="row.deltaEur > 0 ? 'green' : row.deltaEur < 0 ? 'red' : ''">
       <td>{{row.etfName}}</td>
       <td>{{row.isin || 'da inserire'}}</td>
       <td class="num">{{row.quantity | number:'1.0-2'}}</td>
@@ -22,8 +28,8 @@
       <td class="num">{{row.marketValue | currency:'EUR':'symbol':'1.2-2'}}</td>
       <td class="num">{{row.currentWeight | percent:'1.2-2'}}</td>
       <td class="num">{{row.targetWeight | percent:'1.2-2'}}</td>
-      <td class="num">—</td>
-      <td class="num">—</td>
+      <td class="num">{{optimization() ? (row.deltaEur | currency:'EUR':'symbol':'1.2-2') : '—'}}</td>
+      <td class="num">{{optimization() ? (row.deltaQuantity | number:'1.0-0') : '—'}}</td>
     </tr>
   </table>
   <p class="muted" *ngIf="selectedRealPortfolio() && !loadingHoldings() && !holdingsError() && !rows().length">Il portafoglio non contiene ETF.</p>
