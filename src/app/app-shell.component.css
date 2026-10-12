@@ -399,3 +399,5 @@
   .app-feature-sidebar{grid-column:1;grid-row:2;margin-top:0!important;padding-top:0;top:4px}
   .route-page{grid-column:2;grid-row:2;min-width:0}
 }
+
+.rebalance-target-selector{display:flex;align-items:center;gap:12px;color:#d9eaff;font-size:.78rem;font-weight:700;margin-right:12px}.rebalance-target-selector app-portfolio-selector{display:inline-flex}
