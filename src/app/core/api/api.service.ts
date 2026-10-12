@@ -90,6 +90,10 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/market-value`);
   }
 
+  getLatestStoredQuotation(isin: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/quotations/history?isin=${encodeURIComponent(isin)}&limit=1`);
+  }
+
   getRealPortfolioHistory(portfolioId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/history`);
   }
