@@ -61,6 +61,7 @@ export class AppShellComponent implements OnDestroy {
       ? Math.max(1, this.marketUniverseGenerationProgress)
       : (this.activeFeaturePage?.headerActionProgress ?? 0);
   }
+  get isRebalancePage(): boolean { return this.router.url.startsWith('/ribilanciamento'); }
   private get isMonteCarloPage(): boolean { return this.router.url.startsWith('/monte-carlo'); }
   runFeatureAction(): void { this.activeFeaturePage?.runHeaderAction?.(); }
   get secondaryFeatureActionLabel(): string { return this.activeFeaturePage?.secondaryHeaderActionLabel ?? ''; }
