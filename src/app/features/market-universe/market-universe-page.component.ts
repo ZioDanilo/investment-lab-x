@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import { FormsModule } from '@angular/forms';
 import { MarketAsset } from '../../core/models/market-universe.model';
 
@@ -15,6 +17,19 @@ type AssetStatus = 'COMPLETE' | 'INCOMPLETE' | 'LEGACY';
   styleUrls: ['./market-universe-page.component.css']
 })
 export class MarketUniversePageComponent {
+  private readonly http = inject(HttpClient);
+  readonly yahooLoading = signal(false);
+
+  callYahooFinance(): void {
+    if (this.yahooLoading()) return;
+    this.yahooLoading.set(true);
+    // Yahoo Finance ticker EEAU on Xetra (Germany).
+    this.http.get(`${environment.apiUrl}/yahoo-finance/diagnostic`, { params: { symbol: 'EEAU.DE' } }).subscribe({
+      next: response => { console.info('[Yahoo Finance diagnostic]', response); this.yahooLoading.set(false); },
+      error: error => { console.error('[Yahoo Finance diagnostic]', error); this.yahooLoading.set(false); }
+    });
+  }
+
   readonly loading = signal(false);
   readonly error = signal('');
   // Dati dimostrativi locali: nessuna richiesta al backend o al database.

@@ -670,3 +670,9 @@ tbody tr.is-selected {
   border-color: rgba(var(--menu-accent-rgb), .98) !important;
   outline: none;
 }
+
+/* Yahoo Finance diagnostic control, aligned with the Monte Carlo primary action. */
+.yahoo-action-row { display:flex; justify-content:center; align-items:center; width:100%; padding: 2px 0 6px; }
+.yahoo-action-button { border:1px solid rgba(70,180,255,.65); border-radius:10px; background:linear-gradient(135deg,#1265bf,#168de1); color:white; font:inherit; font-size:.82rem; font-weight:750; min-height:40px; padding:0 24px; cursor:pointer; box-shadow:0 5px 16px rgba(13,95,180,.22); }
+.yahoo-action-button:hover:not(:disabled) { filter:brightness(1.13); }
+.yahoo-action-button:disabled { opacity:.6; cursor:wait; }
