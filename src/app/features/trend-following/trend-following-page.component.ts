@@ -403,7 +403,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if (!this.saveQueued) { this.saving = false; return; }
     const portfolioId = this.currentPortfolioId;
     const strategyIndex = this.trendStrategy.selectedStrategy();
-    if (!portfolioId || ![1, 2, 3].includes(strategyIndex ?? -1) || !this.settingsReady) {
+    if (!portfolioId || strategyIndex === null || ![1, 2, 3].includes(strategyIndex) || !this.settingsReady) {
       this.saveQueued = false;
       this.saving = false;
       return;
