@@ -107,6 +107,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
       const selected = this.portfolioSelection.selectedPortfolio();
       const refreshVersion = this.portfolioSelection.refreshVersion();
       if (selected?.id !== this.currentPortfolioId || refreshVersion !== this.currentRefreshVersion) {
+        this.pendingStrategy = this.currentPortfolioId === null ? this.trendStrategy.selectedStrategy() : null;
         this.currentPortfolioId = selected?.id ?? null;
         this.currentRefreshVersion = refreshVersion;
         this.loadPortfolio();
@@ -133,9 +134,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.saveQueued = false;
     this.loadingSettings = false;
     this.saveError = '';
-    const previouslySelectedStrategy = this.trendStrategy.selectedStrategy();
     this.trendStrategy.selectedStrategy.set(null);
-    this.pendingStrategy = previouslySelectedStrategy;
     this.slots.forEach(slot => this.clearSlot(slot));
     this.etfs = [];
     const selected = this.portfolioSelection.selectedPortfolio();
