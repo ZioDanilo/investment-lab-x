@@ -23,6 +23,7 @@ interface TrendSlot {
   template: `
     <section class="page-panel">
       <p *ngIf="saveError" class="error" role="alert">{{ saveError }}</p>
+      <p *ngIf="portfolioMessage" class="portfolio-hint" role="status">{{ portfolioMessage }}</p>
       <div *ngIf="trendStrategy.selectedStrategy() === 1" class="strategy-row">
         <article *ngFor="let slot of slots; let i = index" class="strategy-card" [class.trend-positive]="slot.price !== null && slot.average !== null && slot.price > slot.average && !slot.loading" [class.trend-negative]="slot.price !== null && slot.average !== null && slot.price < slot.average && !slot.loading">
           <label [for]="'trend-etf-' + i">ETF del portafoglio</label>
@@ -94,6 +95,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   readonly trendStrategy = inject(TrendStrategyService);
   etfs: TrendEtf[] = [];
   loadingPortfolio = false;
+  portfolioMessage = '';
   readonly slots: TrendSlot[] = Array.from({ length: 3 }, () => ({
     isin: '', price: null, average: null, loading: false, error: '', requestId: 0
   }));
@@ -134,18 +136,20 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.saveQueued = false;
     this.loadingSettings = false;
     this.saveError = '';
+    this.portfolioMessage = '';
     this.trendStrategy.selectedStrategy.set(null);
     this.slots.forEach(slot => this.clearSlot(slot));
     this.etfs = [];
     const selected = this.portfolioSelection.selectedPortfolio();
-    if (!selected || selected.tipo !== 'reale') { this.loadingPortfolio = false; return; }
+    if (!selected) { this.loadingPortfolio = false; this.portfolioMessage = 'Seleziona un portafoglio dalla navbar.'; return; }
+    if (selected.tipo !== 'reale') { this.loadingPortfolio = false; this.portfolioMessage = 'Il portafoglio selezionato è di laboratorio: gli ETF del Trend Following sono attualmente disponibili solo per portafogli reali.'; return; }
     this.loadingPortfolio = true;
     this.portfolioRequest = this.api.getRealPortfolioHoldings(selected.id).subscribe({
       next: (response: any) => {
         if (this.portfolioSelection.selectedPortfolio()?.id !== selected.id) return;
         this.setEtfs(Array.isArray(response?.data) ? response.data : []);
       },
-      error: () => { this.loadingPortfolio = false; this.slots[0].error = 'Impossibile caricare gli ETF del portafoglio.'; }
+      error: () => { this.loadingPortfolio = false; this.portfolioMessage = 'Errore nel caricamento degli ETF del portafoglio. Controlla la richiesta GET /api/real-portfolios/:id/holdings.'; }
     });
   }
   private setEtfs(holdings: any[]): void {
@@ -159,6 +163,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     }
     this.etfs = [...unique.values()];
     this.loadingPortfolio = false;
+    this.portfolioMessage = this.etfs.length ? '' : 'Questo portafoglio non contiene ETF acquistati. Aggiungi ETF da I miei portafogli per poterli selezionare qui.';
     this.loadSavedSettings();
   }
   selectEtf(slotIndex: number, isin: string): void {
