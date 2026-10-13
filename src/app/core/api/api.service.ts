@@ -57,6 +57,17 @@ export class ApiService {
     return this.http.put(`${this.apiUrl}/portfolio/${id}/kpi-targets`, { kpis });
   }
 
+  // Trend Following: one persisted strategy and its ETF slots per real portfolio.
+  getTrendFollowingSettings(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}`);
+  }
+
+  saveTrendFollowingSettings(portfolioId: string, strategyKey: string, etfIsins: string[]): Observable<any> {
+    return this.http.put(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}`, {
+      strategyKey, settings: { etfIsins }
+    });
+  }
+
   // Real portfolio endpoints
   getRealPortfolios(): Observable<any> {
     return this.http.get(`${this.apiUrl}/real-portfolios`);
