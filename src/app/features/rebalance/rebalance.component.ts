@@ -40,6 +40,21 @@ export class RebalanceComponent {
   readonly targetLoading = signal(false);
   readonly targetError = signal(false);
   readonly pricesByIsin = signal<Record<string,number>>({});
+  readonly manualPricesByIsin = signal<Record<string,number>>({});
+  readonly manualPriceDrafts = signal<Record<string,string>>({});
+
+  setManualPrice(isin: string, raw: string): void {
+    const key = isin.toUpperCase();
+    this.manualPriceDrafts.update(previous => ({...previous, [key]: raw}));
+    const price = Number(raw.trim().replace(',', '.'));
+    this.manualPricesByIsin.update(previous => {
+      const next = {...previous};
+      if (raw.trim() && Number.isFinite(price) && price > 0) next[key] = price;
+      else delete next[key];
+      return next;
+    });
+  }
+
   readonly quotationDates = signal<Record<string, string>>({});
   readonly refreshingIsins = signal<string[]>([]);
   readonly quotationErrors = signal<Record<string, string>>({});
@@ -192,9 +207,10 @@ export class RebalanceComponent {
   readonly rows = computed<RebalanceRow[]>(() => {
     if (!this.selectedRealPortfolio()) return [];
     const positions = this.holdings().filter(h => Number(h.quantity) > 0);
+    const manualPrices = this.manualPricesByIsin();
     const total = positions.reduce((sum, h) => {
       const stored = Number(h.currentPrice);
-      const price = Number.isFinite(stored) && stored > 0 ? stored : (this.pricesByIsin()[h.isin.toUpperCase()] ?? 0);
+      const price = manualPrices[h.isin.toUpperCase()] ?? (Number.isFinite(stored) && stored > 0 ? stored : (this.pricesByIsin()[h.isin.toUpperCase()] ?? 0));
       return sum + Number(h.quantity) * price;
     }, 0);
     const targetByIsin = new Map(this.targetHoldings().map(t => [t.isin, t]));
@@ -202,7 +218,7 @@ export class RebalanceComponent {
     const realRows = positions.map(h => {
       const quantity = Number(h.quantity);
       const storedPrice = Number(h.currentPrice);
-      const marketPrice = Number.isFinite(storedPrice) && storedPrice > 0 ? storedPrice : (this.pricesByIsin()[h.isin.toUpperCase()] ?? 0);
+      const marketPrice = manualPrices[h.isin.toUpperCase()] ?? (Number.isFinite(storedPrice) && storedPrice > 0 ? storedPrice : (this.pricesByIsin()[h.isin.toUpperCase()] ?? 0));
       const marketValue = marketPrice > 0 ? quantity * marketPrice : 0;
       return {
         etfName: h.nickname || h.name || h.ticker || h.isin,
@@ -220,7 +236,7 @@ export class RebalanceComponent {
     const missingTargetRows: RebalanceRow[] = this.targetHoldings()
       .filter(t => !realIsins.has(t.isin))
       .map(t => ({
-        etfName: t.etfName, isin: t.isin, quantity: 0, marketPrice: this.pricesByIsin()[t.isin] ?? 0,
+        etfName: t.etfName, isin: t.isin, quantity: 0, marketPrice: manualPrices[t.isin] ?? this.pricesByIsin()[t.isin] ?? 0,
         marketValue: 0, currentWeight: 0, targetWeight: t.targetWeight,
         targetValue: 0, deltaEur: 0, deltaQuantity: 0
       }));
