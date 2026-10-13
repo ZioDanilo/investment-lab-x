@@ -496,7 +496,7 @@
     justify-content:flex-start;
   }
   .rebalance-target-selector > app-portfolio-selector {
-    flex:0 0 280px;
-    width:280px;
+    flex:0 0 100%;
+    width:100%;
   }
 }
