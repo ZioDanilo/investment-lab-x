@@ -332,7 +332,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   ];
   history:Array<{date:string;month:string;marketValue:number|null;netContributions:number;performancePercent:number;valuation:string;estimatedPositions:number}>=[];
   historyPeriod:'1Y'|'3Y'|'5Y'|'MAX'='MAX';
-  historyMode:'value'|'performance'='value';
+  historyMode:'value'|'performance'='performance';
   historyLoading=false;
   get visibleHistory(){
     const days=this.historyPeriod==='MAX'?Infinity:this.historyPeriod==='1Y'?365:this.historyPeriod==='3Y'?1095:1826;
