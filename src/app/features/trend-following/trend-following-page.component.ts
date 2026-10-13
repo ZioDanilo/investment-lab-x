@@ -275,7 +275,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
 
   private queueSave(): void {
-    if (!this.settingsReady || !this.currentPortfolioId || ![INVALID]
+    if (!this.settingsReady || !this.currentPortfolioId || ![1, 3].includes(this.trendStrategy.selectedStrategy() ?? -1)) return;
     this.saveQueued = true;
     if (!this.saving) this.flushSave();
   }
