@@ -24,7 +24,7 @@ interface TrendSlot {
     <section class="page-panel">
       <p *ngIf="saveError" class="error" role="alert">{{ saveError }}</p>
       <p *ngIf="portfolioMessage" class="portfolio-hint" role="status">{{ portfolioMessage }}</p>
-      <div *ngIf="trendStrategy.selectedStrategy() === 1" class="strategy-row">
+      <div *ngIf="(trendStrategy.selectedStrategy() === 1 || trendStrategy.selectedStrategy() === 3)" class="strategy-row">
         <article *ngFor="let slot of slots; let i = index" class="strategy-card" [class.trend-positive]="slot.price !== null && slot.average !== null && slot.price > slot.average && !slot.loading" [class.trend-negative]="slot.price !== null && slot.average !== null && slot.price < slot.average && !slot.loading">
           <label [for]="'trend-etf-' + i">ETF del portafoglio</label>
           <select [id]="'trend-etf-' + i" [value]="slot.isin"
@@ -36,7 +36,7 @@ interface TrendSlot {
           <p *ngIf="loadingPortfolio || slot.loading">Caricamento...</p>
           <p *ngIf="slot.error" class="error">{{ slot.error }}</p>
           <div class="results">
-            <div class="result"><span>Prezzo</span><strong>{{ slot.price !== null && !slot.loading ? formatPrice(slot.price) + " €" : "—" }}</strong></div>
+            <div class="result"><span>{{ trendStrategy.selectedStrategy() === 3 ? "Media mobile 50 giorni" : "Prezzo" }}</span><strong>{{ slot.price !== null && !slot.loading ? formatPrice(slot.price) + " €" : "—" }}</strong></div>
             <div class="result"><span>Media mobile 200 giorni</span><strong>{{ slot.average !== null && !slot.loading ? formatPrice(slot.average) + " €" : "—" }}</strong></div>
             <div class="price-delta" [class.positive]="slot.price !== null && slot.average !== null && !slot.loading && slot.price > slot.average" [class.negative]="slot.price !== null && slot.average !== null && !slot.loading && slot.price < slot.average"><span *ngIf="slot.price !== null && slot.average !== null && !slot.loading; else emptyDelta">{{ formatSigned(slot.price - slot.average) }} € ({{ formatSignedPercentage(slot.price, slot.average) }})</span><ng-template #emptyDelta>—</ng-template></div>
           </div>
@@ -113,8 +113,8 @@ export class TrendFollowingPageComponent implements OnDestroy {
           error: () => { this.saveError = 'Impossibile salvare la strategia selezionata.'; }
         });
       }
-      if (strategy === 1 && previous !== 1) untracked(() => this.restoreSmaSettings());
-      else if (previous === 1 && strategy !== 1) untracked(() => this.slots.forEach(slot => this.clearSlot(slot)));
+      if ((strategy === 1 || strategy === 3) && previous !== strategy) untracked(() => this.restoreSmaSettings());
+      else if ((previous === 1 || previous === 3) && strategy !== previous) untracked(() => this.slots.forEach(slot => this.clearSlot(slot)));
     });
     effect(() => {
       const selected = this.portfolioSelection.selectedPortfolio();
@@ -183,11 +183,11 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if (!slot || (isin && this.slots.some((other, i) => i !== slotIndex && other.isin === isin))) return;
     this.clearSlot(slot);
     slot.isin = isin;
-    if (this.settingsReady && this.trendStrategy.selectedStrategy() === 1) this.queueSave();
+    if (this.settingsReady && (this.trendStrategy.selectedStrategy() === 1 || this.trendStrategy.selectedStrategy() === 3)) this.queueSave();
     if (!isin) return;
     slot.loading = true;
     const requestId = slot.requestId;
-    slot.subscription = this.quotations.getQuotationHistory(isin, 250).subscribe({
+    slot.subscription = this.quotations.getQuotationHistory(isin, 300).subscribe({
       next: (response: any) => {
         if (requestId !== slot.requestId) return;
         const rows = (Array.isArray(response?.data) ? response.data : [])
@@ -195,8 +195,10 @@ export class TrendFollowingPageComponent implements OnDestroy {
             Number.isFinite(Number(row.quotation)) && Number(row.quotation) > 0)
           .sort((a: any, b: any) => String(b.date).localeCompare(String(a.date)))
           .slice(0, 200);
-        if (!rows.length) { slot.error = 'Nessuna quotazione disponibile.'; slot.loading = false; return; }
-        slot.price = Number(rows[0].quotation);
+        if (rows.length < 200) { slot.error = 'Servono almeno 200 quotazioni per calcolare le medie mobili.'; slot.loading = false; return; }
+        slot.price = this.trendStrategy.selectedStrategy() === 3
+          ? (rows.length >= 50 ? rows.slice(0, 50).reduce((sum: number, row: any) => sum + Number(row.quotation), 0) / 50 : null)
+          : Number(rows[0].quotation);
         slot.average = rows.reduce((sum: number, row: any) => sum + Number(row.quotation), 0) / rows.length;
         slot.loading = false;
       },
@@ -227,7 +229,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
         this.pendingStrategy = null;
         this.loadingSettings = false;
         this.settingsReady = true;
-        if (this.trendStrategy.selectedStrategy() === 1) this.restoreSmaSettings();
+        if (this.trendStrategy.selectedStrategy() === 1 || this.trendStrategy.selectedStrategy() === 3) this.restoreSmaSettings();
       },
       error: () => {
         if (portfolioId !== this.currentPortfolioId) return;
@@ -247,9 +249,11 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.settingsRequest?.unsubscribe();
     this.slots.forEach(slot => this.clearSlot(slot));
     this.loadingSettings = true;
-    this.settingsRequest = this.api.getTrendEtfSelections(portfolioId, 'sma-200').subscribe({
+    const strategyIndex = this.trendStrategy.selectedStrategy();
+    if (strategyIndex !== 1 && strategyIndex !== 3) return;
+    this.settingsRequest = this.api.getTrendEtfSelections(portfolioId, this.strategyKeys[strategyIndex]).subscribe({
       next: (response: any) => {
-        if (portfolioId !== this.currentPortfolioId || this.trendStrategy.selectedStrategy() !== 1) return;
+        if (portfolioId !== this.currentPortfolioId || this.trendStrategy.selectedStrategy() !== strategyIndex) return;
         const saved = Array.isArray(response?.data?.etfIsins) ? response.data.etfIsins : [];
         const allowed = new Set(this.etfs.map(etf => etf.isin.toUpperCase()));
         const seen = new Set<string>();
@@ -271,7 +275,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
 
   private queueSave(): void {
-    if (!this.settingsReady || !this.currentPortfolioId || this.trendStrategy.selectedStrategy() !== 1) return;
+    if (!this.settingsReady || !this.currentPortfolioId || ![INVALID]
     this.saveQueued = true;
     if (!this.saving) this.flushSave();
   }
@@ -280,7 +284,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if (!this.saveQueued) { this.saving = false; return; }
     const portfolioId = this.currentPortfolioId;
     const strategyIndex = this.trendStrategy.selectedStrategy();
-    if (!portfolioId || strategyIndex !== 1 || !this.settingsReady) {
+    if (!portfolioId || (strategyIndex !== 1 && strategyIndex !== 3) || !this.settingsReady) {
       this.saveQueued = false;
       this.saving = false;
       return;
