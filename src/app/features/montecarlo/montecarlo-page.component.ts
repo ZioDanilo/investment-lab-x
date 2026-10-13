@@ -2,6 +2,7 @@
 import { Component, HostListener, ViewChild, effect, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
+import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
 import { MonteCarloStatisticsEngine } from '../../core/engines/monte-carlo-statistics.engine';
 import { MarketUniverseBinaryTransport, type DecodedMarketUniverseBinary } from '../../core/market-universe/market-universe-binary-transport';
 import { MonteCarloResult } from '../../core/models/monte-carlo-contracts.model';
@@ -52,6 +53,7 @@ export class MontecarloPageComponent {
 
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
   private readonly apiService = inject(ApiService);
+  private readonly actionConfirmation = inject(ActionConfirmationService);
 
   @ViewChild(ToastComponent) toast!: ToastComponent;
 
@@ -386,6 +388,11 @@ export class MontecarloPageComponent {
   }
 
   async regenerateMarketUniverse(): Promise<void> {
+    if (this.isRegeneratingMarketUniverse) return;
+    this.actionConfirmation.ask('Generare nuovamente il Market Universe?', 'Genera', () => this.executeMarketUniverseRegeneration());
+  }
+
+  private async executeMarketUniverseRegeneration(): Promise<void> {
     if (this.isRegeneratingMarketUniverse) {
       return;
     }
