@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, HostListener, OnDestroy, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { firstValueFrom, filter } from 'rxjs';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { PortfolioSelectorComponent } from './shared/portfolio-selector/portfolio-selector.component';
 import { MoneyInputComponent } from './shared/inputs/money-input.component';
 import { RebalanceInputService } from './core/services/rebalance-input.service';
@@ -25,9 +25,14 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   }
 
   rebalanceTargetLeft = 0;
+  rebalanceTargetWidth = 280;
   private targetResizeObserver: ResizeObserver | null = null;
   ngAfterViewInit(): void {
     this.alignRebalanceSelector();
+    // The rebalance action row is created only after route navigation.
+    this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(() => requestAnimationFrame(() => this.alignRebalanceSelector()));
+    requestAnimationFrame(() => this.alignRebalanceSelector());
     if (typeof ResizeObserver !== 'undefined') {
       this.targetResizeObserver = new ResizeObserver(() => this.alignRebalanceSelector());
       const navbar = document.querySelector('.nav-links > app-portfolio-selector');
@@ -42,6 +47,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     const row = document.querySelector('.app-feature-action-row');
     if (!navbar || !row) return;
     this.rebalanceTargetLeft = navbar.getBoundingClientRect().left - row.getBoundingClientRect().left;
+    this.rebalanceTargetWidth = navbar.getBoundingClientRect().width;
   }
   ngOnDestroy(): void {
     this.targetResizeObserver?.disconnect();
