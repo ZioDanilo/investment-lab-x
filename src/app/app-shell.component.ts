@@ -77,7 +77,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     try {
       const result = await firstValueFrom(this.http.post<any>(environment.apiUrl + '/yahoo-finance/update-quotations', {}));
       console.info('[Yahoo import]', result);
-      window.alert('Aggiornamento quotazioni: ' + result.inserted + ' inserite, ' + result.existing + ' già presenti, ' + result.skippedPrices + ' prezzi assenti, ' + result.failures.length + ' errori, ' + result.skippedMappings.length + ' ticker/mercati non risolti.');
+      window.alert('Aggiornamento quotazioni: ' + (result.inserted ?? 0) + ' inserite, ' + (result.updatedToday ?? 0) + ' aggiornate, ' + (result.existing ?? 0) + ' già presenti, ' + (result.skippedPrices ?? 0) + ' prezzi assenti, ' + (result.failures?.length ?? 0) + ' errori, ' + (result.rejectedPrices?.length ?? 0) + ' prezzi anomali rifiutati.');
     } catch (error: any) {
       console.error('[Yahoo import]', error);
       window.alert('Importazione Yahoo non riuscita: ' + (error?.error?.error || error?.message || 'errore sconosciuto'));
