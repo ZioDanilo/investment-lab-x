@@ -4,15 +4,7 @@
 
 <div class="card">
   <h2>Tabella elaborazione</h2>
-  <p class="muted" *ngIf="!selectionTargetReady()">Seleziona un portafoglio target simulato per calcolare gli ordini.</p>
-  <p class="muted" *ngIf="targetLoading()">Caricamento portafoglio target...</p>
-  <p class="muted" *ngIf="targetError()">Impossibile caricare il portafoglio target.</p>
-  <p class="muted" *ngIf="missingPrices().length">Ottimizzazione sospesa: nessuna quotazione disponibile per {{missingPrices().join(', ')}}. Aggiorna le quotazioni per procedere.</p>
-  <p class="muted" *ngIf="selectionTargetReady() && !targetLoading() && !targetError() && !missingPrices().length && !optimization()">Ottimizzazione non disponibile: verifica pesi target al 100% e quotazioni valide.</p>
-  <p class="muted" *ngIf="optimization()">{{operationCount()}} operazioni · {{transactionCosts() | currency:'EUR':'symbol':'1.2-2'}} riservati per costi (20 € per operazione) · Liquidità residua {{remainingCash() | currency:'EUR':'symbol':'1.2-2'}}</p>
-  <p class="muted" *ngIf="!selectedRealPortfolio()">Seleziona un portafoglio reale dalla navbar per visualizzare gli ETF.</p>
-  <p class="muted" *ngIf="selectedRealPortfolio() && loadingHoldings()">Caricamento ETF del portafoglio...</p>
-  <p class="muted" *ngIf="selectedRealPortfolio() && holdingsError()">Impossibile caricare le posizioni del portafoglio.</p>
+  <p class="quote-unavailable rebalance-missing-warning" *ngIf="selectedRealPortfolio() && !loadingHoldings() && !targetLoading() && missingPrices().length > 0">Impossibile effettuare ribilanciamento a causa di assenza di quotazioni.</p>
   <table class="rebalance-table" *ngIf="selectedRealPortfolio() && !loadingHoldings() && !holdingsError() && optimizedRows().length">
     <tr>
       <th>ETF</th><th>ISIN</th><th class="num">Q.tà</th><th class="num">Prezzo</th><th class="num">Controvalore</th><th class="num">Peso attuale</th><th class="num">Peso target</th><th class="num">Δ €</th><th class="num">Q.tà da fare</th>
