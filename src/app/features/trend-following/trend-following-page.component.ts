@@ -15,6 +15,10 @@ interface TrendSlot {
   error: string;
   requestId: number;
   subscription?: Subscription;
+  benchmarkIsin?: string;
+  benchmarkReturn?: number | null;
+  benchmarkLoading?: boolean;
+  benchmarkSubscription?: Subscription;
 }
 @Component({
   selector: 'app-trend-following-page',
@@ -24,22 +28,36 @@ interface TrendSlot {
     <section class="page-panel">
       <p *ngIf="saveError" class="error" role="alert">{{ saveError }}</p>
       <p *ngIf="portfolioMessage" class="portfolio-hint" role="status">{{ portfolioMessage }}</p>
-      <div *ngIf="(trendStrategy.selectedStrategy() === 1 || trendStrategy.selectedStrategy() === 3)" class="strategy-row">
-        <article *ngFor="let slot of slots; let i = index" class="strategy-card" [class.trend-positive]="slot.price !== null && slot.average !== null && slot.price > slot.average && !slot.loading" [class.trend-negative]="slot.price !== null && slot.average !== null && slot.price < slot.average && !slot.loading">
+      <div *ngIf="([1, 2, 3].includes(trendStrategy.selectedStrategy() ?? -1))" class="strategy-row">
+        <article *ngFor="let slot of slots; let i = index" class="strategy-card" [class.trend-positive]="isPositive(slot)" [class.trend-negative]="isNegative(slot)">
           <label [for]="'trend-etf-' + i">ETF del portafoglio</label>
-          <select [id]="'trend-etf-' + i" [value]="slot.isin"
+          <div class="select-line" [class.dual-select]="trendStrategy.selectedStrategy() === 2"><select [id]="'trend-etf-' + i" [value]="slot.isin"
             (change)="selectEtf(i, $any($event.target).value)"
             [disabled]="loadingPortfolio || !etfs.length">
             <option value="">Seleziona ETF</option>
             <option *ngFor="let etf of availableEtfs(i)" [value]="etf.isin">{{ etf.label }}</option>
           </select>
+          <ng-container *ngIf="trendStrategy.selectedStrategy() === 2">
+            <span class="compare-sign">&gt;</span>
+            <select [value]="slot.benchmarkIsin || ''" (change)="selectBenchmark(i, $any($event.target).value)" aria-label="ETF di confronto">
+              <option value="">Zero (0%)</option>
+              <option *ngFor="let etf of allEtfs" [value]="etf.isin">{{ etf.label }}</option>
+            </select>
+          </ng-container></div>
           <p *ngIf="loadingPortfolio || slot.loading">Caricamento...</p>
           <p *ngIf="slot.error" class="error">{{ slot.error }}</p>
-          <div class="results">
+          <div class="results" *ngIf="trendStrategy.selectedStrategy() !== 2; else timeSeriesResults">
             <div class="result"><span>{{ trendStrategy.selectedStrategy() === 3 ? "Media mobile 50 giorni" : "Prezzo" }}</span><strong>{{ slot.price !== null && !slot.loading ? formatPrice(slot.price) + " €" : "—" }}</strong></div>
             <div class="result"><span>Media mobile 200 giorni</span><strong>{{ slot.average !== null && !slot.loading ? formatPrice(slot.average) + " €" : "—" }}</strong></div>
             <div class="price-delta" [class.positive]="slot.price !== null && slot.average !== null && !slot.loading && slot.price > slot.average" [class.negative]="slot.price !== null && slot.average !== null && !slot.loading && slot.price < slot.average"><span *ngIf="slot.price !== null && slot.average !== null && !slot.loading; else emptyDelta">{{ formatSigned(slot.price - slot.average) }} € ({{ formatSignedPercentage(slot.price, slot.average) }})</span><ng-template #emptyDelta>—</ng-template></div>
           </div>
+          <ng-template #timeSeriesResults>
+            <div class="results">
+              <div class="result"><span>Variazione {{ etfNickname(slot.isin) }}</span><strong>{{ formatPercent(annualReturn(slot)) }}</strong></div>
+              <div class="result"><span>Variazione {{ slot.benchmarkIsin ? etfNickname(slot.benchmarkIsin) : 'rispetto a zero' }}</span><strong>{{ slot.benchmarkLoading ? '—' : formatPercent(slot.benchmarkIsin ? slot.benchmarkReturn : 0) }}</strong></div>
+              <div class="price-delta" [class.positive]="isPositive(slot)" [class.negative]="isNegative(slot)">{{ comparisonText(slot) }}</div>
+            </div>
+          </ng-template>
         </article>
         <p *ngIf="!portfolioSelection.selectedPortfolio()" class="portfolio-hint">Seleziona un portafoglio dalla barra superiore.</p>
       </div>
@@ -60,6 +78,9 @@ interface TrendSlot {
     .strategy-card.trend-positive { border-color:#69d8a5; box-shadow:0 0 0 1px rgba(105,216,165,.25); }
     .strategy-card.trend-negative { border-color:#ff858c; box-shadow:0 0 0 1px rgba(255,133,140,.25); }
     .strategy-card label { font-weight:600; }
+    .select-line { display:flex; align-items:center; gap:8px; min-width:0; }
+    .select-line.dual-select select { flex:1 1 0; width:0; }
+    .compare-sign { font-size:20px; font-weight:700; flex-shrink:0; }
     .strategy-card select { width:100%; min-width:0; padding:10px 12px; border-radius:8px; background:#203554; color:white; border:1px solid #6085b5; }
     .results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; width:100%; }
     .result { display:flex; flex-direction:column; justify-content:center; gap:8px; padding:16px 8px; min-width:0; border:1px solid rgba(125,150,190,.35); border-radius:12px; background:rgba(35,55,90,.45); }
@@ -96,6 +117,8 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private lastStrategy: number | null = null;
   readonly trendStrategy = inject(TrendStrategyService);
   etfs: TrendEtf[] = [];
+  allEtfs: TrendEtf[] = [];
+  private catalogRequest?: Subscription;
   loadingPortfolio = false;
   portfolioMessage = '';
   readonly slots: TrendSlot[] = Array.from({ length: 3 }, () => ({
@@ -133,12 +156,16 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   private clearSlot(slot: TrendSlot): void {
     slot.subscription?.unsubscribe();
+    slot.benchmarkSubscription?.unsubscribe();
     slot.requestId++;
     slot.isin = '';
     slot.price = null;
     slot.average = null;
     slot.loading = false;
     slot.error = '';
+    slot.benchmarkIsin = '';
+    slot.benchmarkReturn = null;
+    slot.benchmarkLoading = false;
   }
   private loadPortfolio(): void {
     this.portfolioRequest?.unsubscribe();
@@ -152,6 +179,14 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.trendStrategy.selectedStrategy.set(null);
     this.slots.forEach(slot => this.clearSlot(slot));
     this.etfs = [];
+    this.catalogRequest?.unsubscribe();
+    this.catalogRequest = this.api.getETFs().subscribe({
+      next: (res: any) => {
+        const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        this.allEtfs = rows.map((e: any) => ({ isin: String(e.isin || '').toUpperCase(), label: (e.nickname || e.name || e.isin) + ' (' + e.isin + ')' })).filter((e: TrendEtf) => !!e.isin);
+      },
+      error: () => { this.allEtfs = []; }
+    });
     const selected = this.portfolioSelection.selectedPortfolio();
     if (!selected) { this.loadingPortfolio = false; this.portfolioMessage = 'Seleziona un portafoglio dalla navbar.'; return; }
     if (selected.tipo !== 'reale') { this.loadingPortfolio = false; this.portfolioMessage = 'Il portafoglio selezionato è di laboratorio: gli ETF del Trend Following sono attualmente disponibili solo per portafogli reali.'; return; }
