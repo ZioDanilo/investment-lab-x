@@ -7,7 +7,7 @@
   <p class="muted" *ngIf="!selectionTargetReady()">Seleziona un portafoglio target simulato per calcolare gli ordini.</p>
   <p class="muted" *ngIf="targetLoading()">Caricamento portafoglio target...</p>
   <p class="muted" *ngIf="targetError()">Impossibile caricare il portafoglio target.</p>
-  <p class="muted" *ngIf="missingPrices().length">Ottimizzazione sospesa: quotazioni mancanti per {{missingPrices().join(', ')}}.</p>
+  <p class="muted" *ngIf="missingPrices().length">Ottimizzazione sospesa: inserisci un prezzo valido per {{missingPrices().join(', ')}} nella colonna Prezzo.</p>
   <p class="muted" *ngIf="selectionTargetReady() && !targetLoading() && !targetError() && !missingPrices().length && !optimization()">Ottimizzazione non disponibile: verifica pesi target al 100% e quotazioni valide.</p>
   <p class="muted" *ngIf="optimization()">{{operationCount()}} operazioni · {{transactionCosts() | currency:'EUR':'symbol':'1.2-2'}} riservati per costi (20 € per operazione) · Liquidità residua {{remainingCash() | currency:'EUR':'symbol':'1.2-2'}}</p>
   <p class="muted" *ngIf="!selectedRealPortfolio()">Seleziona un portafoglio reale dalla navbar per visualizzare gli ETF.</p>
@@ -21,7 +21,16 @@
       <td><span class="rebalance-etf-name"><button *ngIf="needsQuotationRefresh(row.isin)" type="button" class="quote-refresh" [class.is-loading]="refreshingIsins().includes(row.isin.toUpperCase())" [disabled]="refreshingIsins().includes(row.isin.toUpperCase())" (click)="refreshQuotation(row.isin)" [attr.aria-label]="'Aggiorna quotazione ' + row.etfName" [title]="'Aggiorna quotazione EODHD per ' + row.etfName"><span aria-hidden="true">↻</span></button><span>{{row.etfName}}</span></span><small class="quote-error" *ngIf="quotationErrors()[row.isin.toUpperCase()]">{{quotationErrors()[row.isin.toUpperCase()]}}</small></td>
       <td>{{row.isin || 'da inserire'}}</td>
       <td class="num">{{row.quantity | number:'1.0-2'}}</td>
-      <td class="num">{{row.marketPrice | currency:'EUR':'symbol':'1.2-4'}}</td>
+      <td class="num">
+        <ng-container *ngIf="row.marketPrice > 0; else missingRebalancePrice">{{row.marketPrice | currency:'EUR':'symbol':'1.2-4'}}</ng-container>
+        <ng-template #missingRebalancePrice>
+          <input class="rebalance-manual-price" type="text" inputmode="decimal"
+            [value]="manualPriceDrafts()[row.isin.toUpperCase()] || ''"
+            (input)="setManualPrice(row.isin, $any($event.target).value)"
+            [attr.aria-label]="'Prezzo manuale in euro per ' + row.etfName"
+            placeholder="Prezzo €" title="Inserisci il prezzo unitario in euro per calcolare gli ordini" />
+        </ng-template>
+      </td>
       <td class="num">{{row.marketValue | currency:'EUR':'symbol':'1.2-2'}}</td>
       <td class="num">{{row.currentWeight | percent:'1.2-2'}}</td>
       <td class="num">{{row.targetWeight | percent:'1.2-2'}}</td>
