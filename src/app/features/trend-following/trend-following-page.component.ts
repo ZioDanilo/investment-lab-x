@@ -4,6 +4,7 @@ import { ApiService } from '../../core/api/api.service';
 import { QuotationService } from '../../core/services/quotation.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import { Subscription } from 'rxjs';
+import { TrendStrategyService } from '../../core/services/trend-strategy.service';
 
 interface TrendEtf { isin: string; label: string; }
 interface TrendSlot {
@@ -21,18 +22,7 @@ interface TrendSlot {
   imports: [CommonModule],
   template: `
     <section class="page-panel">
-      <div class="page-header page-header-compact">
-        <h2>Trend Following</h2>
-        <p>Seleziona una strategia da analizzare.</p>
-      </div>
-      <div class="strategy-grid" role="group" aria-label="Strategie Trend Following">
-        <button *ngFor="let strategy of strategies; let i = index" type="button"
-          class="strategy-button" [class.is-selected]="selectedStrategy === i"
-          [attr.aria-pressed]="selectedStrategy === i" (click)="selectStrategy(i)">
-          {{ strategy }}
-        </button>
-      </div>
-      <div *ngIf="selectedStrategy === 1" class="strategy-row">
+      <div *ngIf="trendStrategy.selectedStrategy() === 1" class="strategy-row">
         <article *ngFor="let slot of slots; let i = index" class="strategy-card" [class.trend-positive]="slot.price !== null && slot.average !== null && slot.price > slot.average && !slot.loading" [class.trend-negative]="slot.price !== null && slot.average !== null && slot.price < slot.average && !slot.loading">
           <label [for]="'trend-etf-' + i">ETF del portafoglio</label>
           <select [id]="'trend-etf-' + i" [value]="slot.isin"
@@ -51,14 +41,17 @@ interface TrendSlot {
         </article>
         <p *ngIf="!portfolioSelection.selectedPortfolio()" class="portfolio-hint">Seleziona un portafoglio dalla barra superiore.</p>
       </div>
+      <article *ngIf="trendStrategy.selectedStrategy() !== null" class="trend-suggestions-panel">
+        <h3><span class="material-symbols-rounded trend-suggestions-icon">emoji_objects</span>Suggerimenti</h3>
+        <p>Nessun suggerimento disponibile.</p>
+      </article>
     </section>
   `,
   styles: [`
-    .strategy-grid { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:6px; margin-top:12px; }
-    .strategy-button { min-height:46px; padding:6px 7px; border-radius:8px; font-size:11px; line-height:1.2; border:1px solid rgba(125,150,190,.35); background:rgba(35,55,90,.45); color:inherit; font-family:inherit; font-weight:600; cursor:pointer; transition:background .2s,border-color .2s,transform .2s; }
-    .strategy-button:hover { border-color:#66b8ff; transform:translateY(-2px); }
-    .strategy-button.is-selected { background:rgba(43,119,204,.32); border:2px solid #66b8ff; }
-    .strategy-button:focus-visible { outline:3px solid #66b8ff; outline-offset:3px; }
+    .trend-suggestions-panel { margin-top:16px; width:100%; box-sizing:border-box; padding:12px 18px; border:1px solid rgba(77,132,187,.42); border-radius:14px; background:radial-gradient(circle at 5% 50%,rgba(255,190,55,.055),transparent 24%),linear-gradient(145deg,rgba(15,31,52,.78),rgba(7,18,31,.98)); }
+    .trend-suggestions-panel h3 { display:flex; align-items:center; gap:9px; margin:0 0 6px; font-size:16px; }
+    .trend-suggestions-icon { color:#ffe34f; font-size:34px; font-variation-settings:'FILL' 1,'wght' 700,'GRAD' 100,'opsz' 24; }
+    .trend-suggestions-panel p { margin:0; color:#a9bad2; font-size:13px; }
     .strategy-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:24px; align-items:stretch; }
     .strategy-card { display:flex; flex-direction:column; align-items:stretch; gap:14px; padding:24px 18px; text-align:center; min-width:0; border:1px solid rgba(125,150,190,.45); border-radius:14px; background:rgba(35,55,90,.30); }
     .strategy-card.trend-positive { border-color:#69d8a5; box-shadow:0 0 0 1px rgba(105,216,165,.25); }
@@ -75,7 +68,7 @@ interface TrendSlot {
     .error { color:#ff9292; }
     .portfolio-hint { grid-column:1/-1; text-align:center; }
     @media(max-width:1100px) { .strategy-row { grid-template-columns:1fr; } .result strong { font-size:23px; } }
-    @media(max-width:850px) { .strategy-grid { overflow-x:auto; grid-template-columns:repeat(8,minmax(115px,1fr)); padding-bottom:6px; } }
+
   `]
 })
 export class TrendFollowingPageComponent implements OnDestroy {
@@ -84,13 +77,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private readonly quotations = inject(QuotationService);
   private portfolioRequest?: Subscription;
   private currentPortfolioId: string | null = null;
-  readonly strategies = [
-    'Buy & Hold Momentum', 'Media mobile 200 giorni', 'Time Series Momentum 12 mesi',
-    'Doppia media mobile 50/200', 'Momentum → World → XEON',
-    'Momentum → XEON con rientro rapido', 'Trend Following + Volatility Targeting',
-    'Momentum → World → XEON + Volatility Targeting'
-  ];
-  selectedStrategy: number | null = null;
+  readonly trendStrategy = inject(TrendStrategyService);
   etfs: TrendEtf[] = [];
   loadingPortfolio = false;
   readonly slots: TrendSlot[] = Array.from({ length: 3 }, () => ({
@@ -106,10 +93,6 @@ export class TrendFollowingPageComponent implements OnDestroy {
         this.loadPortfolio();
       }
     });
-  }
-  selectStrategy(index: number): void {
-    this.selectedStrategy = index;
-    if (index === 1 && this.currentPortfolioId && !this.etfs.length) this.loadPortfolio();
   }
   availableEtfs(slotIndex: number): TrendEtf[] {
     const taken = new Set(this.slots.filter((_, i) => i !== slotIndex).map(slot => slot.isin).filter(Boolean));
