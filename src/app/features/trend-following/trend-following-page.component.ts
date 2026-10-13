@@ -51,7 +51,7 @@ interface TrendSlot {
   `,
   styles: [`
     .page-panel { display:flex; flex-direction:column; min-height:calc(100dvh - 190px); box-sizing:border-box; }
-    .trend-suggestions-panel { margin-top:auto; flex-shrink:0; min-height:150px; width:100%; box-sizing:border-box; padding:24px 18px; border:1px solid rgba(77,132,187,.42); border-radius:14px; background:radial-gradient(circle at 5% 50%,rgba(255,190,55,.055),transparent 24%),linear-gradient(145deg,rgba(15,31,52,.78),rgba(7,18,31,.98)); }
+    .trend-suggestions-panel { margin-top:auto; flex-shrink:0; min-height:0; width:100%; box-sizing:border-box; padding:12px 18px; border:1px solid rgba(77,132,187,.42); border-radius:14px; background:radial-gradient(circle at 5% 50%,rgba(255,190,55,.055),transparent 24%),linear-gradient(145deg,rgba(15,31,52,.78),rgba(7,18,31,.98)); }
     .trend-suggestions-panel h3 { display:flex; align-items:center; gap:9px; margin:0 0 6px; font-size:16px; }
     .trend-suggestions-icon { color:#ffe34f; font-size:34px; font-variation-settings:'FILL' 1,'wght' 700,'GRAD' 100,'opsz' 24; }
     .trend-suggestions-panel p { margin:0; color:#a9bad2; font-size:13px; }
