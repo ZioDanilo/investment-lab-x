@@ -34,8 +34,8 @@ interface TrendEtf { isin: string; label: string; }
         <p *ngIf="loadingPortfolio || loadingPrices">Caricamento...</p>
         <p *ngIf="error" class="error">{{ error }}</p>
         <div *ngIf="price !== null && average !== null && !loadingPrices" class="results">
-          <div class="result"><span>Prezzo</span><strong>{{ price | number:'1.2-4':'it' }} €</strong></div>
-          <div class="result"><span>Media mobile 200 giorni</span><strong>{{ average | number:'1.2-4':'it' }} €</strong></div>
+          <div class="result"><span>Prezzo</span><strong>{{ formatPrice(price) }} €</strong></div>
+          <div class="result"><span>Media mobile 200 giorni</span><strong>{{ formatPrice(average) }} €</strong></div>
         </div>
       </div>
     </section>
@@ -107,7 +107,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.resetPrices();
     this.etfs = [];
     const selected = this.portfolioSelection.selectedPortfolio();
-    if (!selected) { this.loadingPortfolio = false; return; }
+    if (!selected || selected.tipo !== 'reale') { this.loadingPortfolio = false; return; }
     const working = this.portfolioSelection.workingPortfolio();
     if (this.portfolioSelection.currentWorkingPortfolioId() === selected.id && working) {
       this.setEtfs(working.holdings);
@@ -159,6 +159,9 @@ export class TrendFollowingPageComponent implements OnDestroy {
       },
       error: () => { if (requestId === this.requestId) { this.loadingPrices = false; this.error = 'Impossibile leggere le quotazioni.'; } }
     });
+  }
+  formatPrice(value: number | null): string {
+    return value === null ? '—' : new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(value);
   }
   ngOnDestroy(): void { this.portfolioRequest?.unsubscribe(); this.priceRequest?.unsubscribe(); }
 }
