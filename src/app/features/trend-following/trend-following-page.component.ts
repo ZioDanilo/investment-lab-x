@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnDestroy } from '@angular/core';
+import { Component, effect, inject, OnDestroy, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../core/api/api.service';
 import { QuotationService } from '../../core/services/quotation.service';
@@ -109,10 +109,10 @@ export class TrendFollowingPageComponent implements OnDestroy {
       const selected = this.portfolioSelection.selectedPortfolio();
       const refreshVersion = this.portfolioSelection.refreshVersion();
       if (selected?.id !== this.currentPortfolioId || refreshVersion !== this.currentRefreshVersion) {
-        this.pendingStrategy = this.currentPortfolioId === null ? this.trendStrategy.selectedStrategy() : null;
+        this.pendingStrategy = this.currentPortfolioId === null ? untracked(() => this.trendStrategy.selectedStrategy()) : null;
         this.currentPortfolioId = selected?.id ?? null;
         this.currentRefreshVersion = refreshVersion;
-        this.loadPortfolio();
+        untracked(() => this.loadPortfolio());
       }
     });
   }
