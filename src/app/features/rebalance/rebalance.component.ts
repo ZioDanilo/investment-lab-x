@@ -75,7 +75,7 @@ export class RebalanceComponent {
 
   refreshQuotation(isin: string): void {
     const key = isin.toUpperCase();
-    if (!key || this.refreshingIsins().includes(key) || !this.needsQuotationRefresh(key)) return;
+    if (!key || this.refreshingIsins().includes(key)) return;
     this.refreshingIsins.update(keys => [...keys, key]);
     this.quotationErrors.update(errors => { const next = {...errors}; delete next[key]; return next; });
     this.api.refreshSingleEodhdQuotation(key).pipe(finalize(() => this.refreshingIsins.update(keys => keys.filter(value => value !== key)))).subscribe({
@@ -84,7 +84,7 @@ export class RebalanceComponent {
         const price = Number(quote?.quotation);
         const date = String(quote?.date || '');
         if (!Number.isFinite(price) || price <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-          this.quotationErrors.update(errors => ({...errors, [key]: 'Quotazione non disponibile da EODHD'}));
+          this.quotationErrors.update(errors => ({...errors, [key]: 'Quotazione non disponibile da Yahoo Finance'}));
           return;
         }
         this.quotationDates.update(dates => ({...dates, [key]: date}));
