@@ -59,6 +59,7 @@ export class MontecarloPageComponent {
   readonly editorState = signal<MontecarloPortfolioEditorChange | null>(null);
   private kpiConfigLoadVersion = 0;
   private loadedKpiPortfolioId: string | null = null;
+  private kpiSaveQueue: Promise<void> = Promise.resolve();
   finalReturnDistribution: { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } = {
     label: 'Distribuzione dei rendimenti finali',
     subtitle: 'Distribuzione simulata a 30 anni',
@@ -205,6 +206,22 @@ export class MontecarloPageComponent {
     if (response?.success === false) {
       throw new Error(response?.error || 'Salvataggio configurazione KPI non riuscito');
     }
+  }
+  // Serialize complete snapshots: an older HTTP response must never overwrite a newer edit.
+  private queueKpiConfigurationSave(): void {
+    const portfolioId = this.selectedPortfolio()?.id ?? null;
+    if (!portfolioId) return;
+    const snapshot = this.kpis.map((kpi, index) => ({
+      kpi: kpi.id,
+      priority: index + 1,
+      target: this.kpiTargets[kpi.id] ?? '–'
+    }));
+    this.kpiSaveQueue = this.kpiSaveQueue.catch(() => undefined).then(async () => {
+      const response = await firstValueFrom(this.apiService.savePortfolioKpiTargets(portfolioId, snapshot));
+      if (response?.success === false) throw new Error(response?.error || 'Salvataggio KPI non riuscito');
+    }).catch(error => {
+      console.error('[KPI autosave]', error);
+    });
   }
   openKpiTargetId: string | null = null;
   kpiResultValues: Record<string, number | null> = {};
@@ -882,7 +899,6 @@ export class MontecarloPageComponent {
     try {
       // Persist the user's exact KPI order and targets when starting a simulation.
       // The same portfolio ID is used when restoring this configuration on selection.
-      await this.saveCurrentPortfolioKpiConfiguration();
       // The editor is the source of truth for a simulation. Its composition can
       // intentionally differ from the persisted portfolio until the user chooses
       // "Aggiorna portafoglio"; fetching the DB portfolio here would therefore
@@ -1074,6 +1090,7 @@ export class MontecarloPageComponent {
     }
 
     this.swapKpis(this.draggedKpiId, kpiId);
+    this.queueKpiConfigurationSave();
     this.finishDragState();
   }
 
@@ -1094,6 +1111,7 @@ export class MontecarloPageComponent {
     }
 
     this.insertKpi(this.draggedKpiId, index);
+    this.queueKpiConfigurationSave();
     this.finishDragState();
   }
 
@@ -1148,6 +1166,7 @@ export class MontecarloPageComponent {
     this.suppressKpiTransitions = true;
     if (kpiId) {
       this.insertKpi(kpiId, insertIndex);
+      this.queueKpiConfigurationSave();
     }
     this.finishDragState();
 
@@ -1233,7 +1252,10 @@ export class MontecarloPageComponent {
   }
 
   selectKpiTarget(kpiId: string, value: string, event: MouseEvent): void {
-    this.kpiTargets[kpiId] = value;
+    if (this.kpiTargets[kpiId] !== value) {
+      this.kpiTargets[kpiId] = value;
+      this.queueKpiConfigurationSave();
+    }
     this.openKpiTargetId = null;
   }
 
