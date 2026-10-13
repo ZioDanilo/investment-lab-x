@@ -8,12 +8,14 @@ import { PortfolioSelectorComponent } from './shared/portfolio-selector/portfoli
 import { MoneyInputComponent } from './shared/inputs/money-input.component';
 import { RebalanceInputService } from './core/services/rebalance-input.service';
 import { ApiService } from './core/api/api.service';
+import { ActionConfirmationService } from './core/services/action-confirmation.service';
+import { ActionConfirmationComponent } from './shared/components/action-confirmation/action-confirmation.component';
 import { PortfolioSelectionService } from './core/services/portfolio-selection.service';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent, MoneyInputComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent, MoneyInputComponent, ActionConfirmationComponent],
   templateUrl: './app-shell.component.html',
   styleUrls: ['./app-shell.component.css']
 })
@@ -59,11 +61,17 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private readonly router = inject(Router);
   readonly rebalanceInputs = inject(RebalanceInputService);
   private readonly apiService = inject(ApiService);
+  private readonly confirmation = inject(ActionConfirmationService);
   private readonly http = inject(HttpClient);
   isImportingYahooPrices = false;
 
   async importYahooPrices(event: Event): Promise<void> {
     event.stopPropagation();
+    if (this.isImportingYahooPrices) return;
+    this.confirmation.ask('Aggiornare tutte le quotazioni?', 'Aggiorna', () => this.executeYahooPricesUpdate());
+  }
+
+  private async executeYahooPricesUpdate(): Promise<void> {
     if (this.isImportingYahooPrices) return;
     this.isImportingYahooPrices = true;
     try {
@@ -215,6 +223,12 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
       return;
     }
 
+    this.profileMenuOpen = false;
+    this.confirmation.ask('Generare nuovamente il Market Universe?', 'Genera', () => this.executeMarketUniverseRegeneration());
+  }
+
+  private async executeMarketUniverseRegeneration(): Promise<void> {
+    if (this.isRegeneratingMarketUniverse) return;
     this.isRegeneratingMarketUniverse = true;
     this.marketUniverseGenerationProgress = 0;
     this.pushMarketUniverseStatusToActivePage();
