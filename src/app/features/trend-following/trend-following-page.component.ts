@@ -108,6 +108,11 @@ export class TrendFollowingPageComponent implements OnDestroy {
       if (!this.settingsReady || strategy === this.lastStrategy) return;
       const previous = this.lastStrategy;
       this.lastStrategy = strategy;
+      if (strategy !== null && this.currentPortfolioId) {
+        this.api.saveTrendFollowingSettings(this.currentPortfolioId, this.strategyKeys[strategy], ['', '', '']).subscribe({
+          error: () => { this.saveError = 'Impossibile salvare la strategia selezionata.'; }
+        });
+      }
       if (strategy === 1 && previous !== 1) untracked(() => this.restoreSmaSettings());
       else if (previous === 1 && strategy !== 1) untracked(() => this.slots.forEach(slot => this.clearSlot(slot)));
     });
