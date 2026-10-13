@@ -10,10 +10,6 @@
     <nav class="nav-links" aria-label="Menu principale">
       <a routerLink="/home" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="goHome($event)">Home</a>
       <app-portfolio-selector></app-portfolio-selector>
-      <button type="button" class="nav-cta">
-        <span class="material-symbols-rounded">add</span>
-        <span>Nuovo ETF</span>
-      </button>
     </nav>
 
     <div class="nav-actions" aria-label="Profilo">
