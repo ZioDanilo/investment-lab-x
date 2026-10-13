@@ -22,6 +22,7 @@ interface TrendSlot {
   imports: [CommonModule],
   template: `
     <section class="page-panel">
+      <p *ngIf="saveError" class="error" role="alert">{{ saveError }}</p>
       <div *ngIf="trendStrategy.selectedStrategy() === 1" class="strategy-row">
         <article *ngFor="let slot of slots; let i = index" class="strategy-card" [class.trend-positive]="slot.price !== null && slot.average !== null && slot.price > slot.average && !slot.loading" [class.trend-negative]="slot.price !== null && slot.average !== null && slot.price < slot.average && !slot.loading">
           <label [for]="'trend-etf-' + i">ETF del portafoglio</label>
@@ -76,6 +77,17 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private readonly api = inject(ApiService);
   private readonly quotations = inject(QuotationService);
   private portfolioRequest?: Subscription;
+  private settingsRequest?: Subscription;
+  private settingsReady = false;
+  private saving = false;
+  private saveQueued = false;
+  saveError = '';
+  loadingSettings = false;
+  private readonly strategyKeys = [
+    'buy-hold-momentum', 'sma-200', 'ts-momentum-12m', 'dual-sma-50-200',
+    'momentum-world-xeon', 'momentum-xeon-fast-reentry', 'trend-vol-target',
+    'momentum-world-xeon-vol-target'
+  ];
   private currentPortfolioId: string | null = null;
   readonly trendStrategy = inject(TrendStrategyService);
   etfs: TrendEtf[] = [];
@@ -85,6 +97,10 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }));
 
   constructor() {
+    effect(() => {
+      const strategy = this.trendStrategy.selectedStrategy();
+      if (this.settingsReady && strategy !== null) this.queueSave();
+    });
     effect(() => {
       const selected = this.portfolioSelection.selectedPortfolio();
       this.portfolioSelection.refreshVersion();
@@ -109,6 +125,11 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   private loadPortfolio(): void {
     this.portfolioRequest?.unsubscribe();
+    this.settingsRequest?.unsubscribe();
+    this.settingsReady = false;
+    this.loadingSettings = false;
+    this.saveError = '';
+    this.trendStrategy.selectedStrategy.set(null);
     this.slots.forEach(slot => this.clearSlot(slot));
     this.etfs = [];
     const selected = this.portfolioSelection.selectedPortfolio();
@@ -133,12 +154,14 @@ export class TrendFollowingPageComponent implements OnDestroy {
     }
     this.etfs = [...unique.values()];
     this.loadingPortfolio = false;
+    this.loadSavedSettings();
   }
   selectEtf(slotIndex: number, isin: string): void {
     const slot = this.slots[slotIndex];
     if (!slot || (isin && this.slots.some((other, i) => i !== slotIndex && other.isin === isin))) return;
     this.clearSlot(slot);
     slot.isin = isin;
+    if (this.settingsReady) this.queueSave();
     if (!isin) return;
     slot.loading = true;
     const requestId = slot.requestId;
@@ -158,6 +181,68 @@ export class TrendFollowingPageComponent implements OnDestroy {
       error: () => { if (requestId === slot.requestId) { slot.loading = false; slot.error = 'Impossibile leggere le quotazioni.'; } }
     });
   }
+  private loadSavedSettings(): void {
+    const portfolioId = this.currentPortfolioId;
+    if (!portfolioId) return;
+    this.loadingSettings = true;
+    this.settingsRequest = this.api.getTrendFollowingSettings(portfolioId).subscribe({
+      next: (response: any) => {
+        if (portfolioId !== this.currentPortfolioId) return;
+        const data = response?.data;
+        const index = this.strategyKeys.indexOf(data?.strategyKey);
+        const saved = Array.isArray(data?.settings?.etfIsins) ? data.settings.etfIsins : [];
+        const allowed = new Set(this.etfs.map(etf => etf.isin.toUpperCase()));
+        const seen = new Set<string>();
+        for (let i = 0; i < this.slots.length; i++) {
+          const isin = typeof saved[i] === 'string' ? saved[i].toUpperCase() : '';
+          if (isin && allowed.has(isin) && !seen.has(isin)) {
+            seen.add(isin);
+            this.selectEtf(i, isin);
+          }
+        }
+        this.trendStrategy.selectedStrategy.set(index >= 0 ? index : null);
+        this.loadingSettings = false;
+        this.settingsReady = true;
+      },
+      error: () => {
+        if (portfolioId !== this.currentPortfolioId) return;
+        this.loadingSettings = false;
+        this.settingsReady = false;
+        this.saveError = 'Impossibile caricare la strategia salvata. Modifiche non abilitate finché il caricamento non riesce.';
+      }
+    });
+  }
+
+  private queueSave(): void {
+    if (!this.settingsReady || !this.currentPortfolioId || this.trendStrategy.selectedStrategy() === null) return;
+    this.saveQueued = true;
+    if (!this.saving) this.flushSave();
+  }
+
+  private flushSave(): void {
+    if (!this.saveQueued) { this.saving = false; return; }
+    const portfolioId = this.currentPortfolioId;
+    const strategyIndex = this.trendStrategy.selectedStrategy();
+    if (!portfolioId || strategyIndex === null || !this.settingsReady) {
+      this.saveQueued = false;
+      this.saving = false;
+      return;
+    }
+    this.saving = true;
+    this.saveQueued = false;
+    const etfIsins = this.slots.map(slot => slot.isin);
+    this.api.saveTrendFollowingSettings(portfolioId, this.strategyKeys[strategyIndex], etfIsins).subscribe({
+      next: () => {
+        if (portfolioId === this.currentPortfolioId) this.saveError = '';
+        this.flushSave();
+      },
+      error: () => {
+        if (portfolioId === this.currentPortfolioId) this.saveError = 'Salvataggio non riuscito. Riprova modificando la selezione.';
+        this.flushSave();
+      }
+    });
+  }
+
   formatPrice(value: number | null): string {
     return value === null ? '—' : new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
   }
@@ -169,6 +254,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   ngOnDestroy(): void {
     this.portfolioRequest?.unsubscribe();
+    this.settingsRequest?.unsubscribe();
     this.slots.forEach(slot => slot.subscription?.unsubscribe());
   }
 }
