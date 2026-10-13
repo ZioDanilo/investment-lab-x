@@ -58,6 +58,10 @@ export class ApiService {
   }
 
   // Trend Following: one persisted strategy and its ETF slots per real portfolio.
+  getTrendFollowingEtfs(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/etfs`);
+  }
+
   getTrendFollowingSettings(portfolioId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}`);
   }
