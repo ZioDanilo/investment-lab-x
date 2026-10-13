@@ -33,7 +33,7 @@ interface TrendSlot {
         </button>
       </div>
       <div *ngIf="selectedStrategy === 1" class="strategy-row">
-        <article *ngFor="let slot of slots; let i = index" class="strategy-card">
+        <article *ngFor="let slot of slots; let i = index" class="strategy-card" [class.trend-positive]="slot.price !== null && slot.average !== null && slot.price > slot.average && !slot.loading" [class.trend-negative]="slot.price !== null && slot.average !== null && slot.price < slot.average && !slot.loading">
           <label [for]="'trend-etf-' + i">ETF del portafoglio</label>
           <select [id]="'trend-etf-' + i" [value]="slot.isin"
             (change)="selectEtf(i, $any($event.target).value)"
@@ -61,6 +61,8 @@ interface TrendSlot {
     .strategy-button:focus-visible { outline:3px solid #66b8ff; outline-offset:3px; }
     .strategy-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:24px; align-items:stretch; }
     .strategy-card { display:flex; flex-direction:column; align-items:stretch; gap:14px; padding:24px 18px; text-align:center; min-width:0; border:1px solid rgba(125,150,190,.45); border-radius:14px; background:rgba(35,55,90,.30); }
+    .strategy-card.trend-positive { border-color:#69d8a5; box-shadow:0 0 0 1px rgba(105,216,165,.25); }
+    .strategy-card.trend-negative { border-color:#ff858c; box-shadow:0 0 0 1px rgba(255,133,140,.25); }
     .strategy-card label { font-weight:600; }
     .strategy-card select { width:100%; min-width:0; padding:10px 12px; border-radius:8px; background:#203554; color:white; border:1px solid #6085b5; }
     .results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; width:100%; }
