@@ -75,6 +75,14 @@ export class PortfolioSelectionService {
           .map((portfolio: any) => this.normalizePortfolio(portfolio))
           .filter((portfolio: PortfolioOption | null): portfolio is PortfolioOption => !!portfolio);
 
+        // Shared ordering contract: real portfolios first, then simulated; alphabetical within each group.
+        // Sorting centrally ensures every consumer receives the same non-interleaved order.
+        const collator = new Intl.Collator('it', { sensitivity: 'base', numeric: true });
+        nextOptions.sort((a: PortfolioOption, b: PortfolioOption) =>
+          (a.tipo === b.tipo ? 0 : a.tipo === 'reale' ? -1 : 1) ||
+          collator.compare(a.label, b.label) ||
+          a.id.localeCompare(b.id)
+        );
         this.portfolioOptions.set(nextOptions);
 
         const refreshedSelection = selectedBeforeRefresh
