@@ -93,6 +93,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private currentPortfolioId: string | null = null;
   private currentRefreshVersion = -1;
   private pendingStrategy: number | null = null;
+  private lastStrategy: number | null = null;
   readonly trendStrategy = inject(TrendStrategyService);
   etfs: TrendEtf[] = [];
   loadingPortfolio = false;
@@ -104,7 +105,11 @@ export class TrendFollowingPageComponent implements OnDestroy {
   constructor() {
     effect(() => {
       const strategy = this.trendStrategy.selectedStrategy();
-      if (this.settingsReady && strategy !== null) this.queueSave();
+      if (!this.settingsReady || strategy === this.lastStrategy) return;
+      const previous = this.lastStrategy;
+      this.lastStrategy = strategy;
+      if (strategy === 1 && previous !== 1) untracked(() => this.restoreSmaSettings());
+      else if (previous === 1 && strategy !== 1) untracked(() => this.slots.forEach(slot => this.clearSlot(slot)));
     });
     effect(() => {
       const selected = this.portfolioSelection.selectedPortfolio();
@@ -134,6 +139,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.portfolioRequest?.unsubscribe();
     this.settingsRequest?.unsubscribe();
     this.settingsReady = false;
+    this.lastStrategy = null;
     this.saveQueued = false;
     this.loadingSettings = false;
     this.saveError = '';
@@ -212,6 +218,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
           }
         }
         this.trendStrategy.selectedStrategy.set(index >= 0 ? index : this.pendingStrategy);
+        this.lastStrategy = this.trendStrategy.selectedStrategy();
         this.pendingStrategy = null;
         this.loadingSettings = false;
         this.settingsReady = true;
@@ -222,14 +229,45 @@ export class TrendFollowingPageComponent implements OnDestroy {
         this.loadingSettings = false;
         this.settingsReady = true;
         this.trendStrategy.selectedStrategy.set(this.pendingStrategy);
+        this.lastStrategy = this.trendStrategy.selectedStrategy();
         this.pendingStrategy = null;
         this.saveError = 'Impossibile recuperare la configurazione salvata; puoi selezionare gli ETF, ma verifica il collegamento al server.';
       }
     });
   }
 
+  private restoreSmaSettings(): void {
+    const portfolioId = this.currentPortfolioId;
+    if (!portfolioId || !this.settingsReady) return;
+    this.settingsRequest?.unsubscribe();
+    this.slots.forEach(slot => this.clearSlot(slot));
+    this.loadingSettings = true;
+    this.settingsRequest = this.api.getTrendFollowingSettings(portfolioId).subscribe({
+      next: (response: any) => {
+        if (portfolioId !== this.currentPortfolioId || this.trendStrategy.selectedStrategy() !== 1) return;
+        const saved = response?.data?.strategyKey === 'sma-200' && Array.isArray(response?.data?.settings?.etfIsins)
+          ? response.data.settings.etfIsins : [];
+        const allowed = new Set(this.etfs.map(etf => etf.isin.toUpperCase()));
+        const seen = new Set<string>();
+        saved.slice(0, 3).forEach((value: unknown, i: number) => {
+          const isin = typeof value === 'string' ? value.toUpperCase() : '';
+          if (isin && allowed.has(isin) && !seen.has(isin)) {
+            seen.add(isin);
+            this.selectEtf(i, isin);
+          }
+        });
+        this.loadingSettings = false;
+      },
+      error: () => {
+        if (portfolioId !== this.currentPortfolioId) return;
+        this.loadingSettings = false;
+        this.saveError = 'Impossibile ripristinare gli ETF SMA200 dal database.';
+      }
+    });
+  }
+
   private queueSave(): void {
-    if (!this.settingsReady || !this.currentPortfolioId || this.trendStrategy.selectedStrategy() === null) return;
+    if (!this.settingsReady || !this.currentPortfolioId || this.trendStrategy.selectedStrategy() !== 1) return;
     this.saveQueued = true;
     if (!this.saving) this.flushSave();
   }
@@ -238,7 +276,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if (!this.saveQueued) { this.saving = false; return; }
     const portfolioId = this.currentPortfolioId;
     const strategyIndex = this.trendStrategy.selectedStrategy();
-    if (!portfolioId || strategyIndex === null || !this.settingsReady) {
+    if (!portfolioId || strategyIndex !== 1 || !this.settingsReady) {
       this.saveQueued = false;
       this.saving = false;
       return;
