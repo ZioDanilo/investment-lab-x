@@ -136,8 +136,8 @@ export class TrendFollowingPageComponent implements OnDestroy {
           error: () => { this.saveError = 'Impossibile salvare la strategia selezionata.'; }
         });
       }
-      if ((strategy === 1 || strategy === 3) && previous !== strategy) untracked(() => this.restoreSmaSettings());
-      else if ((previous === 1 || previous === 3) && strategy !== previous) untracked(() => this.slots.forEach(slot => this.clearSlot(slot)));
+      if ([1, 2, 3].includes(strategy ?? -1) && previous !== strategy) untracked(() => this.restoreSmaSettings());
+      else if ([1, 2, 3].includes(previous ?? -1) && strategy !== previous) untracked(() => this.slots.forEach(slot => this.clearSlot(slot)));
     });
     effect(() => {
       const selected = this.portfolioSelection.selectedPortfolio();
@@ -218,18 +218,26 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if (!slot || (isin && this.slots.some((other, i) => i !== slotIndex && other.isin === isin))) return;
     this.clearSlot(slot);
     slot.isin = isin;
-    if (this.settingsReady && (this.trendStrategy.selectedStrategy() === 1 || this.trendStrategy.selectedStrategy() === 3)) this.queueSave();
+    if (this.settingsReady && [1, 2, 3].includes(this.trendStrategy.selectedStrategy() ?? -1)) this.queueSave();
     if (!isin) return;
     slot.loading = true;
     const requestId = slot.requestId;
-    slot.subscription = this.quotations.getQuotationHistory(isin, 300).subscribe({
+    slot.subscription = this.quotations.getQuotationHistory(isin, this.trendStrategy.selectedStrategy() === 2 ? 5000 : 300).subscribe({
       next: (response: any) => {
         if (requestId !== slot.requestId) return;
         const rows = (Array.isArray(response?.data) ? response.data : [])
           .filter((row: any) => row?.quotation !== null && row?.quotation !== undefined &&
             Number.isFinite(Number(row.quotation)) && Number(row.quotation) > 0)
           .sort((a: any, b: any) => String(b.date).localeCompare(String(a.date)))
-          .slice(0, 200);
+          .slice(0, this.trendStrategy.selectedStrategy() === 2 ? 5000 : 200);
+        if (this.trendStrategy.selectedStrategy() === 2) {
+          const prices = this.yearPrices(rows);
+          slot.price = prices?.current ?? null;
+          slot.average = prices?.past ?? null;
+          slot.error = prices ? '' : 'Non esiste una quotazione risalente ad almeno 12 mesi.';
+          slot.loading = false;
+          return;
+        }
         if (rows.length < 200) { slot.error = 'Servono almeno 200 quotazioni per calcolare le medie mobili.'; slot.loading = false; return; }
         slot.price = this.trendStrategy.selectedStrategy() === 3
           ? (rows.length >= 50 ? rows.slice(0, 50).reduce((sum: number, row: any) => sum + Number(row.quotation), 0) / 50 : null)
@@ -264,7 +272,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
         this.pendingStrategy = null;
         this.loadingSettings = false;
         this.settingsReady = true;
-        if (this.trendStrategy.selectedStrategy() === 1 || this.trendStrategy.selectedStrategy() === 3) this.restoreSmaSettings();
+        if [1, 2, 3].includes(this.trendStrategy.selectedStrategy() ?? -1) this.restoreSmaSettings();
       },
       error: () => {
         if (portfolioId !== this.currentPortfolioId) return;
@@ -285,7 +293,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.slots.forEach(slot => this.clearSlot(slot));
     this.loadingSettings = true;
     const strategyIndex = this.trendStrategy.selectedStrategy();
-    if (strategyIndex !== 1 && strategyIndex !== 3) return;
+    if (![1, 2, 3].includes(strategyIndex ?? -1)) return;
     this.settingsRequest = this.api.getTrendEtfSelections(portfolioId, this.strategyKeys[strategyIndex]).subscribe({
       next: (response: any) => {
         if (portfolioId !== this.currentPortfolioId || this.trendStrategy.selectedStrategy() !== strategyIndex) return;
@@ -309,8 +317,84 @@ export class TrendFollowingPageComponent implements OnDestroy {
     });
   }
 
+  private yearPrices(rows: any[]): { current: number; past: number } | null {
+    if (!rows.length) return null;
+    const latestDate = new Date(String(rows[0].date).slice(0, 10) + 'T12:00:00Z');
+    if (Number.isNaN(latestDate.getTime())) return null;
+    const target = new Date(latestDate);
+    target.setUTCFullYear(target.getUTCFullYear() - 1);
+    const past = rows.find(row => String(row.date).slice(0, 10) <= target.toISOString().slice(0, 10));
+    return past ? { current: Number(rows[0].quotation), past: Number(past.quotation) } : null;
+  }
+
+  annualReturn(slot: TrendSlot): number | null {
+    return slot.price !== null && slot.average !== null && slot.average > 0 && !slot.loading
+      ? (slot.price / slot.average - 1) * 100 : null;
+  }
+
+  formatPercent(value: number | null | undefined): string {
+    return value === null || value === undefined ? '—' : this.formatSigned(value) + '%';
+  }
+
+  etfNickname(isin: string): string {
+    if (!isin) return 'ETF';
+    const etf = [...this.etfs, ...this.allEtfs].find(item => item.isin === isin);
+    return etf ? etf.label.replace(/ \\([A-Z0-9]{12}\\)$/, '') : isin;
+  }
+
+  private benchmarkPercent(slot: TrendSlot): number | null {
+    return !slot.benchmarkIsin ? 0 : (slot.benchmarkReturn ?? null);
+  }
+
+  isPositive(slot: TrendSlot): boolean {
+    if (slot.loading || slot.benchmarkLoading) return false;
+    if (this.trendStrategy.selectedStrategy() === 2) {
+      const a = this.annualReturn(slot), b = this.benchmarkPercent(slot);
+      return a !== null && b !== null && a > b;
+    }
+    return slot.price !== null && slot.average !== null && slot.price > slot.average;
+  }
+
+  isNegative(slot: TrendSlot): boolean {
+    if (slot.loading || slot.benchmarkLoading) return false;
+    if (this.trendStrategy.selectedStrategy() === 2) {
+      const a = this.annualReturn(slot), b = this.benchmarkPercent(slot);
+      return a !== null && b !== null && a < b;
+    }
+    return slot.price !== null && slot.average !== null && slot.price < slot.average;
+  }
+
+  comparisonText(slot: TrendSlot): string {
+    const a = this.annualReturn(slot), b = this.benchmarkPercent(slot);
+    if (a === null || b === null || slot.benchmarkLoading) return '—';
+    return this.formatPercent(a) + (a > b ? ' > ' : a < b ? ' < ' : ' = ') + this.formatPercent(b);
+  }
+
+  selectBenchmark(index: number, isin: string): void {
+    const slot = this.slots[index];
+    if (!slot) return;
+    slot.benchmarkSubscription?.unsubscribe();
+    slot.benchmarkIsin = isin;
+    slot.benchmarkReturn = null;
+    slot.benchmarkLoading = !!isin;
+    if (!isin) return;
+    const requestId = slot.requestId;
+    slot.benchmarkSubscription = this.quotations.getQuotationHistory(isin, 5000).subscribe({
+      next: (response: any) => {
+        if (requestId !== slot.requestId || slot.benchmarkIsin !== isin) return;
+        const rows = (Array.isArray(response?.data) ? response.data : [])
+          .filter((row: any) => Number(row?.quotation) > 0)
+          .sort((a: any, b: any) => String(b.date).localeCompare(String(a.date)));
+        const prices = this.yearPrices(rows);
+        slot.benchmarkReturn = prices ? (prices.current / prices.past - 1) * 100 : null;
+        slot.benchmarkLoading = false;
+      },
+      error: () => { if (requestId === slot.requestId) slot.benchmarkLoading = false; }
+    });
+  }
+
   private queueSave(): void {
-    if (!this.settingsReady || !this.currentPortfolioId || ![1, 3].includes(this.trendStrategy.selectedStrategy() ?? -1)) return;
+    if (!this.settingsReady || !this.currentPortfolioId || ![1, 2, 3].includes(this.trendStrategy.selectedStrategy() ?? -1)) return;
     this.saveQueued = true;
     if (!this.saving) this.flushSave();
   }
@@ -319,7 +403,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if (!this.saveQueued) { this.saving = false; return; }
     const portfolioId = this.currentPortfolioId;
     const strategyIndex = this.trendStrategy.selectedStrategy();
-    if (!portfolioId || (strategyIndex !== 1 && strategyIndex !== 3) || !this.settingsReady) {
+    if (!portfolioId || ![1, 2, 3].includes(strategyIndex ?? -1) || !this.settingsReady) {
       this.saveQueued = false;
       this.saving = false;
       return;
@@ -349,6 +433,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     return average > 0 ? this.formatSigned((price - average) / average * 100) + '%' : '—';
   }
   ngOnDestroy(): void {
+    this.catalogRequest?.unsubscribe();
     this.portfolioRequest?.unsubscribe();
     this.settingsRequest?.unsubscribe();
     this.slots.forEach(slot => slot.subscription?.unsubscribe());
