@@ -23,8 +23,8 @@ export class MarketUniversePageComponent {
   callYahooFinance(): void {
     if (this.yahooLoading()) return;
     this.yahooLoading.set(true);
-    // Xtrackers MSCI World Momentum UCITS ETF 1C, Xetra EUR.
-    this.http.get(`${environment.apiUrl}/yahoo-finance/diagnostic`, { params: { symbol: 'XDEM.DE' } }).subscribe({
+    // Yahoo Finance ticker EEAU on Xetra (Germany).
+    this.http.get(`${environment.apiUrl}/yahoo-finance/diagnostic`, { params: { symbol: 'EEAU.DE' } }).subscribe({
       next: response => { console.info('[Yahoo Finance diagnostic]', response); this.yahooLoading.set(false); },
       error: error => { console.error('[Yahoo Finance diagnostic]', error); this.yahooLoading.set(false); }
     });
