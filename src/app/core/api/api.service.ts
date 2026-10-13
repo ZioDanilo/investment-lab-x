@@ -72,6 +72,14 @@ export class ApiService {
     });
   }
 
+  getTrendEtfSelections(portfolioId: string, strategyKey: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/strategies/${encodeURIComponent(strategyKey)}/etfs`);
+  }
+
+  saveTrendEtfSelections(portfolioId: string, strategyKey: string, etfIsins: string[]): Observable<any> {
+    return this.http.put(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/strategies/${encodeURIComponent(strategyKey)}/etfs`, { etfIsins });
+  }
+
   // Real portfolio endpoints
   getRealPortfolios(): Observable<any> {
     return this.http.get(`${this.apiUrl}/real-portfolios`);
