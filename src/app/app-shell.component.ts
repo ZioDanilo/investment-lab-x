@@ -11,6 +11,7 @@ import { ApiService } from './core/api/api.service';
 import { ActionConfirmationService } from './core/services/action-confirmation.service';
 import { ActionConfirmationComponent } from './shared/components/action-confirmation/action-confirmation.component';
 import { PortfolioSelectionService } from './core/services/portfolio-selection.service';
+import { TrendStrategyService } from './core/services/trend-strategy.service';
 
 @Component({
   selector: 'app-shell',
@@ -28,6 +29,8 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     }
   }
 
+  readonly trendStrategy = inject(TrendStrategyService);
+  get isTrendFollowingPage(): boolean { return this.router.url.startsWith('/trend-following'); }
   rebalanceTargetLeft = 0;
   rebalanceTargetWidth = 280;
   private targetResizeObserver: ResizeObserver | null = null;
