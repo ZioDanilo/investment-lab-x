@@ -33,10 +33,10 @@ interface TrendSlot {
           </select>
           <p *ngIf="loadingPortfolio || slot.loading">Caricamento...</p>
           <p *ngIf="slot.error" class="error">{{ slot.error }}</p>
-          <div *ngIf="slot.price !== null && slot.average !== null && !slot.loading" class="results">
-            <div class="result"><span>Prezzo</span><strong>{{ formatPrice(slot.price) }} €</strong></div>
-            <div class="result"><span>Media mobile 200 giorni</span><strong>{{ formatPrice(slot.average) }} €</strong></div>
-            <div class="price-delta" [class.positive]="slot.price > slot.average" [class.negative]="slot.price < slot.average">{{ formatSigned(slot.price - slot.average) }} € ({{ formatSignedPercentage(slot.price, slot.average) }})</div>
+          <div class="results">
+            <div class="result"><span>Prezzo</span><strong>{{ slot.price !== null && !slot.loading ? formatPrice(slot.price) + " €" : "—" }}</strong></div>
+            <div class="result"><span>Media mobile 200 giorni</span><strong>{{ slot.average !== null && !slot.loading ? formatPrice(slot.average) + " €" : "—" }}</strong></div>
+            <div class="price-delta" [class.positive]="slot.price !== null && slot.average !== null && !slot.loading && slot.price > slot.average" [class.negative]="slot.price !== null && slot.average !== null && !slot.loading && slot.price < slot.average"><span *ngIf="slot.price !== null && slot.average !== null && !slot.loading; else emptyDelta">{{ formatSigned(slot.price - slot.average) }} € ({{ formatSignedPercentage(slot.price, slot.average) }})</span><ng-template #emptyDelta>—</ng-template></div>
           </div>
         </article>
         <p *ngIf="!portfolioSelection.selectedPortfolio()" class="portfolio-hint">Seleziona un portafoglio dalla barra superiore.</p>
@@ -62,7 +62,7 @@ interface TrendSlot {
     .result { display:flex; flex-direction:column; justify-content:center; gap:8px; padding:16px 8px; min-width:0; border:1px solid rgba(125,150,190,.35); border-radius:12px; background:rgba(35,55,90,.45); }
     .result strong { font-size:clamp(15px,1.5vw,23px); overflow-wrap:anywhere; }
     .result span { font-size:12px; }
-    .price-delta { grid-column:1/-1; font-size:16px; font-weight:700; padding:8px 0 2px; color:#a9bad2; }
+    .price-delta { grid-column:1/-1; display:flex; align-items:center; justify-content:center; min-height:49px; box-sizing:border-box; font-size:16px; font-weight:700; padding:10px 8px; border:1px solid rgba(125,150,190,.35); border-radius:12px; background:rgba(35,55,90,.45); color:#a9bad2; }
     .price-delta.positive { color:#69d8a5; }
     .price-delta.negative { color:#ff858c; }
     .error { color:#ff9292; }
