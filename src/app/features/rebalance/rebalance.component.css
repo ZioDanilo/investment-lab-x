@@ -43,3 +43,7 @@
 :host .quote-refresh.is-loading span{display:inline-block;animation:quote-refresh-spin .85s linear infinite}
 :host .quote-error{display:block;margin-top:3px;color:#ff8b9a;font-size:.68rem;font-weight:500}
 @keyframes quote-refresh-spin{to{transform:rotate(360deg)}}
+
+/* Quotations: distinguish missing prices from actual numeric prices. */
+:host .quote-unavailable{color:#ff647c;font-weight:750;white-space:nowrap}
+:host .quote-date{color:#a8b8ca;font-size:.72rem;font-weight:500}
