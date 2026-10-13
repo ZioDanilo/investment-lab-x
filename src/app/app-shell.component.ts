@@ -67,11 +67,11 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     if (this.isImportingYahooPrices) return;
     this.isImportingYahooPrices = true;
     try {
-      const result = await firstValueFrom(this.http.post<any>(environment.apiUrl + '/yahoo-finance/import-eeau', {}));
-      console.info('[Yahoo EEAU import]', result);
-      window.alert('Yahoo EEAU: ' + result.inserted + ' nuove quotazioni, ' + result.existing + ' già presenti, ' + result.skipped + ' senza prezzo valido.');
+      const result = await firstValueFrom(this.http.post<any>(environment.apiUrl + '/yahoo-finance/update-quotations', {}));
+      console.info('[Yahoo import]', result);
+      window.alert('Aggiornamento quotazioni: ' + result.inserted + ' inserite, ' + result.existing + ' già presenti, ' + result.skippedPrices + ' prezzi assenti, ' + result.failures.length + ' errori, ' + result.skippedMappings.length + ' ticker/mercati non risolti.');
     } catch (error: any) {
-      console.error('[Yahoo EEAU import]', error);
+      console.error('[Yahoo import]', error);
       window.alert('Importazione Yahoo non riuscita: ' + (error?.error?.error || error?.message || 'errore sconosciuto'));
     } finally {
       this.isImportingYahooPrices = false;
