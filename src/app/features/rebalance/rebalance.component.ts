@@ -48,6 +48,12 @@ export class RebalanceComponent {
   readonly holdingsError = signal(false);
   private requestVersion = 0;
 
+  formatQuotationDate(isin: string): string {
+    const raw = this.quotationDates()[isin.toUpperCase()];
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw || '');
+    return match ? `${match[3]}/${match[2]}/${match[1].slice(2)}` : '';
+  }
+
   needsQuotationRefresh(isin: string): boolean {
     return this.quotationDates()[isin.toUpperCase()] !== this.todayRome;
   }
@@ -62,7 +68,7 @@ export class RebalanceComponent {
         const quote = response?.data;
         const price = Number(quote?.quotation);
         const date = String(quote?.date || '');
-        if (!Number.isFinite(price) || price <= 0 || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) {
+        if (!Number.isFinite(price) || price <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
           this.quotationErrors.update(errors => ({...errors, [key]: 'Quotazione non disponibile da EODHD'}));
           return;
         }
@@ -76,37 +82,41 @@ export class RebalanceComponent {
   }
 
   constructor() {
+    // A single quotation request per ISIN supplies both price and date,
+    // including ETFs present only in the simulated target portfolio.
     effect((onCleanup) => {
-      const isins = [...new Set([...this.holdings().map(h => h.isin.toUpperCase()), ...this.targetHoldings().map(t => t.isin.toUpperCase())])].filter(Boolean);
-      if (!isins.length) { this.quotationDates.set({}); return; }
-      const subscription = forkJoin(isins.map(isin => this.api.getLatestStoredQuotation(isin).pipe(
-        map((response:any) => ({isin, date:String(response?.data?.[0]?.date || '')})),
-        catchError(() => of({isin, date:''}))
-      ))).subscribe(quotes => {
-        this.quotationDates.update(previous => {
-          const next:Record<string,string> = {};
-          for (const quote of quotes) next[quote.isin] = previous[quote.isin] > quote.date ? previous[quote.isin] : quote.date;
-          return next;
-        });
-      });
-      onCleanup(() => subscription.unsubscribe());
-    }, {allowSignalWrites:true});
-    effect((onCleanup) => {
-      const target = this.targetHoldings();
-      this.pricesByIsin.set({});
-      if (!target.length) return;
-      const subscription = forkJoin(target.map(t =>
-        this.api.getLatestStoredQuotation(t.isin).pipe(
-          map((response:any) => ({isin:t.isin,price:Number(response?.data?.[0]?.quotation)})),
-          catchError(() => of({isin:t.isin,price:0}))
+      const isins = [...new Set([
+        ...this.holdings().map(h => h.isin.toUpperCase()),
+        ...this.targetHoldings().map(t => t.isin.toUpperCase())
+      ])].filter(Boolean);
+      if (!isins.length) {
+        this.quotationDates.set({});
+        this.pricesByIsin.set({});
+        return;
+      }
+      const subscription = forkJoin(isins.map(isin =>
+        this.api.getLatestStoredQuotation(isin).pipe(
+          map((response: any) => ({
+            isin,
+            date: String(response?.data?.[0]?.date || ''),
+            price: response?.data?.[0]?.quotation == null ? null : Number(response.data[0].quotation)
+          })),
+          catchError(() => of({ isin, date: '', price: null }))
         )
-      )).subscribe(prices => {
-        const byIsin:Record<string,number>={};
-        for(const quote of prices)if(Number.isFinite(quote.price)&&quote.price>0)byIsin[quote.isin]=quote.price;
-        this.pricesByIsin.set(byIsin);
+      )).subscribe(quotes => {
+        const dates: Record<string, string> = {};
+        const prices: Record<string, number> = {};
+        for (const quote of quotes) {
+          if (quote.date) dates[quote.isin] = quote.date;
+          if (quote.price != null && Number.isFinite(quote.price) && quote.price > 0) {
+            prices[quote.isin] = quote.price;
+          }
+        }
+        this.quotationDates.set(dates);
+        this.pricesByIsin.set(prices);
       });
       onCleanup(() => subscription.unsubscribe());
-    }, {allowSignalWrites:true});
+    }, { allowSignalWrites: true });
     effect((onCleanup) => {
       const id = this.selection.lastLaboratoryPortfolioId();
       const version = ++this.targetRequestVersion;
@@ -182,7 +192,11 @@ export class RebalanceComponent {
   readonly rows = computed<RebalanceRow[]>(() => {
     if (!this.selectedRealPortfolio()) return [];
     const positions = this.holdings().filter(h => Number(h.quantity) > 0);
-    const total = positions.reduce((sum, h) => sum + (Number(h.marketValue) || 0), 0);
+    const total = positions.reduce((sum, h) => {
+      const stored = Number(h.currentPrice);
+      const price = Number.isFinite(stored) && stored > 0 ? stored : (this.pricesByIsin()[h.isin.toUpperCase()] ?? 0);
+      return sum + Number(h.quantity) * price;
+    }, 0);
     const targetByIsin = new Map(this.targetHoldings().map(t => [t.isin, t]));
     const realIsins = new Set(positions.map(h => h.isin.toUpperCase()));
     const realRows = positions.map(h => {
