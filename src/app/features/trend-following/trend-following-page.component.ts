@@ -293,7 +293,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.slots.forEach(slot => this.clearSlot(slot));
     this.loadingSettings = true;
     const strategyIndex = this.trendStrategy.selectedStrategy();
-    if (![1, 2, 3].includes(strategyIndex ?? -1)) return;
+    if (strategyIndex === null || ![1, 2, 3].includes(strategyIndex)) { this.loadingSettings = false; return; }
     this.settingsRequest = this.api.getTrendEtfSelections(portfolioId, this.strategyKeys[strategyIndex]).subscribe({
       next: (response: any) => {
         if (portfolioId !== this.currentPortfolioId || this.trendStrategy.selectedStrategy() !== strategyIndex) return;
