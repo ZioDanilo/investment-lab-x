@@ -1,4 +1,6 @@
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../environments/environment';
 import { AfterViewInit, Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { firstValueFrom, filter } from 'rxjs';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -57,6 +59,25 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private readonly router = inject(Router);
   readonly rebalanceInputs = inject(RebalanceInputService);
   private readonly apiService = inject(ApiService);
+  private readonly http = inject(HttpClient);
+  isImportingYahooPrices = false;
+
+  async importYahooPrices(event: Event): Promise<void> {
+    event.stopPropagation();
+    if (this.isImportingYahooPrices) return;
+    this.isImportingYahooPrices = true;
+    try {
+      const result = await firstValueFrom(this.http.post<any>(environment.apiUrl + '/yahoo-finance/import-xdem', {}));
+      console.info('[Yahoo XDEM import]', result);
+      window.alert('Yahoo XDEM: ' + result.inserted + ' nuove quotazioni, ' + result.existing + ' già presenti, ' + result.skipped + ' senza prezzo valido.');
+    } catch (error: any) {
+      console.error('[Yahoo XDEM import]', error);
+      window.alert('Importazione Yahoo non riuscita: ' + (error?.error?.error || error?.message || 'errore sconosciuto'));
+    } finally {
+      this.isImportingYahooPrices = false;
+    }
+  }
+
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
   get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
