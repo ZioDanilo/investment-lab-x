@@ -6,7 +6,7 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
 import { Subscription } from 'rxjs';
 import { TrendStrategyService } from '../../core/services/trend-strategy.service';
 
-interface TrendEtf { isin: string; label: string; }
+interface TrendEtf { isin: string; label: string; searchText?: string; }
 interface TrendSlot {
   isin: string;
   price: number | null;
@@ -19,6 +19,8 @@ interface TrendSlot {
   benchmarkReturn?: number | null;
   benchmarkLoading?: boolean;
   benchmarkSubscription?: Subscription;
+  benchmarkSearch?: string;
+  benchmarkSearchOpen?: boolean;
 }
 @Component({
   selector: 'app-trend-following-page',
@@ -39,10 +41,23 @@ interface TrendSlot {
           </select>
           <ng-container *ngIf="trendStrategy.selectedStrategy() === 2">
             <span class="compare-sign">&gt;</span>
-            <select [value]="slot.benchmarkIsin || ''" (change)="selectBenchmark(i, $any($event.target).value)" aria-label="ETF di confronto">
-              <option value="">Zero (0%)</option>
-              <option *ngFor="let etf of allEtfs" [value]="etf.isin">{{ etf.label }}</option>
-            </select>
+            <div class="benchmark-search">
+              <input type="text" [value]="slot.benchmarkSearch || ''"
+                (input)="filterBenchmark(i, $any($event.target).value)"
+                (focus)="slot.benchmarkSearchOpen = true"
+                (blur)="closeBenchmarkSearch(i)"
+                placeholder="Cerca ETF per nickname, nome, ISIN o ticker"
+                [attr.aria-label]="'Cerca ETF di confronto ' + (i + 1)"
+                autocomplete="off">
+              <button *ngIf="slot.benchmarkIsin || slot.benchmarkSearch" class="clear-benchmark" type="button"
+                (mousedown)="$event.preventDefault()" (click)="selectBenchmark(i, '')" aria-label="Rimuovi ETF di confronto">×</button>
+              <div class="benchmark-options" *ngIf="slot.benchmarkSearchOpen">
+                <button type="button" class="benchmark-option" (mousedown)="$event.preventDefault(); selectBenchmark(i, '')">Nessun ETF — confronto con 0%</button>
+                <button type="button" class="benchmark-option" *ngFor="let etf of filteredBenchmarks(i)"
+                  (mousedown)="$event.preventDefault(); selectBenchmark(i, etf.isin)">{{ etf.label }}</button>
+                <div *ngIf="filteredBenchmarks(i).length === 0" class="benchmark-empty">Nessun ETF trovato</div>
+              </div>
+            </div>
           </ng-container></div>
           <p *ngIf="loadingPortfolio || slot.loading">Caricamento...</p>
           <p *ngIf="slot.error" class="error">{{ slot.error }}</p>
@@ -80,6 +95,14 @@ interface TrendSlot {
     .strategy-card label { font-weight:600; }
     .select-line { display:flex; align-items:center; gap:8px; min-width:0; }
     .select-line.dual-select select { flex:1 1 0; width:0; }
+    .benchmark-search { position:relative; flex:1 1 0; min-width:0; }
+    .benchmark-search input { width:100%; box-sizing:border-box; padding:10px 30px 10px 10px; border-radius:8px; background:#203554; color:white; border:1px solid #6085b5; font:inherit; }
+    .benchmark-search input::placeholder { color:#a9bad2; }
+    .clear-benchmark { position:absolute; right:6px; top:5px; background:transparent; border:0; color:#c7d6e9; font-size:22px; cursor:pointer; }
+    .benchmark-options { position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:50; max-height:240px; overflow-y:auto; border:1px solid #6085b5; border-radius:8px; background:#152b49; box-shadow:0 12px 24px rgba(0,0,0,.4); }
+    .benchmark-option { display:block; width:100%; padding:9px 10px; text-align:left; color:white; background:transparent; border:0; border-bottom:1px solid rgba(125,150,190,.15); cursor:pointer; overflow-wrap:anywhere; }
+    .benchmark-option:hover { background:#2b4e7d; }
+    .benchmark-empty { padding:12px; color:#a9bad2; font-size:12px; }
     .compare-sign { font-size:20px; font-weight:700; flex-shrink:0; }
     .strategy-card select { width:100%; min-width:0; padding:10px 12px; border-radius:8px; background:#203554; color:white; border:1px solid #6085b5; }
     .results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; width:100%; }
@@ -166,6 +189,8 @@ export class TrendFollowingPageComponent implements OnDestroy {
     slot.benchmarkIsin = '';
     slot.benchmarkReturn = null;
     slot.benchmarkLoading = false;
+    slot.benchmarkSearch = '';
+    slot.benchmarkSearchOpen = false;
   }
   private loadPortfolio(): void {
     this.portfolioRequest?.unsubscribe();
@@ -183,7 +208,11 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.catalogRequest = this.api.getETFs().subscribe({
       next: (res: any) => {
         const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-        this.allEtfs = rows.map((e: any) => ({ isin: String(e.isin || '').toUpperCase(), label: (e.nickname || e.name || e.isin) + ' (' + e.isin + ')' })).filter((e: TrendEtf) => !!e.isin);
+        this.allEtfs = rows.map((e: any) => ({
+          isin: String(e.isin || '').toUpperCase(),
+          label: (e.nickname || e.name || e.fullName || e.isin) + ' (' + e.isin + ')',
+          searchText: [e.nickname, e.name, e.fullName, e.ticker, e.symbol, e.isin].filter(Boolean).join(' ').toLocaleLowerCase()
+        })).filter((e: TrendEtf) => !!e.isin);
       },
       error: () => { this.allEtfs = []; }
     });
@@ -370,11 +399,31 @@ export class TrendFollowingPageComponent implements OnDestroy {
     return this.formatPercent(a - b);
   }
 
+  filteredBenchmarks(index: number): TrendEtf[] {
+    const query = (this.slots[index]?.benchmarkSearch || '').trim().toLocaleLowerCase();
+    return this.allEtfs.filter(etf => !query || (etf.searchText || etf.label.toLocaleLowerCase()).includes(query)).slice(0, 40);
+  }
+
+  filterBenchmark(index: number, query: string): void {
+    const slot = this.slots[index];
+    if (!slot) return;
+    if (slot.benchmarkIsin) this.selectBenchmark(index, '');
+    slot.benchmarkSearch = query;
+    slot.benchmarkSearchOpen = true;
+  }
+
+  closeBenchmarkSearch(index: number): void {
+    const slot = this.slots[index];
+    if (slot) slot.benchmarkSearchOpen = false;
+  }
+
   selectBenchmark(index: number, isin: string): void {
     const slot = this.slots[index];
     if (!slot) return;
     slot.benchmarkSubscription?.unsubscribe();
     slot.benchmarkIsin = isin;
+    slot.benchmarkSearch = isin ? (this.allEtfs.find(etf => etf.isin === isin)?.label || isin) : '';
+    slot.benchmarkSearchOpen = false;
     slot.benchmarkReturn = null;
     slot.benchmarkLoading = !!isin;
     if (!isin) return;
