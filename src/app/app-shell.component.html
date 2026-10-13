@@ -24,7 +24,7 @@
         <div class="profile-dropdown" [class.is-open]="profileMenuOpen" role="menu" [attr.aria-hidden]="!profileMenuOpen" (click)="$event.stopPropagation()">
           <button type="button" class="profile-dropdown__item" role="menuitem" [disabled]="isImportingYahooPrices" (click)="importYahooPrices($event)">
             <span class="material-symbols-rounded">download</span>
-            <span>{{ isImportingYahooPrices ? 'Importazione Yahoo in corso…' : 'Importa quotazioni Yahoo EEAU' }}</span>
+            <span>{{ isImportingYahooPrices ? 'Aggiornamento quotazioni…' : 'Aggiorna quotazioni' }}</span>
           </button>
           <button type="button" class="profile-dropdown__item" role="menuitem" [disabled]="isRegeneratingMarketUniverse" (click)="regenerateMarketUniverse($event)">
             <span class="material-symbols-rounded">autorenew</span>
