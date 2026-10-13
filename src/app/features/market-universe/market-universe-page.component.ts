@@ -23,8 +23,8 @@ export class MarketUniversePageComponent {
   callYahooFinance(): void {
     if (this.yahooLoading()) return;
     this.yahooLoading.set(true);
-    // Explicit diagnostic ticker: the assets on this branch are mock data.
-    this.http.get(`${environment.apiUrl}/yahoo-finance/diagnostic`, { params: { symbol: 'IWDA.AS' } }).subscribe({
+    // Xtrackers MSCI World Momentum UCITS ETF 1C, Xetra EUR.
+    this.http.get(`${environment.apiUrl}/yahoo-finance/diagnostic`, { params: { symbol: 'XDEM.DE' } }).subscribe({
       next: response => { console.info('[Yahoo Finance diagnostic]', response); this.yahooLoading.set(false); },
       error: error => { console.error('[Yahoo Finance diagnostic]', error); this.yahooLoading.set(false); }
     });
