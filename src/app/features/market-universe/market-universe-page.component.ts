@@ -1,21 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../../core/api/api.service';
 import { MarketAsset } from '../../core/models/market-universe.model';
 
 type SortField = 'name' | 'ticker' | 'assetClass' | 'ter' | 'expectedReturn' | 'volatility' | 'maxDrawdown';
 type SortDirection = 'asc' | 'desc';
 type AssetStatus = 'COMPLETE' | 'INCOMPLETE' | 'LEGACY';
-
-interface CorrelationRow {
-  targetIsin: string;
-  targetName: string;
-  expansion: number | null;
-  softLanding: number | null;
-  recession: number | null;
-  stagflation: number | null;
-}
 
 @Component({
   selector: 'app-market-universe-page',
@@ -24,12 +14,16 @@ interface CorrelationRow {
   templateUrl: './market-universe-page.component.html',
   styleUrls: ['./market-universe-page.component.css']
 })
-export class MarketUniversePageComponent implements OnInit {
-  private readonly api = inject(ApiService);
-
-  readonly loading = signal(true);
+export class MarketUniversePageComponent {
+  readonly loading = signal(false);
   readonly error = signal('');
-  readonly assets = signal<MarketAsset[]>([]);
+  // Dati dimostrativi locali: nessuna richiesta al backend o al database.
+  private readonly demoAssets: MarketAsset[] = [
+    { id: 'demo-1', isin: 'DEMO0000001', ticker: 'WRLD', name: 'ETF Azionario Globale Demo', nickname: 'World Demo', description: 'Strumento dimostrativo', assetClass: 'Equity', subAssetClass: 'Global', category: 'Azionario globale', geography: 'Globale', currency: 'EUR', instrumentType: 'ETF', provider: 'Demo Asset Management', ter: 0.002, distributing: false, hedged: false, expectedReturn: 0.073, volatility: 0.155, maxDrawdown: -0.34, returnRangeMin: -0.28, returnRangeMax: 0.32, source: 'backend', general: { expectedReturn: 0.073, volatility: 0.155, maxDrawdown: -0.34, returnRange: { min: -0.28, max: 0.32 } }, expansion: { expectedReturn: 0.12, volatility: 0.13, maxDrawdown: -0.2, returnRange: { min: -0.12, max: 0.35 } }, soft_landing: { expectedReturn: 0.075, volatility: 0.12, maxDrawdown: -0.18, returnRange: { min: -0.15, max: 0.25 } }, recession: { expectedReturn: -0.15, volatility: 0.24, maxDrawdown: -0.42, returnRange: { min: -0.4, max: 0.18 } }, stagflation: { expectedReturn: -0.055, volatility: 0.2, maxDrawdown: -0.32, returnRange: { min: -0.3, max: 0.2 } } },
+    { id: 'demo-2', isin: 'DEMO0000002', ticker: 'BOND', name: 'ETF Obbligazionario Euro Demo', nickname: 'Bond Demo', description: 'Strumento dimostrativo', assetClass: 'Bond', subAssetClass: 'Government', category: 'Titoli di Stato', geography: 'Europa', currency: 'EUR', instrumentType: 'ETF', provider: 'Demo Asset Management', ter: 0.0015, distributing: false, hedged: false, expectedReturn: 0.032, volatility: 0.065, maxDrawdown: -0.15, returnRangeMin: -0.11, returnRangeMax: 0.14, source: 'backend', general: { expectedReturn: 0.032, volatility: 0.065, maxDrawdown: -0.15, returnRange: { min: -0.11, max: 0.14 } }, expansion: { expectedReturn: 0.025, volatility: 0.055, maxDrawdown: -0.1, returnRange: { min: -0.08, max: 0.11 } }, soft_landing: { expectedReturn: 0.05, volatility: 0.05, maxDrawdown: -0.08, returnRange: { min: -0.04, max: 0.14 } }, recession: { expectedReturn: 0.07, volatility: 0.09, maxDrawdown: -0.13, returnRange: { min: -0.1, max: 0.2 } }, stagflation: { expectedReturn: -0.06, volatility: 0.11, maxDrawdown: -0.2, returnRange: { min: -0.19, max: 0.1 } } },
+    { id: 'demo-3', isin: 'DEMO0000003', ticker: 'GOLD', name: 'ETF Oro Demo', nickname: 'Gold Demo', description: 'Strumento dimostrativo', assetClass: 'Commodity', subAssetClass: 'Gold', category: 'Oro', geography: 'Globale', currency: 'EUR', instrumentType: 'ETC', provider: 'Demo Asset Management', ter: 0.0025, distributing: false, hedged: false, expectedReturn: 0.048, volatility: 0.17, maxDrawdown: -0.29, returnRangeMin: -0.25, returnRangeMax: 0.3, source: 'backend', general: { expectedReturn: 0.048, volatility: 0.17, maxDrawdown: -0.29, returnRange: { min: -0.25, max: 0.3 } }, expansion: { expectedReturn: 0.025, volatility: 0.14, maxDrawdown: -0.2, returnRange: { min: -0.2, max: 0.22 } }, soft_landing: { expectedReturn: 0.04, volatility: 0.13, maxDrawdown: -0.18, returnRange: { min: -0.16, max: 0.24 } }, recession: { expectedReturn: 0.09, volatility: 0.22, maxDrawdown: -0.3, returnRange: { min: -0.28, max: 0.4 } }, stagflation: { expectedReturn: 0.12, volatility: 0.23, maxDrawdown: -0.32, returnRange: { min: -0.27, max: 0.45 } } }
+  ];
+  readonly assets = signal<MarketAsset[]>(this.demoAssets);
   readonly selectedAsset = signal<MarketAsset | null>(null);
   readonly searchTerm = signal('');
   readonly sortField = signal<SortField>('name');
@@ -38,9 +32,6 @@ export class MarketUniversePageComponent implements OnInit {
   readonly categoryFilter = signal('');
   readonly currencyFilter = signal('');
   readonly providerFilter = signal('');
-  readonly correlationRows = signal<CorrelationRow[]>([]);
-  readonly correlationsLoading = signal(false);
-  readonly correlationError = signal('');
 
   readonly scenarioLabels: Record<string, string> = {
     general: 'General',
@@ -143,47 +134,13 @@ export class MarketUniversePageComponent implements OnInit {
 
   readonly legacyFallbackActive = computed(() => this.assets().some((asset) => asset.source === 'legacy-fallback' || asset.legacyFallback === true));
 
-  ngOnInit(): void {
-    this.loadAssets();
-  }
-
-  private loadAssets(): void {
-    this.loading.set(true);
-    this.error.set('');
-    this.correlationError.set('');
-    this.correlationRows.set([]);
-
-    this.api.getMarketUniverseAssets().subscribe({
-      next: (response: any) => {
-        const assets = Array.isArray(response?.data) ? response.data : [];
-        this.assets.set(assets);
-
-        if (assets.length > 0) {
-          const currentSelection = this.selectedAsset();
-          const nextSelection = assets.find((asset: MarketAsset) => asset.isin === currentSelection?.isin) ?? assets[0];
-          this.selectedAsset.set(nextSelection);
-          this.loadCorrelations(nextSelection.isin);
-        } else {
-          this.selectedAsset.set(null);
-          this.correlationRows.set([]);
-        }
-
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Market Universe load failed', err);
-        this.error.set(err?.error?.error || 'Errore nel caricamento del Market Universe');
-        this.assets.set([]);
-        this.selectedAsset.set(null);
-        this.correlationRows.set([]);
-        this.loading.set(false);
-      }
-    });
+  // Selezione iniziale locale.
+  constructor() {
+    this.selectedAsset.set(this.demoAssets[0]);
   }
 
   selectAsset(asset: MarketAsset): void {
     this.selectedAsset.set(asset);
-    this.loadCorrelations(asset.isin);
   }
 
   resetFilters(): void {
@@ -236,65 +193,6 @@ export class MarketUniversePageComponent implements OnInit {
     const hasMacroCoverage = !!(asset.general || asset.expansion || asset.soft_landing || asset.recession || asset.stagflation);
 
     return hasRequiredFields && hasMacroCoverage ? 'COMPLETE' : 'INCOMPLETE';
-  }
-
-  private loadCorrelations(isin: string): void {
-    if (!isin) {
-      this.correlationRows.set([]);
-      this.correlationError.set('');
-      return;
-    }
-
-    this.correlationsLoading.set(true);
-    this.correlationError.set('');
-
-    this.api.getCorrelations(isin).subscribe({
-      next: (response: any) => {
-        const rows = Array.isArray(response?.data) ? response.data : [];
-        const map = new Map<string, { isin: string; name: string; expansion: number | null; soft_landing: number | null; recession: number | null; stagflation: number | null }>();
-
-        for (const row of rows) {
-          const counterpart = String(row.isin1 ?? '').trim().toUpperCase() === String(isin ?? '').trim().toUpperCase()
-            ? String(row.isin2 ?? '').trim().toUpperCase()
-            : String(row.isin1 ?? '').trim().toUpperCase();
-
-          const targetAsset = this.assets().find((asset) => String(asset.isin).trim().toUpperCase() === counterpart);
-
-          if (!counterpart || !targetAsset) {
-            continue;
-          }
-
-          map.set(counterpart, {
-            isin: counterpart,
-            name: targetAsset.name,
-            expansion: this.toNumber(row.expansion),
-            soft_landing: this.toNumber(row.soft_landing),
-            recession: this.toNumber(row.recession),
-            stagflation: this.toNumber(row.stagflation)
-          });
-        }
-
-        this.correlationRows.set(Array.from(map.values()).map((entry) => ({
-          targetIsin: entry.isin,
-          targetName: entry.name,
-          expansion: entry.expansion,
-          softLanding: entry.soft_landing,
-          recession: entry.recession,
-          stagflation: entry.stagflation
-        })));
-        this.correlationsLoading.set(false);
-      },
-      error: () => {
-        this.correlationError.set('Correlazioni non disponibili per questo asset.');
-        this.correlationRows.set([]);
-        this.correlationsLoading.set(false);
-      }
-    });
-  }
-
-  private toNumber(value: unknown): number | null {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
   }
 
   formatPercent(value: number | null | undefined): string {

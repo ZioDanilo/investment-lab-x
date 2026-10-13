@@ -59,6 +59,7 @@ export class MontecarloPageComponent {
   readonly editorState = signal<MontecarloPortfolioEditorChange | null>(null);
   private kpiConfigLoadVersion = 0;
   private loadedKpiPortfolioId: string | null = null;
+  private kpiSaveQueue: Promise<void> = Promise.resolve();
   finalReturnDistribution: { label: string; subtitle: string; bins: Array<{ label: string; value: number; lowerBoundPercent: number; upperBoundPercent: number }> } = {
     label: 'Distribuzione dei rendimenti finali',
     subtitle: 'Distribuzione simulata a 30 anni',
@@ -151,6 +152,8 @@ export class MontecarloPageComponent {
       return;
     }
 
+    this.loadedKpiPortfolioId = null;
+    this.resetPortfolioKpiConfiguration();
     try {
       const response = await firstValueFrom(this.apiService.getPortfolioKpiTargets(portfolioId));
       if (loadVersion !== this.kpiConfigLoadVersion || this.selectedPortfolio()?.id !== portfolioId) {
@@ -164,6 +167,7 @@ export class MontecarloPageComponent {
         .sort((left: any, right: any) => Number(left?.priority) - Number(right?.priority));
 
       if (validRows.length !== this.defaultKpis.length || new Set(validRows.map((row: any) => String(row.kpi))).size !== this.defaultKpis.length) {
+        this.loadedKpiPortfolioId = portfolioId;
         this.resetPortfolioKpiConfiguration();
         return;
       }
@@ -180,13 +184,14 @@ export class MontecarloPageComponent {
     } catch (error) {
       if (loadVersion === this.kpiConfigLoadVersion && this.selectedPortfolio()?.id === portfolioId) {
         console.error('[KPI target load]', error);
+        this.loadedKpiPortfolioId = null;
         this.resetPortfolioKpiConfiguration();
       }
     }
   }
 
   private async saveCurrentPortfolioKpiConfiguration(): Promise<void> {
-    const portfolioId = this.editorState()?.state?.selectedPortfolioId ?? this.selectedPortfolio()?.id ?? null;
+    const portfolioId = this.selectedPortfolio()?.id ?? this.editorState()?.state?.selectedPortfolioId ?? null;
     if (!portfolioId) {
       throw new Error('Impossibile salvare i KPI: nessun portafoglio selezionato.');
     }
@@ -201,6 +206,22 @@ export class MontecarloPageComponent {
     if (response?.success === false) {
       throw new Error(response?.error || 'Salvataggio configurazione KPI non riuscito');
     }
+  }
+  // Serialize complete snapshots: an older HTTP response must never overwrite a newer edit.
+  private queueKpiConfigurationSave(): void {
+    const portfolioId = this.selectedPortfolio()?.id ?? null;
+    if (!portfolioId) return;
+    const snapshot = this.kpis.map((kpi, index) => ({
+      kpi: kpi.id,
+      priority: index + 1,
+      target: this.kpiTargets[kpi.id] ?? '–'
+    }));
+    this.kpiSaveQueue = this.kpiSaveQueue.catch(() => undefined).then(async () => {
+      const response = await firstValueFrom(this.apiService.savePortfolioKpiTargets(portfolioId, snapshot));
+      if (response?.success === false) throw new Error(response?.error || 'Salvataggio KPI non riuscito');
+    }).catch(error => {
+      console.error('[KPI autosave]', error);
+    });
   }
   openKpiTargetId: string | null = null;
   kpiResultValues: Record<string, number | null> = {};
@@ -589,70 +610,6 @@ export class MontecarloPageComponent {
     }
   }
 
-  private async requestBinaryProjectionForHoldings(
-    holdings: Array<{ isin: string; weight: number }>,
-    options: {
-      knownRunId?: string | null;
-      previousRunId?: string | null;
-      payloadType?: 'FULL' | 'RETURNS_ONLY';
-    } = {}
-  ): Promise<DecodedMarketUniverseBinary> {
-    const response = await firstValueFrom(this.apiService.buildBinaryPortfolioProjectionFromActiveMarketUniverse({
-      holdings,
-      knownRunId: options.knownRunId ?? null,
-      previousRunId: options.previousRunId ?? null,
-      payloadType: options.payloadType ?? 'FULL'
-    }));
-
-    if (!response) {
-      throw new Error('Binary Market Universe response was empty.');
-    }
-
-    const arrayBuffer = response instanceof ArrayBuffer
-      ? response
-      : (response as ArrayBufferView)?.buffer instanceof ArrayBuffer
-        ? (response as ArrayBufferView).buffer
-        : new Uint8Array(response as ArrayBuffer | number[]).buffer;
-
-    return MarketUniverseBinaryTransport.decode(arrayBuffer);
-  }
-
-  private async requestBinarySimulationProjection(holdings: Array<{ isin: string; weight: number }>): Promise<any> {
-    const baseKnownRunId = this.marketUniverseBinaryMetadataCache?.runId ?? null;
-    let lastError: unknown = null;
-
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const knownRunId = attempt === 0 ? baseKnownRunId : null;
-      const payloadType = attempt === 0 && knownRunId ? 'RETURNS_ONLY' : 'FULL';
-      const previousRunId = attempt === 0 && knownRunId ? knownRunId : null;
-
-      try {
-        const decoded = await this.requestBinaryProjectionForHoldings(holdings, {
-          knownRunId,
-          previousRunId,
-          payloadType
-        });
-
-        if (decoded.payloadType === 'RETURNS_ONLY') {
-          this.ensureBinaryMetadataCompatibility(decoded);
-          return this.normalizeBinaryProjectionProjection(decoded);
-        }
-
-        this.setBinaryMetadataCacheFromDecoded(decoded);
-        return this.normalizeBinaryProjectionProjection(decoded);
-      } catch (error) {
-        lastError = error;
-        if (attempt === 0 && baseKnownRunId && (error instanceof Error) && /stale|mismatch|invalid|metadata/i.test(error.message)) {
-          this.invalidateBinaryMetadataCache();
-          continue;
-        }
-        break;
-      }
-    }
-
-    throw lastError instanceof Error ? lastError : new Error('Binary Market Universe request failed.');
-  }
-
   private async requestBinarySimulationProjectionV2(holdings: Array<{ isin: string; weight: number }>): Promise<any> {
     const requestStartedAt = performance.now();
     const response = await firstValueFrom(this.apiService.buildBinaryPortfolioProjectionV2({ holdings }));
@@ -925,9 +882,8 @@ export class MontecarloPageComponent {
     this.editorState.set(change);
 
     const portfolioId = change?.state?.selectedPortfolioId ?? null;
-    if (portfolioId && portfolioId !== this.loadedKpiPortfolioId) {
-      void this.loadPortfolioKpiConfiguration(portfolioId);
-    }
+    // Portfolio selection is observed by the constructor effect; do not issue
+    // duplicate asynchronous loads that can overwrite locally edited KPI targets.
   }
 
   async runSimulation(): Promise<void> {
@@ -941,6 +897,8 @@ export class MontecarloPageComponent {
     this.resetKpis();
 
     try {
+      // Persist the user's exact KPI order and targets when starting a simulation.
+      // The same portfolio ID is used when restoring this configuration on selection.
       // The editor is the source of truth for a simulation. Its composition can
       // intentionally differ from the persisted portfolio until the user chooses
       // "Aggiorna portafoglio"; fetching the DB portfolio here would therefore
@@ -1132,6 +1090,7 @@ export class MontecarloPageComponent {
     }
 
     this.swapKpis(this.draggedKpiId, kpiId);
+    this.queueKpiConfigurationSave();
     this.finishDragState();
   }
 
@@ -1152,6 +1111,7 @@ export class MontecarloPageComponent {
     }
 
     this.insertKpi(this.draggedKpiId, index);
+    this.queueKpiConfigurationSave();
     this.finishDragState();
   }
 
@@ -1206,6 +1166,7 @@ export class MontecarloPageComponent {
     this.suppressKpiTransitions = true;
     if (kpiId) {
       this.insertKpi(kpiId, insertIndex);
+      this.queueKpiConfigurationSave();
     }
     this.finishDragState();
 
@@ -1291,7 +1252,10 @@ export class MontecarloPageComponent {
   }
 
   selectKpiTarget(kpiId: string, value: string, event: MouseEvent): void {
-    this.kpiTargets[kpiId] = value;
+    if (this.kpiTargets[kpiId] !== value) {
+      this.kpiTargets[kpiId] = value;
+      this.queueKpiConfigurationSave();
+    }
     this.openKpiTargetId = null;
   }
 

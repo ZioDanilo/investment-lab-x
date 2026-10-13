@@ -1,19 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { AfterViewInit, Component, HostListener, OnDestroy, inject } from '@angular/core';
+import { firstValueFrom, filter } from 'rxjs';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { PortfolioSelectorComponent } from './shared/portfolio-selector/portfolio-selector.component';
+import { MoneyInputComponent } from './shared/inputs/money-input.component';
+import { RebalanceInputService } from './core/services/rebalance-input.service';
 import { ApiService } from './core/api/api.service';
 import { PortfolioSelectionService } from './core/services/portfolio-selection.service';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent, MoneyInputComponent],
   templateUrl: './app-shell.component.html',
   styleUrls: ['./app-shell.component.css']
 })
-export class AppShellComponent implements OnDestroy {
+export class AppShellComponent implements OnDestroy, AfterViewInit {
   constructor() {
     // Services are in-memory: after a browser refresh rebuild the user-scoped data.
     if (localStorage.getItem('investmentLabUsername')) {
@@ -22,11 +24,38 @@ export class AppShellComponent implements OnDestroy {
     }
   }
 
+  rebalanceTargetLeft = 0;
+  rebalanceTargetWidth = 280;
+  private targetResizeObserver: ResizeObserver | null = null;
+  ngAfterViewInit(): void {
+    this.alignRebalanceSelector();
+    // The rebalance action row is created only after route navigation.
+    this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(() => requestAnimationFrame(() => this.alignRebalanceSelector()));
+    requestAnimationFrame(() => this.alignRebalanceSelector());
+    if (typeof ResizeObserver !== 'undefined') {
+      this.targetResizeObserver = new ResizeObserver(() => this.alignRebalanceSelector());
+      const navbar = document.querySelector('.nav-links > app-portfolio-selector');
+      const row = document.querySelector('.app-feature-action-row');
+      if (navbar) this.targetResizeObserver.observe(navbar);
+      if (row) this.targetResizeObserver.observe(row);
+    }
+  }
+  @HostListener('window:resize')
+  alignRebalanceSelector(): void {
+    const navbar = document.querySelector('.nav-links > app-portfolio-selector .selector-trigger');
+    const row = document.querySelector('.app-feature-action-row');
+    if (!navbar || !row) return;
+    this.rebalanceTargetLeft = navbar.getBoundingClientRect().left - row.getBoundingClientRect().left;
+    this.rebalanceTargetWidth = navbar.getBoundingClientRect().width;
+  }
   ngOnDestroy(): void {
+    this.targetResizeObserver?.disconnect();
     this.stopMarketUniversePolling();
   }
-  readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/nuovo-etf'];
+  readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/trend-following'];
   private readonly router = inject(Router);
+  readonly rebalanceInputs = inject(RebalanceInputService);
   private readonly apiService = inject(ApiService);
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
@@ -61,6 +90,7 @@ export class AppShellComponent implements OnDestroy {
       ? Math.max(1, this.marketUniverseGenerationProgress)
       : (this.activeFeaturePage?.headerActionProgress ?? 0);
   }
+  get isRebalancePage(): boolean { return this.router.url.startsWith('/ribilanciamento'); }
   private get isMonteCarloPage(): boolean { return this.router.url.startsWith('/monte-carlo'); }
   runFeatureAction(): void { this.activeFeaturePage?.runHeaderAction?.(); }
   get secondaryFeatureActionLabel(): string { return this.activeFeaturePage?.secondaryHeaderActionLabel ?? ''; }

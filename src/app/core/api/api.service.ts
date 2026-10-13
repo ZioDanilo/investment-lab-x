@@ -90,12 +90,24 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/market-value`);
   }
 
+  getLatestStoredQuotation(isin: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/quotations/history?isin=${encodeURIComponent(isin)}&limit=1`);
+  }
+
+  getRealPortfolioHistory(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/history`);
+  }
+
   getRealPortfolioHoldings(portfolioId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/real-portfolios/${portfolioId}/holdings`);
   }
 
   createRealPortfolioOperation(portfolioId: string, data: { operationType: 'buy' | 'sell'; etfId: string; operationDate: string; quantity: number; unitPrice: number }): Observable<any> {
     return this.http.post(`${this.apiUrl}/real-portfolios/${portfolioId}/operations`, data);
+  }
+
+  refreshSingleEodhdQuotation(isin: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/quotations/single/${encodeURIComponent(isin)}/refresh`, {});
   }
 
   refreshRealPortfolioQuotations(portfolioId: string): Observable<any> {
@@ -134,25 +146,9 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/etf/add`, { isin, descrizione, nickname });
   }
 
-  // Add ETF + correlations atomically (single transaction)
-  addEtfWithCorrelations(isin: string, descrizione: string, nome: string, nickname: string | null, ticker: string, quotation: number | null, correlations: any[], macroStatistics?: any, generalStats?: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/etf/add-with-correlations`, { isin, descrizione, nome, nickname, ticker, quotation, correlations, macro_statistics: macroStatistics, general_stats: generalStats });
-  }
-
   // Search ETF on JustETF
   searchJustETF(isin: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/etf/search/justetf?isin=${isin}`);
-  }
-
-  // Save ETF correlations
-  saveCorrelations(payload: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/correlations`, payload);
-  }
-
-  // Get all ETF correlations from DB
-  getCorrelations(isin1?: string): Observable<any> {
-    const params = isin1 ? `?isin1=${isin1}` : '';
-    return this.http.get(`${this.apiUrl}/correlations${params}`);
   }
 
   // Search ETF by ISIN or description
@@ -199,32 +195,6 @@ export class ApiService {
 
   getMarketUniverseAssetByIsin(isin: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/market-universe/assets/isin/${encodeURIComponent(isin)}`);
-  }
-
-  getActiveMarketUniverse(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/market-universe/active`);
-  }
-
-  getMarketUniverseGenerationStatus(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/market-universe/generation-status`);
-  }
-
-  buildPortfolioProjectionFromActiveMarketUniverse(payload: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/market-universe/portfolio/projection`, payload);
-  }
-
-  buildBinaryPortfolioProjectionFromActiveMarketUniverse(payload: any): Observable<ArrayBuffer> {
-    return this.http.post(`${this.apiUrl}/market-universe/portfolio/projection/binary`, payload, {
-      responseType: 'arraybuffer'
-    });
-  }
-
-  warmupMarketUniverseCache(): Observable<any> {
-    return this.http.post(`${this.apiUrl}/market-universe/cache/warmup`, {});
-  }
-
-  regenerateMarketUniverse(): Observable<any> {
-    return this.http.post(`${this.apiUrl}/market-universe/regenerate`, {});
   }
 
   // Market Universe V2: ETF-oriented persistence, no application warm-up cache.

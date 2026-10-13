@@ -45,6 +45,7 @@ export class RealPortfoliosPageComponent implements OnInit {
       next:()=>{
         this.loadMarketValues();
         this.loadHoldings();
+        this.loadHistory();
         this.finishQuotationProgress();
       },
       error:(error)=>{
@@ -125,7 +126,12 @@ export class RealPortfoliosPageComponent implements OnInit {
       const selectedId = this.portfolioSelection.selectedPortfolio()?.id;
       if (selectedId) {
         const index = this.portfolios.findIndex((portfolio) => portfolio.id === selectedId);
-        if (index >= 0 && index !== this.selected) this.selected = index;
+        if (index >= 0 && index !== this.selected) {
+          this.selected = index;
+          this.loadOperations();
+          this.loadHoldings();
+          this.loadHistory();
+        }
         return;
       }
 
@@ -147,11 +153,15 @@ export class RealPortfoliosPageComponent implements OnInit {
         const selectedIndex=selectedId ? this.portfolios.findIndex((portfolio)=>portfolio.id===selectedId) : -1;
         this.selected=selectedIndex>=0 ? selectedIndex : 0;
         this.loadingPortfolios=false;
-        if (!selectedId && this.portfolios.length) this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
-        else if (!this.portfolios.length && !selectedId) this.portfolioSelection.setSelectedPortfolio(null);
+        if (this.portfolios.length && selectedIndex < 0) {
+          // Keep the global selection when it is a laboratory portfolio;
+          // select the first real card locally and synchronize the navbar on entry.
+          this.portfolioSelection.setSelectedPortfolio(this.portfolios[0].id);
+        } else if (!this.portfolios.length && !selectedId) this.portfolioSelection.setSelectedPortfolio(null);
         this.loadOperations();
         this.loadMarketValues();
         this.loadHoldings();
+        this.loadHistory();
       },
       error:()=>{ this.portfolios=[]; this.loadingPortfolios=false; }
     });
@@ -253,11 +263,57 @@ export class RealPortfoliosPageComponent implements OnInit {
   operations:Operation[]=[];
   readonly stats=[['Rendimento totale','+12,4%','positive'],['Rendimento annuo (TWR)','+8,1%','positive'],['Volatilità annua','11,3%',''],['Sharpe ratio (rf 2%)','0,54',''],['Massimo drawdown','-7,8%','negative'],['Mese migliore','+4,9%','positive'],['Mese peggiore','-4,1%','negative'],['Mesi positivi','18 (66%)','']];
   readonly legend:ChartLegendItem[]=[{label:'Valore di mercato',color:'#2d91ff'},{label:'Capitale investito',color:'#9ab2cf'}];
-  readonly series:LineChartSeries[]=[
-    {label:'Valore di mercato',color:'#2d91ff',points:'52,205 95,193 140,181 188,174 235,158 282,166 330,145 378,132 425,119 472,111 520,116 568,100 620,94'},
-    {label:'Capitale investito',color:'#9ab2cf',points:'52,216 95,207 140,199 188,191 235,182 282,174 330,164 378,154 425,145 472,137 520,131 568,124 620,118'}
-  ];
-  readonly ticks:LineChartTick[]=[{value:'€ 30.000',y:30},{value:'€ 25.000',y:70},{value:'€ 20.000',y:110},{value:'€ 15.000',y:150},{value:'€ 10.000',y:190},{value:'€ 5.000',y:230}];
+  history:Array<{date:string;month:string;marketValue:number|null;netContributions:number;valuation:string;estimatedPositions:number}>=[];
+  historyPeriod:'1Y'|'3Y'|'5Y'|'MAX'='MAX';
+  historyLoading=false;
+  get visibleHistory(){ const months=this.historyPeriod==='MAX'?Infinity:this.historyPeriod==='1Y'?12:this.historyPeriod==='3Y'?36:60; return this.history.slice(-months); }
+  setHistoryPeriod(period:'1Y'|'3Y'|'5Y'|'MAX'):void { this.historyPeriod=period; }
+  private loadHistory():void {
+    const portfolio=this.portfolios[this.selected];
+    if(!portfolio){this.history=[];return;}
+    this.historyLoading=true;
+    this.api.getRealPortfolioHistory(portfolio.id).subscribe({
+      next:(response:any)=>{
+        if(this.portfolios[this.selected]?.id!==portfolio.id)return;
+        this.history=Array.isArray(response?.data)?response.data:[];
+        this.historyLoading=false;
+      },
+      error:(error)=>{this.historyLoading=false;this.history=[];console.error('Errore storico portafoglio',error);}
+    });
+  }
+  get historyMonths():string[] {
+    const rows=this.visibleHistory;
+    if(!rows.length)return [];
+    const indexes=[0,Math.floor((rows.length-1)/4),Math.floor((rows.length-1)/2),Math.floor(3*(rows.length-1)/4),rows.length-1];
+    return [...new Set(indexes)].map(i=>new Intl.DateTimeFormat('it-IT',{month:'short',year:'numeric'}).format(new Date(rows[i].date+'T12:00:00')));
+  }
+  // One end-of-month portfolio valuation in EUR per point. Monthly holdings
+  // and last available historical ETF prices are reconstructed by the API.
+  private get chartScale(){
+    const values=this.visibleHistory.map(p=>p.marketValue).filter((v):v is number=>v!==null&&Number.isFinite(v));
+    if(!values.length)return {min:0,max:1};
+    const low=Math.min(...values),high=Math.max(...values);
+    const span=Math.max(high-low,1);
+    const roughStep=span/4;
+    const magnitude=Math.pow(10,Math.floor(Math.log10(roughStep)));
+    const step=([1,2,2.5,5,10].find(n=>n*magnitude>=roughStep)||10)*magnitude;
+    const min=Math.max(0,Math.floor((low-step*.15)/step)*step);
+    const max=Math.ceil((high+step*.15)/step)*step;
+    return {min,max:max>min?max:min+step};
+  }
+  get ticks():LineChartTick[]{
+    const {min,max}=this.chartScale;
+    return Array.from({length:5},(_,i)=>({
+      value:new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(max-(max-min)*i/4),
+      y:35+47.5*i
+    }));
+  }
+  get series():LineChartSeries[]{
+    const rows=this.visibleHistory,{min,max}=this.chartScale;
+    const x=(i:number)=>rows.length===1?365:95+i*525/(rows.length-1);
+    const y=(value:number)=>225-(value-min)*190/(max-min);
+    return [{label:'Valore del portafoglio',color:'#2586d9',points:rows.map((r,i)=>r.marketValue===null?'':`${x(i).toFixed(1)},${y(r.marketValue).toFixed(1)}`).filter(Boolean).join(' ')}];
+  }
   startPortfolioDrag(i:number,event:DragEvent):void {
     this.openPortfolioMenu=null;
     this.draggedPortfolioIndex=i;
@@ -416,6 +472,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.loadOperations();
     this.loadMarketValues();
     this.loadHoldings();
+    this.loadHistory();
   }
   private loadMarketValues():void {
     this.api.getRealPortfolioMarketValues().subscribe({
@@ -524,5 +581,6 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.portfolioSelection.setSelectedPortfolio(portfolio?.id ?? null);
     this.loadOperations();
     this.loadHoldings();
+    this.loadHistory();
   }
 }

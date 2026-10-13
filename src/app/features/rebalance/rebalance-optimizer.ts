@@ -1,0 +1,119 @@
+export interface RebalanceInput {
+  isin: string;
+  quantity: number;
+  price: number;
+  targetWeight: number;
+}
+export interface RebalanceResult {
+  quantities: number[];
+  cashRemaining: number;
+  transactionCosts: number;
+  operationCount: number;
+  maxDeviation: number;
+  squaredDeviation: number;
+}
+
+/**
+ * Integer-share, long-only rebalancing. Each non-zero net trade reserves EUR 20.
+ * Lexicographic objective: minimise worst weight error, then sum of squared
+ * weight errors, then operation count. Cash is included in the denominator.
+ * Deterministic bounded local search with single moves and sell/buy swaps.
+ * It is a heuristic, not a globally certified MIQP optimum.
+ */
+export function optimizeRebalance(
+  items: RebalanceInput[], extraCash: number, fee = 20
+): RebalanceResult | null {
+  if (!items.length || !Number.isFinite(extraCash) || extraCash < 0) return null;
+  if (items.some(x => !Number.isFinite(x.price) || x.price <= 0 ||
+    !Number.isSafeInteger(x.quantity) || x.quantity < 0 ||
+    !Number.isFinite(x.targetWeight) || x.targetWeight < 0)) return null;
+  const targetSum = items.reduce((s,x)=>s+x.targetWeight,0);
+  if (Math.abs(targetSum-1)>0.001) return null;
+  const start = items.map(x=>x.quantity);
+  const initialValue = items.reduce((s,x)=>s+x.price*x.quantity,0)+extraCash;
+  if (initialValue <= 0) return null;
+  const n=items.length;
+  const evaluate=(q:number[]):RebalanceResult|null=>{
+    let cost=0,operations=0,invested=0;
+    for(let i=0;i<n;i++){
+      if(!Number.isSafeInteger(q[i])||q[i]<0)return null;
+      invested+=q[i]*items[i].price;
+      if(q[i]!==start[i]){cost+=fee;operations++;}
+    }
+    const remaining=initialValue-invested-cost;
+    if(remaining < -0.00001)return null;
+    const net=initialValue-cost;
+    if(net<=0)return null;
+    let maxDeviation=0,squaredDeviation=0;
+    for(let i=0;i<n;i++){
+      const d=Math.abs(q[i]*items[i].price/net-items[i].targetWeight);
+      maxDeviation=Math.max(maxDeviation,d);
+      squaredDeviation+=d*d;
+    }
+    return {quantities:q,cashRemaining:Math.max(0,remaining),transactionCosts:cost,
+      operationCount:operations,maxDeviation,squaredDeviation};
+  };
+  const better=(a:RebalanceResult,b:RebalanceResult):boolean=>{
+    const eps=1e-9;
+    if(a.maxDeviation<b.maxDeviation-eps)return true;
+    if(a.maxDeviation>b.maxDeviation+eps)return false;
+    if(a.squaredDeviation<b.squaredDeviation-eps)return true;
+    if(a.squaredDeviation>b.squaredDeviation+eps)return false;
+    return a.operationCount<b.operationCount;
+  };
+  let best=evaluate(start);
+  if(!best)return null;
+  // First produce a feasible seed by selling excess positions, then adding
+  // underweights with the resulting liquidity.
+  let q=start.slice();
+  for(let i=0;i<n;i++){
+    const desired=Math.max(0,Math.round(items[i].targetWeight*initialValue/items[i].price));
+    if(desired<q[i])q[i]=desired;
+  }
+  let candidate=evaluate(q);
+  if(candidate && better(candidate,best)){best=candidate;}
+  else if(!candidate){q=start.slice();}
+  // Greedy single and paired moves. Paired moves can finance purchases by
+  // selling an overweight holding even when cash is initially exhausted.
+  const limit=Math.min(300,Math.max(40,n*18));
+  for(let iteration=0;iteration<limit;iteration++){
+    let next: RebalanceResult = best;
+    const current=best.quantities;
+    const consider=(trial:number[])=>{
+      const result=evaluate(trial);
+      if(result && better(result,next))next=result;
+    };
+    const maxBlock=Math.max(1,Math.ceil(initialValue/Math.max(1,...items.map(x=>x.price))/10));
+    for(let i=0;i<n;i++){
+      const ideal=items[i].targetWeight*(initialValue-best.transactionCosts)/items[i].price;
+      const steps=new Set([1,2,5,10,maxBlock,Math.abs(Math.round(ideal)-current[i])]);
+      for(const step of steps){
+        if(step<=0)continue;
+        for(const sign of [-1,1]){
+          const trial=current.slice();trial[i]+=sign*step;consider(trial);
+        }
+      }
+    }
+    // Price-aware swaps: sell ETF i, use proceeds to buy ETF j.
+    for(let i=0;i<n;i++){
+      if(current[i]<=0)continue;
+      for(let j=0;j<n;j++){
+        if(i===j)continue;
+        const sellSteps=new Set([1,Math.min(current[i],5),
+          Math.min(current[i],Math.max(1,Math.ceil(current[i]*.2)))]);
+        for(const sold of sellSteps){
+          if(sold<=0)continue;
+          const funds=sold*items[i].price+best.cashRemaining-
+            (current[i]===start[i]?fee:0)-(current[j]===start[j]?fee:0);
+          const buy=Math.max(0,Math.floor(funds/items[j].price));
+          for(const bought of new Set([1,buy,Math.max(1,Math.round(buy*.5))])){
+            const trial=current.slice();trial[i]-=sold;trial[j]+=bought;consider(trial);
+          }
+        }
+      }
+    }
+    if(next===best)break;
+    best=next;
+  }
+  return best;
+}

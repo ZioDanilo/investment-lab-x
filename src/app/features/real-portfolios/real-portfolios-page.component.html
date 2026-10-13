@@ -32,9 +32,9 @@
 
     <div class="main-grid">
       <app-ui-card title="Andamento del portafoglio" class="chart-card">
-        <div class="chart-tools"><app-chart-legend [items]="legend"></app-chart-legend><div class="periods"><button>1Y</button><button class="active">3Y</button><button>5Y</button><button>MAX</button></div></div>
-        <div class="chart-wrap"><app-line-chart [series]="series" [yTicks]="ticks" viewBox="0 0 640 260"></app-line-chart></div>
-        <div class="months"><span>Gen 2023</span><span>Lug 2023</span><span>Gen 2024</span><span>Lug 2024</span><span>Gen 2025</span></div>
+        <div class="chart-tools"><span class="portfolio-performance-label">Valore del portafoglio (€)</span><div class="periods"><button *ngFor="let period of ['1Y','3Y','5Y','MAX']" [class.active]="historyPeriod===period" (click)="setHistoryPeriod($any(period))">{{period}}</button></div></div>
+        <div class="chart-wrap" *ngIf="visibleHistory.length"><app-line-chart [series]="series" [yTicks]="ticks" [plotLeft]="95" [plotRight]="620" viewBox="0 0 640 260"></app-line-chart></div><div *ngIf="!visibleHistory.length" class="chart-wrap" style="display:flex;align-items:center;justify-content:center;opacity:.7">{{historyLoading?'Caricamento storico...':'Nessuna operazione disponibile'}}</div><small *ngIf="visibleHistory.length && visibleHistory[visibleHistory.length-1].valuation!=='market'" style="opacity:.7">Rendimento mensile stimato: quando mancano quotazioni storiche vengono utilizzati i prezzi delle operazioni disponibili.</small>
+        <div class="months"><span *ngFor="let month of historyMonths">{{month}}</span></div>
       </app-ui-card>
 
       <app-ui-card title="Composizione attuale">

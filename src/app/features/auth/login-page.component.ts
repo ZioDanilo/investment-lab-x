@@ -173,10 +173,6 @@ export class LoginPageComponent {
         localStorage.setItem('investmentLabUsername', String(response?.data?.username ?? username));
         this.portfolioSelection.loadPortfolios();
         this.submitting = false;
-        this.apiService.warmupMarketUniverseCache().subscribe({
-          next: () => undefined,
-          error: (error) => console.error('[Market Universe warmup]', error)
-        });
         void this.router.navigateByUrl('/home');
       },
       error: () => {

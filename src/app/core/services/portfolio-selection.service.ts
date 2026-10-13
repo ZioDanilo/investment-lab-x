@@ -21,6 +21,8 @@ export class PortfolioSelectionService {
 
   readonly portfolioOptions = signal<PortfolioOption[]>([]);
   readonly selectedPortfolio = signal<PortfolioOption | null>(null);
+  readonly lastLaboratoryPortfolioId = signal<string | null>(null);
+  readonly lastRealPortfolioId = signal<string | null>(null);
   readonly currentWorkingPortfolioId = signal<string | null>(null);
   readonly workingPortfolio = signal<WorkingPortfolioSnapshot | null>(null);
   readonly originalPortfolioSnapshot = signal<WorkingPortfolioSnapshot | null>(null);
@@ -53,6 +55,8 @@ export class PortfolioSelectionService {
   resetForLogin(): void {
     this.portfolioOptions.set([]);
     this.selectedPortfolio.set(null);
+    this.lastLaboratoryPortfolioId.set(null);
+    this.lastRealPortfolioId.set(null);
     this.discardWorkingPortfolio();
     this.loading.set(false);
     this.hasError.set(false);
@@ -71,6 +75,14 @@ export class PortfolioSelectionService {
           .map((portfolio: any) => this.normalizePortfolio(portfolio))
           .filter((portfolio: PortfolioOption | null): portfolio is PortfolioOption => !!portfolio);
 
+        // Shared ordering contract: real portfolios first, then simulated; alphabetical within each group.
+        // Sorting centrally ensures every consumer receives the same non-interleaved order.
+        const collator = new Intl.Collator('it', { sensitivity: 'base', numeric: true });
+        nextOptions.sort((a: PortfolioOption, b: PortfolioOption) =>
+          (a.tipo === b.tipo ? 0 : a.tipo === 'reale' ? -1 : 1) ||
+          collator.compare(a.label, b.label) ||
+          a.id.localeCompare(b.id)
+        );
         this.portfolioOptions.set(nextOptions);
 
         const refreshedSelection = selectedBeforeRefresh
@@ -78,6 +90,8 @@ export class PortfolioSelectionService {
           : null;
 
         this.selectedPortfolio.set(refreshedSelection);
+        if (this.lastLaboratoryPortfolioId() && !nextOptions.some((p: PortfolioOption) => p.id === this.lastLaboratoryPortfolioId() && p.tipo === 'laboratorio')) this.lastLaboratoryPortfolioId.set(null);
+        if (this.lastRealPortfolioId() && !nextOptions.some((p: PortfolioOption) => p.id === this.lastRealPortfolioId() && p.tipo === 'reale')) this.lastRealPortfolioId.set(null);
         this.loading.set(false);
         this.refreshVersion.update((version) => version + 1);
       },
@@ -105,6 +119,8 @@ export class PortfolioSelectionService {
     }
 
     this.selectedPortfolio.set(nextPortfolio ?? null);
+    if (nextPortfolio?.tipo === 'laboratorio') this.lastLaboratoryPortfolioId.set(nextPortfolio.id);
+    if (nextPortfolio?.tipo === 'reale') this.lastRealPortfolioId.set(nextPortfolio.id);
     if (nextPortfolio && this.currentWorkingPortfolioId() !== nextPortfolio.id) {
       this.currentWorkingPortfolioId.set(nextPortfolio.id);
       this.workingPortfolio.set(null);
