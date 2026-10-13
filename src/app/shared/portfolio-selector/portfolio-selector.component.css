@@ -126,9 +126,11 @@
 }
 
 .selector-section-divider {
+  flex: 0 0 1px;
   height: 1px;
-  margin: 7px 10px;
-  background: rgba(133, 176, 226, 0.28);
+  margin: 6px 3px;
+  background: rgba(135, 174, 216, .55);
+  box-shadow: 0 1px 0 rgba(255,255,255,.035);
 }
 
 
