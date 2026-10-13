@@ -178,7 +178,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if (!slot || (isin && this.slots.some((other, i) => i !== slotIndex && other.isin === isin))) return;
     this.clearSlot(slot);
     slot.isin = isin;
-    if (this.settingsReady) this.queueSave();
+    if (this.settingsReady && this.trendStrategy.selectedStrategy() === 1) this.queueSave();
     if (!isin) return;
     slot.loading = true;
     const requestId = slot.requestId;
@@ -207,7 +207,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
         if (portfolioId !== this.currentPortfolioId) return;
         const data = response?.data;
         const index = this.strategyKeys.indexOf(data?.strategyKey);
-        const saved = Array.isArray(data?.settings?.etfIsins) ? data.settings.etfIsins : [];
+        const saved = data?.strategyKey === 'sma-200' && Array.isArray(data?.settings?.etfIsins) ? data.settings.etfIsins : [];
         const allowed = new Set(this.etfs.map(etf => etf.isin.toUpperCase()));
         const seen = new Set<string>();
         for (let i = 0; i < this.slots.length; i++) {
@@ -222,7 +222,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
         this.pendingStrategy = null;
         this.loadingSettings = false;
         this.settingsReady = true;
-        if (!data && this.trendStrategy.selectedStrategy() !== null) this.queueSave();
+        if (this.trendStrategy.selectedStrategy() === 1) this.restoreSmaSettings();
       },
       error: () => {
         if (portfolioId !== this.currentPortfolioId) return;
@@ -242,11 +242,10 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.settingsRequest?.unsubscribe();
     this.slots.forEach(slot => this.clearSlot(slot));
     this.loadingSettings = true;
-    this.settingsRequest = this.api.getTrendFollowingSettings(portfolioId).subscribe({
+    this.settingsRequest = this.api.getTrendEtfSelections(portfolioId, 'sma-200').subscribe({
       next: (response: any) => {
         if (portfolioId !== this.currentPortfolioId || this.trendStrategy.selectedStrategy() !== 1) return;
-        const saved = response?.data?.strategyKey === 'sma-200' && Array.isArray(response?.data?.settings?.etfIsins)
-          ? response.data.settings.etfIsins : [];
+        const saved = Array.isArray(response?.data?.etfIsins) ? response.data.etfIsins : [];
         const allowed = new Set(this.etfs.map(etf => etf.isin.toUpperCase()));
         const seen = new Set<string>();
         saved.slice(0, 3).forEach((value: unknown, i: number) => {
@@ -284,7 +283,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.saving = true;
     this.saveQueued = false;
     const etfIsins = this.slots.map(slot => slot.isin);
-    this.api.saveTrendFollowingSettings(portfolioId, this.strategyKeys[strategyIndex], etfIsins).subscribe({
+    this.api.saveTrendEtfSelections(portfolioId, this.strategyKeys[strategyIndex], etfIsins).subscribe({
       next: () => {
         if (portfolioId === this.currentPortfolioId) this.saveError = '';
         this.flushSave();
