@@ -151,6 +151,8 @@ export class MontecarloPageComponent {
       return;
     }
 
+    this.loadedKpiPortfolioId = null;
+    this.resetPortfolioKpiConfiguration();
     try {
       const response = await firstValueFrom(this.apiService.getPortfolioKpiTargets(portfolioId));
       if (loadVersion !== this.kpiConfigLoadVersion || this.selectedPortfolio()?.id !== portfolioId) {
@@ -164,6 +166,7 @@ export class MontecarloPageComponent {
         .sort((left: any, right: any) => Number(left?.priority) - Number(right?.priority));
 
       if (validRows.length !== this.defaultKpis.length || new Set(validRows.map((row: any) => String(row.kpi))).size !== this.defaultKpis.length) {
+        this.loadedKpiPortfolioId = portfolioId;
         this.resetPortfolioKpiConfiguration();
         return;
       }
@@ -180,13 +183,14 @@ export class MontecarloPageComponent {
     } catch (error) {
       if (loadVersion === this.kpiConfigLoadVersion && this.selectedPortfolio()?.id === portfolioId) {
         console.error('[KPI target load]', error);
+        this.loadedKpiPortfolioId = null;
         this.resetPortfolioKpiConfiguration();
       }
     }
   }
 
   private async saveCurrentPortfolioKpiConfiguration(): Promise<void> {
-    const portfolioId = this.editorState()?.state?.selectedPortfolioId ?? this.selectedPortfolio()?.id ?? null;
+    const portfolioId = this.selectedPortfolio()?.id ?? this.editorState()?.state?.selectedPortfolioId ?? null;
     if (!portfolioId) {
       throw new Error('Impossibile salvare i KPI: nessun portafoglio selezionato.');
     }
@@ -861,9 +865,8 @@ export class MontecarloPageComponent {
     this.editorState.set(change);
 
     const portfolioId = change?.state?.selectedPortfolioId ?? null;
-    if (portfolioId && portfolioId !== this.loadedKpiPortfolioId) {
-      void this.loadPortfolioKpiConfiguration(portfolioId);
-    }
+    // Portfolio selection is observed by the constructor effect; do not issue
+    // duplicate asynchronous loads that can overwrite locally edited KPI targets.
   }
 
   async runSimulation(): Promise<void> {
@@ -877,6 +880,9 @@ export class MontecarloPageComponent {
     this.resetKpis();
 
     try {
+      // Persist the user's exact KPI order and targets when starting a simulation.
+      // The same portfolio ID is used when restoring this configuration on selection.
+      await this.saveCurrentPortfolioKpiConfiguration();
       // The editor is the source of truth for a simulation. Its composition can
       // intentionally differ from the persisted portfolio until the user chooses
       // "Aggiorna portafoglio"; fetching the DB portfolio here would therefore
