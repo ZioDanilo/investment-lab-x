@@ -166,11 +166,13 @@ export class LoginPageComponent {
     this.authSuccess = '';
 
     localStorage.removeItem('investmentLabUsername');
+    localStorage.removeItem('investmentLabRole');
     this.portfolioSelection.resetForLogin();
 
     this.apiService.login(username, password).subscribe({
       next: (response: any) => {
         localStorage.setItem('investmentLabUsername', String(response?.data?.username ?? username));
+        localStorage.setItem('investmentLabRole', response?.data?.role === 'ADMIN' ? 'ADMIN' : 'GUEST');
         this.portfolioSelection.loadPortfolios();
         this.submitting = false;
         void this.router.navigateByUrl('/home');
