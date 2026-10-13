@@ -28,7 +28,7 @@ interface TrendSlot {
           <label [for]="'trend-etf-' + i">ETF del portafoglio</label>
           <select [id]="'trend-etf-' + i" [value]="slot.isin"
             (change)="selectEtf(i, $any($event.target).value)"
-            [disabled]="loadingPortfolio || loadingSettings || !settingsReady || !etfs.length">
+            [disabled]="loadingPortfolio || !etfs.length">
             <option value="">Seleziona ETF</option>
             <option *ngFor="let etf of availableEtfs(i)" [value]="etf.isin">{{ etf.label }}</option>
           </select>
@@ -90,6 +90,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   ];
   private currentPortfolioId: string | null = null;
   private currentRefreshVersion = -1;
+  private pendingStrategy: number | null = null;
   readonly trendStrategy = inject(TrendStrategyService);
   etfs: TrendEtf[] = [];
   loadingPortfolio = false;
@@ -132,7 +133,9 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.saveQueued = false;
     this.loadingSettings = false;
     this.saveError = '';
+    const previouslySelectedStrategy = this.trendStrategy.selectedStrategy();
     this.trendStrategy.selectedStrategy.set(null);
+    this.pendingStrategy = previouslySelectedStrategy;
     this.slots.forEach(slot => this.clearSlot(slot));
     this.etfs = [];
     const selected = this.portfolioSelection.selectedPortfolio();
@@ -203,15 +206,19 @@ export class TrendFollowingPageComponent implements OnDestroy {
             this.selectEtf(i, isin);
           }
         }
-        this.trendStrategy.selectedStrategy.set(index >= 0 ? index : null);
+        this.trendStrategy.selectedStrategy.set(index >= 0 ? index : this.pendingStrategy);
+        this.pendingStrategy = null;
         this.loadingSettings = false;
         this.settingsReady = true;
+        if (!data && this.trendStrategy.selectedStrategy() !== null) this.queueSave();
       },
       error: () => {
         if (portfolioId !== this.currentPortfolioId) return;
         this.loadingSettings = false;
-        this.settingsReady = false;
-        this.saveError = 'Impossibile caricare la strategia salvata. Modifiche non abilitate finché il caricamento non riesce.';
+        this.settingsReady = true;
+        this.trendStrategy.selectedStrategy.set(this.pendingStrategy);
+        this.pendingStrategy = null;
+        this.saveError = 'Impossibile recuperare la configurazione salvata; puoi selezionare gli ETF, ma verifica il collegamento al server.';
       }
     });
   }
