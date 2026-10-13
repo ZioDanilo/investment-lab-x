@@ -70,7 +70,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
 
   async importYahooPrices(event: Event): Promise<void> {
     event.stopPropagation();
-    if (this.isImportingYahooPrices) return;
+    if (!this.isAdmin || this.isImportingYahooPrices) return;
     this.confirmation.ask('Aggiornare tutte le quotazioni?', 'Aggiorna', () => this.executeYahooPricesUpdate());
   }
 
@@ -92,6 +92,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
   get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
+  get isAdmin(): boolean { return this.loggedUsername !== '' && localStorage.getItem('investmentLabRole') === 'ADMIN'; }
   get loggedUsername(): string { return localStorage.getItem('investmentLabUsername')?.trim() || ''; }
 
   activeFeaturePage: any = null;
@@ -222,7 +223,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
 
   async regenerateMarketUniverse(event: MouseEvent): Promise<void> {
     event.stopPropagation();
-    if (this.isRegeneratingMarketUniverse) {
+    if (!this.isAdmin || this.isRegeneratingMarketUniverse) {
       return;
     }
 
@@ -231,7 +232,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   }
 
   private async executeMarketUniverseRegeneration(): Promise<void> {
-    if (this.isRegeneratingMarketUniverse) return;
+    if (!this.isAdmin || this.isRegeneratingMarketUniverse) return;
     this.isRegeneratingMarketUniverse = true;
     this.marketUniverseGenerationProgress = 0;
     this.pushMarketUniverseStatusToActivePage();
@@ -265,6 +266,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
 
     try {
       localStorage.removeItem('investmentLabUsername');
+      localStorage.removeItem('investmentLabRole');
       sessionStorage.clear();
     } catch {}
 
