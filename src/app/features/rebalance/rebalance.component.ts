@@ -187,8 +187,9 @@ export class RebalanceComponent {
     const realIsins = new Set(positions.map(h => h.isin.toUpperCase()));
     const realRows = positions.map(h => {
       const quantity = Number(h.quantity);
-      const marketPrice = h.currentPrice == null ? 0 : Number(h.currentPrice);
-      const marketValue = h.marketValue == null ? 0 : Number(h.marketValue);
+      const storedPrice = Number(h.currentPrice);
+      const marketPrice = Number.isFinite(storedPrice) && storedPrice > 0 ? storedPrice : (this.pricesByIsin()[h.isin.toUpperCase()] ?? 0);
+      const marketValue = marketPrice > 0 ? quantity * marketPrice : 0;
       return {
         etfName: h.nickname || h.name || h.ticker || h.isin,
         isin: h.isin,
@@ -218,6 +219,7 @@ export class RebalanceComponent {
        this.loadingHoldings() || this.targetLoading() || this.holdingsError() || this.targetError()) return null;
     const rows=this.rows();
     if(!rows.length)return null;
+    if (rows.some(r => !Number.isFinite(r.marketPrice) || r.marketPrice <= 0)) return null;
     return optimizeRebalance(rows.map(r=>({
       isin:r.isin,quantity:r.quantity,price:r.marketPrice,targetWeight:r.targetWeight
     })),this.cashToAdd(),this.feePerOperation);
