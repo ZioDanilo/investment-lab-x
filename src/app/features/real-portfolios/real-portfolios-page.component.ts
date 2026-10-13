@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit, effect, signal } from '@angular/core';
+import { Component, HostListener, OnInit, effect, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiCardComponent } from '../../shared/components/ui-card/ui-card.component';
@@ -8,6 +8,7 @@ import { LineChartComponent, LineChartSeries, LineChartTick } from '../../shared
 import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/chart-legend/chart-legend.component';
 import { ChartTooltipComponent } from '../../shared/components/chart-tooltip/chart-tooltip.component';
 import { ApiService } from '../../core/api/api.service';
+import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
@@ -30,9 +31,15 @@ export class RealPortfoliosPageComponent implements OnInit {
   private quotationFinishTimer:any=null;
   get headerActionDisabled():boolean { return this.loadingPortfolios || this.portfolios.length===0 || !this.hasSelectedPortfolio || this.quotationRefreshRunning; }
   get headerActionRunning():boolean { return this.quotationRefreshRunning; }
+  private readonly actionConfirmation = inject(ActionConfirmationService);
   runHeaderAction():void {
     const portfolio=this.portfolios[this.selected];
     if(!portfolio || this.quotationRefreshRunning)return;
+    this.actionConfirmation.ask(`Aggiornare le quotazioni del portafoglio ${portfolio.name}?`, 'Aggiorna', () => this.executeQuotationRefresh(portfolio.id));
+  }
+
+  private executeQuotationRefresh(portfolioId:string):void {
+    if (this.quotationRefreshRunning) return;
 
     // The refresh POST must be the first request. Previously a preliminary GET
     // /holdings could be satisfied with HTTP 304 and prevent the refresh chain
@@ -41,7 +48,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.headerActionProgress=1;
     this.startQuotationProgress(Math.max(1,this.holdings.length));
 
-    this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
+    this.api.refreshRealPortfolioQuotations(portfolioId).subscribe({
       next:()=>{
         this.loadMarketValues();
         this.loadHoldings();
