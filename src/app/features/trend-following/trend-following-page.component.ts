@@ -46,6 +46,7 @@ interface TrendSlot {
           <div *ngIf="slot.price !== null && slot.average !== null && !slot.loading" class="results">
             <div class="result"><span>Prezzo</span><strong>{{ formatPrice(slot.price) }} €</strong></div>
             <div class="result"><span>Media mobile 200 giorni</span><strong>{{ formatPrice(slot.average) }} €</strong></div>
+            <div class="price-delta" [class.positive]="slot.price > slot.average" [class.negative]="slot.price < slot.average">{{ formatSigned(slot.price - slot.average) }} € ({{ formatSignedPercentage(slot.price, slot.average) }})</div>
           </div>
         </article>
         <p *ngIf="!portfolioSelection.selectedPortfolio()" class="portfolio-hint">Seleziona un portafoglio dalla barra superiore.</p>
@@ -66,6 +67,9 @@ interface TrendSlot {
     .result { display:flex; flex-direction:column; justify-content:center; gap:8px; padding:16px 8px; min-width:0; border:1px solid rgba(125,150,190,.35); border-radius:12px; background:rgba(35,55,90,.45); }
     .result strong { font-size:clamp(15px,1.5vw,23px); overflow-wrap:anywhere; }
     .result span { font-size:12px; }
+    .price-delta { grid-column:1/-1; font-size:16px; font-weight:700; padding:8px 0 2px; color:#a9bad2; }
+    .price-delta.positive { color:#69d8a5; }
+    .price-delta.negative { color:#ff858c; }
     .error { color:#ff9292; }
     .portfolio-hint { grid-column:1/-1; text-align:center; }
     @media(max-width:1100px) { .strategy-row { grid-template-columns:1fr; } .result strong { font-size:23px; } }
@@ -171,6 +175,12 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   formatPrice(value: number | null): string {
     return value === null ? '—' : new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+  }
+  formatSigned(value: number): string {
+    return (value > 0 ? '+' : value < 0 ? '-' : '') + this.formatPrice(Math.abs(value));
+  }
+  formatSignedPercentage(price: number, average: number): string {
+    return average > 0 ? this.formatSigned((price - average) / average * 100) + '%' : '—';
   }
   ngOnDestroy(): void {
     this.portfolioRequest?.unsubscribe();
