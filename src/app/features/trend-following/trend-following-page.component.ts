@@ -28,7 +28,7 @@ interface TrendSlot {
           <label [for]="'trend-etf-' + i">ETF del portafoglio</label>
           <select [id]="'trend-etf-' + i" [value]="slot.isin"
             (change)="selectEtf(i, $any($event.target).value)"
-            [disabled]="loadingPortfolio || !etfs.length">
+            [disabled]="loadingPortfolio || loadingSettings || !settingsReady || !etfs.length">
             <option value="">Seleziona ETF</option>
             <option *ngFor="let etf of availableEtfs(i)" [value]="etf.isin">{{ etf.label }}</option>
           </select>
@@ -89,6 +89,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     'momentum-world-xeon-vol-target'
   ];
   private currentPortfolioId: string | null = null;
+  private currentRefreshVersion = -1;
   readonly trendStrategy = inject(TrendStrategyService);
   etfs: TrendEtf[] = [];
   loadingPortfolio = false;
@@ -103,9 +104,10 @@ export class TrendFollowingPageComponent implements OnDestroy {
     });
     effect(() => {
       const selected = this.portfolioSelection.selectedPortfolio();
-      this.portfolioSelection.refreshVersion();
-      if (selected?.id !== this.currentPortfolioId) {
+      const refreshVersion = this.portfolioSelection.refreshVersion();
+      if (selected?.id !== this.currentPortfolioId || refreshVersion !== this.currentRefreshVersion) {
         this.currentPortfolioId = selected?.id ?? null;
+        this.currentRefreshVersion = refreshVersion;
         this.loadPortfolio();
       }
     });
@@ -127,6 +129,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.portfolioRequest?.unsubscribe();
     this.settingsRequest?.unsubscribe();
     this.settingsReady = false;
+    this.saveQueued = false;
     this.loadingSettings = false;
     this.saveError = '';
     this.trendStrategy.selectedStrategy.set(null);
