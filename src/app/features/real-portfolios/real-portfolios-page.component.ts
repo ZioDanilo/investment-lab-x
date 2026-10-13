@@ -207,8 +207,8 @@ export class RealPortfoliosPageComponent implements OnInit {
     ['Valore di mercato',this.formatCurrency(value),`${sign}${this.formatCurrency(Math.abs(gain))}  (${this.formatSignedPercent(pct)})`,tone],
     ['Capitale investito',this.formatCurrencyTrailing(p?.investedCapital ?? 0),'',''],
     ['Gain/Loss',`${sign}${this.formatCurrency(Math.abs(gain))}`,this.formatSignedPercent(pct),tone],
-    ['Rendimento annuo (TWR)','+8,1%','','positive'],
-    ['Volatilità annua','11,3%','',''],
+    ['Rendimento annuo (TWR)',this.performance.annualReturn === null ? '—' : this.formatSignedPercent(this.performance.annualReturn),'',this.performance.annualReturn === null ? '' : this.valueTone(this.performance.annualReturn)],
+    ['Volatilità annua',this.performance.volatility === null ? '—' : this.formatSignedPercent(this.performance.volatility).replace(/^\+/,''),'',''],
     ['Numero ETF',String(this.holdings.length),'','']
   ];
   }
@@ -268,7 +268,64 @@ export class RealPortfoliosPageComponent implements OnInit {
   }
   leaveComposition():void { this.compositionHoverIndex=null; this.compositionTooltip={...this.compositionTooltip,visible:false}; }
   operations:Operation[]=[];
-  readonly stats=[['Rendimento totale','+12,4%','positive'],['Rendimento annuo (TWR)','+8,1%','positive'],['Volatilità annua','11,3%',''],['Sharpe ratio (rf 2%)','0,54',''],['Massimo drawdown','-7,8%','negative'],['Mese migliore','+4,9%','positive'],['Mese peggiore','-4,1%','negative'],['Mesi positivi','18 (66%)','']];
+  private readonly riskFreeRate = 0.02;
+  get performance() {
+    const rows = this.history
+      .filter(row => row.valuation !== 'incomplete' && Number.isFinite(row.performancePercent))
+      .slice().sort((a,b) => a.date.localeCompare(b.date));
+    const empty = { totalReturn:null as number|null, annualReturn:null as number|null, volatility:null as number|null,
+      sharpe:null as number|null, maxDrawdown:null as number|null, bestMonth:null as number|null,
+      worstMonth:null as number|null, positiveMonths:0, months:0 };
+    if (rows.length < 2) return empty;
+    const index = (row: typeof rows[number]) => 1 + Number(row.performancePercent) / 100;
+    const start = index(rows[0]), end = index(rows[rows.length-1]);
+    if (!(start > 0 && end > 0)) return empty;
+    const days = (Date.parse(rows[rows.length-1].date+'T00:00:00Z') - Date.parse(rows[0].date+'T00:00:00Z')) / 86400000;
+    const annualReturn = days >= 30 ? (Math.pow(end/start,365.25/days)-1)*100 : null;
+    const returns:number[] = [];
+    let peak = start, maxDrawdown = 0;
+    for (let i=0;i<rows.length;i++) {
+      const current = index(rows[i]);
+      if (!(current > 0)) continue;
+      peak = Math.max(peak,current);
+      maxDrawdown = Math.min(maxDrawdown,(current/peak-1)*100);
+      if(i>0) {
+        const previous=index(rows[i-1]);
+        if(previous>0 && rows[i].date!==rows[i-1].date) returns.push(current/previous-1);
+      }
+    }
+    const mean=returns.length ? returns.reduce((a,b)=>a+b,0)/returns.length : 0;
+    const variance=returns.length>1 ? returns.reduce((sum,r)=>sum+(r-mean)**2,0)/(returns.length-1) : 0;
+    const volatility=returns.length>=20 ? Math.sqrt(variance)*Math.sqrt(252)*100 : null;
+    const sharpe=volatility!==null && volatility>0 && annualReturn!==null ? (annualReturn-this.riskFreeRate*100)/volatility : null;
+    const months=new Map<string,typeof rows[number]>();
+    for(const row of rows) months.set(row.date.slice(0,7),row);
+    const monthRows=[...months.values()].sort((a,b)=>a.date.localeCompare(b.date));
+    const monthReturns:number[]=[];
+    for(let i=1;i<monthRows.length;i++) {
+      const prev=index(monthRows[i-1]),current=index(monthRows[i]);
+      if(prev>0 && current>0) monthReturns.push((current/prev-1)*100);
+    }
+    return { totalReturn:(end/start-1)*100, annualReturn, volatility, sharpe, maxDrawdown,
+      bestMonth:monthReturns.length?Math.max(...monthReturns):null,
+      worstMonth:monthReturns.length?Math.min(...monthReturns):null,
+      positiveMonths:monthReturns.filter(r=>r>0).length, months:monthReturns.length };
+  }
+  get stats():string[][] {
+    const p=this.performance;
+    const pct=(v:number|null)=>v===null?'—':this.formatSignedPercent(v);
+    const tone=(v:number|null)=>v===null?'':this.valueTone(v);
+    return [
+      ['Rendimento totale',pct(p.totalReturn),tone(p.totalReturn)],
+      ['Rendimento annuo (TWR)',pct(p.annualReturn),tone(p.annualReturn)],
+      ['Volatilità annua',p.volatility===null?'—':pct(p.volatility).replace(/^\\+/,''),''],
+      ['Sharpe ratio (rf 2%)',p.sharpe===null?'—':p.sharpe.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}),''],
+      ['Massimo drawdown',pct(p.maxDrawdown),tone(p.maxDrawdown)],
+      ['Mese migliore',pct(p.bestMonth),tone(p.bestMonth)],
+      ['Mese peggiore',pct(p.worstMonth),tone(p.worstMonth)],
+      ['Mesi positivi',p.months? p.positiveMonths+' ('+(p.positiveMonths/p.months*100).toFixed(0)+'%)':'—','']
+    ];
+  }
   readonly legend:ChartLegendItem[]=[
     {label:'Valore del portafoglio',color:'#2586d9'},
     {label:'Capitale netto investito',color:'#9ab2cf'}
