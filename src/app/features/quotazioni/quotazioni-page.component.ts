@@ -2,6 +2,7 @@ import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { QuotationService } from '../../core/services/quotation.service';
 import { ApiService } from '../../core/api/api.service';
+import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
 import { TastoConfermaComponent } from '../../shared/components/tasto-conferma/tasto-conferma.component';
 
 interface Quotation {
@@ -24,6 +25,7 @@ interface Quotation {
 export class QuotazioniPageComponent implements OnInit {
   private quotationService = inject(QuotationService);
   private apiService = inject(ApiService);
+  private actionConfirmation = inject(ActionConfirmationService);
 
   quotations = signal<Quotation[]>([]);
   filterText = signal('');
@@ -143,6 +145,10 @@ export class QuotazioniPageComponent implements OnInit {
   }
 
   refreshSingleQuotation(isin: string): void {
+    this.actionConfirmation.ask(`Aggiornare la quotazione di ${isin}?`, 'Aggiorna', () => this.executeSingleQuotationRefresh(isin));
+  }
+
+  private executeSingleQuotationRefresh(isin: string): void {
     const index = this.quotations().findIndex((q) => q.isin === isin);
     if (index < 0) return;
 
@@ -185,6 +191,10 @@ export class QuotazioniPageComponent implements OnInit {
   }
 
   async forceRefreshQuotations(): Promise<void> {
+    this.actionConfirmation.ask('Aggiornare tutte le quotazioni?', 'Aggiorna', () => this.executeForceRefreshQuotations());
+  }
+
+  private async executeForceRefreshQuotations(): Promise<void> {
     this.error.set('');
 
     // Force refresh from JustETF - update ALL ETFs, overwrite DB
