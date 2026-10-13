@@ -144,12 +144,12 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if (!selected) { this.loadingPortfolio = false; this.portfolioMessage = 'Seleziona un portafoglio dalla navbar.'; return; }
     if (selected.tipo !== 'reale') { this.loadingPortfolio = false; this.portfolioMessage = 'Il portafoglio selezionato è di laboratorio: gli ETF del Trend Following sono attualmente disponibili solo per portafogli reali.'; return; }
     this.loadingPortfolio = true;
-    this.portfolioRequest = this.api.getRealPortfolioHoldings(selected.id).subscribe({
+    this.portfolioRequest = this.api.getTrendFollowingEtfs(selected.id).subscribe({
       next: (response: any) => {
         if (this.portfolioSelection.selectedPortfolio()?.id !== selected.id) return;
         this.setEtfs(Array.isArray(response?.data) ? response.data : []);
       },
-      error: () => { this.loadingPortfolio = false; this.portfolioMessage = 'Errore nel caricamento degli ETF del portafoglio. Controlla la richiesta GET /api/real-portfolios/:id/holdings.'; }
+      error: () => { this.loadingPortfolio = false; this.portfolioMessage = 'Errore nel caricamento degli ETF del portafoglio. Controlla la richiesta GET /api/trend-following/:id/etfs.'; }
     });
   }
   private setEtfs(holdings: any[]): void {
