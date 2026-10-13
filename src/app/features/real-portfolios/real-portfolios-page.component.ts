@@ -316,14 +316,14 @@ export class RealPortfoliosPageComponent implements OnInit {
     const pct=(v:number|null)=>v===null?'—':this.formatSignedPercent(v);
     const tone=(v:number|null)=>v===null?'':this.valueTone(v);
     return [
-      ['Rendimento totale',pct(p.totalReturn),tone(p.totalReturn)],
+      ['Rendimento totale (TWR)',pct(p.totalReturn),tone(p.totalReturn)],
       ['Rendimento annuo (TWR)',pct(p.annualReturn),tone(p.annualReturn)],
       ['Volatilità annua',p.volatility===null?'—':pct(p.volatility).replace(/^\\+/,''),''],
-      ['Sharpe ratio (rf 2%)',p.sharpe===null?'—':p.sharpe.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}),''],
+      ['Sharpe ratio',p.sharpe===null?'—':p.sharpe.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}),''],
       ['Massimo drawdown',pct(p.maxDrawdown),tone(p.maxDrawdown)],
       ['Mese migliore',pct(p.bestMonth),tone(p.bestMonth)],
       ['Mese peggiore',pct(p.worstMonth),tone(p.worstMonth)],
-      ['Mesi positivi',p.months? p.positiveMonths+' ('+(p.positiveMonths/p.months*100).toFixed(0)+'%)':'—','']
+      ['Mesi positivi',p.months? p.positiveMonths+' su '+p.months+' ('+(p.positiveMonths/p.months*100).toFixed(0)+'%)':'—','']
     ];
   }
   readonly legend:ChartLegendItem[]=[
