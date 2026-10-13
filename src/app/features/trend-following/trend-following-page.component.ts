@@ -272,7 +272,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
         this.pendingStrategy = null;
         this.loadingSettings = false;
         this.settingsReady = true;
-        if [1, 2, 3].includes(this.trendStrategy.selectedStrategy() ?? -1) this.restoreSmaSettings();
+        if ([1, 2, 3].includes(this.trendStrategy.selectedStrategy() ?? -1)) this.restoreSmaSettings();
       },
       error: () => {
         if (portfolioId !== this.currentPortfolioId) return;
