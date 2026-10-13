@@ -47,3 +47,7 @@
 /* Quotations: distinguish missing prices from actual numeric prices. */
 :host .quote-unavailable{color:#ff647c;font-weight:750;white-space:nowrap}
 :host .quote-date{color:#a8b8ca;font-size:.72rem;font-weight:500}
+
+/* Missing quotations: editable local fallback, no fake market prices. */
+:host .rebalance-manual-price{width:104px;max-width:100%;padding:6px 8px;box-sizing:border-box;border:1px solid rgba(80,201,255,.65);border-radius:7px;background:rgba(9,25,41,.95);color:#e5edf6;text-align:right;font:inherit;font-variant-numeric:tabular-nums}
+:host .rebalance-manual-price:focus{outline:2px solid rgba(80,201,255,.35);outline-offset:1px}
