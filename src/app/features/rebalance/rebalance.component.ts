@@ -4,6 +4,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import { ApiService } from '../../core/api/api.service';
+import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
 import { RebalanceInputService } from '../../core/services/rebalance-input.service';
 import { RebalanceRow } from '../../core/models/rebalance.model';
 import { optimizeRebalance } from './rebalance-optimizer';
@@ -28,6 +29,7 @@ interface RealHolding {
 export class RebalanceComponent {
   private readonly selection = inject(PortfolioSelectionService);
   private readonly api = inject(ApiService);
+  private readonly actionConfirmation = inject(ActionConfirmationService);
   readonly rebalanceInputs = inject(RebalanceInputService);
   readonly cashToAdd = this.rebalanceInputs.cashToAdd;
   readonly selectedRealPortfolio = computed(() => {
