@@ -367,7 +367,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   comparisonText(slot: TrendSlot): string {
     const a = this.annualReturn(slot), b = this.benchmarkPercent(slot);
     if (a === null || b === null || slot.benchmarkLoading) return '—';
-    return this.formatPercent(a - b) + ' p.p.';
+    return this.formatPercent(a - b);
   }
 
   selectBenchmark(index: number, isin: string): void {
