@@ -7,7 +7,7 @@
   <p class="muted" *ngIf="!selectionTargetReady()">Seleziona un portafoglio target simulato per calcolare gli ordini.</p>
   <p class="muted" *ngIf="targetLoading()">Caricamento portafoglio target...</p>
   <p class="muted" *ngIf="targetError()">Impossibile caricare il portafoglio target.</p>
-  <p class="muted" *ngIf="missingPrices().length">Ottimizzazione sospesa: inserisci un prezzo valido per {{missingPrices().join(', ')}} nella colonna Prezzo.</p>
+  <p class="muted" *ngIf="missingPrices().length">Ottimizzazione sospesa: nessuna quotazione disponibile per {{missingPrices().join(', ')}}. Aggiorna le quotazioni per procedere.</p>
   <p class="muted" *ngIf="selectionTargetReady() && !targetLoading() && !targetError() && !missingPrices().length && !optimization()">Ottimizzazione non disponibile: verifica pesi target al 100% e quotazioni valide.</p>
   <p class="muted" *ngIf="optimization()">{{operationCount()}} operazioni · {{transactionCosts() | currency:'EUR':'symbol':'1.2-2'}} riservati per costi (20 € per operazione) · Liquidità residua {{remainingCash() | currency:'EUR':'symbol':'1.2-2'}}</p>
   <p class="muted" *ngIf="!selectedRealPortfolio()">Seleziona un portafoglio reale dalla navbar per visualizzare gli ETF.</p>
@@ -22,14 +22,11 @@
       <td>{{row.isin || 'da inserire'}}</td>
       <td class="num">{{row.quantity | number:'1.0-2'}}</td>
       <td class="num">
-        <ng-container *ngIf="row.marketPrice > 0; else missingRebalancePrice">{{row.marketPrice | currency:'EUR':'symbol':'1.2-4'}}</ng-container>
-        <ng-template #missingRebalancePrice>
-          <input class="rebalance-manual-price" type="text" inputmode="decimal"
-            [value]="manualPriceDrafts()[row.isin.toUpperCase()] || ''"
-            (input)="setManualPrice(row.isin, $any($event.target).value)"
-            [attr.aria-label]="'Prezzo manuale in euro per ' + row.etfName"
-            placeholder="Prezzo €" title="Inserisci il prezzo unitario in euro per calcolare gli ordini" />
-        </ng-template>
+        <ng-container *ngIf="row.marketPrice > 0; else missingRebalancePrice">
+          {{row.marketPrice | currency:'EUR':'symbol':'1.2-4'}}
+          <span class="quote-date" *ngIf="formatQuotationDate(row.isin)">({{formatQuotationDate(row.isin)}})</span>
+        </ng-container>
+        <ng-template #missingRebalancePrice><span class="quote-unavailable">Nessuna quotazione</span></ng-template>
       </td>
       <td class="num">{{row.marketValue | currency:'EUR':'symbol':'1.2-2'}}</td>
       <td class="num">{{row.currentWeight | percent:'1.2-2'}}</td>
