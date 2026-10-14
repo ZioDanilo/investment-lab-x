@@ -87,14 +87,20 @@ export class RebalanceComponent {
         const date = String(quote?.date || '');
         if (!Number.isFinite(price) || price <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
           this.quotationErrors.update(errors => ({...errors, [key]: 'Quotazione non disponibile da Yahoo Finance'}));
+          this.actionConfirmation.notify('Quotazione non disponibile da Yahoo Finance per ' + key, true);
           return;
         }
         this.quotationDates.update(dates => ({...dates, [key]: date}));
         this.pricesByIsin.update(prices => ({...prices, [key]: price}));
         this.holdings.update(items => items.map(h => h.isin.toUpperCase() === key ? {...h, currentPrice:price, marketValue:Number(h.quantity)*price} : h));
         if (date !== this.todayRome) this.quotationErrors.update(errors => ({...errors, [key]: `Ultima chiusura disponibile: ${date}`}));
+        this.actionConfirmation.notify('Quotazione ' + key + ' aggiornata: ' + price + ' (' + date + ').');
       },
-      error: (error: any) => this.quotationErrors.update(errors => ({...errors, [key]: error?.error?.error || 'Aggiornamento non riuscito'}))
+      error: (error: any) => {
+        const message = error?.error?.error || 'Aggiornamento non riuscito';
+        this.quotationErrors.update(errors => ({...errors, [key]: message}));
+        this.actionConfirmation.notify('Aggiornamento quotazione ' + key + ' non riuscito: ' + message, true);
+      }
     });
   }
 
