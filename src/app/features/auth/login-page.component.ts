@@ -17,6 +17,28 @@ export class LoginPageComponent {
   private readonly apiService = inject(ApiService);
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
+  diagnosticLoading = false;
+  diagnosticResult: any = null;
+  diagnosticError = '';
+  readonly diagnosticIsin = 'LU3307218399';
+
+  runDiagnostic(): void {
+    if (this.diagnosticLoading) return;
+    this.diagnosticLoading = true;
+    this.diagnosticError = '';
+    this.diagnosticResult = null;
+    this.apiService.diagnoseMarketUniverseEtfV2(this.diagnosticIsin).subscribe({
+      next: (response) => {
+        this.diagnosticLoading = false;
+        this.diagnosticResult = response?.data ?? response;
+      },
+      error: (error) => {
+        this.diagnosticLoading = false;
+        this.diagnosticError = error?.error?.error || 'Diagnostica non disponibile.';
+      }
+    });
+  }
+
   username = '';
   password = '';
   registerMode = false;
