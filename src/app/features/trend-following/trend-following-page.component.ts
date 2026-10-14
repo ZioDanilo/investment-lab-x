@@ -30,6 +30,7 @@ const STRATEGIES = [
         <article *ngFor="let row of criteria; let i=index; trackBy:trackRow" class="criterion"
           [class.positive]="isPositive(row)" [class.negative]="isNegative(row)">
           <select class="strategy-select" [value]="row.strategyKey" (change)="changeStrategy(i,$any($event.target).value)" [attr.aria-label]="'Strategia criterio '+(i+1)">
+            <option value="">Seleziona criterio</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
           <select class="etf-select" [value]="row.isin" (change)="selectEtf(i,$any($event.target).value)"
@@ -123,7 +124,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     });
   }
   trackRow(_i:number,row:Criterion):Criterion{return row}
-  private createRow(strategyKey='sma-200',isin='',benchmarkIsin=''):Criterion{
+  private createRow(strategyKey='',isin='',benchmarkIsin=''):Criterion{
     return {strategyKey,isin,benchmarkIsin,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
   addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings)return;this.criteria.push(this.createRow());this.queueSave()}
@@ -137,7 +138,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   selectEtf(i:number,isin:string):void{
     const row=this.criteria[i];if(!row)return;this.clearRequests(row);
     row.isin=isin;row.price=null;row.average=null;row.error='';
-    if(isin)this.loadQuote(row);this.queueSave();
+    if(isin&&row.strategyKey)this.loadQuote(row);this.queueSave();
   }
   private clearRequests(row:Criterion):void{row.subscription?.unsubscribe();row.benchmarkSubscription?.unsubscribe();row.version++;row.loading=false;row.benchmarkLoading=false}
   private loadQuote(row:Criterion):void{
@@ -246,9 +247,9 @@ export class TrendFollowingPageComponent implements OnDestroy {
         if(version!==this.loadVersion)return;
         const saved=Array.isArray(res?.data?.criteria)?res.data.criteria:[];
         for(const item of saved){
-          if(!STRATEGIES.some(s=>s.key===item.strategyKey))continue;
+          if(item.strategyKey && !STRATEGIES.some(s=>s.key===item.strategyKey))continue;
           const row=this.createRow(item.strategyKey,String(item.isin||'').toUpperCase(),String(item.benchmarkIsin||'').toUpperCase());
-          this.criteria.push(row);if(row.isin)this.loadQuote(row);
+          this.criteria.push(row);if(row.isin&&row.strategyKey)this.loadQuote(row);
           if(row.benchmarkIsin)this.selectBenchmarkRestored(row);
         }
         this.loadingSettings=false;
