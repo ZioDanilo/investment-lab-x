@@ -49,7 +49,13 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.startQuotationProgress(Math.max(1,this.holdings.length));
 
     this.api.refreshRealPortfolioQuotations(portfolioId).subscribe({
-      next:()=>{
+      next:(response:any)=>{
+        if (response?.success === false) {
+          this.resetQuotationProgress();
+          this.actionConfirmation.notify('Aggiornamento quotazioni portafoglio non riuscito: ' + (response.error || 'errore sconosciuto'), true);
+          return;
+        }
+        this.actionConfirmation.notify('Quotazioni del portafoglio aggiornate correttamente.');
         this.loadMarketValues();
         this.loadHoldings();
         this.loadHistory();
@@ -58,6 +64,7 @@ export class RealPortfoliosPageComponent implements OnInit {
       error:(error)=>{
         this.resetQuotationProgress();
         console.error('Errore aggiornamento quotazioni portafoglio',error);
+        this.actionConfirmation.notify('Aggiornamento quotazioni portafoglio non riuscito: ' + (error?.error?.error || error?.message || 'errore sconosciuto'), true);
       }
     });
   }
