@@ -498,3 +498,7 @@
 .diagnostic-table th:first-child, .diagnostic-table td:first-child { text-align: left; }
 .diagnostic-warning { margin: 8px 0 0; color: #eec78b; line-height: 1.4; }
 @media(max-width: 560px) { .login-action-row { flex-wrap: wrap; } .login-action-row > button { flex: 1 1 100% !important; } }
+
+/* Wider scenario correlation matrix, horizontally scrollable inside login card */
+.diagnostic-table-wrap { max-width: 100%; overflow-x: auto; }
+.diagnostic-table th { font-size: 10px; }
