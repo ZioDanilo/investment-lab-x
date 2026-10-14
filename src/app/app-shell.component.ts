@@ -101,25 +101,25 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     this.pushMarketUniverseStatusToActivePage();
   }
   get featureActionLabel(): string {
-    return this.isMonteCarloPage && this.isRegeneratingMarketUniverse
+    return (this.isMonteCarloPage || this.isTrendFollowingPage) && this.isRegeneratingMarketUniverse
       ? 'Generazione Market Universe'
       : (this.activeFeaturePage?.headerActionLabel ?? '');
   }
   get featureActionIcon(): string {
-    return this.isMonteCarloPage && this.isRegeneratingMarketUniverse
+    return (this.isMonteCarloPage || this.isTrendFollowingPage) && this.isRegeneratingMarketUniverse
       ? 'autorenew'
       : (this.activeFeaturePage?.headerActionIcon ?? '');
   }
   get featureActionDisabled(): boolean {
-    return (this.isMonteCarloPage && this.isRegeneratingMarketUniverse)
+    return ((this.isMonteCarloPage || this.isTrendFollowingPage) && this.isRegeneratingMarketUniverse)
       || (this.activeFeaturePage?.headerActionDisabled ?? false);
   }
   get featureActionRunning(): boolean {
-    return (this.isMonteCarloPage && this.isRegeneratingMarketUniverse)
+    return ((this.isMonteCarloPage || this.isTrendFollowingPage) && this.isRegeneratingMarketUniverse)
       || (this.activeFeaturePage?.headerActionRunning ?? false);
   }
   get featureActionProgress(): number {
-    return this.isMonteCarloPage && this.isRegeneratingMarketUniverse
+    return (this.isMonteCarloPage || this.isTrendFollowingPage) && this.isRegeneratingMarketUniverse
       ? Math.max(1, this.marketUniverseGenerationProgress)
       : (this.activeFeaturePage?.headerActionProgress ?? 0);
   }
