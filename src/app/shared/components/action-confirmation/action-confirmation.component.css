@@ -15,3 +15,6 @@
 
 .portfolio-confirm-actions--single{grid-template-columns:1fr}
 .portfolio-confirm-dialog h2{overflow-wrap:anywhere;white-space:normal}
+
+.portfolio-confirm-button--error{border-color:rgba(255,83,102,.72);color:#ff657d}
+.portfolio-confirm-button--error:hover:not(:disabled){background:rgba(255,82,108,.07);border-color:#ff526c;color:#ff8092}
