@@ -161,6 +161,22 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.dragOffset={x:event.clientX-rect.left,y:event.clientY-rect.top};
     this.dragPreview?.remove();
     const preview=source.cloneNode(true) as HTMLElement;
+    // cloneNode does not preserve the live selected state of native selects
+    // (or the current value of text inputs). Mirror it into the floating row.
+    const originalSelects=source.querySelectorAll<HTMLSelectElement>('select');
+    const previewSelects=preview.querySelectorAll<HTMLSelectElement>('select');
+    originalSelects.forEach((select,index)=>{
+      const copy=previewSelects.item(index);
+      if(!copy)return;
+      copy.value=select.value;
+      Array.from(copy.options).forEach(option=>{option.selected=option.value===select.value});
+    });
+    const originalInputs=source.querySelectorAll<HTMLInputElement>('input');
+    const previewInputs=preview.querySelectorAll<HTMLInputElement>('input');
+    originalInputs.forEach((input,index)=>{
+      const copy=previewInputs.item(index);
+      if(copy)copy.value=input.value;
+    });
     preview.classList.remove('is-dragging','shift-up','shift-down');
     preview.style.cssText+=';position:fixed;left:'+rect.left+'px;top:'+rect.top+'px;width:'+rect.width+'px;height:'+rect.height+'px;box-sizing:border-box;opacity:1!important;visibility:visible!important;transform:none!important;transition:none!important;background:#07121f!important;z-index:2147483647;pointer-events:none;';
     document.body.appendChild(preview);
