@@ -129,24 +129,31 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   trackRow(_i:number,row:Criterion):Criterion{return row}
   availableEtfs(row:Criterion):Etf[]{
-    if(!row.isin || this.etfs.some(e=>e.isin===row.isin))return this.etfs;
-    const found=this.allEtfs.find(e=>e.isin===row.isin);
-    return [{isin:row.isin,label:found?.label||row.isin,search:found?.search||row.isin.toLowerCase()},...this.etfs];
+    const used=new Set(this.criteria.filter(other=>other!==row&&other.strategyKey===row.strategyKey&&!!other.isin).map(other=>other.isin));
+    const available=this.etfs.filter(etf=>!used.has(etf.isin));
+    if(!row.isin || available.some(etf=>etf.isin===row.isin))return available;
+    const found=this.allEtfs.find(etf=>etf.isin===row.isin);
+    return [{isin:row.isin,label:found?.label||row.isin,search:found?.search||row.isin.toLowerCase()},...available];
   }
   private createRow(strategyKey='',isin='',benchmarkIsin=''):Criterion{
     return {strategyKey,isin,benchmarkIsin,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
-  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings)return;this.criteria.push(this.createRow());this.queueSave()}
+  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings)return;this.criteria.push(this.createRow())}
   removeCriterion(i:number):void{const row=this.criteria[i];if(!row)return;this.clearRequests(row);this.criteria.splice(i,1);this.queueSave()}
   isImplemented(key:string):boolean{return ['sma-200','ts-momentum-12m','dual-sma-50-200'].includes(key)}
   changeStrategy(i:number,key:string):void{
     const row=this.criteria[i];if(!row||!STRATEGIES.some(s=>s.key===key))return;
     this.clearRequests(row);row.strategyKey=key;row.price=null;row.average=null;row.error='';
     row.benchmarkIsin='';row.benchmarkSearch='';row.benchmarkReturn=null;
+    if(row.isin && this.criteria.some(other=>other!==row&&other.strategyKey===key&&other.isin===row.isin)){
+      row.isin='';row.price=null;row.average=null;
+    }
     if(row.isin&&this.isImplemented(key))this.loadQuote(row);this.queueSave();
   }
   selectEtf(i:number,isin:string):void{
-    const row=this.criteria[i];if(!row)return;this.clearRequests(row);
+    const row=this.criteria[i];if(!row)return;
+    if(isin&&this.criteria.some(other=>other!==row&&other.strategyKey===row.strategyKey&&other.isin===isin))return;
+    this.clearRequests(row);
     row.isin=isin;row.price=null;row.average=null;row.error='';
     if(isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);this.queueSave();
   }
@@ -256,9 +263,14 @@ export class TrendFollowingPageComponent implements OnDestroy {
       next:(res:any)=>{
         if(version!==this.loadVersion)return;
         const saved=Array.isArray(res?.data?.criteria)?res.data.criteria:[];
+        const seen=new Set<string>();
         for(const item of saved){
-          if(item.strategyKey && !STRATEGIES.some(s=>s.key===item.strategyKey))continue;
-          const row=this.createRow(item.strategyKey,String(item.isin||'').toUpperCase(),String(item.benchmarkIsin||'').toUpperCase());
+          if(!item.strategyKey || !STRATEGIES.some(s=>s.key===item.strategyKey))continue;
+          const isin=String(item.isin||'').toUpperCase();
+          const key=item.strategyKey+'|'+isin;
+          if(isin&&seen.has(key))continue;
+          if(isin)seen.add(key);
+          const row=this.createRow(item.strategyKey,isin,String(item.benchmarkIsin||'').toUpperCase());
           this.criteria.push(row);if(row.isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);
           if(row.benchmarkIsin)this.selectBenchmarkRestored(row);
         }
@@ -279,7 +291,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if(!this.saveQueued){this.saving=false;return}
     const portfolioId=this.currentPortfolioId;if(!portfolioId){this.saving=false;return}
     this.saving=true;this.saveQueued=false;
-    const payload=this.criteria.map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin}));
+    const payload=this.criteria.filter(row=>!!row.strategyKey).map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin}));
     this.saveSub=this.api.saveTrendCriteria(portfolioId,payload).subscribe({
       next:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='';this.flushSave()},
       error:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='Impossibile salvare i criteri.';this.saving=false}
