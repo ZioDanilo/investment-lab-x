@@ -182,10 +182,10 @@ export class TrendFollowingPageComponent implements OnDestroy {
     const container=event.currentTarget as HTMLElement;
     const rows=Array.from(container.querySelectorAll<HTMLElement>('.criterion'));
     if(!rows.length)return;
-    const bounds=container.getBoundingClientRect();
     const first=rows[0].getBoundingClientRect();
-    const stride=rows.length>1?rows[1].offsetTop-rows[0].offsetTop:rows[0].offsetHeight+8;
-    const y=event.clientY-bounds.top-container.clientTop+container.scrollTop-(rows[0].offsetTop||0);
+    const second=rows[1]?.getBoundingClientRect();
+    const stride=second?second.top-first.top:first.height+8;
+    const y=event.clientY-first.top;
     this.insertRowIndex=Math.max(0,Math.min(rows.length,Math.floor((y+stride/2)/Math.max(1,stride))));
   }
   dragShift(index:number):'up'|'down'|null{
