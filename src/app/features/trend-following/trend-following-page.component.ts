@@ -1,490 +1,281 @@
 import { Component, effect, inject, OnDestroy, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { QuotationService } from '../../core/services/quotation.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
-import { Subscription } from 'rxjs';
-import { TrendStrategyService } from '../../core/services/trend-strategy.service';
 
-interface TrendEtf { isin: string; label: string; searchText?: string; }
-interface TrendSlot {
-  isin: string;
-  price: number | null;
-  average: number | null;
-  loading: boolean;
-  error: string;
-  requestId: number;
-  subscription?: Subscription;
-  benchmarkIsin?: string;
-  benchmarkReturn?: number | null;
-  benchmarkLoading?: boolean;
-  benchmarkSubscription?: Subscription;
-  benchmarkSearch?: string;
-  benchmarkSearchOpen?: boolean;
+interface Etf { isin: string; label: string; search: string }
+interface Criterion {
+  strategyKey: string; isin: string; benchmarkIsin: string;
+  price: number | null; average: number | null; benchmarkReturn: number | null;
+  loading: boolean; benchmarkLoading: boolean; error: string;
+  benchmarkSearch: string; searchOpen: boolean; version: number;
+  subscription?: Subscription; benchmarkSubscription?: Subscription;
 }
+const STRATEGIES = [
+  { key: 'sma-200', label: 'Media mobile 200 giorni' },
+  { key: 'ts-momentum-12m', label: 'Time Series 12 mesi' },
+  { key: 'dual-sma-50-200', label: 'Doppia media mobile 50/200' }
+];
 @Component({
   selector: 'app-trend-following-page',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <section class="page-panel">
-      <p *ngIf="saveError" class="error" role="alert">{{ saveError }}</p>
-      <p *ngIf="portfolioMessage" class="portfolio-hint" role="status">{{ portfolioMessage }}</p>
-      <div *ngIf="([1, 2, 3].includes(trendStrategy.selectedStrategy() ?? -1))" class="strategy-row">
-        <article *ngFor="let slot of slots; let i = index" class="strategy-card" [class.trend-positive]="isPositive(slot)" [class.trend-negative]="isNegative(slot)">
-          <label [for]="'trend-etf-' + i">ETF del portafoglio</label>
-          <div class="select-line" [class.dual-select]="trendStrategy.selectedStrategy() === 2"><select [id]="'trend-etf-' + i" [value]="slot.isin"
-            (change)="selectEtf(i, $any($event.target).value)"
-            [disabled]="loadingPortfolio || !etfs.length">
-            <option value="">Seleziona ETF</option>
-            <option *ngFor="let etf of availableEtfs(i)" [value]="etf.isin">{{ etf.label }}</option>
+    <section class="trend-page">
+      <p *ngIf="saveError" class="error" role="alert">{{saveError}}</p>
+      <p *ngIf="portfolioMessage" class="hint">{{portfolioMessage}}</p>
+      <div class="criteria-list">
+        <article *ngFor="let row of criteria; let i=index; trackBy:trackRow" class="criterion"
+          [class.positive]="isPositive(row)" [class.negative]="isNegative(row)">
+          <select class="strategy-select" [value]="row.strategyKey" (change)="changeStrategy(i,$any($event.target).value)" [attr.aria-label]="'Strategia criterio '+(i+1)">
+            <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
-          <ng-container *ngIf="trendStrategy.selectedStrategy() === 2">
+          <select class="etf-select" [value]="row.isin" (change)="selectEtf(i,$any($event.target).value)"
+            [disabled]="loadingPortfolio || !etfs.length" [attr.aria-label]="'ETF criterio '+(i+1)">
+            <option value="">Seleziona ETF</option>
+            <option *ngFor="let etf of etfs" [value]="etf.isin">{{etf.label}}</option>
+          </select>
+          <ng-container *ngIf="row.strategyKey === 'ts-momentum-12m'">
             <span class="compare-sign">&gt;</span>
             <div class="benchmark-search">
-              <input type="text" [value]="slot.benchmarkSearch || ''"
-                (input)="filterBenchmark(i, $any($event.target).value)"
-                (focus)="slot.benchmarkSearchOpen = true"
-                (blur)="closeBenchmarkSearch(i)"
-                placeholder="Cerca ETF per nickname, nome, ISIN o ticker"
-                [attr.aria-label]="'Cerca ETF di confronto ' + (i + 1)"
-                autocomplete="off">
-              <button *ngIf="slot.benchmarkIsin || slot.benchmarkSearch" class="clear-benchmark" type="button"
-                (mousedown)="$event.preventDefault()" (click)="selectBenchmark(i, '')" aria-label="Rimuovi ETF di confronto">×</button>
-              <div class="benchmark-options" *ngIf="slot.benchmarkSearchOpen">
-                <button type="button" class="benchmark-option" (mousedown)="$event.preventDefault(); selectBenchmark(i, '')">Nessun ETF — confronto con 0%</button>
-                <button type="button" class="benchmark-option" *ngFor="let etf of filteredBenchmarks(i)"
-                  (mousedown)="$event.preventDefault(); selectBenchmark(i, etf.isin)">{{ etf.label }}</button>
-                <div *ngIf="filteredBenchmarks(i).length === 0" class="benchmark-empty">Nessun ETF trovato</div>
+              <input type="text" [value]="row.benchmarkSearch" (input)="filterBenchmark(i,$any($event.target).value)"
+                (focus)="row.searchOpen=true" (blur)="closeBenchmark(i)"
+                placeholder="Confronto: ETF o 0%" [attr.aria-label]="'ETF confronto '+(i+1)" autocomplete="off">
+              <button *ngIf="row.benchmarkIsin || row.benchmarkSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectBenchmark(i,'')">×</button>
+              <div *ngIf="row.searchOpen" class="benchmark-options">
+                <button type="button" (mousedown)="$event.preventDefault();selectBenchmark(i,'')">Nessun ETF — 0%</button>
+                <button *ngFor="let etf of filteredBenchmarks(row)" type="button" (mousedown)="$event.preventDefault();selectBenchmark(i,etf.isin)">{{etf.label}}</button>
               </div>
             </div>
-          </ng-container></div>
-          <p *ngIf="loadingPortfolio || slot.loading">Caricamento...</p>
-          <p *ngIf="slot.error" class="error">{{ slot.error }}</p>
-          <div class="results" *ngIf="trendStrategy.selectedStrategy() !== 2; else timeSeriesResults">
-            <div class="result"><span>{{ trendStrategy.selectedStrategy() === 3 ? "Media mobile 50 giorni" : "Prezzo" }}</span><strong>{{ slot.price !== null && !slot.loading ? formatPrice(slot.price) + " €" : "—" }}</strong></div>
-            <div class="result"><span>Media mobile 200 giorni</span><strong>{{ slot.average !== null && !slot.loading ? formatPrice(slot.average) + " €" : "—" }}</strong></div>
-            <div class="price-delta" [class.positive]="slot.price !== null && slot.average !== null && !slot.loading && slot.price > slot.average" [class.negative]="slot.price !== null && slot.average !== null && !slot.loading && slot.price < slot.average"><span *ngIf="slot.price !== null && slot.average !== null && !slot.loading; else emptyDelta">{{ formatSigned(slot.price - slot.average) }} € ({{ formatSignedPercentage(slot.price, slot.average) }})</span><ng-template #emptyDelta>—</ng-template></div>
+          </ng-container>
+          <div class="metric" [title]="row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'">
+            {{row.loading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(annualReturn(row)) : formatPrice(row.price)}}
           </div>
-          <ng-template #timeSeriesResults>
-            <div class="results">
-              <div class="result"><span>Variazione {{ etfNickname(slot.isin) }}</span><strong>{{ formatPercent(annualReturn(slot)) }}</strong></div>
-              <div class="result"><span>Variazione {{ slot.benchmarkIsin ? etfNickname(slot.benchmarkIsin) : 'rispetto a zero' }}</span><strong>{{ slot.benchmarkLoading ? '—' : formatPercent(slot.benchmarkIsin ? slot.benchmarkReturn : 0) }}</strong></div>
-              <div class="price-delta" [class.positive]="isPositive(slot)" [class.negative]="isNegative(slot)">{{ comparisonText(slot) }}</div>
-            </div>
-          </ng-template>
+          <div class="metric" [title]="row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'">
+            {{row.loading || row.benchmarkLoading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(row.benchmarkIsin ? row.benchmarkReturn : 0) : formatPrice(row.average)}}
+          </div>
+          <div class="metric outcome" [title]="row.error || 'Differenza'">
+            {{row.strategyKey === 'ts-momentum-12m' ? comparisonText(row) : differenceText(row)}}
+          </div>
+          <button type="button" class="remove" (click)="removeCriterion(i)" [attr.aria-label]="'Elimina criterio '+(i+1)">×</button>
+          <span *ngIf="row.error" class="row-error">{{row.error}}</span>
         </article>
-        <p *ngIf="!portfolioSelection.selectedPortfolio()" class="portfolio-hint">Seleziona un portafoglio dalla barra superiore.</p>
       </div>
-      <article class="trend-suggestions-panel">
-        <h3><span class="material-symbols-rounded trend-suggestions-icon">emoji_objects</span>Suggerimenti</h3>
+      <article class="suggestions">
+        <h3><span class="material-symbols-rounded icon">emoji_objects</span>Suggerimenti</h3>
         <p>Nessun suggerimento disponibile.</p>
       </article>
     </section>
   `,
   styles: [`
-    .page-panel { display:flex; flex-direction:column; min-height:calc(100dvh - 190px); box-sizing:border-box; }
-    .trend-suggestions-panel { margin-top:auto; flex-shrink:0; min-height:0; width:100%; box-sizing:border-box; padding:12px 18px; border:1px solid rgba(77,132,187,.42); border-radius:14px; background:radial-gradient(circle at 5% 50%,rgba(255,190,55,.055),transparent 24%),linear-gradient(145deg,rgba(15,31,52,.78),rgba(7,18,31,.98)); }
-    .trend-suggestions-panel h3 { display:flex; align-items:center; gap:9px; margin:0 0 6px; font-size:16px; }
-    .trend-suggestions-icon { color:#ffe34f; font-size:34px; font-variation-settings:'FILL' 1,'wght' 700,'GRAD' 100,'opsz' 24; }
-    .trend-suggestions-panel p { margin:0; color:#a9bad2; font-size:13px; }
-    .strategy-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:24px; align-items:stretch; }
-    .strategy-card { display:flex; flex-direction:column; align-items:stretch; gap:14px; padding:24px 18px; text-align:center; min-width:0; border:1px solid rgba(125,150,190,.45); border-radius:14px; background:rgba(35,55,90,.30); }
-    .strategy-card.trend-positive { border-color:#69d8a5; box-shadow:0 0 0 1px rgba(105,216,165,.25); }
-    .strategy-card.trend-negative { border-color:#ff858c; box-shadow:0 0 0 1px rgba(255,133,140,.25); }
-    .strategy-card label { font-weight:600; }
-    .select-line { display:flex; align-items:center; gap:8px; min-width:0; }
-    .select-line.dual-select select { flex:1 1 0; width:0; }
-    .benchmark-search { position:relative; flex:1 1 0; min-width:0; }
-    .benchmark-search input { width:100%; box-sizing:border-box; padding:10px 30px 10px 10px; border-radius:8px; background:#203554; color:white; border:1px solid #6085b5; font:inherit; }
-    .benchmark-search input::placeholder { color:#a9bad2; }
-    .clear-benchmark { position:absolute; right:6px; top:5px; background:transparent; border:0; color:#c7d6e9; font-size:22px; cursor:pointer; }
-    .benchmark-options { position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:50; max-height:240px; overflow-y:auto; border:1px solid #6085b5; border-radius:8px; background:#152b49; box-shadow:0 12px 24px rgba(0,0,0,.4); }
-    .benchmark-option { display:block; width:100%; padding:9px 10px; text-align:left; color:white; background:transparent; border:0; border-bottom:1px solid rgba(125,150,190,.15); cursor:pointer; overflow-wrap:anywhere; }
-    .benchmark-option:hover { background:#2b4e7d; }
-    .benchmark-empty { padding:12px; color:#a9bad2; font-size:12px; }
-    .compare-sign { font-size:20px; font-weight:700; flex-shrink:0; }
-    .strategy-card select { width:100%; min-width:0; padding:10px 12px; border-radius:8px; background:#203554; color:white; border:1px solid #6085b5; }
-    .results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; width:100%; }
-    .result { display:flex; flex-direction:column; justify-content:center; gap:8px; padding:16px 8px; min-width:0; border:1px solid rgba(125,150,190,.35); border-radius:12px; background:rgba(35,55,90,.45); }
-    .result strong { font-size:clamp(15px,1.5vw,23px); overflow-wrap:anywhere; }
-    .result span { font-size:12px; }
-    .price-delta { grid-column:1/-1; display:flex; align-items:center; justify-content:center; min-height:49px; box-sizing:border-box; font-size:16px; font-weight:700; padding:10px 8px; border:1px solid rgba(125,150,190,.35); border-radius:12px; background:rgba(35,55,90,.45); color:#a9bad2; }
-    .price-delta.positive { color:#69d8a5; }
-    .price-delta.negative { color:#ff858c; }
-    .error { color:#ff9292; }
-    .portfolio-hint { grid-column:1/-1; text-align:center; }
-    @media(max-width:1100px) { .strategy-row { grid-template-columns:1fr; } .result strong { font-size:23px; } }
-
+    .trend-page{display:flex;flex-direction:column;min-height:calc(100dvh - 190px);gap:12px}
+    .criteria-list{display:flex;flex-direction:column;gap:8px;padding-top:8px}
+    .criterion{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid rgba(100,139,182,.42);border-radius:11px;background:rgba(12,25,42,.85);min-width:0;flex-wrap:wrap}
+    .criterion.positive{border-color:#48d1a3;background:rgba(24,90,72,.20)}
+    .criterion.negative{border-color:#f07181;background:rgba(110,35,48,.20)}
+    select,.benchmark-search input{height:39px;box-sizing:border-box;background:#203554;color:#edf4ff;border:1px solid #50769f;border-radius:7px;padding:0 9px;min-width:0;font:inherit}
+    .strategy-select{flex:0 1 21%;max-width:280px}.etf-select{flex:1 1 18%;min-width:130px}
+    .benchmark-search{flex:1 1 15%;min-width:120px;position:relative}.benchmark-search input{width:100%;padding-right:26px}
+    .compare-sign{font-weight:700;font-size:19px}.clear{position:absolute;right:5px;top:6px;background:transparent;border:0;color:white;font-size:20px;cursor:pointer}
+    .benchmark-options{position:absolute;z-index:50;top:42px;left:0;right:0;max-height:240px;overflow:auto;background:#142943;border:1px solid #6085b5;border-radius:8px}
+    .benchmark-options button{display:block;width:100%;text-align:left;color:white;background:transparent;border:0;padding:9px;cursor:pointer}
+    .benchmark-options button:hover{background:#2b4e7d}
+    .metric{flex:0 1 104px;min-width:80px;min-height:39px;display:flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;border:1px solid rgba(115,150,190,.34);border-radius:7px;background:rgba(30,51,80,.62);font-weight:600;font-size:13px;white-space:nowrap}
+    .outcome{flex:1 1 155px;min-width:130px}.positive .outcome{color:#66dfb1}.negative .outcome{color:#ff8d9c}
+    .remove{border:0;background:transparent;color:#fa8190;cursor:pointer;font-size:21px}
+    .row-error{flex-basis:100%;color:#ff939a;font-size:12px}.error{color:#ff939a}.hint{color:#a9bad2}
+    .suggestions{margin-top:auto;padding:12px 18px;border:1px solid rgba(77,132,187,.42);border-radius:14px;background:rgba(7,18,31,.94)}
+    .suggestions h3{display:flex;align-items:center;gap:9px;margin:0 0 6px;font-size:16px}.suggestions p{margin:0;color:#a9bad2;font-size:13px}
+    .icon{color:#ffe34f;font-size:30px}
+    @media(max-width:950px){.criterion{gap:6px}.strategy-select{flex:1 1 40%;max-width:none}.etf-select{flex:1 1 40%}.metric{flex:1 1 25%}.outcome{flex:1 1 35%}}
   `]
 })
 export class TrendFollowingPageComponent implements OnDestroy {
-  readonly portfolioSelection = inject(PortfolioSelectionService);
-  private readonly api = inject(ApiService);
-  private readonly quotations = inject(QuotationService);
-  private portfolioRequest?: Subscription;
-  private settingsRequest?: Subscription;
-  private settingsReady = false;
-  private saving = false;
-  private saveQueued = false;
-  saveError = '';
-  loadingSettings = false;
-  private readonly strategyKeys = [
-    'buy-hold-momentum', 'sma-200', 'ts-momentum-12m', 'dual-sma-50-200',
-    'momentum-world-xeon', 'momentum-xeon-fast-reentry', 'trend-vol-target',
-    'momentum-world-xeon-vol-target'
-  ];
-  private currentPortfolioId: string | null = null;
-  private currentRefreshVersion = -1;
-  private pendingStrategy: number | null = null;
-  private lastStrategy: number | null = null;
-  readonly trendStrategy = inject(TrendStrategyService);
-  etfs: TrendEtf[] = [];
-  allEtfs: TrendEtf[] = [];
-  private catalogRequest?: Subscription;
-  loadingPortfolio = false;
-  portfolioMessage = '';
-  readonly slots: TrendSlot[] = Array.from({ length: 3 }, () => ({
-    isin: '', price: null, average: null, loading: false, error: '', requestId: 0
-  }));
-
-  constructor() {
-    effect(() => {
-      const strategy = this.trendStrategy.selectedStrategy();
-      if (!this.settingsReady || strategy === this.lastStrategy) return;
-      const previous = this.lastStrategy;
-      this.lastStrategy = strategy;
-      if (strategy !== null && this.currentPortfolioId) {
-        this.api.saveTrendFollowingSettings(this.currentPortfolioId, this.strategyKeys[strategy], ['', '', '']).subscribe({
-          error: () => { this.saveError = 'Impossibile salvare la strategia selezionata.'; }
-        });
-      }
-      if ([1, 2, 3].includes(strategy ?? -1) && previous !== strategy) untracked(() => this.restoreSmaSettings());
-      else if ([1, 2, 3].includes(previous ?? -1) && strategy !== previous) untracked(() => this.slots.forEach(slot => this.clearSlot(slot)));
-    });
-    effect(() => {
-      const selected = this.portfolioSelection.selectedPortfolio();
-      const refreshVersion = this.portfolioSelection.refreshVersion();
-      if (selected?.id !== this.currentPortfolioId || refreshVersion !== this.currentRefreshVersion) {
-        this.pendingStrategy = this.currentPortfolioId === null ? untracked(() => this.trendStrategy.selectedStrategy()) : null;
-        this.currentPortfolioId = selected?.id ?? null;
-        this.currentRefreshVersion = refreshVersion;
-        untracked(() => this.loadPortfolio());
+  readonly portfolioSelection=inject(PortfolioSelectionService);
+  private readonly api=inject(ApiService);
+  private readonly quotations=inject(QuotationService);
+  readonly strategies=STRATEGIES;
+  readonly headerActionLabel='AGGIUNGI CRITERIO';
+  readonly headerActionIcon='add';
+  get headerActionDisabled():boolean{return !this.currentPortfolioId || this.loadingPortfolio || this.loadingSettings || this.muGenerating}
+  get headerActionRunning():boolean{return this.muGenerating}
+  get headerActionProgress():number{return this.muGenerating?Math.max(1,this.muProgress):0}
+  muGenerating=false;muProgress=0;
+  setMarketUniverseGenerationStatus(running:boolean,progress:number):void{this.muGenerating=running;this.muProgress=progress}
+  runHeaderAction():void{this.addCriterion()}
+  readonly criteria:Criterion[]=[];
+  etfs:Etf[]=[];allEtfs:Etf[]=[];
+  loadingPortfolio=false;loadingSettings=false;saveError='';portfolioMessage='';
+  private currentPortfolioId:string|null=null;
+  private refreshVersion=-1;
+  private portfolioSub?:Subscription;private catalogSub?:Subscription;private settingsSub?:Subscription;private saveSub?:Subscription;
+  private saveQueued=false;private saving=false;private loadVersion=0;
+  constructor(){
+    effect(()=>{
+      const selected=this.portfolioSelection.selectedPortfolio();
+      const version=this.portfolioSelection.refreshVersion();
+      if(selected?.id!==this.currentPortfolioId||version!==this.refreshVersion){
+        this.currentPortfolioId=selected?.id??null;this.refreshVersion=version;
+        untracked(()=>this.loadPortfolio());
       }
     });
   }
-  availableEtfs(slotIndex: number): TrendEtf[] {
-    const taken = new Set(this.slots.filter((_, i) => i !== slotIndex).map(slot => slot.isin).filter(Boolean));
-    return this.etfs.filter(etf => !taken.has(etf.isin));
+  trackRow(_i:number,row:Criterion):Criterion{return row}
+  private createRow(strategyKey='sma-200',isin='',benchmarkIsin=''):Criterion{
+    return {strategyKey,isin,benchmarkIsin,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
-  private clearSlot(slot: TrendSlot): void {
-    slot.subscription?.unsubscribe();
-    slot.benchmarkSubscription?.unsubscribe();
-    slot.requestId++;
-    slot.isin = '';
-    slot.price = null;
-    slot.average = null;
-    slot.loading = false;
-    slot.error = '';
-    slot.benchmarkIsin = '';
-    slot.benchmarkReturn = null;
-    slot.benchmarkLoading = false;
-    slot.benchmarkSearch = '';
-    slot.benchmarkSearchOpen = false;
+  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings)return;this.criteria.push(this.createRow());this.queueSave()}
+  removeCriterion(i:number):void{const row=this.criteria[i];if(!row)return;this.clearRequests(row);this.criteria.splice(i,1);this.queueSave()}
+  changeStrategy(i:number,key:string):void{
+    const row=this.criteria[i];if(!row||!STRATEGIES.some(s=>s.key===key))return;
+    this.clearRequests(row);row.strategyKey=key;row.price=null;row.average=null;row.error='';
+    row.benchmarkIsin='';row.benchmarkSearch='';row.benchmarkReturn=null;
+    if(row.isin)this.loadQuote(row);this.queueSave();
   }
-  private loadPortfolio(): void {
-    this.portfolioRequest?.unsubscribe();
-    this.settingsRequest?.unsubscribe();
-    this.settingsReady = false;
-    this.lastStrategy = null;
-    this.saveQueued = false;
-    this.loadingSettings = false;
-    this.saveError = '';
-    this.portfolioMessage = '';
-    this.trendStrategy.selectedStrategy.set(null);
-    this.slots.forEach(slot => this.clearSlot(slot));
-    this.etfs = [];
-    this.catalogRequest?.unsubscribe();
-    this.catalogRequest = this.api.getETFs().subscribe({
-      next: (res: any) => {
-        const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-        this.allEtfs = rows.map((e: any) => ({
-          isin: String(e.isin || '').toUpperCase(),
-          label: (e.nickname || e.name || e.fullName || e.isin) + ' (' + e.isin + ')',
-          searchText: [e.nickname, e.name, e.fullName, e.ticker, e.symbol, e.isin].filter(Boolean).join(' ').toLocaleLowerCase()
-        })).filter((e: TrendEtf) => !!e.isin);
-      },
-      error: () => { this.allEtfs = []; }
-    });
-    const selected = this.portfolioSelection.selectedPortfolio();
-    if (!selected) { this.loadingPortfolio = false; this.portfolioMessage = 'Seleziona un portafoglio dalla navbar.'; return; }
-    if (selected.tipo !== 'reale') { this.loadingPortfolio = false; this.portfolioMessage = 'Il portafoglio selezionato è di laboratorio: gli ETF del Trend Following sono attualmente disponibili solo per portafogli reali.'; return; }
-    this.loadingPortfolio = true;
-    this.portfolioRequest = this.api.getRealPortfolioHoldings(selected.id).subscribe({
-      next: (response: any) => {
-        if (this.portfolioSelection.selectedPortfolio()?.id !== selected.id) return;
-        this.setEtfs(Array.isArray(response?.data) ? response.data : []);
-      },
-      error: () => { this.loadingPortfolio = false; this.portfolioMessage = 'Errore nel caricamento degli ETF del portafoglio. Controlla la richiesta GET /api/real-portfolios/:id/holdings.'; }
-    });
+  selectEtf(i:number,isin:string):void{
+    const row=this.criteria[i];if(!row)return;this.clearRequests(row);
+    row.isin=isin;row.price=null;row.average=null;row.error='';
+    if(isin)this.loadQuote(row);this.queueSave();
   }
-  private setEtfs(holdings: any[]): void {
-    const unique = new Map<string, TrendEtf>();
-    for (const holding of holdings) {
-      const isin = String(holding?.isin ?? holding?.etf?.isin ?? '').trim();
-      if (!isin) continue;
-      const label = holding?.nickname || holding?.etf?.nickname || holding?.fullName ||
-        holding?.etf?.name || holding?.name || holding?.ticker || isin;
-      unique.set(isin, { isin, label: `${label} (${isin})` });
-    }
-    this.etfs = [...unique.values()];
-    this.loadingPortfolio = false;
-    this.portfolioMessage = this.etfs.length ? '' : 'Questo portafoglio non contiene ETF acquistati. Aggiungi ETF da I miei portafogli per poterli selezionare qui.';
-    this.loadSavedSettings();
-  }
-  selectEtf(slotIndex: number, isin: string): void {
-    const slot = this.slots[slotIndex];
-    if (!slot || (isin && this.slots.some((other, i) => i !== slotIndex && other.isin === isin))) return;
-    this.clearSlot(slot);
-    slot.isin = isin;
-    if (this.settingsReady && [1, 2, 3].includes(this.trendStrategy.selectedStrategy() ?? -1)) this.queueSave();
-    if (!isin) return;
-    slot.loading = true;
-    const requestId = slot.requestId;
-    slot.subscription = this.quotations.getQuotationHistory(isin, this.trendStrategy.selectedStrategy() === 2 ? 5000 : 300).subscribe({
-      next: (response: any) => {
-        if (requestId !== slot.requestId) return;
-        const rows = (Array.isArray(response?.data) ? response.data : [])
-          .filter((row: any) => row?.quotation !== null && row?.quotation !== undefined &&
-            Number.isFinite(Number(row.quotation)) && Number(row.quotation) > 0)
-          .sort((a: any, b: any) => String(b.date).localeCompare(String(a.date)))
-          .slice(0, this.trendStrategy.selectedStrategy() === 2 ? 5000 : 200);
-        if (this.trendStrategy.selectedStrategy() === 2) {
-          const prices = this.yearPrices(rows);
-          slot.price = prices?.current ?? null;
-          slot.average = prices?.past ?? null;
-          slot.error = prices ? '' : 'Non esiste una quotazione risalente ad almeno 12 mesi.';
-          slot.loading = false;
-          return;
+  private clearRequests(row:Criterion):void{row.subscription?.unsubscribe();row.benchmarkSubscription?.unsubscribe();row.version++;row.loading=false;row.benchmarkLoading=false}
+  private loadQuote(row:Criterion):void{
+    const version=++row.version;row.loading=true;row.error='';
+    row.subscription=this.quotations.getQuotationHistory(row.isin,row.strategyKey==='ts-momentum-12m'?5000:300).subscribe({
+      next:(response:any)=>{
+        if(row.version!==version)return;
+        const rows=(Array.isArray(response?.data)?response.data:[])
+          .filter((x:any)=>Number(x?.quotation)>0).sort((a:any,b:any)=>String(b.date).localeCompare(String(a.date)));
+        if(row.strategyKey==='ts-momentum-12m'){
+          const pair=this.yearPrices(rows);row.price=pair?.current??null;row.average=pair?.past??null;
+          if(!pair)row.error='Servono quotazioni risalenti ad almeno 12 mesi.';
+        }else{
+          if(rows.length<200)row.error='Servono almeno 200 quotazioni.';
+          else{row.price=row.strategyKey==='dual-sma-50-200'?rows.slice(0,50).reduce((n:number,x:any)=>n+Number(x.quotation),0)/50:Number(rows[0].quotation);
+            row.average=rows.slice(0,200).reduce((n:number,x:any)=>n+Number(x.quotation),0)/200;}
         }
-        if (rows.length < 200) { slot.error = 'Servono almeno 200 quotazioni per calcolare le medie mobili.'; slot.loading = false; return; }
-        slot.price = this.trendStrategy.selectedStrategy() === 3
-          ? (rows.length >= 50 ? rows.slice(0, 50).reduce((sum: number, row: any) => sum + Number(row.quotation), 0) / 50 : null)
-          : Number(rows[0].quotation);
-        slot.average = rows.reduce((sum: number, row: any) => sum + Number(row.quotation), 0) / rows.length;
-        slot.loading = false;
+        row.loading=false;
       },
-      error: () => { if (requestId === slot.requestId) { slot.loading = false; slot.error = 'Impossibile leggere le quotazioni.'; } }
+      error:()=>{if(row.version===version){row.loading=false;row.error='Impossibile leggere le quotazioni.'}}
     });
   }
-  private loadSavedSettings(): void {
-    const portfolioId = this.currentPortfolioId;
-    if (!portfolioId) return;
-    this.loadingSettings = true;
-    this.settingsRequest = this.api.getTrendFollowingSettings(portfolioId).subscribe({
-      next: (response: any) => {
-        if (portfolioId !== this.currentPortfolioId) return;
-        const data = response?.data;
-        const index = this.strategyKeys.indexOf(data?.strategyKey);
-        const saved = data?.strategyKey === 'sma-200' && Array.isArray(data?.settings?.etfIsins) ? data.settings.etfIsins : [];
-        const allowed = new Set(this.etfs.map(etf => etf.isin.toUpperCase()));
-        const seen = new Set<string>();
-        for (let i = 0; i < this.slots.length; i++) {
-          const isin = typeof saved[i] === 'string' ? saved[i].toUpperCase() : '';
-          if (isin && allowed.has(isin) && !seen.has(isin)) {
-            seen.add(isin);
-            this.selectEtf(i, isin);
-          }
+  private yearPrices(rows:any[]):{current:number;past:number}|null{
+    if(!rows.length)return null;
+    const latest=new Date(String(rows[0].date).slice(0,10)+'T12:00:00Z');
+    if(Number.isNaN(latest.getTime()))return null;
+    latest.setUTCFullYear(latest.getUTCFullYear()-1);
+    const past=rows.find(x=>String(x.date).slice(0,10)<=latest.toISOString().slice(0,10));
+    return past?{current:Number(rows[0].quotation),past:Number(past.quotation)}:null;
+  }
+  annualReturn(row:Criterion):number|null{return row.price!==null&&row.average!==null&&row.average>0&&!row.loading?(row.price/row.average-1)*100:null}
+  private benchmarkValue(row:Criterion):number|null{return row.benchmarkIsin?row.benchmarkReturn:0}
+  private delta(row:Criterion):number|null{
+    if(row.loading||row.benchmarkLoading)return null;
+    if(row.strategyKey==='ts-momentum-12m'){const a=this.annualReturn(row),b=this.benchmarkValue(row);return a===null||b===null?null:a-b}
+    return row.price!==null&&row.average!==null?row.price-row.average:null;
+  }
+  isPositive(row:Criterion):boolean{return (this.delta(row)??0)>0}
+  isNegative(row:Criterion):boolean{return (this.delta(row)??0)<0}
+  formatPrice(v:number|null):string{return v===null?'—':new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v)+' €'}
+  formatPercent(v:number|null):string{return v===null?'—':(v>0?'+':'')+new Intl.NumberFormat('it-IT',{maximumFractionDigits:2}).format(v)+'%'}
+  comparisonText(row:Criterion):string{return this.formatPercent(this.delta(row))}
+  differenceText(row:Criterion):string{
+    const d=this.delta(row);if(d===null)return '—';
+    const pct=row.average&&row.average>0?this.formatPercent(d/row.average*100):'—';
+    return (d>0?'+':'')+this.formatPrice(d)+' ('+pct+')';
+  }
+  filteredBenchmarks(row:Criterion):Etf[]{const q=row.benchmarkSearch.trim().toLowerCase();return this.allEtfs.filter(e=>!q||e.search.includes(q)).slice(0,40)}
+  filterBenchmark(i:number,q:string):void{
+    const row=this.criteria[i];if(!row)return;
+    if(row.benchmarkIsin){row.benchmarkSubscription?.unsubscribe();row.benchmarkIsin='';row.benchmarkReturn=null;this.queueSave()}
+    row.benchmarkSearch=q;row.searchOpen=true;
+  }
+  closeBenchmark(i:number):void{setTimeout(()=>{if(this.criteria[i])this.criteria[i].searchOpen=false},120)}
+  selectBenchmark(i:number,isin:string):void{
+    const row=this.criteria[i];if(!row)return;
+    row.benchmarkSubscription?.unsubscribe();row.benchmarkIsin=isin;row.benchmarkReturn=null;row.benchmarkLoading=!!isin;
+    row.benchmarkSearch=isin?(this.allEtfs.find(e=>e.isin===isin)?.label||isin):'';row.searchOpen=false;
+    this.queueSave();if(!isin)return;
+    const version=row.version;
+    row.benchmarkSubscription=this.quotations.getQuotationHistory(isin,5000).subscribe({
+      next:(res:any)=>{
+        if(row.version!==version||row.benchmarkIsin!==isin)return;
+        const rows=(Array.isArray(res?.data)?res.data:[]).filter((x:any)=>Number(x?.quotation)>0).sort((a:any,b:any)=>String(b.date).localeCompare(String(a.date)));
+        const pair=this.yearPrices(rows);row.benchmarkReturn=pair?(pair.current/pair.past-1)*100:null;row.benchmarkLoading=false;
+        if(!pair)row.error='Confronto: servono almeno 12 mesi di quotazioni.';
+      },
+      error:()=>{if(row.version===version){row.benchmarkLoading=false;row.error='Impossibile leggere il benchmark.'}}
+    });
+  }
+  private loadPortfolio():void{
+    this.loadVersion++;const version=this.loadVersion;
+    this.portfolioSub?.unsubscribe();this.settingsSub?.unsubscribe();this.catalogSub?.unsubscribe();
+    this.criteria.forEach(row=>this.clearRequests(row));this.criteria.splice(0);
+    this.etfs=[];this.allEtfs=[];this.saveError='';this.portfolioMessage='';this.loadingSettings=false;this.saveQueued=false;
+    this.catalogSub=this.api.getETFs().subscribe({next:(res:any)=>{
+      if(version!==this.loadVersion)return;
+      const rows=Array.isArray(res?.data)?res.data:Array.isArray(res)?res:[];
+      this.allEtfs=rows.map((e:any)=>({isin:String(e.isin||'').toUpperCase(),label:(e.nickname||e.name||e.isin)+' ('+e.isin+')',
+        search:[e.nickname,e.name,e.ticker,e.symbol,e.isin].filter(Boolean).join(' ').toLowerCase()})).filter((e:Etf)=>!!e.isin);
+      this.criteria.forEach(row=>{if(row.benchmarkIsin)row.benchmarkSearch=this.allEtfs.find(e=>e.isin===row.benchmarkIsin)?.label||row.benchmarkIsin});
+    }});
+    const selected=this.portfolioSelection.selectedPortfolio();
+    if(!selected){this.loadingPortfolio=false;this.portfolioMessage='Seleziona un portafoglio dalla navbar.';return}
+    if(selected.tipo!=='reale'){this.loadingPortfolio=false;this.portfolioMessage='I criteri sono disponibili per i portafogli reali.';return}
+    this.loadingPortfolio=true;
+    this.portfolioSub=this.api.getRealPortfolioHoldings(selected.id).subscribe({
+      next:(res:any)=>{
+        if(version!==this.loadVersion)return;
+        const unique=new Map<string,Etf>();
+        for(const h of (Array.isArray(res?.data)?res.data:[])){
+          const isin=String(h?.isin||h?.etf?.isin||'').toUpperCase();if(!isin)continue;
+          const label=h?.nickname||h?.etf?.nickname||h?.name||h?.etf?.name||isin;
+          unique.set(isin,{isin,label:label+' ('+isin+')',search:label.toLowerCase()});
         }
-        this.trendStrategy.selectedStrategy.set(index >= 0 ? index : this.pendingStrategy);
-        this.lastStrategy = this.trendStrategy.selectedStrategy();
-        this.pendingStrategy = null;
-        this.loadingSettings = false;
-        this.settingsReady = true;
-        if ([1, 2, 3].includes(this.trendStrategy.selectedStrategy() ?? -1)) this.restoreSmaSettings();
+        this.etfs=[...unique.values()];this.loadingPortfolio=false;
+        this.loadSaved(version,selected.id);
       },
-      error: () => {
-        if (portfolioId !== this.currentPortfolioId) return;
-        this.loadingSettings = false;
-        this.settingsReady = true;
-        this.trendStrategy.selectedStrategy.set(this.pendingStrategy);
-        this.lastStrategy = this.trendStrategy.selectedStrategy();
-        this.pendingStrategy = null;
-        this.saveError = 'Impossibile recuperare la configurazione salvata; puoi selezionare gli ETF, ma verifica il collegamento al server.';
-      }
+      error:()=>{if(version===this.loadVersion){this.loadingPortfolio=false;this.portfolioMessage='Impossibile caricare gli ETF del portafoglio.'}}
     });
   }
-
-  private restoreSmaSettings(): void {
-    const portfolioId = this.currentPortfolioId;
-    if (!portfolioId || !this.settingsReady) return;
-    this.settingsRequest?.unsubscribe();
-    this.slots.forEach(slot => this.clearSlot(slot));
-    this.loadingSettings = true;
-    const strategyIndex = this.trendStrategy.selectedStrategy();
-    if (strategyIndex === null || ![1, 2, 3].includes(strategyIndex)) { this.loadingSettings = false; return; }
-    this.settingsRequest = this.api.getTrendEtfSelections(portfolioId, this.strategyKeys[strategyIndex]).subscribe({
-      next: (response: any) => {
-        if (portfolioId !== this.currentPortfolioId || this.trendStrategy.selectedStrategy() !== strategyIndex) return;
-        const saved = Array.isArray(response?.data?.etfIsins) ? response.data.etfIsins : [];
-        const allowed = new Set(this.etfs.map(etf => etf.isin.toUpperCase()));
-        const seen = new Set<string>();
-        saved.slice(0, 3).forEach((value: unknown, i: number) => {
-          const isin = typeof value === 'string' ? value.toUpperCase() : '';
-          if (isin && allowed.has(isin) && !seen.has(isin)) {
-            seen.add(isin);
-            this.selectEtf(i, isin);
-          }
-        });
-        this.loadingSettings = false;
+  private loadSaved(version:number,portfolioId:string):void{
+    this.loadingSettings=true;
+    this.settingsSub=this.api.getTrendCriteria(portfolioId).subscribe({
+      next:(res:any)=>{
+        if(version!==this.loadVersion)return;
+        const saved=Array.isArray(res?.data?.criteria)?res.data.criteria:[];
+        for(const item of saved){
+          if(!STRATEGIES.some(s=>s.key===item.strategyKey))continue;
+          const row=this.createRow(item.strategyKey,String(item.isin||'').toUpperCase(),String(item.benchmarkIsin||'').toUpperCase());
+          this.criteria.push(row);if(row.isin)this.loadQuote(row);
+          if(row.benchmarkIsin)this.selectBenchmarkRestored(row);
+        }
+        this.loadingSettings=false;
       },
-      error: () => {
-        if (portfolioId !== this.currentPortfolioId) return;
-        this.loadingSettings = false;
-        this.saveError = 'Impossibile ripristinare gli ETF SMA200 dal database.';
-      }
+      error:()=>{if(version===this.loadVersion){this.loadingSettings=false;this.saveError='Impossibile recuperare i criteri salvati.'}}
     });
   }
-
-  private yearPrices(rows: any[]): { current: number; past: number } | null {
-    if (!rows.length) return null;
-    const latestDate = new Date(String(rows[0].date).slice(0, 10) + 'T12:00:00Z');
-    if (Number.isNaN(latestDate.getTime())) return null;
-    const target = new Date(latestDate);
-    target.setUTCFullYear(target.getUTCFullYear() - 1);
-    const past = rows.find(row => String(row.date).slice(0, 10) <= target.toISOString().slice(0, 10));
-    return past ? { current: Number(rows[0].quotation), past: Number(past.quotation) } : null;
+  private selectBenchmarkRestored(row:Criterion):void{
+    const isin=row.benchmarkIsin;row.benchmarkIsin='';
+    const i=this.criteria.indexOf(row);this.selectBenchmark(i,isin);
   }
-
-  annualReturn(slot: TrendSlot): number | null {
-    return slot.price !== null && slot.average !== null && slot.average > 0 && !slot.loading
-      ? (slot.price / slot.average - 1) * 100 : null;
+  private queueSave():void{
+    if(this.loadingSettings||!this.currentPortfolioId)return;
+    this.saveQueued=true;if(!this.saving)this.flushSave();
   }
-
-  formatPercent(value: number | null | undefined): string {
-    return value === null || value === undefined ? '—' : this.formatSigned(value) + '%';
-  }
-
-  etfNickname(isin: string): string {
-    if (!isin) return 'ETF';
-    const etf = [...this.etfs, ...this.allEtfs].find(item => item.isin === isin);
-    return etf ? etf.label.replace(/ \\([A-Z0-9]{12}\\)$/, '') : isin;
-  }
-
-  private benchmarkPercent(slot: TrendSlot): number | null {
-    return !slot.benchmarkIsin ? 0 : (slot.benchmarkReturn ?? null);
-  }
-
-  isPositive(slot: TrendSlot): boolean {
-    if (slot.loading || slot.benchmarkLoading) return false;
-    if (this.trendStrategy.selectedStrategy() === 2) {
-      const a = this.annualReturn(slot), b = this.benchmarkPercent(slot);
-      return a !== null && b !== null && a > b;
-    }
-    return slot.price !== null && slot.average !== null && slot.price > slot.average;
-  }
-
-  isNegative(slot: TrendSlot): boolean {
-    if (slot.loading || slot.benchmarkLoading) return false;
-    if (this.trendStrategy.selectedStrategy() === 2) {
-      const a = this.annualReturn(slot), b = this.benchmarkPercent(slot);
-      return a !== null && b !== null && a < b;
-    }
-    return slot.price !== null && slot.average !== null && slot.price < slot.average;
-  }
-
-  comparisonText(slot: TrendSlot): string {
-    const a = this.annualReturn(slot), b = this.benchmarkPercent(slot);
-    if (a === null || b === null || slot.benchmarkLoading) return '—';
-    return this.formatPercent(a - b);
-  }
-
-  filteredBenchmarks(index: number): TrendEtf[] {
-    const query = (this.slots[index]?.benchmarkSearch || '').trim().toLocaleLowerCase();
-    return this.allEtfs.filter(etf => !query || (etf.searchText || etf.label.toLocaleLowerCase()).includes(query)).slice(0, 40);
-  }
-
-  filterBenchmark(index: number, query: string): void {
-    const slot = this.slots[index];
-    if (!slot) return;
-    if (slot.benchmarkIsin) this.selectBenchmark(index, '');
-    slot.benchmarkSearch = query;
-    slot.benchmarkSearchOpen = true;
-  }
-
-  closeBenchmarkSearch(index: number): void {
-    const slot = this.slots[index];
-    if (slot) slot.benchmarkSearchOpen = false;
-  }
-
-  selectBenchmark(index: number, isin: string): void {
-    const slot = this.slots[index];
-    if (!slot) return;
-    slot.benchmarkSubscription?.unsubscribe();
-    slot.benchmarkIsin = isin;
-    slot.benchmarkSearch = isin ? (this.allEtfs.find(etf => etf.isin === isin)?.label || isin) : '';
-    slot.benchmarkSearchOpen = false;
-    slot.benchmarkReturn = null;
-    slot.benchmarkLoading = !!isin;
-    if (!isin) return;
-    const requestId = slot.requestId;
-    slot.benchmarkSubscription = this.quotations.getQuotationHistory(isin, 5000).subscribe({
-      next: (response: any) => {
-        if (requestId !== slot.requestId || slot.benchmarkIsin !== isin) return;
-        const rows = (Array.isArray(response?.data) ? response.data : [])
-          .filter((row: any) => Number(row?.quotation) > 0)
-          .sort((a: any, b: any) => String(b.date).localeCompare(String(a.date)));
-        const prices = this.yearPrices(rows);
-        slot.benchmarkReturn = prices ? (prices.current / prices.past - 1) * 100 : null;
-        slot.benchmarkLoading = false;
-      },
-      error: () => { if (requestId === slot.requestId) slot.benchmarkLoading = false; }
+  private flushSave():void{
+    if(!this.saveQueued){this.saving=false;return}
+    const portfolioId=this.currentPortfolioId;if(!portfolioId){this.saving=false;return}
+    this.saving=true;this.saveQueued=false;
+    const payload=this.criteria.map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin}));
+    this.saveSub=this.api.saveTrendCriteria(portfolioId,payload).subscribe({
+      next:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='';this.flushSave()},
+      error:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='Impossibile salvare i criteri.';this.saving=false}
     });
   }
-
-  private queueSave(): void {
-    if (!this.settingsReady || !this.currentPortfolioId || ![1, 2, 3].includes(this.trendStrategy.selectedStrategy() ?? -1)) return;
-    this.saveQueued = true;
-    if (!this.saving) this.flushSave();
-  }
-
-  private flushSave(): void {
-    if (!this.saveQueued) { this.saving = false; return; }
-    const portfolioId = this.currentPortfolioId;
-    const strategyIndex = this.trendStrategy.selectedStrategy();
-    if (!portfolioId || strategyIndex === null || ![1, 2, 3].includes(strategyIndex) || !this.settingsReady) {
-      this.saveQueued = false;
-      this.saving = false;
-      return;
-    }
-    this.saving = true;
-    this.saveQueued = false;
-    const etfIsins = this.slots.map(slot => slot.isin);
-    this.api.saveTrendEtfSelections(portfolioId, this.strategyKeys[strategyIndex], etfIsins).subscribe({
-      next: () => {
-        if (portfolioId === this.currentPortfolioId) this.saveError = '';
-        this.flushSave();
-      },
-      error: () => {
-        if (portfolioId === this.currentPortfolioId) this.saveError = 'Salvataggio non riuscito. Riprova modificando la selezione.';
-        this.flushSave();
-      }
-    });
-  }
-
-  formatPrice(value: number | null): string {
-    return value === null ? '—' : new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-  }
-  formatSigned(value: number): string {
-    return (value > 0 ? '+' : value < 0 ? '-' : '') + this.formatPrice(Math.abs(value));
-  }
-  formatSignedPercentage(price: number, average: number): string {
-    return average > 0 ? this.formatSigned((price - average) / average * 100) + '%' : '—';
-  }
-  ngOnDestroy(): void {
-    this.catalogRequest?.unsubscribe();
-    this.portfolioRequest?.unsubscribe();
-    this.settingsRequest?.unsubscribe();
-    this.slots.forEach(slot => slot.subscription?.unsubscribe());
+  ngOnDestroy():void{
+    this.loadVersion++;this.portfolioSub?.unsubscribe();this.catalogSub?.unsubscribe();this.settingsSub?.unsubscribe();this.saveSub?.unsubscribe();
+    this.criteria.forEach(row=>this.clearRequests(row));
   }
 }
