@@ -12,7 +12,7 @@ import { ActionConfirmationService } from '../../../core/services/action-confirm
         <h2 id="action-confirm-title">{{ request.title }}</h2>
         <div class="portfolio-confirm-actions" [class.portfolio-confirm-actions--single]="request.acknowledgeOnly">
           <button *ngIf="!request.acknowledgeOnly" type="button" class="portfolio-confirm-button portfolio-confirm-button--cancel" (click)="confirmation.cancel()">No, non farlo</button>
-          <button type="button" class="portfolio-confirm-button portfolio-confirm-button--confirm" (click)="confirmation.confirm()">{{ request.confirmLabel }}</button>
+          <button type="button" class="portfolio-confirm-button portfolio-confirm-button--confirm" [class.portfolio-confirm-button--error]="request.isError" (click)="confirmation.confirm()">{{ request.confirmLabel }}</button>
         </div>
       </section>
     </div>
