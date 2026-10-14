@@ -92,6 +92,35 @@
                 </tbody>
               </table>
             </div>
+            <h3 class="diagnostic-section-title">Protezione nei mesi peggiori dell'azionario</h3>
+            <p class="diagnostic-run">P5/P10: peggiori 5%/10% dei mesi dell'ETF azionario, selezionati separatamente per scenario. Soglia −5%: mesi con rendimento azionario ≤ −5%. Beneficio: rendimento medio 80/20 meno rendimento medio 100% azionario, in punti percentuali.</p>
+            <div class="diagnostic-table-wrap">
+              <table class="diagnostic-table">
+                <thead><tr><th>Scenario</th><th>ETF</th><th>Selezione</th><th>Mesi</th><th>Azionario medio</th><th>MF medio</th><th>MF negativo</th><th>Entrambi negativi</th><th>80/20 medio</th><th>Beneficio 80/20</th></tr></thead>
+                <tbody>
+                  <ng-container *ngFor="let s of result.scenarios">
+                    <ng-container *ngFor="let name of ['world', 'quality', 'momentum']">
+                      <tr *ngFor="let threshold of ['worst5', 'worst10', 'equityBelowMinus5']">
+                        <td>{{ s.scenario }}</td><td>{{ name }}</td>
+                        <td>{{ threshold === 'worst5' ? 'P5' : threshold === 'worst10' ? 'P10' : '≤ −5%' }}</td>
+                        <ng-container *ngIf="s.downside?.[name]?.[threshold] as d; else emptyDownside">
+                          <td>{{ d.observations }}</td>
+                          <td>{{ d.equityMean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ d.mfMean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ d.mfNegativePct | number:'1.1-1' }}%</td>
+                          <td>{{ d.bothNegativePct | number:'1.1-1' }}%</td>
+                          <td>{{ d.portfolio80_20Mean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ d.benefit80_20 * 100 | number:'1.2-2' }} pp</td>
+                        </ng-container>
+                        <ng-template #emptyDownside>
+                          <td colspan="7">—</td>
+                        </ng-template>
+                      </tr>
+                    </ng-container>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
             <p class="diagnostic-warning" *ngFor="let warning of result.warnings">{{ warning }}</p>
           </ng-container>
         </div>
