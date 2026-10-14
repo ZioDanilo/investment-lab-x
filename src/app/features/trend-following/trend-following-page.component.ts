@@ -182,9 +182,13 @@ export class TrendFollowingPageComponent implements OnDestroy {
     const container=event.currentTarget as HTMLElement;
     const rows=Array.from(container.querySelectorAll<HTMLElement>('.criterion'));
     if(!rows.length)return;
+    // offsetTop is unaffected by the translateY preview animation.
+    // Bounding-rect distances collapse when row 2 shifts into row 1's slot,
+    // incorrectly sending a downward drag straight to the last position.
     const first=rows[0].getBoundingClientRect();
-    const second=rows[1]?.getBoundingClientRect();
-    const stride=second?second.top-first.top:first.height+8;
+    const stride=rows.length>1
+      ? Math.max(1,rows[1].offsetTop-rows[0].offsetTop)
+      : rows[0].offsetHeight+8;
     const y=event.clientY-first.top;
     this.insertRowIndex=Math.max(0,Math.min(rows.length,Math.floor((y+stride/2)/Math.max(1,stride))));
   }
