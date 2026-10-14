@@ -175,6 +175,36 @@
                 </tbody>
               </table>
             </div>
+            <h3>Protezione condizionata alla traiettoria (12 mesi)</h3>
+            <p class="diagnostic-run">Perdita finale comparabile: 5-10%, 10-20%, oltre 20%. Progressivo: almeno 7 mesi negativi senza singoli ribassi oltre 5%; concentrato: un mese pesa almeno meta della perdita finale. Finestre sovrapposte.</p>
+            <div class="diagnostic-table-wrap">
+              <table class="diagnostic-table">
+                <thead><tr><th>Scenario</th><th>ETF</th><th>Perdita</th><th>Traiettoria</th><th>Finestre</th><th>Azionario</th><th>MF 12m</th><th>MF 1-6m</th><th>MF 7-12m</th><th>MF positivo</th><th>Beneficio 80/20</th></tr></thead>
+                <tbody>
+                  <ng-container *ngFor="let s of result.scenarios">
+                    <ng-container *ngFor="let name of ['world', 'quality', 'momentum']">
+                      <ng-container *ngFor="let band of ['loss5to10', 'loss10to20', 'lossOver20']">
+                        <tr *ngFor="let kind of ['progressive', 'concentrated', 'mixed']">
+                          <td>{{ s.scenario }}</td><td>{{ name }}</td>
+                          <td>{{ band === 'loss5to10' ? '5-10%' : band === 'loss10to20' ? '10-20%' : '>20%' }}</td>
+                          <td>{{ kind === 'progressive' ? 'Progressivo' : kind === 'concentrated' ? 'Concentrato' : 'Misto' }}</td>
+                          <ng-container *ngIf="s.trajectories?.[name]?.[band]?.[kind] as d; else noTrajectory">
+                            <td>{{ d.observations }}</td>
+                            <td>{{ d.equityMean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfMean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfFirst6Mean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfLast6Mean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfPositivePct | number:'1.1-1' }}%</td>
+                            <td>{{ d.benefit80_20 * 100 | number:'1.2-2' }} pp</td>
+                          </ng-container>
+                          <ng-template #noTrajectory><td colspan="7">—</td></ng-template>
+                        </tr>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
             <p class="diagnostic-warning" *ngFor="let warning of result.warnings">{{ warning }}</p>
           </ng-container>
         </div>
