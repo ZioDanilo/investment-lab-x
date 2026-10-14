@@ -62,6 +62,14 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/etfs`);
   }
 
+  getTrendCriteria(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/criteria`);
+  }
+
+  saveTrendCriteria(portfolioId: string, criteria: Array<{strategyKey:string;isin:string;benchmarkIsin:string}>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/criteria`, {criteria});
+  }
+
   getTrendFollowingSettings(portfolioId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}`);
   }
