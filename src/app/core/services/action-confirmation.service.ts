@@ -5,6 +5,7 @@ export interface ConfirmationRequest {
   confirmLabel: string;
   action: () => void | Promise<void>;
   acknowledgeOnly?: boolean;
+  isError?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -15,8 +16,8 @@ export class ActionConfirmationService {
     this.pending.set({ title, confirmLabel, action });
   }
 
-  notify(message: string): void {
-    this.pending.set({ title: message, confirmLabel: 'OK', action: () => {}, acknowledgeOnly: true });
+  notify(message: string, isError = false): void {
+    this.pending.set({ title: message, confirmLabel: 'OK', action: () => {}, acknowledgeOnly: true, isError });
   }
 
   cancel(): void { this.pending.set(null); }
