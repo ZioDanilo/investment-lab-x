@@ -121,6 +121,33 @@
                 </tbody>
               </table>
             </div>
+            <h3>Persistenza delle crisi azionarie (soglia −5%)</h3>
+            <p class="diagnostic-run">Inizio = primo mese sotto soglia; persistente = mese consecutivo sotto soglia. M+1, M+2 e M+3 sono mesi successivi allo shock, classificati per scenario iniziale; le finestre possono sovrapporsi.</p>
+            <div class="diagnostic-table-wrap">
+              <table class="diagnostic-table">
+                <thead><tr><th>Scenario</th><th>ETF</th><th>Fase</th><th>Osservazioni</th><th>Azionario medio</th><th>MF medio</th><th>MF negativo</th><th>80/20 medio</th><th>Beneficio 80/20</th></tr></thead>
+                <tbody>
+                  <ng-container *ngFor="let s of result.scenarios">
+                    <ng-container *ngFor="let name of ['world', 'quality', 'momentum']">
+                      <tr *ngFor="let phase of ['onset', 'continuing', 'next1', 'next2', 'next3']">
+                        <td>{{ s.scenario }}</td>
+                        <td>{{ name }}</td>
+                        <td>{{ phase === 'onset' ? 'Inizio' : phase === 'continuing' ? 'Persistente' : phase === 'next1' ? 'M+1' : phase === 'next2' ? 'M+2' : 'M+3' }}</td>
+                        <ng-container *ngIf="s.persistence?.[name]?.[phase] as p; else noPersistence">
+                          <td>{{ p.observations }}</td>
+                          <td>{{ p.equityMean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ p.mfMean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ p.mfNegativePct | number:'1.1-1' }}%</td>
+                          <td>{{ p.portfolio80_20Mean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ p.benefit80_20 * 100 | number:'1.2-2' }} pp</td>
+                        </ng-container>
+                        <ng-template #noPersistence><td colspan="6">—</td></ng-template>
+                      </tr>
+                    </ng-container>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
             <p class="diagnostic-warning" *ngFor="let warning of result.warnings">{{ warning }}</p>
           </ng-container>
         </div>
