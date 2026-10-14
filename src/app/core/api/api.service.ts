@@ -228,6 +228,10 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/market-universe/assets/isin/${encodeURIComponent(isin)}`);
   }
 
+  diagnoseMarketUniverseEtfV2(isin: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/v2/diagnostics/etf/${encodeURIComponent(isin)}`);
+  }
+
   // Market Universe V2: ETF-oriented persistence, no application warm-up cache.
   getMarketUniverseV2GenerationStatus(): Observable<any> {
     return this.http.get(`${this.apiUrl}/market-universe/v2/generation-status`);
