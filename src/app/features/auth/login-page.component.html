@@ -148,6 +148,33 @@
                 </tbody>
               </table>
             </div>
+            <h3 class="diagnostic-section-title">Ribassi persistenti: 3, 6 e 12 mesi</h3>
+            <p class="diagnostic-run">Rendimenti cumulati. Persistente: almeno metà dei mesi negativi e drawdown azionario di almeno 5%. Portafoglio 80/20 ribilanciato mensilmente. Finestre sovrapposte; scenario del primo mese.</p>
+            <div class="diagnostic-table-wrap">
+              <table class="diagnostic-table">
+                <thead><tr><th>Scenario</th><th>ETF</th><th>Orizzonte</th><th>Tipo</th><th>Finestre</th><th>Azionario</th><th>MF</th><th>MF negativo</th><th>Beneficio 80/20</th></tr></thead>
+                <tbody>
+                  <ng-container *ngFor="let s of result.scenarios">
+                    <ng-container *ngFor="let name of ['world', 'quality', 'momentum']">
+                      <ng-container *ngFor="let h of ['3', '6', '12']">
+                        <tr *ngFor="let kind of ['negative', 'persistent']">
+                          <td>{{ s.scenario }}</td><td>{{ name }}</td><td>{{ h }} mesi</td>
+                          <td>{{ kind === 'negative' ? 'Negative' : 'Persistenti' }}</td>
+                          <ng-container *ngIf="s.rolling?.[name]?.[h]?.[kind] as d; else emptyRolling">
+                            <td>{{ d.observations }}</td>
+                            <td>{{ d.equityMean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfMean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfNegativePct | number:'1.1-1' }}%</td>
+                            <td>{{ d.benefit80_20 * 100 | number:'1.2-2' }} pp</td>
+                          </ng-container>
+                          <ng-template #emptyRolling><td colspan="5">—</td></ng-template>
+                        </tr>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
             <p class="diagnostic-warning" *ngFor="let warning of result.warnings">{{ warning }}</p>
           </ng-container>
         </div>
