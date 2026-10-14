@@ -32,7 +32,7 @@ const STRATEGIES = [
       <div class="criteria-list">
         <article *ngFor="let row of criteria; let i=index; trackBy:trackRow" class="criterion">
           <span class="criterion-status material-symbols-rounded" [class.criterion-status--success]="isPositive(row)" [class.criterion-status--failure]="isNegative(row)" [attr.aria-label]="isPositive(row) ? 'Criterio soddisfatto' : isNegative(row) ? 'Criterio non soddisfatto' : 'Criterio non valutato'" role="img">{{isPositive(row) ? 'check_circle' : isNegative(row) ? 'cancel' : 'radio_button_unchecked'}}</span>
-          <select class="strategy-select" [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(i,$event)" [attr.aria-label]="'Strategia criterio '+(i+1)">
+          <select class="strategy-select" [disabled]="!!row.strategyKey" [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(i,$event)" [attr.aria-label]="'Strategia criterio '+(i+1)">
             <option value="">Seleziona criterio</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
@@ -81,7 +81,8 @@ const STRATEGIES = [
     .criterion-status--success{color:#48d1a3}
     .criterion-status--failure{color:#f07181}
     select,.benchmark-search input{height:39px;box-sizing:border-box;background:#203554;color:#edf4ff;border:1px solid #50769f;border-radius:7px;padding:0 9px;min-width:0;font:inherit}
-    .strategy-select{flex:0 1 21%;max-width:280px}.etf-select{flex:1 1 18%;min-width:130px}
+    .strategy-select{flex:0 1 21%;max-width:280px}
+    .strategy-select:disabled{background:#28313f;color:#c2c9d2;border-color:#596473;opacity:1;cursor:not-allowed}.etf-select{flex:1 1 18%;min-width:130px}
     .benchmark-search{flex:1 1 15%;min-width:120px;position:relative}.benchmark-search input{width:100%;padding-right:26px}
     .compare-sign{font-weight:700;font-size:19px}.clear{position:absolute;right:5px;top:6px;background:transparent;border:0;color:white;font-size:20px;cursor:pointer}
     .benchmark-options{position:absolute;z-index:50;top:42px;left:0;right:0;max-height:240px;overflow:auto;background:#142943;border:1px solid #6085b5;border-radius:8px}
@@ -142,7 +143,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   removeCriterion(i:number):void{const row=this.criteria[i];if(!row)return;this.clearRequests(row);this.criteria.splice(i,1);this.queueSave()}
   isImplemented(key:string):boolean{return ['sma-200','ts-momentum-12m','dual-sma-50-200'].includes(key)}
   changeStrategy(i:number,key:string):void{
-    const row=this.criteria[i];if(!row||!STRATEGIES.some(s=>s.key===key))return;
+    const row=this.criteria[i];if(!row||row.strategyKey||!STRATEGIES.some(s=>s.key===key))return;
     this.clearRequests(row);row.strategyKey=key;row.price=null;row.average=null;row.error='';
     row.benchmarkIsin='';row.benchmarkSearch='';row.benchmarkReturn=null;
     if(row.isin && this.criteria.some(other=>other!==row&&other.strategyKey===key&&other.isin===row.isin)){
