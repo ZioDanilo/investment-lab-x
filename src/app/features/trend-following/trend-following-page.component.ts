@@ -17,7 +17,11 @@ interface Criterion {
 const STRATEGIES = [
   { key: 'sma-200', label: 'Media mobile 200 giorni' },
   { key: 'ts-momentum-12m', label: 'Time Series 12 mesi' },
-  { key: 'dual-sma-50-200', label: 'Doppia media mobile 50/200' }
+  { key: 'dual-sma-50-200', label: 'Doppia media mobile 50/200' },
+  { key: 'momentum-world-xeon', label: 'Momentum → World → XEON' },
+  { key: 'momentum-xeon-fast-reentry', label: 'Momentum → XEON con rientro rapido' },
+  { key: 'trend-volatility-targeting', label: 'Trend Following + Volatility Targeting' },
+  { key: 'momentum-world-xeon-volatility-targeting', label: 'Momentum → World → XEON + Volatility Targeting' }
 ];
 @Component({
   selector: 'app-trend-following-page',
@@ -135,16 +139,17 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings)return;this.criteria.push(this.createRow());this.queueSave()}
   removeCriterion(i:number):void{const row=this.criteria[i];if(!row)return;this.clearRequests(row);this.criteria.splice(i,1);this.queueSave()}
+  isImplemented(key:string):boolean{return ['sma-200','ts-momentum-12m','dual-sma-50-200'].includes(key)}
   changeStrategy(i:number,key:string):void{
     const row=this.criteria[i];if(!row||!STRATEGIES.some(s=>s.key===key))return;
     this.clearRequests(row);row.strategyKey=key;row.price=null;row.average=null;row.error='';
     row.benchmarkIsin='';row.benchmarkSearch='';row.benchmarkReturn=null;
-    if(row.isin)this.loadQuote(row);this.queueSave();
+    if(row.isin&&this.isImplemented(key))this.loadQuote(row);this.queueSave();
   }
   selectEtf(i:number,isin:string):void{
     const row=this.criteria[i];if(!row)return;this.clearRequests(row);
     row.isin=isin;row.price=null;row.average=null;row.error='';
-    if(isin&&row.strategyKey)this.loadQuote(row);this.queueSave();
+    if(isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);this.queueSave();
   }
   private clearRequests(row:Criterion):void{row.subscription?.unsubscribe();row.benchmarkSubscription?.unsubscribe();row.version++;row.loading=false;row.benchmarkLoading=false}
   private loadQuote(row:Criterion):void{
@@ -178,7 +183,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   annualReturn(row:Criterion):number|null{return row.price!==null&&row.average!==null&&row.average>0&&!row.loading?(row.price/row.average-1)*100:null}
   private benchmarkValue(row:Criterion):number|null{return row.benchmarkIsin?row.benchmarkReturn:0}
   private delta(row:Criterion):number|null{
-    if(row.loading||row.benchmarkLoading)return null;
+    if(!this.isImplemented(row.strategyKey)||row.loading||row.benchmarkLoading)return null;
     if(row.strategyKey==='ts-momentum-12m'){const a=this.annualReturn(row),b=this.benchmarkValue(row);return a===null||b===null?null:a-b}
     return row.price!==null&&row.average!==null?row.price-row.average:null;
   }
@@ -255,7 +260,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
         for(const item of saved){
           if(item.strategyKey && !STRATEGIES.some(s=>s.key===item.strategyKey))continue;
           const row=this.createRow(item.strategyKey,String(item.isin||'').toUpperCase(),String(item.benchmarkIsin||'').toUpperCase());
-          this.criteria.push(row);if(row.isin&&row.strategyKey)this.loadQuote(row);
+          this.criteria.push(row);if(row.isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);
           if(row.benchmarkIsin)this.selectBenchmarkRestored(row);
         }
         this.loadingSettings=false;
