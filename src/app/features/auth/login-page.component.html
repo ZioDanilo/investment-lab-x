@@ -59,9 +59,38 @@
           />
         </label>
 
-        <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && usernameTaken)">
-          {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
-        </button>
+        <div class="login-action-row">
+          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && usernameTaken)">
+            {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
+          </button>
+          <button type="button" class="factor-test-button" (click)="runDiagnostic()" [disabled]="diagnosticLoading">
+            {{ diagnosticLoading ? 'Analisi...' : 'Diagnostica MF' }}
+          </button>
+        </div>
+        <div class="diagnostic-panel" *ngIf="diagnosticResult || diagnosticError">
+          <p class="helper-text helper-text--error" *ngIf="diagnosticError">{{ diagnosticError }}</p>
+          <ng-container *ngIf="diagnosticResult as result">
+            <strong>Managed Futures · {{ result.diagnostics?.totalObservations }} osservazioni</strong>
+            <p class="diagnostic-run">MU {{ result.runId }}</p>
+            <div class="diagnostic-table-wrap">
+              <table class="diagnostic-table">
+                <thead><tr><th>Scenario</th><th>Intensità</th><th>Rend. annuo</th><th>Vol.</th><th>Mesi −</th><th>P5 mese</th><th>Corr. Quality</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let s of result.scenarios">
+                    <td>{{ s.scenario }}</td>
+                    <td>{{ s.intensityMean == null ? '—' : (s.intensityMean * 100 | number:'1.1-1') + '%' }}</td>
+                    <td>{{ s.annualizedArithmeticMean == null ? '—' : (s.annualizedArithmeticMean * 100 | number:'1.2-2') + '%' }}</td>
+                    <td>{{ s.annualizedVolatility == null ? '—' : (s.annualizedVolatility * 100 | number:'1.2-2') + '%' }}</td>
+                    <td>{{ s.negativeMonthsPct == null ? '—' : (s.negativeMonthsPct | number:'1.1-1') + '%' }}</td>
+                    <td>{{ s.monthlyP5 == null ? '—' : (s.monthlyP5 * 100 | number:'1.2-2') + '%' }}</td>
+                    <td>{{ s.qualityCorrelation == null ? '—' : (s.qualityCorrelation | number:'1.3-3') }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="diagnostic-warning" *ngFor="let warning of result.warnings">{{ warning }}</p>
+          </ng-container>
+        </div>
 
         <p class="helper-text helper-text--error" *ngIf="authError">{{ authError }}</p>
         <p class="helper-text helper-text--success" *ngIf="authSuccess">{{ authSuccess }}</p>
