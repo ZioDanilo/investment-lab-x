@@ -1,5 +1,6 @@
 import { Component, effect, inject, OnDestroy, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { QuotationService } from '../../core/services/quotation.service';
@@ -21,7 +22,7 @@ const STRATEGIES = [
 @Component({
   selector: 'app-trend-following-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <section class="trend-page">
       <p *ngIf="saveError" class="error" role="alert">{{saveError}}</p>
@@ -29,14 +30,14 @@ const STRATEGIES = [
       <div class="criteria-list">
         <article *ngFor="let row of criteria; let i=index; trackBy:trackRow" class="criterion"
           [class.positive]="isPositive(row)" [class.negative]="isNegative(row)">
-          <select class="strategy-select" [value]="row.strategyKey" (change)="changeStrategy(i,$any($event.target).value)" [attr.aria-label]="'Strategia criterio '+(i+1)">
+          <select class="strategy-select" [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(i,$event)" [attr.aria-label]="'Strategia criterio '+(i+1)">
             <option value="">Seleziona criterio</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
-          <select class="etf-select" [value]="row.isin" (change)="selectEtf(i,$any($event.target).value)"
+          <select class="etf-select" [ngModel]="row.isin" (ngModelChange)="selectEtf(i,$event)"
             [disabled]="loadingPortfolio || !etfs.length" [attr.aria-label]="'ETF criterio '+(i+1)">
             <option value="">Seleziona ETF</option>
-            <option *ngFor="let etf of etfs" [value]="etf.isin">{{etf.label}}</option>
+            <option *ngFor="let etf of availableEtfs(row)" [value]="etf.isin">{{etf.label}}</option>
           </select>
           <ng-container *ngIf="row.strategyKey === 'ts-momentum-12m'">
             <span class="compare-sign">&gt;</span>
@@ -124,6 +125,11 @@ export class TrendFollowingPageComponent implements OnDestroy {
     });
   }
   trackRow(_i:number,row:Criterion):Criterion{return row}
+  availableEtfs(row:Criterion):Etf[]{
+    if(!row.isin || this.etfs.some(e=>e.isin===row.isin))return this.etfs;
+    const found=this.allEtfs.find(e=>e.isin===row.isin);
+    return [{isin:row.isin,label:found?.label||row.isin,search:found?.search||row.isin.toLowerCase()},...this.etfs];
+  }
   private createRow(strategyKey='',isin='',benchmarkIsin=''):Criterion{
     return {strategyKey,isin,benchmarkIsin,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
