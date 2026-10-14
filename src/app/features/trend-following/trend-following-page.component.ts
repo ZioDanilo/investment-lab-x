@@ -178,7 +178,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
       if(copy)copy.value=input.value;
     });
     preview.classList.remove('is-dragging','shift-up','shift-down');
-    preview.style.cssText+=';position:fixed;left:'+rect.left+'px;top:'+rect.top+'px;width:'+rect.width+'px;height:'+rect.height+'px;box-sizing:border-box;opacity:1!important;visibility:visible!important;transform:none!important;transition:none!important;background:#07121f!important;z-index:2147483647;pointer-events:none;';
+    preview.style.cssText+=';position:fixed;left:'+rect.left+'px;top:'+rect.top+'px;width:'+rect.width+'px;height:'+rect.height+'px;box-sizing:border-box;opacity:1!important;visibility:visible!important;transform:none!important;transition:none!important;background:transparent!important;box-shadow:none!important;border:0!important;z-index:2147483647;pointer-events:none;';
     document.body.appendChild(preview);
     this.dragPreview=preview;
     event.dataTransfer.effectAllowed='move';
