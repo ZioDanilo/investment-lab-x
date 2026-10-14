@@ -29,8 +29,6 @@ const STRATEGIES = [
   imports: [CommonModule, FormsModule],
   template: `
     <section class="trend-page">
-      <p *ngIf="saveError" class="error" role="alert">{{saveError}}</p>
-      <p *ngIf="portfolioMessage" class="hint">{{portfolioMessage}}</p>
       <div class="criteria-list">
         <article *ngFor="let row of criteria; let i=index; trackBy:trackRow" class="criterion">
           <span class="criterion-status material-symbols-rounded" [class.criterion-status--success]="isPositive(row)" [class.criterion-status--failure]="isNegative(row)" [attr.aria-label]="isPositive(row) ? 'Criterio soddisfatto' : isNegative(row) ? 'Criterio non soddisfatto' : 'Criterio non valutato'" role="img">{{isPositive(row) ? 'check_circle' : isNegative(row) ? 'cancel' : 'radio_button_unchecked'}}</span>
