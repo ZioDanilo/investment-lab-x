@@ -330,8 +330,8 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   isPositive(row:Criterion):boolean{return (this.delta(row)??0)>0}
   isNegative(row:Criterion):boolean{return (this.delta(row)??0)<0}
-  formatPrice(v:number|null):string{return v===null?'—':new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v)+' €'}
-  formatPercent(v:number|null):string{return v===null?'—':(v>0?'+':'')+new Intl.NumberFormat('it-IT',{maximumFractionDigits:2}).format(v)+'%'}
+  formatPrice(v:number|null):string{return v===null?'—':new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:true}).format(v)+' €'}
+  formatPercent(v:number|null):string{return v===null?'—':(v>0?'+':'')+new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:true}).format(v)+'%'}
   comparisonText(row:Criterion):string{return this.formatPercent(this.delta(row))}
   differenceText(row:Criterion):string{
     const d=this.delta(row);if(d===null)return '—';
