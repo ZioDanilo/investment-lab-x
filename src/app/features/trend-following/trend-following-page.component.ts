@@ -68,7 +68,7 @@ const STRATEGIES = [
           <div class="metric" [title]="row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'">
             {{row.loading || row.benchmarkLoading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(row.benchmarkIsin ? row.benchmarkReturn : 0) : formatPrice(row.average)}}
           </div>
-          <div class="metric outcome" [title]="row.error || 'Differenza'">
+          <div class="metric outcome" [class.outcome--positive]="isPositive(row)" [class.outcome--negative]="isNegative(row)" [title]="row.error || 'Differenza'">
             {{row.strategyKey === 'ts-momentum-12m' ? comparisonText(row) : differenceText(row)}}
           </div>
           <button type="button" class="remove icon-action-button icon-action-button--danger" (click)="requestRemoveCriterion(row)" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+(i+1)"><span class="icon-action-button__glyph">✕</span></button>
@@ -116,6 +116,8 @@ const STRATEGIES = [
     .benchmark-options button:hover{background:var(--surface)}
     .metric{flex:0 1 104px;min-width:80px;min-height:39px;display:flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;border:1px solid rgba(115,150,190,.34);border-radius:7px;background:rgba(30,51,80,.62);font-weight:600;font-size:13px;white-space:nowrap}
     .outcome{flex:1 1 155px;min-width:130px}.metric,.outcome{color:#f4f7fc}
+    .outcome.outcome--positive{border-color:#48d1a3}
+    .outcome.outcome--negative{border-color:#f07181}
     .remove{flex:0 0 32px;width:32px;height:32px;padding:0}
     .delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px)}
     .delete-confirm-dialog{width:min(390px,calc(100vw - 32px));padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48)}
