@@ -79,8 +79,9 @@ const STRATEGIES = [
   `,
   styles: [`
     .trend-page{display:flex;flex-direction:column;min-height:calc(100dvh - 190px);gap:12px}
-    .criteria-list{display:flex;flex-direction:column;gap:8px;padding-top:8px}
-    .criterion{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid rgba(100,139,182,.42);border-radius:11px;background:rgba(12,25,42,.85);min-width:0;flex-wrap:wrap}
+    .criteria-list{display:flex;flex-direction:column;gap:7px;padding:12px;border:1px solid rgba(85,128,173,.48);border-radius:15px;background:rgba(7,17,30,.92);box-shadow:0 6px 22px rgba(0,0,0,.14);min-height:68px;box-sizing:border-box}
+    .criterion{display:flex;align-items:center;gap:8px;padding:7px 5px;border:0;border-bottom:1px solid rgba(94,133,176,.25);border-radius:0;background:transparent;min-width:0;flex-wrap:wrap}
+    .criterion:last-child{border-bottom:0}
     .criterion-status{flex:0 0 23px;font-size:23px;line-height:1;color:#b9c6d8;text-align:center}
     .criterion-status--success{color:#48d1a3}
     .criterion-status--failure{color:#f07181}
