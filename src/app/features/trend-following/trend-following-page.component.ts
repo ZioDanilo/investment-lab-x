@@ -71,9 +71,18 @@ const STRATEGIES = [
           <div class="metric outcome" [title]="row.error || 'Differenza'">
             {{row.strategyKey === 'ts-momentum-12m' ? comparisonText(row) : differenceText(row)}}
           </div>
-          <button type="button" class="remove" (click)="removeCriterion(i)" [attr.aria-label]="'Elimina criterio '+(i+1)">×</button>
+          <button type="button" class="remove icon-action-button icon-action-button--danger" (click)="requestRemoveCriterion(row)" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+(i+1)"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="row.error" class="row-error">{{row.error}}</span>
         </article>
+      </div>
+      <div *ngIf="pendingRemoveRow" class="delete-confirm-overlay" (click)="cancelRemoveCriterion()">
+        <section class="delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-strategy-title" (click)="$event.stopPropagation()">
+          <h2 id="delete-strategy-title">Vuoi eliminare questa strategia di trend following?</h2>
+          <div class="delete-confirm-actions">
+            <button type="button" class="delete-confirm-button delete-confirm-button--keep" (click)="cancelRemoveCriterion()">✔ No, non farlo</button>
+            <button type="button" class="delete-confirm-button delete-confirm-button--delete" (click)="confirmRemoveCriterion()">✕ Sì, elimina</button>
+          </div>
+        </section>
       </div>
       <article class="suggestions">
         <h3><span class="material-symbols-rounded icon">emoji_objects</span>Suggerimenti</h3>
@@ -107,7 +116,16 @@ const STRATEGIES = [
     .benchmark-options button:hover{background:var(--surface)}
     .metric{flex:0 1 104px;min-width:80px;min-height:39px;display:flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;border:1px solid rgba(115,150,190,.34);border-radius:7px;background:rgba(30,51,80,.62);font-weight:600;font-size:13px;white-space:nowrap}
     .outcome{flex:1 1 155px;min-width:130px}.metric,.outcome{color:#f4f7fc}
-    .remove{border:0;background:transparent;color:#fa8190;cursor:pointer;font-size:21px}
+    .remove{flex:0 0 32px;width:32px;height:32px;padding:0}
+    .delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px)}
+    .delete-confirm-dialog{width:min(390px,calc(100vw - 32px));padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48)}
+    .delete-confirm-dialog h2{margin:0 0 18px;text-align:center;color:#edf5ff;font-size:1rem;line-height:1.35}
+    .delete-confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .delete-confirm-button{height:38px;border-radius:8px;font:inherit;font-size:.76rem;font-weight:800;cursor:pointer;background:rgba(9,16,24,.86)}
+    .delete-confirm-button--keep{border:1px solid rgba(37,230,177,.72);color:#69f1c9}
+    .delete-confirm-button--keep:hover{background:rgba(19,103,79,.24)}
+    .delete-confirm-button--delete{border:1px solid rgba(255,83,102,.72);color:#ff657d}
+    .delete-confirm-button--delete:hover{background:rgba(116,25,36,.25)}
     .row-error{flex-basis:100%;color:#ff939a;font-size:12px}.error{color:#ff939a}.hint{color:#a9bad2}
     .suggestions{margin-top:auto;padding:12px 18px;border:1px solid rgba(77,132,187,.42);border-radius:14px;background:rgba(7,18,31,.94)}
     .suggestions h3{display:flex;align-items:center;gap:9px;margin:0 0 6px;font-size:16px}.suggestions p{margin:0;color:#a9bad2;font-size:13px}
@@ -251,7 +269,15 @@ export class TrendFollowingPageComponent implements OnDestroy {
     return {strategyKey,isin,benchmarkIsin,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
   addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings)return;this.criteria.push(this.createRow())}
-  removeCriterion(i:number):void{const row=this.criteria[i];if(!row)return;this.clearRequests(row);this.criteria.splice(i,1);this.queueSave()}
+  pendingRemoveRow:Criterion|null=null;
+  requestRemoveCriterion(row:Criterion):void{this.pendingRemoveRow=row}
+  cancelRemoveCriterion():void{this.pendingRemoveRow=null}
+  confirmRemoveCriterion():void{
+    const row=this.pendingRemoveRow;this.pendingRemoveRow=null;
+    if(!row)return;
+    const i=this.criteria.indexOf(row);if(i<0)return;
+    this.clearRequests(row);this.criteria.splice(i,1);this.queueSave();
+  }
   isImplemented(key:string):boolean{return ['sma-200','ts-momentum-12m','dual-sma-50-200'].includes(key)}
   changeStrategy(i:number,key:string):void{
     const row=this.criteria[i];if(!row||row.strategyKey||!STRATEGIES.some(s=>s.key===key))return;
