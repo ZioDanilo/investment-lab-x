@@ -12,3 +12,6 @@
 .portfolio-confirm-button--confirm:hover:not(:disabled){background:rgba(37,230,177,.07);border-color:#25e6b1;color:#69f1c9}
 .portfolio-confirm-button:disabled{opacity:.5;cursor:not-allowed}
 
+
+.portfolio-confirm-actions--single{grid-template-columns:1fr}
+.portfolio-confirm-dialog h2{overflow-wrap:anywhere;white-space:normal}
