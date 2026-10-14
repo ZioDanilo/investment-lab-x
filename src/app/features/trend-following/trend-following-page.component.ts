@@ -36,12 +36,15 @@ const STRATEGIES = [
             <option value="">Seleziona criterio</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
+          <div class="etf-slots">
+            <div class="primary-slot">
           <select class="etf-select" [ngModel]="row.isin" (ngModelChange)="selectEtf(i,$event)"
             [disabled]="loadingPortfolio || !etfs.length" [attr.aria-label]="'ETF criterio '+(i+1)">
             <option value="">Seleziona ETF</option>
             <option *ngFor="let etf of availableEtfs(row)" [value]="etf.isin">{{etf.label}}</option>
           </select>
-          <ng-container *ngIf="row.strategyKey === 'ts-momentum-12m'">
+            </div>
+          <div class="secondary-slot"><ng-container *ngIf="row.strategyKey === 'ts-momentum-12m'">
             <span class="compare-sign">&gt;</span>
             <div class="benchmark-search">
               <input type="text" [value]="row.benchmarkSearch" (input)="filterBenchmark(i,$any($event.target).value)"
@@ -53,7 +56,8 @@ const STRATEGIES = [
                 <button *ngFor="let etf of filteredBenchmarks(row)" type="button" (mousedown)="$event.preventDefault();selectBenchmark(i,etf.isin)">{{etf.label}}</button>
               </div>
             </div>
-          </ng-container>
+          </ng-container></div>
+          </div>
           <div class="metric" [title]="row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'">
             {{row.loading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(annualReturn(row)) : formatPrice(row.price)}}
           </div>
@@ -82,6 +86,10 @@ const STRATEGIES = [
     .criterion-status--failure{color:#f07181}
     select,.benchmark-search input{height:39px;box-sizing:border-box;background:#203554;color:#edf4ff;border:1px solid #50769f;border-radius:7px;padding:0 9px;min-width:0;font:inherit}
     .strategy-select{flex:0 1 21%;max-width:280px}
+    .etf-slots{flex:1 1 38%;min-width:260px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
+    .primary-slot,.secondary-slot{min-width:0;display:flex;align-items:center;gap:6px;min-height:39px}
+    .primary-slot .etf-select{width:100%;min-width:0}
+    .secondary-slot .benchmark-search{flex:1 1 auto;min-width:0}
     .strategy-select:disabled{background:#28313f;color:#c2c9d2;border-color:#596473;opacity:1;cursor:not-allowed}.etf-select{flex:1 1 18%;min-width:130px}
     .benchmark-search{flex:1 1 15%;min-width:120px;position:relative}.benchmark-search input{width:100%;padding-right:26px}
     .compare-sign{font-weight:700;font-size:19px}.clear{position:absolute;right:5px;top:6px;background:transparent;border:0;color:white;font-size:20px;cursor:pointer}
@@ -103,7 +111,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private readonly api=inject(ApiService);
   private readonly quotations=inject(QuotationService);
   readonly strategies=STRATEGIES;
-  readonly headerActionLabel='AGGIUNGI CRITERIO';
+  readonly headerActionLabel='AGGIUNGI STRATEGIA';
   readonly headerActionIcon='add';
   get headerActionDisabled():boolean{return !this.currentPortfolioId || this.loadingPortfolio || this.loadingSettings || this.muGenerating}
   get headerActionRunning():boolean{return this.muGenerating}
