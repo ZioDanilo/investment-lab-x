@@ -32,8 +32,8 @@ const STRATEGIES = [
       <p *ngIf="saveError" class="error" role="alert">{{saveError}}</p>
       <p *ngIf="portfolioMessage" class="hint">{{portfolioMessage}}</p>
       <div class="criteria-list">
-        <article *ngFor="let row of criteria; let i=index; trackBy:trackRow" class="criterion"
-          [class.positive]="isPositive(row)" [class.negative]="isNegative(row)">
+        <article *ngFor="let row of criteria; let i=index; trackBy:trackRow" class="criterion">
+          <span class="criterion-status material-symbols-rounded" [class.criterion-status--success]="isPositive(row)" [class.criterion-status--failure]="isNegative(row)" [attr.aria-label]="isPositive(row) ? 'Criterio soddisfatto' : isNegative(row) ? 'Criterio non soddisfatto' : 'Criterio non valutato'" role="img">{{isPositive(row) ? 'check_circle' : isNegative(row) ? 'cancel' : 'radio_button_unchecked'}}</span>
           <select class="strategy-select" [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(i,$event)" [attr.aria-label]="'Strategia criterio '+(i+1)">
             <option value="">Seleziona criterio</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
@@ -79,8 +79,9 @@ const STRATEGIES = [
     .trend-page{display:flex;flex-direction:column;min-height:calc(100dvh - 190px);gap:12px}
     .criteria-list{display:flex;flex-direction:column;gap:8px;padding-top:8px}
     .criterion{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid rgba(100,139,182,.42);border-radius:11px;background:rgba(12,25,42,.85);min-width:0;flex-wrap:wrap}
-    .criterion.positive{border-color:#48d1a3;background:rgba(24,90,72,.20)}
-    .criterion.negative{border-color:#f07181;background:rgba(110,35,48,.20)}
+    .criterion-status{flex:0 0 23px;font-size:23px;line-height:1;color:#b9c6d8;text-align:center}
+    .criterion-status--success{color:#48d1a3}
+    .criterion-status--failure{color:#f07181}
     select,.benchmark-search input{height:39px;box-sizing:border-box;background:#203554;color:#edf4ff;border:1px solid #50769f;border-radius:7px;padding:0 9px;min-width:0;font:inherit}
     .strategy-select{flex:0 1 21%;max-width:280px}.etf-select{flex:1 1 18%;min-width:130px}
     .benchmark-search{flex:1 1 15%;min-width:120px;position:relative}.benchmark-search input{width:100%;padding-right:26px}
@@ -89,7 +90,7 @@ const STRATEGIES = [
     .benchmark-options button{display:block;width:100%;text-align:left;color:white;background:transparent;border:0;padding:9px;cursor:pointer}
     .benchmark-options button:hover{background:#2b4e7d}
     .metric{flex:0 1 104px;min-width:80px;min-height:39px;display:flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;border:1px solid rgba(115,150,190,.34);border-radius:7px;background:rgba(30,51,80,.62);font-weight:600;font-size:13px;white-space:nowrap}
-    .outcome{flex:1 1 155px;min-width:130px}.positive .outcome{color:#66dfb1}.negative .outcome{color:#ff8d9c}
+    .outcome{flex:1 1 155px;min-width:130px}.metric,.outcome{color:#f4f7fc}
     .remove{border:0;background:transparent;color:#fa8190;cursor:pointer;font-size:21px}
     .row-error{flex-basis:100%;color:#ff939a;font-size:12px}.error{color:#ff939a}.hint{color:#a9bad2}
     .suggestions{margin-top:auto;padding:12px 18px;border:1px solid rgba(77,132,187,.42);border-radius:14px;background:rgba(7,18,31,.94)}
