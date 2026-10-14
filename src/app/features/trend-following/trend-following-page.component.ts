@@ -29,8 +29,12 @@ const STRATEGIES = [
   imports: [CommonModule, FormsModule],
   template: `
     <section class="trend-page">
-      <div class="criteria-list">
-        <article *ngFor="let row of criteria; let i=index; trackBy:trackRow" class="criterion">
+      <div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event)" (drop)="onListDrop($event)">
+        <article *ngFor="let row of criteria; let i=index; trackBy:trackRow" class="criterion"
+          draggable="true" [attr.data-strategy-index]="i"
+          [class.is-dragging]="draggedRow===row"
+          [class.shift-up]="dragShift(i)==='up'" [class.shift-down]="dragShift(i)==='down'"
+          (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
           <span class="criterion-status material-symbols-rounded" [class.criterion-status--success]="isPositive(row)" [class.criterion-status--failure]="isNegative(row)" [attr.aria-label]="isPositive(row) ? 'Criterio soddisfatto' : isNegative(row) ? 'Criterio non soddisfatto' : 'Criterio non valutato'" role="img">{{isPositive(row) ? 'check_circle' : isNegative(row) ? 'cancel' : 'radio_button_unchecked'}}</span>
           <select class="strategy-select" [disabled]="!!row.strategyKey" [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(i,$event)" [attr.aria-label]="'Strategia criterio '+(i+1)">
             <option value="">Seleziona criterio</option>
@@ -81,6 +85,11 @@ const STRATEGIES = [
     .trend-page{display:flex;flex-direction:column;min-height:calc(100dvh - 190px);gap:12px}
     .criteria-list{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid rgba(85,128,173,.48);border-radius:15px;background:rgba(7,17,30,.92);box-shadow:0 6px 22px rgba(0,0,0,.14);min-height:68px;box-sizing:border-box}
     .criterion{display:flex;align-items:center;gap:8px;padding:9px 12px;border:0;border-radius:0;background:transparent;min-width:0;flex-wrap:wrap;box-sizing:border-box}
+    .criterion[draggable="true"]{cursor:grab;transition:transform 190ms ease}
+    .criterion.is-dragging{opacity:0}
+    .criterion.shift-up{transform:translateY(calc(-100% - 8px))}
+    .criterion.shift-down{transform:translateY(calc(100% + 8px))}
+    .criteria-list--settling .criterion{transition:none!important}
     .criterion-status{flex:0 0 23px;font-size:23px;line-height:1;color:#b9c6d8;text-align:center}
     .criterion-status--success{color:#48d1a3}
     .criterion-status--failure{color:#f07181}
