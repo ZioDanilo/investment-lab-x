@@ -137,6 +137,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   marketUniverseGenerationProgress = 0;
   private marketUniversePollTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private marketUniversePolling = false;
+  private pendingMarketUniverseRunId: string | null = null;
 
   private pushMarketUniverseStatusToActivePage(): void {
     this.activeFeaturePage?.setMarketUniverseGenerationStatus?.(
@@ -148,6 +149,13 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private applyMarketUniverseGenerationStatus(response: any): boolean {
     const data = response?.data ?? response ?? {};
     const inProgress = data?.inProgress === true;
+    if (!inProgress && this.pendingMarketUniverseRunId && data?.runId === this.pendingMarketUniverseRunId) {
+      const success = data?.status === 'ACTIVE';
+      this.confirmation.notify(success
+        ? `Market Universe generato correttamente (${data?.assetCount ?? 0} ETF).`
+        : `Generazione Market Universe non riuscita (stato: ${data?.status || 'sconosciuto'}).`, !success);
+      this.pendingMarketUniverseRunId = null;
+    }
     this.isRegeneratingMarketUniverse = inProgress;
     this.marketUniverseGenerationProgress = inProgress
       ? Math.max(0, Math.min(100, Number(data?.progressPercentage) || 0))
@@ -248,9 +256,12 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
         throw new Error(payload?.error || 'Market Universe regeneration failed');
       }
 
+      this.pendingMarketUniverseRunId = String(payload?.runId || '') || null;
       this.startMarketUniversePolling();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Errore nella rigenerazione del Market Universe', error);
+      this.pendingMarketUniverseRunId = null;
+      this.confirmation.notify('Generazione Market Universe non avviata: ' + (error?.error?.error || error?.message || 'errore sconosciuto'), true);
       this.stopMarketUniversePolling();
       this.isRegeneratingMarketUniverse = false;
       this.marketUniverseGenerationProgress = 0;
