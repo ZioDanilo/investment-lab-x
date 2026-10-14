@@ -84,18 +84,18 @@ const STRATEGIES = [
     .criterion-status{flex:0 0 23px;font-size:23px;line-height:1;color:#b9c6d8;text-align:center}
     .criterion-status--success{color:#48d1a3}
     .criterion-status--failure{color:#f07181}
-    select,.benchmark-search input{height:39px;box-sizing:border-box;background:#203554;color:#edf4ff;border:1px solid #50769f;border-radius:7px;padding:0 9px;min-width:0;font:inherit}
+    select,.benchmark-search input{height:39px;box-sizing:border-box;background:var(--surface-elevated);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:0 9px;min-width:0;font:inherit}
     .strategy-select{flex:0 1 21%;max-width:280px}
     .etf-slots{flex:1 1 38%;min-width:260px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
     .primary-slot,.secondary-slot{min-width:0;display:flex;align-items:center;gap:6px;min-height:39px}
     .primary-slot .etf-select{width:100%;min-width:0}
     .secondary-slot .benchmark-search{flex:1 1 auto;min-width:0}
-    .strategy-select:disabled{background:#28313f;color:#c2c9d2;border-color:#596473;opacity:1;cursor:not-allowed}.etf-select{flex:1 1 18%;min-width:130px}
+    .strategy-select:disabled{background:var(--surface);color:var(--text-secondary);border-color:var(--border);opacity:1;cursor:not-allowed}.etf-select{flex:1 1 18%;min-width:130px}
     .benchmark-search{flex:1 1 15%;min-width:120px;position:relative}.benchmark-search input{width:100%;padding-right:26px}
     .compare-sign{font-weight:700;font-size:19px}.clear{position:absolute;right:5px;top:6px;background:transparent;border:0;color:white;font-size:20px;cursor:pointer}
-    .benchmark-options{position:absolute;z-index:50;top:42px;left:0;right:0;max-height:240px;overflow:auto;background:#142943;border:1px solid #6085b5;border-radius:8px}
+    .benchmark-options{position:absolute;z-index:50;top:42px;left:0;right:0;max-height:240px;overflow:auto;background:var(--surface-elevated);border:1px solid var(--border);border-radius:8px}
     .benchmark-options button{display:block;width:100%;text-align:left;color:white;background:transparent;border:0;padding:9px;cursor:pointer}
-    .benchmark-options button:hover{background:#2b4e7d}
+    .benchmark-options button:hover{background:var(--surface)}
     .metric{flex:0 1 104px;min-width:80px;min-height:39px;display:flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;border:1px solid rgba(115,150,190,.34);border-radius:7px;background:rgba(30,51,80,.62);font-weight:600;font-size:13px;white-space:nowrap}
     .outcome{flex:1 1 155px;min-width:130px}.metric,.outcome{color:#f4f7fc}
     .remove{border:0;background:transparent;color:#fa8190;cursor:pointer;font-size:21px}
