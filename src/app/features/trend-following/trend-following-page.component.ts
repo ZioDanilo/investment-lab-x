@@ -145,6 +145,80 @@ export class TrendFollowingPageComponent implements OnDestroy {
       }
     });
   }
+
+  draggedRow:Criterion|null=null;
+  insertRowIndex:number|null=null;
+  settlingDrag=false;
+  private dragOffset={x:0,y:0};
+  private dragPreview:HTMLElement|null=null;
+
+  onRowDragStart(row:Criterion,event:DragEvent):void{
+    const source=event.currentTarget as HTMLElement|null;
+    if(!source||!event.dataTransfer)return;
+    this.draggedRow=row;
+    this.insertRowIndex=null;
+    const rect=source.getBoundingClientRect();
+    this.dragOffset={x:event.clientX-rect.left,y:event.clientY-rect.top};
+    this.dragPreview?.remove();
+    const preview=source.cloneNode(true) as HTMLElement;
+    preview.classList.remove('is-dragging','shift-up','shift-down');
+    preview.style.cssText+=';position:fixed;left:'+rect.left+'px;top:'+rect.top+'px;width:'+rect.width+'px;height:'+rect.height+'px;box-sizing:border-box;opacity:1!important;visibility:visible!important;transform:none!important;transition:none!important;background:#07121f!important;z-index:2147483647;pointer-events:none;';
+    document.body.appendChild(preview);
+    this.dragPreview=preview;
+    event.dataTransfer.effectAllowed='move';
+    event.dataTransfer.setData('text/plain','strategy-reorder');
+    const blank=document.createElement('canvas');blank.width=1;blank.height=1;
+    event.dataTransfer.setDragImage(blank,0,0);
+  }
+  onRowDrag(event:DragEvent):void{
+    if(!this.draggedRow||!this.dragPreview||(event.clientX===0&&event.clientY===0))return;
+    this.dragPreview.style.left=(event.clientX-this.dragOffset.x)+'px';
+    this.dragPreview.style.top=(event.clientY-this.dragOffset.y)+'px';
+  }
+  onListDragOver(event:DragEvent):void{
+    if(!this.draggedRow)return;
+    event.preventDefault();
+    if(event.dataTransfer)event.dataTransfer.dropEffect='move';
+    const container=event.currentTarget as HTMLElement;
+    const rows=Array.from(container.querySelectorAll<HTMLElement>('.criterion'));
+    if(!rows.length)return;
+    const bounds=container.getBoundingClientRect();
+    const first=rows[0].getBoundingClientRect();
+    const stride=rows.length>1?rows[1].offsetTop-rows[0].offsetTop:rows[0].offsetHeight+8;
+    const y=event.clientY-bounds.top-container.clientTop+container.scrollTop-(rows[0].offsetTop||0);
+    this.insertRowIndex=Math.max(0,Math.min(rows.length,Math.floor((y+stride/2)/Math.max(1,stride))));
+  }
+  dragShift(index:number):'up'|'down'|null{
+    if(!this.draggedRow||this.insertRowIndex===null)return null;
+    const from=this.criteria.indexOf(this.draggedRow);
+    if(from<0)return null;
+    const to=Math.max(0,Math.min(this.criteria.length-1,this.insertRowIndex-(from<this.insertRowIndex?1:0)));
+    if(to>from&&index>from&&index<=to)return 'up';
+    if(to<from&&index>=to&&index<from)return 'down';
+    return null;
+  }
+  onListDrop(event:DragEvent):void{
+    if(!this.draggedRow)return;
+    event.preventDefault();event.stopPropagation();
+    const from=this.criteria.indexOf(this.draggedRow);
+    const raw=this.insertRowIndex;
+    this.settlingDrag=true;
+    if(from>=0&&raw!==null){
+      const to=Math.max(0,Math.min(this.criteria.length-1,raw-(from<raw?1:0)));
+      if(from!==to){
+        const moved=this.criteria.splice(from,1)[0];
+        this.criteria.splice(to,0,moved);
+        this.queueSave();
+      }
+    }
+    this.finishRowDrag();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{this.settlingDrag=false}));
+  }
+  onRowDragEnd():void{this.finishRowDrag()}
+  private finishRowDrag():void{
+    this.dragPreview?.remove();this.dragPreview=null;
+    this.draggedRow=null;this.insertRowIndex=null;
+  }
   trackRow(_i:number,row:Criterion):Criterion{return row}
   availableEtfs(row:Criterion):Etf[]{
     const used=new Set(this.criteria.filter(other=>other!==row&&other.strategyKey===row.strategyKey&&!!other.isin).map(other=>other.isin));
@@ -316,7 +390,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     });
   }
   ngOnDestroy():void{
-    this.loadVersion++;this.portfolioSub?.unsubscribe();this.catalogSub?.unsubscribe();this.settingsSub?.unsubscribe();this.saveSub?.unsubscribe();
+    this.finishRowDrag();this.loadVersion++;this.portfolioSub?.unsubscribe();this.catalogSub?.unsubscribe();this.settingsSub?.unsubscribe();this.saveSub?.unsubscribe();
     this.criteria.forEach(row=>this.clearRequests(row));
   }
 }
