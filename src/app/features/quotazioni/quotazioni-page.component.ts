@@ -162,6 +162,7 @@ export class QuotazioniPageComponent implements OnInit {
     this.quotationService.refreshSingleQuotation(isin).subscribe({
       next: (response: any) => {
         if (response.success && response.data) {
+          this.actionConfirmation.notify('Quotazione ' + isin + ' aggiornata correttamente.');
           // Update just this ETF
           const updated = [...this.quotations()];
           const targetIndex = updated.findIndex((q) => q.isin === isin);
@@ -176,10 +177,14 @@ export class QuotazioniPageComponent implements OnInit {
             };
             this.quotations.set(updated);
           }
+        } else {
+          this.quotations.update(rows => rows.map(row => row.isin === isin ? {...row, refreshing: false} : row));
+          this.actionConfirmation.notify('Aggiornamento quotazione ' + isin + ' non riuscito: ' + (response.error || 'quotazione non disponibile'), true);
         }
       },
       error: (err: any) => {
         console.error('Error refreshing single quotation:', err);
+        this.actionConfirmation.notify('Aggiornamento quotazione ' + isin + ' non riuscito: ' + (err?.error?.error || err?.message || 'errore sconosciuto'), true);
         // Clear refreshing flag
         const updated = [...this.quotations()];
         if (updated[index]) {
@@ -204,18 +209,21 @@ export class QuotazioniPageComponent implements OnInit {
           if (response.success) {
             this.quotations.set(response.data || []);
             this.lastUpdateDate.set(response.date || new Date().toISOString().split('T')[0]);
+            this.actionConfirmation.notify('Quotazioni aggiornate correttamente.');
             resolve();
           } else {
             const errorMsg = this.sanitizeErrorMessage(response.error || 'Errore nel refresh delle quotazioni');
             this.error.set(errorMsg);
-            reject(new Error(errorMsg));
+            this.actionConfirmation.notify(errorMsg, true);
+            resolve();
           }
         },
         error: (err: any) => {
           console.error('Error force refreshing quotations:', err);
           const errorMsg = this.sanitizeErrorMessage(err.error?.error || 'Errore nel refresh delle quotazioni');
           this.error.set(errorMsg);
-          reject(err);
+          this.actionConfirmation.notify(errorMsg, true);
+          resolve();
         }
       });
     });
