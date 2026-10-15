@@ -299,8 +299,8 @@ const STRATEGIES = [
     .signal-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:27px}
     .signal-card-header .criteria-list-heading{padding:0;margin:0}
     .signal-activation{display:flex;align-items:center;gap:9px;color:#d9e7f7;font-size:12px;font-weight:600;white-space:nowrap}
-    .signal-toggle{display:inline-flex;align-items:center;width:44px;height:24px;padding:2px;border:1px solid rgba(176,192,210,.4);border-radius:99px;background:transparent;cursor:pointer;transition:background .22s ease,border-color .22s ease}
-    .signal-toggle--on{background:#20a568;border-color:#20a568}
+    .signal-toggle{display:inline-flex;align-items:center;width:44px;height:24px;padding:0;border:3px solid #e3e7eb;border-radius:99px;background:transparent;box-sizing:border-box;cursor:pointer;transition:background .22s ease}
+    .signal-toggle--on{background:#20a568}
     .signal-toggle-thumb{display:block;width:18px;height:18px;border-radius:50%;background:linear-gradient(145deg,#fff,#d5dbe0);box-shadow:0 1px 3px rgba(0,0,0,.28);transform:translateX(0);transition:transform .22s ease}
     .signal-toggle--on .signal-toggle-thumb{transform:translateX(20px)}
     .signal-toggle:focus-visible{outline:2px solid #18d9f6;outline-offset:3px}
