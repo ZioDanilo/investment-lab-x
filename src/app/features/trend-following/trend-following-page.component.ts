@@ -49,9 +49,9 @@ const STRATEGIES = [
               <input type="text" [value]="primarySearch" (input)="filterPrimary($any($event.target).value)"
                 (focus)="primarySearchOpen=true" (blur)="closePrimary()"
                 [disabled]="loadingPortfolio || !allEtfs.length"
-                placeholder="Cerca ETF" aria-label="Cerca primo ETF" autocomplete="off">
+                placeholder="Cerca ETF per nickname, nome, ISIN, ticker" aria-label="Cerca primo ETF" autocomplete="off">
               <button *ngIf="draft.isin || primarySearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectPrimary('')">×</button>
-              <div *ngIf="primarySearchOpen" class="benchmark-options">
+              <div *ngIf="primarySearchOpen && primarySearch.trim().length >= 3" class="benchmark-options">
                 <button *ngFor="let etf of filteredPrimary()" type="button" (mousedown)="$event.preventDefault();selectPrimary(etf.isin)">{{etf.label}}</button>
                 <span *ngIf="!filteredPrimary().length" class="filter-empty">Nessun ETF trovato</span>
               </div>
@@ -64,7 +64,7 @@ const STRATEGIES = [
                 (focus)="openExtra('second')" (blur)="closeExtra('second')"
                 [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF" aria-label="Cerca ETF 2" autocomplete="off">
               <button *ngIf="draft.benchmarkIsin || secondSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectExtra('second','')">×</button>
-              <div *ngIf="secondSearchOpen" class="benchmark-options">
+              <div *ngIf="secondSearchOpen && secondSearch.trim().length >= 3" class="benchmark-options">
                 <button *ngFor="let etf of filteredExtra('second')" type="button" (mousedown)="$event.preventDefault();selectExtra('second',etf.isin)">{{etf.label}}</button>
                 <span *ngIf="!filteredExtra('second').length" class="filter-empty">Nessun ETF trovato</span>
               </div>
@@ -77,7 +77,7 @@ const STRATEGIES = [
                 (focus)="openExtra('third')" (blur)="closeExtra('third')"
                 [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF" aria-label="Cerca ETF 3" autocomplete="off">
               <button *ngIf="draft.thirdIsin || thirdSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectExtra('third','')">×</button>
-              <div *ngIf="thirdSearchOpen" class="benchmark-options">
+              <div *ngIf="thirdSearchOpen && thirdSearch.trim().length >= 3" class="benchmark-options">
                 <button *ngFor="let etf of filteredExtra('third')" type="button" (mousedown)="$event.preventDefault();selectExtra('third',etf.isin)">{{etf.label}}</button>
                 <span *ngIf="!filteredExtra('third').length" class="filter-empty">Nessun ETF trovato</span>
               </div>
@@ -88,9 +88,9 @@ const STRATEGIES = [
             <div class="benchmark-search">
               <input type="text" [value]="draft.benchmarkSearch" (input)="filterBenchmark(-1,$any($event.target).value)"
                 (focus)="draft.searchOpen=true" (blur)="closeBenchmark(-1)"
-                placeholder="Confronto: ETF o 0%" [attr.aria-label]="'ETF confronto '+'nuova'" autocomplete="off">
+                placeholder="Cerca ETF per nickname, nome, ISIN, ticker" [attr.aria-label]="'ETF confronto '+'nuova'" autocomplete="off">
               <button *ngIf="draft.benchmarkIsin || draft.benchmarkSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectBenchmark(-1,'')">×</button>
-              <div *ngIf="draft.searchOpen" class="benchmark-options">
+              <div *ngIf="draft.searchOpen && draft.benchmarkSearch.trim().length >= 3" class="benchmark-options">
                 <button type="button" (mousedown)="$event.preventDefault();selectBenchmark(-1,'')">Nessun ETF — 0%</button>
                 <button *ngFor="let etf of filteredBenchmarks(draft)" type="button" (mousedown)="$event.preventDefault();selectBenchmark(-1,etf.isin)">{{etf.label}}</button>
               </div>
@@ -325,7 +325,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   draftMenu:'signal'|'strategy'|null=null;
   toggleDraftMenu(menu:'signal'|'strategy'):void{this.draftMenu=this.draftMenu===menu?null:menu}
   openExtra(which:'second'|'third'):void{this.primarySearchOpen=false;if(this.draft)this.draft.searchOpen=false;this.secondSearchOpen=which==='second';this.thirdSearchOpen=which==='third'}
-  filteredExtra(which:'second'|'third'):Etf[]{const q=(which==='second'?this.secondSearch:this.thirdSearch).trim().toLowerCase();return this.allEtfs.filter(e=>!q||e.search.includes(q)).slice(0,40)}
+  filteredExtra(which:'second'|'third'):Etf[]{const q=(which==='second'?this.secondSearch:this.thirdSearch).trim().toLowerCase();return q.length<3?[]:this.allEtfs.filter(e=>e.search.includes(q)).slice(0,40)}
   filterExtra(which:'second'|'third',q:string):void{if(!this.draft)return;if(which==='second'){this.secondSearch=q;this.openExtra('second');this.draft.benchmarkIsin=''}else{this.thirdSearch=q;this.openExtra('third');this.draft.thirdIsin=''}}
   selectExtra(which:'second'|'third',isin:string):void{if(!this.draft)return;const label=isin?(this.allEtfs.find(e=>e.isin===isin)?.label||isin):'';if(which==='second'){this.draft.benchmarkIsin=isin;this.secondSearch=label;this.secondSearchOpen=false}else{this.draft.thirdIsin=isin;this.thirdSearch=label;this.thirdSearchOpen=false}}
   closeExtra(which:'second'|'third'):void{setTimeout(()=>{if(which==='second')this.secondSearchOpen=false;else this.thirdSearchOpen=false},120)}
@@ -334,7 +334,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   showMetricTooltip(event:MouseEvent,text:string):void{this.tooltipText=text;this.moveMetricTooltip(event)}
   moveMetricTooltip(event:MouseEvent):void{this.tooltipX=Math.max(8,Math.min(event.clientX+12,window.innerWidth-310));this.tooltipY=Math.max(8,event.clientY-42)}
   hideMetricTooltip():void{this.tooltipText=''}
-  filteredPrimary():Etf[]{const q=this.primarySearch.trim().toLowerCase();return this.allEtfs.filter(e=>!q||e.search.includes(q)).slice(0,40)}
+  filteredPrimary():Etf[]{const q=this.primarySearch.trim().toLowerCase();return q.length<3?[]:this.allEtfs.filter(e=>e.search.includes(q)).slice(0,40)}
   filterPrimary(q:string):void{if(!this.draft)return;this.primarySearch=q;this.primarySearchOpen=true;this.draft.isin=''}
   selectPrimary(isin:string):void{if(!this.draft)return;this.selectEtf(-1,isin);this.primarySearch=isin?(this.allEtfs.find(e=>e.isin===isin)?.label||isin):'';this.primarySearchOpen=false}
   closePrimary():void{setTimeout(()=>this.primarySearchOpen=false,120)}
@@ -563,7 +563,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     const pct=row.average&&row.average>0?this.formatPercent(d/row.average*100):'—';
     return (d>0?'+':'')+this.formatPrice(d)+' ('+pct+')';
   }
-  filteredBenchmarks(row:Criterion):Etf[]{const q=row.benchmarkSearch.trim().toLowerCase();return this.allEtfs.filter(e=>!q||e.search.includes(q)).slice(0,40)}
+  filteredBenchmarks(row:Criterion):Etf[]{const q=row.benchmarkSearch.trim().toLowerCase();return q.length<3?[]:this.allEtfs.filter(e=>e.search.includes(q)).slice(0,40)}
   filterBenchmark(i:number,q:string):void{
     if(i!==-1)return;
     const row=this.rowAt(i);if(!row)return;
