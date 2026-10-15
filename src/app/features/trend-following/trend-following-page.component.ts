@@ -8,7 +8,7 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
 
 interface Etf { isin: string; label: string; search: string }
 interface Criterion {
-  strategyKey: string; isin: string; benchmarkIsin: string; signal: 'buy' | 'sell';
+  strategyKey: string; isin: string; benchmarkIsin: string; thirdIsin: string; sixValues: (number|null)[]; signal: 'buy' | 'sell';
   price: number | null; average: number | null; benchmarkReturn: number | null;
   loading: boolean; benchmarkLoading: boolean; error: string;
   benchmarkSearch: string; searchOpen: boolean; version: number;
@@ -18,7 +18,7 @@ const STRATEGIES = [
   { key: 'sma-200', label: 'Media mobile 200 giorni' },
   { key: 'ts-momentum-12m', label: 'Time Series 12 mesi' },
   { key: 'dual-sma-50-200', label: 'Doppia media mobile 50/200' },
-  { key: 'momentum-world-xeon', label: 'Momentum → World → XEON' },
+  { key: 'momentum-world-xeon', label: 'A3Stati' },
   { key: 'momentum-xeon-fast-reentry', label: 'Momentum → XEON con rientro rapido' },
   { key: 'trend-volatility-targeting', label: 'Trend Following + Volatility Targeting' },
   { key: 'momentum-world-xeon-volatility-targeting', label: 'Momentum → World → XEON + Volatility Targeting' }
@@ -35,7 +35,7 @@ const STRATEGIES = [
             <option value="">Seleziona strategia</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
-          <div class="etf-slots" [class.etf-slots--compare]="draft.strategyKey === 'ts-momentum-12m'">
+          <div class="etf-slots" [class.etf-slots--compare]="draft.strategyKey === 'ts-momentum-12m'" [class.etf-slots--three]="draft.strategyKey === 'momentum-world-xeon'">
             <div class="primary-slot">
           <select class="etf-select" [ngModel]="draft.isin" (ngModelChange)="selectEtf(-1,$event)"
             [disabled]="loadingPortfolio || !etfs.length" [attr.aria-label]="'ETF criterio '+'nuova'">
@@ -43,6 +43,14 @@ const STRATEGIES = [
             <option *ngFor="let etf of availableEtfs(draft)" [value]="etf.isin">{{etf.label}}</option>
           </select>
             </div>
+          <div class="secondary-slot" *ngIf="draft.strategyKey === 'momentum-world-xeon'">
+            <span class="compare-sign">&gt;</span>
+            <select class="etf-select" [ngModel]="draft.benchmarkIsin" (ngModelChange)="draft.benchmarkIsin=$event" aria-label="Secondo ETF"><option value="">Secondo ETF</option><option *ngFor="let etf of allEtfs" [value]="etf.isin">{{etf.label}}</option></select>
+          </div>
+          <div class="third-slot" *ngIf="draft.strategyKey === 'momentum-world-xeon'">
+            <span class="compare-sign">&gt;</span>
+            <select class="etf-select" [ngModel]="draft.thirdIsin" (ngModelChange)="draft.thirdIsin=$event" aria-label="Terzo ETF"><option value="">Terzo ETF</option><option *ngFor="let etf of allEtfs" [value]="etf.isin">{{etf.label}}</option></select>
+          </div>
           <div class="secondary-slot"><ng-container *ngIf="draft.strategyKey === 'ts-momentum-12m'">
             <span class="compare-sign">&gt;</span>
             <div class="benchmark-search">
@@ -57,7 +65,7 @@ const STRATEGIES = [
             </div>
           </ng-container></div>
           </div>
-          <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+'nuova'"><span class="icon-action-button__glyph">✕</span></button>
+          <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin || (draft.strategyKey === 'momentum-world-xeon' && (!draft.benchmarkIsin || !draft.thirdIsin))" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+'nuova'"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
         </article>
       </div>
@@ -67,22 +75,27 @@ const STRATEGIES = [
         <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion" draggable="true" [class.is-dragging]="draggedRow===row" [class.shift-up]="dragShiftFor(row,signal)==='up'" [class.shift-down]="dragShiftFor(row,signal)==='down'" (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
           <span class="criterion-action-label" [class.criterion-action-label--active]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))"><svg *ngIf="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))" class="signal-warning-icon" viewBox="0 0 32 30" role="img" [attr.aria-label]="signal === 'sell' ? 'Segnale di vendita' : 'Segnale di acquisto'"><path d="M16 2.5 L30 27.5 H2 Z" fill="#ffd447" stroke="#ffd447" stroke-width="2" stroke-linejoin="round"/><path d="M16 10 V19" stroke="#141414" stroke-width="3.4" stroke-linecap="round"/><circle cx="16" cy="24" r="1.9" fill="#141414"/></svg></span>
           <span class="saved-strategy-text" [title]="strategyLabel(row.strategyKey)">{{strategyLabel(row.strategyKey)}}</span>
-          <div class="etf-slots saved-etf-slots">
+          <div class="etf-slots saved-etf-slots" [class.etf-slots--three]="row.strategyKey === 'momentum-world-xeon'">
             <div class="primary-slot">
               <span class="saved-etf-text" [title]="etfLabel(row.isin)">{{etfLabel(row.isin)}}</span>
             </div>
-            <div class="secondary-slot" *ngIf="row.strategyKey === 'ts-momentum-12m'">
+            <div class="secondary-slot" *ngIf="row.strategyKey === 'momentum-world-xeon'"><span class="compare-sign">&gt;</span><span class="saved-etf-text" [title]="etfLabel(row.benchmarkIsin)">{{etfLabel(row.benchmarkIsin)}}</span></div>
+          <div class="third-slot" *ngIf="row.strategyKey === 'momentum-world-xeon'"><span class="compare-sign">&gt;</span><span class="saved-etf-text" [title]="etfLabel(row.thirdIsin)">{{etfLabel(row.thirdIsin)}}</span></div>
+          <div class="secondary-slot" *ngIf="row.strategyKey === 'ts-momentum-12m'">
               <span class="compare-sign">&gt;</span>
               <span class="saved-etf-text" [title]="row.benchmarkIsin ? etfLabel(row.benchmarkIsin) : '0%'">{{row.benchmarkIsin ? etfLabel(row.benchmarkIsin) : '0%'}}</span>
             </div>
           </div>
-          <div class="metric" [title]="row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'">
+          <ng-container *ngIf="row.strategyKey === 'momentum-world-xeon'">
+            <div class="metric metric--six" *ngFor="let value of row.sixValues; let i=index" [class.outcome--signal]="i>=4 && ((signal==='sell' && value!==null && value<0) || (signal==='buy' && value!==null && value>0))" [title]="threeStateTitles[i]">{{row.loading?'—':formatRatio(value)}}</div>
+          </ng-container>
+          <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric" [title]="row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'">
             {{row.loading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(annualReturn(row)) : formatPrice(row.price)}}
           </div>
-          <div class="metric" [title]="row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'">
+          <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric" [title]="row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'">
             {{row.loading || row.benchmarkLoading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(row.benchmarkIsin ? row.benchmarkReturn : 0) : formatPrice(row.average)}}
           </div>
-          <div class="metric outcome" [class.outcome--signal]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))" [title]="row.error || 'Differenza'">
+          <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric outcome" [class.outcome--signal]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))" [title]="row.error || 'Differenza'">
             {{row.strategyKey === 'ts-momentum-12m' ? comparisonText(row) : differenceText(row)}}
           </div>
           <button type="button" class="remove icon-action-button icon-action-button--danger" (click)="requestRemoveCriterion(row)" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+(criteria.indexOf(row)+1)"><span class="icon-action-button__glyph">✕</span></button>
@@ -112,6 +125,10 @@ const STRATEGIES = [
     .draft-list .signal-select{flex:0 0 205px}
     .draft-list .strategy-select{flex:0 0 200px}
     .draft-list .etf-slots{flex:1 1 360px;min-width:260px;overflow:visible}
+    .etf-slots--three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .third-slot{min-width:0;display:flex;align-items:center;gap:6px;min-height:39px}
+    .third-slot .etf-select,.secondary-slot .etf-select{width:100%;min-width:0}
+    .draft-list .etf-slots--three{grid-template-columns:repeat(3,minmax(0,1fr))}
     .draft-list .etf-slots--compare{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
     .draft-list .etf-slots--compare .secondary-slot{display:flex;min-width:0}
     .draft-list .etf-slots--compare .benchmark-search{min-width:0}
@@ -152,6 +169,10 @@ const STRATEGIES = [
     .benchmark-options button{display:block;width:100%;text-align:left;color:white;background:transparent;border:0;padding:9px;cursor:pointer}
     .benchmark-options button:hover{background:var(--surface)}
     .metric{flex:0 1 104px;min-width:80px;min-height:39px;display:flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;border:1px solid rgba(115,150,190,.34);border-radius:7px;background:rgba(30,51,80,.62);font-weight:600;font-size:13px;white-space:nowrap}
+    .metric--six{flex:1 1 0;min-width:0;padding:0 3px;font-size:12px}
+    .metric--six.outcome--signal{border:3px solid #ffd447}
+    .criterion:has(.metric--six) .saved-strategy-text{flex:0 0 110px}
+    .criterion:has(.metric--six) .saved-etf-slots{flex:1 1 28%;min-width:200px}
     .outcome{flex:1 1 155px;min-width:130px}.metric,.outcome{color:#f4f7fc}
     .outcome.outcome--positive{border-color:#48d1a3}
     .outcome.outcome--negative{border-color:#f07181}
@@ -178,6 +199,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private readonly api=inject(ApiService);
   private readonly quotations=inject(QuotationService);
   readonly strategies=STRATEGIES;
+  readonly threeStateTitles=['Rapporto ETF 1 / ETF 2','Media mobile 100 giorni rapporto 1/2','Rapporto ETF 2 / ETF 3','Media mobile 100 giorni rapporto 2/3','Differenza rapporto 1/2','Differenza rapporto 2/3'];
   get headerActionLabel():string{return this.draft ? '' : 'AGGIUNGI STRATEGIA'}
   readonly headerActionIcon='add';
   get headerActionDisabled():boolean{return !!this.draft || !this.currentPortfolioId || this.loadingPortfolio || this.loadingSettings || this.muGenerating}
@@ -193,7 +215,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   rowsForSignal(signal:'sell'|'buy'):Criterion[]{return this.criteria.filter(row=>row.signal===signal)}
   private rowAt(i:number):Criterion|null{return i===-1?this.draft:(this.criteria[i]??null)}
   cancelDraft():void{if(this.draft)this.clearRequests(this.draft);this.draft=null}
-  confirmDraft():void{const row=this.draft;if(!row||!row.strategyKey||!row.isin)return;this.draft=null;row.searchOpen=false;this.criteria.push(row);if(this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.loadRestoredBenchmark(row);this.queueSave()}
+  confirmDraft():void{const row=this.draft;if(!row||!row.strategyKey||!row.isin)return;this.draft=null;row.searchOpen=false;this.criteria.push(row);if(row.strategyKey==='momentum-world-xeon')this.loadThreeStates(row);else{if(this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.loadRestoredBenchmark(row)}this.queueSave()}
   etfs:Etf[]=[];allEtfs:Etf[]=[];
   loadingPortfolio=false;loadingSettings=false;saveError='';portfolioMessage='';
   private currentPortfolioId:string|null=null;
@@ -311,7 +333,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     return [{isin:row.isin,label:found?.label||row.isin,search:found?.search||row.isin.toLowerCase()},...this.etfs];
   }
   private createRow(strategyKey='',isin='',benchmarkIsin='',signal:'buy'|'sell'='sell'):Criterion{
-    return {strategyKey,isin,benchmarkIsin,signal,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
+    return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
   addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.draft=this.createRow()}
   pendingRemoveRow:Criterion|null=null;
@@ -323,11 +345,11 @@ export class TrendFollowingPageComponent implements OnDestroy {
     const i=this.criteria.indexOf(row);if(i<0)return;
     this.clearRequests(row);this.criteria.splice(i,1);this.queueSave();
   }
-  isImplemented(key:string):boolean{return ['sma-200','ts-momentum-12m','dual-sma-50-200'].includes(key)}
+  isImplemented(key:string):boolean{return ['sma-200','ts-momentum-12m','dual-sma-50-200','momentum-world-xeon'].includes(key)}
   changeStrategy(i:number,key:string):void{
     const row=this.rowAt(i);if(i!==-1||!row||!STRATEGIES.some(s=>s.key===key))return;
     this.clearRequests(row);row.strategyKey=key;row.price=null;row.average=null;row.error='';
-    row.benchmarkIsin='';row.benchmarkSearch='';row.benchmarkReturn=null;
+    row.benchmarkIsin='';row.thirdIsin='';row.sixValues=[null,null,null,null,null,null];row.benchmarkSearch='';row.benchmarkReturn=null;
 
     // Draft configuration: no requests or writes before confirmation.
   }
@@ -339,6 +361,35 @@ export class TrendFollowingPageComponent implements OnDestroy {
     // Quotations load only after confirmation.
   }
   private clearRequests(row:Criterion):void{row.subscription?.unsubscribe();row.benchmarkSubscription?.unsubscribe();row.version++;row.loading=false;row.benchmarkLoading=false}
+  private loadThreeStates(row:Criterion):void{
+    const version=++row.version;row.loading=true;row.error='';row.sixValues=[null,null,null,null,null,null];
+    const isins=[row.isin,row.benchmarkIsin,row.thirdIsin];
+    const histories=new Map<string,Map<string,number>>();
+    const subs=isins.map(isin=>this.quotations.getQuotationHistory(isin,400).subscribe({
+      next:(res:any)=>{
+        if(row.version!==version)return;
+        const prices=new Map<string,number>();
+        for(const quote of (Array.isArray(res?.data)?res.data:[])){
+          const price=Number(quote?.quotation),date=String(quote?.date||'').slice(0,10);
+          if(price>0&&date&&!prices.has(date))prices.set(date,price);
+        }
+        histories.set(isin,prices);
+        if(histories.size!==3)return;
+        const [first,second,third]=isins.map(key=>histories.get(key)!);
+        const dates=[...first.keys()].filter(date=>second.has(date)&&third.has(date)).sort().reverse();
+        if(dates.length<100){row.error='Servono almeno 100 sedute comuni ai tre ETF.';row.loading=false;return}
+        const ratios12=dates.slice(0,100).map(date=>first.get(date)!/second.get(date)!);
+        const ratios23=dates.slice(0,100).map(date=>second.get(date)!/third.get(date)!);
+        const current12=ratios12[0],current23=ratios23[0];
+        const sma12=ratios12.reduce((sum,value)=>sum+value,0)/100;
+        const sma23=ratios23.reduce((sum,value)=>sum+value,0)/100;
+        row.sixValues=[current12,sma12,current23,sma23,current12-sma12,current23-sma23];
+        row.loading=false;
+      },
+      error:()=>{if(row.version===version){row.error='Impossibile caricare le quotazioni A3Stati.';row.loading=false}}
+    }));
+    row.subscription=new Subscription();subs.forEach(sub=>row.subscription!.add(sub));
+  }
   private loadQuote(row:Criterion):void{
     const version=++row.version;row.loading=true;row.error='';
     row.subscription=this.quotations.getQuotationHistory(row.isin,row.strategyKey==='ts-momentum-12m'?5000:300).subscribe({
@@ -371,6 +422,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private benchmarkValue(row:Criterion):number|null{return row.benchmarkIsin?row.benchmarkReturn:0}
   private delta(row:Criterion):number|null{
     if(!this.isImplemented(row.strategyKey)||row.loading||row.benchmarkLoading)return null;
+    if(row.strategyKey==='momentum-world-xeon')return row.sixValues[4]!==null&&row.sixValues[5]!==null?Math.min(row.sixValues[4]!,row.sixValues[5]!):null;
     if(row.strategyKey==='ts-momentum-12m'){const a=this.annualReturn(row),b=this.benchmarkValue(row);return a===null||b===null?null:a-b}
     return row.price!==null&&row.average!==null?row.price-row.average:null;
   }
@@ -379,6 +431,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   formatPrice(v:number|null):string{return v===null?'—':new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:true}).format(v)+' €'}
   formatPercent(v:number|null):string{return v===null?'—':(v>0?'+':'')+new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:true}).format(v)+'%'}
   comparisonText(row:Criterion):string{return this.formatPercent(this.delta(row))}
+  formatRatio(v:number|null):string{return v===null?'—':new Intl.NumberFormat('it-IT',{minimumFractionDigits:4,maximumFractionDigits:4}).format(v)}
   differenceText(row:Criterion):string{
     const d=this.delta(row);if(d===null)return '—';
     const pct=row.average&&row.average>0?this.formatPercent(d/row.average*100):'—';
@@ -451,9 +504,8 @@ export class TrendFollowingPageComponent implements OnDestroy {
         for(const item of saved){
           if(!item.strategyKey || !STRATEGIES.some(s=>s.key===item.strategyKey))continue;
           const isin=String(item.isin||'').toUpperCase();
-          const row=this.createRow(item.strategyKey,isin,String(item.benchmarkIsin||'').toUpperCase(),item.signal==='buy'?'buy':'sell');
-          this.criteria.push(row);if(row.isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);
-          if(row.benchmarkIsin)this.selectBenchmarkRestored(row);
+          const row=this.createRow(item.strategyKey,isin,String(item.benchmarkIsin||'').toUpperCase(),item.signal==='buy'?'buy':'sell');row.thirdIsin=String(item.thirdIsin||'').toUpperCase();
+          this.criteria.push(row);if(row.strategyKey==='momentum-world-xeon'&&row.thirdIsin)this.loadThreeStates(row);else{if(row.isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.selectBenchmarkRestored(row)}
         }
         this.loadingSettings=false;
       },
@@ -484,7 +536,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if(!this.saveQueued){this.saving=false;return}
     const portfolioId=this.currentPortfolioId;if(!portfolioId){this.saving=false;return}
     this.saving=true;this.saveQueued=false;
-    const payload=this.criteria.filter(row=>!!row.strategyKey).map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin,signal:row.signal}));
+    const payload=this.criteria.filter(row=>!!row.strategyKey).map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin,thirdIsin:row.thirdIsin,signal:row.signal}));
     this.saveSub=this.api.saveTrendCriteria(portfolioId,payload).subscribe({
       next:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='';this.flushSave()},
       error:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='Impossibile salvare i criteri.';this.saving=false}
