@@ -228,6 +228,10 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/market-universe/assets/isin/${encodeURIComponent(isin)}`);
   }
 
+  compareManagedFuturesRuns(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/v2/diagnostics/mf-comparison`);
+  }
+
   diagnoseMarketUniverseEtfV2(isin: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/market-universe/v2/diagnostics/etf/${encodeURIComponent(isin)}`);
   }
