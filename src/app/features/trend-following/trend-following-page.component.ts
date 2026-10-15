@@ -15,7 +15,7 @@ interface Criterion {
   subscription?: Subscription; benchmarkSubscription?: Subscription;
 }
 const STRATEGIES = [
-  { key: 'sma-200', label: 'Media mobile 200 GG' },
+  { key: 'sma-200', label: 'Media mobile 200 gg' },
   { key: 'ts-momentum-12m', label: 'Time Series 12 mesi' },
   { key: 'dual-sma-50-200', label: 'Doppia MM 50/200' },
   { key: 'momentum-world-xeon', label: 'A 3 Stati' },
@@ -210,6 +210,36 @@ const STRATEGIES = [
     .criterion:not(.criterion--draft) .saved-metrics .metric{min-width:0;width:100%;max-width:none;padding:0 3px;overflow:hidden;text-overflow:ellipsis}
     .criterion:not(.criterion--draft) > .remove{grid-column:4;grid-row:1;justify-self:end;z-index:1}
     .criterion:not(.criterion--draft) > .row-error{grid-column:2 / -1;grid-row:2}
+    /* KPI-style outlines with the card background visible through every field. */
+    .draft-list .criterion select,
+    .draft-list .criterion .benchmark-search input,
+    .criterion:not(.criterion--draft) .saved-strategy-text,
+    .criterion:not(.criterion--draft) .saved-etf-slots .saved-etf-text,
+    .criterion:not(.criterion--draft) .saved-metrics .metric{
+      background:transparent;
+      border:1px solid rgba(24,217,246,.30);
+      border-radius:7px;
+      box-sizing:border-box;
+    }
+    .draft-list .criterion select:focus,
+    .draft-list .criterion .benchmark-search input:focus{
+      border-color:#18d9f6;
+      outline:none;
+    }
+    .criterion:not(.criterion--draft) .saved-strategy-text,
+    .criterion:not(.criterion--draft) .saved-etf-slots .saved-etf-text{
+      display:flex;
+      align-items:center;
+      height:39px;
+      padding:0 7px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .criterion:not(.criterion--draft) .saved-etf-slots .primary-slot .saved-etf-text{width:100%}
+    .criterion:not(.criterion--draft) .saved-etf-slots .secondary-slot .saved-etf-text,
+    .criterion:not(.criterion--draft) .saved-etf-slots .third-slot .saved-etf-text{flex:1 1 0;min-width:0}
+    .criterion:not(.criterion--draft) .saved-metrics .metric.outcome--signal{border:3px solid #ffd447}
     .delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px)}
     .delete-confirm-dialog{width:min(390px,calc(100vw - 32px));padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48)}
     .delete-confirm-dialog h2{margin:0 0 18px;text-align:center;color:#edf5ff;font-size:1rem;line-height:1.35}
