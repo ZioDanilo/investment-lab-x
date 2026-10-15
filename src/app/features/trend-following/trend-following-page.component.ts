@@ -8,7 +8,7 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
 
 interface Etf { isin: string; label: string; search: string }
 interface Criterion {
-  strategyKey: string; isin: string; benchmarkIsin: string;
+  strategyKey: string; isin: string; benchmarkIsin: string; signal: 'buy' | 'sell';
   price: number | null; average: number | null; benchmarkReturn: number | null;
   loading: boolean; benchmarkLoading: boolean; error: string;
   benchmarkSearch: string; searchOpen: boolean; version: number;
@@ -29,21 +29,59 @@ const STRATEGIES = [
   imports: [CommonModule, FormsModule],
   template: `
     <section class="trend-page">
-      <div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event)" (drop)="onListDrop($event)">
-        <article *ngFor="let row of criteria; let i=index; trackBy:trackRow" class="criterion"
-          draggable="true" [attr.data-strategy-index]="i"
-          [class.is-dragging]="draggedRow===row"
-          [class.shift-up]="dragShift(i)==='up'" [class.shift-down]="dragShift(i)==='down'"
-          (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
-          <span class="criterion-status material-symbols-rounded" [class.criterion-status--success]="isPositive(row)" [class.criterion-status--failure]="isNegative(row)" [attr.aria-label]="isPositive(row) ? 'Criterio soddisfatto' : isNegative(row) ? 'Criterio non soddisfatto' : 'Criterio non valutato'" role="img">{{isPositive(row) ? 'check_circle' : isNegative(row) ? 'cancel' : 'radio_button_unchecked'}}</span>
-          <select class="strategy-select" [disabled]="!!row.strategyKey" [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(i,$event)" [attr.aria-label]="'Strategia criterio '+(i+1)">
+      <div *ngIf="draft" class="criteria-list draft-list"><h3>Nuova strategia</h3>
+        <article class="criterion criterion--draft">
+          <select class="signal-select" [(ngModel)]="draft.signal" aria-label="Tipo di segnale"><option value="sell">Segnale di vendita</option><option value="buy">Segnale di acquisto</option></select>
+          <select class="strategy-select" [ngModel]="draft.strategyKey" (ngModelChange)="changeStrategy(-1,$event)" [attr.aria-label]="'Strategia criterio '+(i+1)">
             <option value="">Seleziona criterio</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
           <div class="etf-slots">
             <div class="primary-slot">
-          <select class="etf-select" [ngModel]="row.isin" (ngModelChange)="selectEtf(i,$event)"
+          <select class="etf-select" [ngModel]="draft.isin" (ngModelChange)="selectEtf(-1,$event)"
             [disabled]="loadingPortfolio || !etfs.length" [attr.aria-label]="'ETF criterio '+(i+1)">
+            <option value="">Seleziona ETF</option>
+            <option *ngFor="let etf of availableEtfs(draft)" [value]="etf.isin">{{etf.label}}</option>
+          </select>
+            </div>
+          <div class="secondary-slot"><ng-container *ngIf="draft.strategyKey === 'ts-momentum-12m'">
+            <span class="compare-sign">&gt;</span>
+            <div class="benchmark-search">
+              <input type="text" [value]="draft.benchmarkSearch" (input)="filterBenchmark(-1,$any($event.target).value)"
+                (focus)="draft.searchOpen=true" (blur)="closeBenchmark(i)"
+                placeholder="Confronto: ETF o 0%" [attr.aria-label]="'ETF confronto '+(i+1)" autocomplete="off">
+              <button *ngIf="draft.benchmarkIsin || draft.benchmarkSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectBenchmark(-1,'')">×</button>
+              <div *ngIf="draft.searchOpen" class="benchmark-options">
+                <button type="button" (mousedown)="$event.preventDefault();selectBenchmark(-1,'')">Nessun ETF — 0%</button>
+                <button *ngFor="let etf of filteredBenchmarks(draft)" type="button" (mousedown)="$event.preventDefault();selectBenchmark(-1,etf.isin)">{{etf.label}}</button>
+              </div>
+            </div>
+          </ng-container></div>
+          </div>
+          <div class="metric" [title]="draft.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : draft.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'">
+            {{draft.loading ? '—' : draft.strategyKey === 'ts-momentum-12m' ? formatPercent(annualReturn(draft)) : formatPrice(draft.price)}}
+          </div>
+          <div class="metric" [title]="draft.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'">
+            {{draft.loading || draft.benchmarkLoading ? '—' : draft.strategyKey === 'ts-momentum-12m' ? formatPercent(draft.benchmarkIsin ? draft.benchmarkReturn : 0) : formatPrice(draft.average)}}
+          </div>
+          <div class="metric outcome" [class.outcome--positive]="isPositive(draft)" [class.outcome--negative]="isNegative(draft)" [title]="draft.error || 'Differenza'">
+            {{draft.strategyKey === 'ts-momentum-12m' ? comparisonText(draft) : differenceText(draft)}}
+          </div>
+          <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+(i+1)"><span class="icon-action-button__glyph">✕</span></button>
+          <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
+        </article>
+      </div>
+      <div class="signal-group" *ngFor="let signal of signalGroups"><h3>{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div class="criteria-list">
+        <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion">
+          <span class="criterion-status material-symbols-rounded" [class.criterion-status--success]="isPositive(row)" [class.criterion-status--failure]="isNegative(row)" [attr.aria-label]="isPositive(row) ? 'Criterio soddisfatto' : isNegative(row) ? 'Criterio non soddisfatto' : 'Criterio non valutato'" role="img">{{isPositive(row) ? 'check_circle' : isNegative(row) ? 'cancel' : 'radio_button_unchecked'}}</span>
+          <select class="strategy-select" [disabled]="!!row.strategyKey" [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(criteria.indexOf(row),$event)" [attr.aria-label]="'Strategia criterio '+(criteria.indexOf(row)+1)">
+            <option value="">Seleziona criterio</option>
+            <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
+          </select>
+          <div class="etf-slots">
+            <div class="primary-slot">
+          <select class="etf-select" [ngModel]="row.isin" (ngModelChange)="selectEtf(criteria.indexOf(row),$event)"
+            [disabled]="loadingPortfolio || !etfs.length" [attr.aria-label]="'ETF criterio '+(criteria.indexOf(row)+1)">
             <option value="">Seleziona ETF</option>
             <option *ngFor="let etf of availableEtfs(row)" [value]="etf.isin">{{etf.label}}</option>
           </select>
@@ -51,13 +89,13 @@ const STRATEGIES = [
           <div class="secondary-slot"><ng-container *ngIf="row.strategyKey === 'ts-momentum-12m'">
             <span class="compare-sign">&gt;</span>
             <div class="benchmark-search">
-              <input type="text" [value]="row.benchmarkSearch" (input)="filterBenchmark(i,$any($event.target).value)"
+              <input type="text" [value]="row.benchmarkSearch" (input)="filterBenchmark(criteria.indexOf(row),$any($event.target).value)"
                 (focus)="row.searchOpen=true" (blur)="closeBenchmark(i)"
-                placeholder="Confronto: ETF o 0%" [attr.aria-label]="'ETF confronto '+(i+1)" autocomplete="off">
-              <button *ngIf="row.benchmarkIsin || row.benchmarkSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectBenchmark(i,'')">×</button>
+                placeholder="Confronto: ETF o 0%" [attr.aria-label]="'ETF confronto '+(criteria.indexOf(row)+1)" autocomplete="off">
+              <button *ngIf="row.benchmarkIsin || row.benchmarkSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectBenchmark(criteria.indexOf(row),'')">×</button>
               <div *ngIf="row.searchOpen" class="benchmark-options">
-                <button type="button" (mousedown)="$event.preventDefault();selectBenchmark(i,'')">Nessun ETF — 0%</button>
-                <button *ngFor="let etf of filteredBenchmarks(row)" type="button" (mousedown)="$event.preventDefault();selectBenchmark(i,etf.isin)">{{etf.label}}</button>
+                <button type="button" (mousedown)="$event.preventDefault();selectBenchmark(criteria.indexOf(row),'')">Nessun ETF — 0%</button>
+                <button *ngFor="let etf of filteredBenchmarks(row)" type="button" (mousedown)="$event.preventDefault();selectBenchmark(criteria.indexOf(row),etf.isin)">{{etf.label}}</button>
               </div>
             </div>
           </ng-container></div>
@@ -71,10 +109,10 @@ const STRATEGIES = [
           <div class="metric outcome" [class.outcome--positive]="isPositive(row)" [class.outcome--negative]="isNegative(row)" [title]="row.error || 'Differenza'">
             {{row.strategyKey === 'ts-momentum-12m' ? comparisonText(row) : differenceText(row)}}
           </div>
-          <button type="button" class="remove icon-action-button icon-action-button--danger" (click)="requestRemoveCriterion(row)" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+(i+1)"><span class="icon-action-button__glyph">✕</span></button>
+          <button type="button" class="remove icon-action-button icon-action-button--danger" (click)="requestRemoveCriterion(row)" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+(criteria.indexOf(row)+1)"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="row.error" class="row-error">{{row.error}}</span>
         </article>
-      </div>
+<p *ngIf="!rowsForSignal(signal).length" class="empty-signal">Nessuna strategia inserita.</p></div></div>
       <div *ngIf="pendingRemoveRow" class="delete-confirm-overlay" (click)="cancelRemoveCriterion()">
         <section class="delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-strategy-title" (click)="$event.stopPropagation()">
           <h2 id="delete-strategy-title">Vuoi eliminare questa strategia di trend following?</h2>
@@ -92,6 +130,12 @@ const STRATEGIES = [
   `,
   styles: [`
     .trend-page{display:flex;flex-direction:column;min-height:calc(100dvh - 190px);gap:12px}
+    .signal-group{display:flex;flex-direction:column;gap:8px}
+    .signal-group h3,.draft-list h3{margin:0 0 3px;color:#e6f1fc;font-size:14px}
+    .empty-signal{margin:0;padding:8px;color:#8ca4bb;font-size:13px}
+    .signal-select{flex:0 0 175px}
+    .draft-confirm{flex:0 0 32px;width:32px;height:32px;border:0;background:transparent;color:#48d1a3;cursor:pointer;font-size:22px}
+    .draft-confirm:disabled{opacity:.35;cursor:not-allowed}
     .criteria-list{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid rgba(85,128,173,.48);border-radius:15px;background:rgba(7,17,30,.92);box-shadow:0 6px 22px rgba(0,0,0,.14);min-height:68px;box-sizing:border-box}
     .criterion{display:flex;align-items:center;gap:8px;padding:9px 12px;border:0;border-radius:0;background:transparent;min-width:0;flex-wrap:wrap;box-sizing:border-box}
     .criterion[draggable="true"]{cursor:grab;transition:transform 190ms ease}
@@ -140,7 +184,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private readonly api=inject(ApiService);
   private readonly quotations=inject(QuotationService);
   readonly strategies=STRATEGIES;
-  readonly headerActionLabel='AGGIUNGI STRATEGIA';
+  get headerActionLabel():string{return this.draft ? '' : 'AGGIUNGI STRATEGIA'}
   readonly headerActionIcon='add';
   get headerActionDisabled():boolean{return !this.currentPortfolioId || this.loadingPortfolio || this.loadingSettings || this.muGenerating}
   get headerActionRunning():boolean{return this.muGenerating}
@@ -149,6 +193,12 @@ export class TrendFollowingPageComponent implements OnDestroy {
   setMarketUniverseGenerationStatus(running:boolean,progress:number):void{this.muGenerating=running;this.muProgress=progress}
   runHeaderAction():void{this.addCriterion()}
   readonly criteria:Criterion[]=[];
+  readonly signalGroups:('sell'|'buy')[]=['sell','buy'];
+  draft:Criterion|null=null;
+  rowsForSignal(signal:'sell'|'buy'):Criterion[]{return this.criteria.filter(row=>row.signal===signal)}
+  private rowAt(i:number):Criterion|null{return i===-1?this.draft:(this.criteria[i]??null)}
+  cancelDraft():void{if(this.draft)this.clearRequests(this.draft);this.draft=null}
+  confirmDraft():void{const row=this.draft;if(!row||!row.strategyKey||!row.isin)return;this.criteria.push(row);this.draft=null;this.queueSave()}
   etfs:Etf[]=[];allEtfs:Etf[]=[];
   loadingPortfolio=false;loadingSettings=false;saveError='';portfolioMessage='';
   private currentPortfolioId:string|null=null;
@@ -265,10 +315,10 @@ export class TrendFollowingPageComponent implements OnDestroy {
     const found=this.allEtfs.find(etf=>etf.isin===row.isin);
     return [{isin:row.isin,label:found?.label||row.isin,search:found?.search||row.isin.toLowerCase()},...this.etfs];
   }
-  private createRow(strategyKey='',isin='',benchmarkIsin=''):Criterion{
-    return {strategyKey,isin,benchmarkIsin,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
+  private createRow(strategyKey='',isin='',benchmarkIsin='',signal:'buy'|'sell'='sell'):Criterion{
+    return {strategyKey,isin,benchmarkIsin,signal,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
-  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings)return;this.criteria.push(this.createRow())}
+  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.draft=this.createRow()}
   pendingRemoveRow:Criterion|null=null;
   requestRemoveCriterion(row:Criterion):void{this.pendingRemoveRow=row}
   cancelRemoveCriterion():void{this.pendingRemoveRow=null}
@@ -280,17 +330,17 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   isImplemented(key:string):boolean{return ['sma-200','ts-momentum-12m','dual-sma-50-200'].includes(key)}
   changeStrategy(i:number,key:string):void{
-    const row=this.criteria[i];if(!row||row.strategyKey||!STRATEGIES.some(s=>s.key===key))return;
+    const row=this.rowAt(i);if(!row||row.strategyKey||!STRATEGIES.some(s=>s.key===key))return;
     this.clearRequests(row);row.strategyKey=key;row.price=null;row.average=null;row.error='';
     row.benchmarkIsin='';row.benchmarkSearch='';row.benchmarkReturn=null;
 
-    if(row.isin&&this.isImplemented(key))this.loadQuote(row);this.queueSave();
+    if(row.isin&&this.isImplemented(key))this.loadQuote(row);if(i!==-1)this.queueSave();
   }
   selectEtf(i:number,isin:string):void{
-    const row=this.criteria[i];if(!row)return;
+    const row=this.rowAt(i);if(!row)return;
     this.clearRequests(row);
     row.isin=isin;row.price=null;row.average=null;row.error='';
-    if(isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);this.queueSave();
+    if(isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);if(i!==-1)this.queueSave();
   }
   private clearRequests(row:Criterion):void{row.subscription?.unsubscribe();row.benchmarkSubscription?.unsubscribe();row.version++;row.loading=false;row.benchmarkLoading=false}
   private loadQuote(row:Criterion):void{
@@ -340,16 +390,16 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   filteredBenchmarks(row:Criterion):Etf[]{const q=row.benchmarkSearch.trim().toLowerCase();return this.allEtfs.filter(e=>!q||e.search.includes(q)).slice(0,40)}
   filterBenchmark(i:number,q:string):void{
-    const row=this.criteria[i];if(!row)return;
-    if(row.benchmarkIsin){row.benchmarkSubscription?.unsubscribe();row.benchmarkIsin='';row.benchmarkReturn=null;this.queueSave()}
+    const row=this.rowAt(i);if(!row)return;
+    if(row.benchmarkIsin){row.benchmarkSubscription?.unsubscribe();row.benchmarkIsin='';row.benchmarkReturn=null;if(i!==-1)this.queueSave()}
     row.benchmarkSearch=q;row.searchOpen=true;
   }
-  closeBenchmark(i:number):void{setTimeout(()=>{if(this.criteria[i])this.criteria[i].searchOpen=false},120)}
+  closeBenchmark(i:number):void{setTimeout(()=>{const row=this.rowAt(i);if(row)row.searchOpen=false},120)}
   selectBenchmark(i:number,isin:string):void{
-    const row=this.criteria[i];if(!row)return;
+    const row=this.rowAt(i);if(!row)return;
     row.benchmarkSubscription?.unsubscribe();row.benchmarkIsin=isin;row.benchmarkReturn=null;row.benchmarkLoading=!!isin;
     row.benchmarkSearch=isin?(this.allEtfs.find(e=>e.isin===isin)?.label||isin):'';row.searchOpen=false;
-    this.queueSave();if(!isin)return;
+    if(i!==-1)this.queueSave();if(!isin)return;
     const version=row.version;
     row.benchmarkSubscription=this.quotations.getQuotationHistory(isin,5000).subscribe({
       next:(res:any)=>{
@@ -364,7 +414,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private loadPortfolio():void{
     this.loadVersion++;const version=this.loadVersion;
     this.portfolioSub?.unsubscribe();this.settingsSub?.unsubscribe();this.catalogSub?.unsubscribe();
-    this.criteria.forEach(row=>this.clearRequests(row));this.criteria.splice(0);
+    this.criteria.forEach(row=>this.clearRequests(row));this.cancelDraft();this.criteria.splice(0);
     this.etfs=[];this.allEtfs=[];this.saveError='';this.portfolioMessage='';this.loadingSettings=false;this.saveQueued=false;
     this.catalogSub=this.api.getETFs().subscribe({next:(res:any)=>{
       if(version!==this.loadVersion)return;
@@ -401,7 +451,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
         for(const item of saved){
           if(!item.strategyKey || !STRATEGIES.some(s=>s.key===item.strategyKey))continue;
           const isin=String(item.isin||'').toUpperCase();
-          const row=this.createRow(item.strategyKey,isin,String(item.benchmarkIsin||'').toUpperCase());
+          const row=this.createRow(item.strategyKey,isin,String(item.benchmarkIsin||'').toUpperCase(),item.signal==='buy'?'buy':'sell');
           this.criteria.push(row);if(row.isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);
           if(row.benchmarkIsin)this.selectBenchmarkRestored(row);
         }
@@ -422,7 +472,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if(!this.saveQueued){this.saving=false;return}
     const portfolioId=this.currentPortfolioId;if(!portfolioId){this.saving=false;return}
     this.saving=true;this.saveQueued=false;
-    const payload=this.criteria.filter(row=>!!row.strategyKey).map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin}));
+    const payload=this.criteria.filter(row=>!!row.strategyKey).map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin,signal:row.signal}));
     this.saveSub=this.api.saveTrendCriteria(portfolioId,payload).subscribe({
       next:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='';this.flushSave()},
       error:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='Impossibile salvare i criteri.';this.saving=false}
@@ -430,6 +480,6 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   ngOnDestroy():void{
     this.finishRowDrag();this.loadVersion++;this.portfolioSub?.unsubscribe();this.catalogSub?.unsubscribe();this.settingsSub?.unsubscribe();this.saveSub?.unsubscribe();
-    this.criteria.forEach(row=>this.clearRequests(row));
+    this.criteria.forEach(row=>this.clearRequests(row));this.cancelDraft();
   }
 }
