@@ -45,54 +45,54 @@ const STRATEGIES = [
           </div>
           <div class="etf-slots" [class.etf-slots--compare]="draft.strategyKey === 'ts-momentum-12m'" [class.etf-slots--three]="draft.strategyKey === 'momentum-world-xeon'">
             <div class="primary-slot">
-          <div class="benchmark-search primary-search">
+          <div class="benchmark-search primary-search etf-search-with-icon">
               <input type="text" [value]="primarySearch" (input)="filterPrimary($any($event.target).value)"
                 (focus)="primarySearchOpen=true" (blur)="closePrimary()"
                 [disabled]="loadingPortfolio || !allEtfs.length"
                 placeholder="Cerca ETF per nickname, nome, ISIN, ticker" aria-label="Cerca primo ETF" autocomplete="off">
               <button *ngIf="draft.isin || primarySearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectPrimary('')">×</button>
               <div *ngIf="primarySearchOpen && primarySearch.trim().length >= 3" class="benchmark-options">
-                <button *ngFor="let etf of filteredPrimary()" type="button" (mousedown)="$event.preventDefault();selectPrimary(etf.isin)">{{etf.label}}</button>
+                <button *ngFor="let etf of filteredPrimary()" type="button" (mousedown)="$event.preventDefault();selectPrimary(etf.isin)">{{etf.label}} ({{etf.isin}})</button>
                 <span *ngIf="!filteredPrimary().length" class="filter-empty">Nessun ETF trovato</span>
               </div>
             </div>
             </div>
           <div class="secondary-slot" *ngIf="draft.strategyKey === 'momentum-world-xeon'">
             <span class="compare-sign">&gt;</span>
-            <div class="benchmark-search primary-search">
+            <div class="benchmark-search primary-search etf-search-with-icon">
               <input type="text" [value]="secondSearch" (input)="filterExtra('second',$any($event.target).value)"
                 (focus)="openExtra('second')" (blur)="closeExtra('second')"
-                [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF" aria-label="Cerca ETF 2" autocomplete="off">
+                [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF per nickname, nome, ISIN, ticker" aria-label="Cerca ETF 2" autocomplete="off">
               <button *ngIf="draft.benchmarkIsin || secondSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectExtra('second','')">×</button>
               <div *ngIf="secondSearchOpen && secondSearch.trim().length >= 3" class="benchmark-options">
-                <button *ngFor="let etf of filteredExtra('second')" type="button" (mousedown)="$event.preventDefault();selectExtra('second',etf.isin)">{{etf.label}}</button>
+                <button *ngFor="let etf of filteredExtra('second')" type="button" (mousedown)="$event.preventDefault();selectExtra('second',etf.isin)">{{etf.label}} ({{etf.isin}})</button>
                 <span *ngIf="!filteredExtra('second').length" class="filter-empty">Nessun ETF trovato</span>
               </div>
             </div>
           </div>
           <div class="third-slot" *ngIf="draft.strategyKey === 'momentum-world-xeon'">
             <span class="compare-sign">&gt;</span>
-            <div class="benchmark-search primary-search">
+            <div class="benchmark-search primary-search etf-search-with-icon">
               <input type="text" [value]="thirdSearch" (input)="filterExtra('third',$any($event.target).value)"
                 (focus)="openExtra('third')" (blur)="closeExtra('third')"
-                [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF" aria-label="Cerca ETF 3" autocomplete="off">
+                [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF per nickname, nome, ISIN, ticker" aria-label="Cerca ETF 3" autocomplete="off">
               <button *ngIf="draft.thirdIsin || thirdSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectExtra('third','')">×</button>
               <div *ngIf="thirdSearchOpen && thirdSearch.trim().length >= 3" class="benchmark-options">
-                <button *ngFor="let etf of filteredExtra('third')" type="button" (mousedown)="$event.preventDefault();selectExtra('third',etf.isin)">{{etf.label}}</button>
+                <button *ngFor="let etf of filteredExtra('third')" type="button" (mousedown)="$event.preventDefault();selectExtra('third',etf.isin)">{{etf.label}} ({{etf.isin}})</button>
                 <span *ngIf="!filteredExtra('third').length" class="filter-empty">Nessun ETF trovato</span>
               </div>
             </div>
           </div>
           <div class="secondary-slot" *ngIf="draft.strategyKey === 'ts-momentum-12m'"><ng-container>
             <span class="compare-sign">&gt;</span>
-            <div class="benchmark-search">
+            <div class="benchmark-search etf-search-with-icon">
               <input type="text" [value]="draft.benchmarkSearch" (input)="filterBenchmark(-1,$any($event.target).value)"
                 (focus)="draft.searchOpen=true" (blur)="closeBenchmark(-1)"
                 placeholder="Cerca ETF per nickname, nome, ISIN, ticker" [attr.aria-label]="'ETF confronto '+'nuova'" autocomplete="off">
               <button *ngIf="draft.benchmarkIsin || draft.benchmarkSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectBenchmark(-1,'')">×</button>
               <div *ngIf="draft.searchOpen && draft.benchmarkSearch.trim().length >= 3" class="benchmark-options">
                 <button type="button" (mousedown)="$event.preventDefault();selectBenchmark(-1,'')">Nessun ETF — 0%</button>
-                <button *ngFor="let etf of filteredBenchmarks(draft)" type="button" (mousedown)="$event.preventDefault();selectBenchmark(-1,etf.isin)">{{etf.label}}</button>
+                <button *ngFor="let etf of filteredBenchmarks(draft)" type="button" (mousedown)="$event.preventDefault();selectBenchmark(-1,etf.isin)">{{etf.label}} ({{etf.isin}})</button>
               </div>
             </div>
           </ng-container></div>
@@ -285,6 +285,10 @@ const STRATEGIES = [
     .draft-list .dark-select-options button:hover{background:var(--surface)}
     .draft-list .signal-select{flex:0 0 205px}
     .draft-list .strategy-select{flex:0 0 200px}
+    /* Same small magnifying glass as Monte Carlo's composition search. */
+    .draft-list .etf-search-with-icon::before{content:"⌕";position:absolute;left:.65rem;top:19.5px;transform:translateY(-52%);z-index:1;color:#8297af;font-size:1rem;pointer-events:none}
+    .draft-list .etf-search-with-icon input{padding-left:30px}
+    .draft-list .etf-search-with-icon .benchmark-options{min-width:100%;width:max-content;max-width:min(480px,85vw)}
     .delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px)}
     .delete-confirm-dialog{width:min(390px,calc(100vw - 32px));padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48)}
     .delete-confirm-dialog h2{margin:0 0 18px;text-align:center;color:#edf5ff;font-size:1rem;line-height:1.35}
