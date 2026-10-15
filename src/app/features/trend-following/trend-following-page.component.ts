@@ -60,8 +60,8 @@ const STRATEGIES = [
           <div class="secondary-slot" *ngIf="draft.strategyKey === 'momentum-world-xeon'">
             <span class="compare-sign">&gt;</span>
             <div class="benchmark-search primary-search">
-              <input type="text" [value]="secondSearch" (input)="filterExtra(second,$any($event.target).value)"
-                (focus)="secondSearchOpen=true" (blur)="closeExtra(second)"
+              <input type="text" [value]="secondSearch" (input)="filterExtra('second',$any($event.target).value)"
+                (focus)="openExtra('second')" (blur)="closeExtra('second')"
                 [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF" aria-label="Cerca ETF 2" autocomplete="off">
               <button *ngIf="draft.benchmarkIsin || secondSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectExtra('second','')">×</button>
               <div *ngIf="secondSearchOpen" class="benchmark-options">
@@ -73,8 +73,8 @@ const STRATEGIES = [
           <div class="third-slot" *ngIf="draft.strategyKey === 'momentum-world-xeon'">
             <span class="compare-sign">&gt;</span>
             <div class="benchmark-search primary-search">
-              <input type="text" [value]="thirdSearch" (input)="filterExtra(third,$any($event.target).value)"
-                (focus)="thirdSearchOpen=true" (blur)="closeExtra(third)"
+              <input type="text" [value]="thirdSearch" (input)="filterExtra('third',$any($event.target).value)"
+                (focus)="openExtra('third')" (blur)="closeExtra('third')"
                 [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF" aria-label="Cerca ETF 3" autocomplete="off">
               <button *ngIf="draft.thirdIsin || thirdSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectExtra('third','')">×</button>
               <div *ngIf="thirdSearchOpen" class="benchmark-options">
@@ -324,8 +324,9 @@ export class TrendFollowingPageComponent implements OnDestroy {
   thirdSearch='';thirdSearchOpen=false;
   draftMenu:'signal'|'strategy'|null=null;
   toggleDraftMenu(menu:'signal'|'strategy'):void{this.draftMenu=this.draftMenu===menu?null:menu}
+  openExtra(which:'second'|'third'):void{this.primarySearchOpen=false;if(this.draft)this.draft.searchOpen=false;this.secondSearchOpen=which==='second';this.thirdSearchOpen=which==='third'}
   filteredExtra(which:'second'|'third'):Etf[]{const q=(which==='second'?this.secondSearch:this.thirdSearch).trim().toLowerCase();return this.allEtfs.filter(e=>!q||e.search.includes(q)).slice(0,40)}
-  filterExtra(which:'second'|'third',q:string):void{if(!this.draft)return;if(which==='second'){this.secondSearch=q;this.secondSearchOpen=true;this.draft.benchmarkIsin=''}else{this.thirdSearch=q;this.thirdSearchOpen=true;this.draft.thirdIsin=''}}
+  filterExtra(which:'second'|'third',q:string):void{if(!this.draft)return;if(which==='second'){this.secondSearch=q;this.openExtra('second');this.draft.benchmarkIsin=''}else{this.thirdSearch=q;this.openExtra('third');this.draft.thirdIsin=''}}
   selectExtra(which:'second'|'third',isin:string):void{if(!this.draft)return;const label=isin?(this.allEtfs.find(e=>e.isin===isin)?.label||isin):'';if(which==='second'){this.draft.benchmarkIsin=isin;this.secondSearch=label;this.secondSearchOpen=false}else{this.draft.thirdIsin=isin;this.thirdSearch=label;this.thirdSearchOpen=false}}
   closeExtra(which:'second'|'third'):void{setTimeout(()=>{if(which==='second')this.secondSearchOpen=false;else this.thirdSearchOpen=false},120)}
   resetDraftFilters():void{this.primarySearch='';this.primarySearchOpen=false;this.secondSearch='';this.secondSearchOpen=false;this.thirdSearch='';this.thirdSearchOpen=false;this.draftMenu=null}
