@@ -30,11 +30,19 @@ const STRATEGIES = [
   template: `
     <ng-template #draftEditor><div *ngIf="draft" class="criteria-list draft-list">
         <article class="criterion criterion--draft">
-          <select class="signal-select" [(ngModel)]="draft.signal" aria-label="Tipo di segnale"><option value="sell">Segnale di vendita</option><option value="buy">Segnale di acquisto</option></select>
-          <select class="strategy-select" [ngModel]="draft.strategyKey" (ngModelChange)="changeStrategy(-1,$event)" [attr.aria-label]="'Strategia criterio '+'nuova'">
-            <option value="">Seleziona strategia</option>
-            <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
-          </select>
+          <div class="dark-select signal-select">
+            <button type="button" class="dark-select-trigger" (click)="toggleDraftMenu('signal')" [attr.aria-expanded]="draftMenu==='signal'" aria-label="Tipo di segnale">{{draft.signal==='sell'?'Segnale di vendita':'Segnale di acquisto'}}<span class="dark-select-chevron">▾</span></button>
+            <div *ngIf="draftMenu==='signal'" class="dark-select-options">
+              <button type="button" (click)="draft.signal='sell';draftMenu=null">Segnale di vendita</button>
+              <button type="button" (click)="draft.signal='buy';draftMenu=null">Segnale di acquisto</button>
+            </div>
+          </div>
+          <div class="dark-select strategy-select">
+            <button type="button" class="dark-select-trigger" (click)="toggleDraftMenu('strategy')" [attr.aria-expanded]="draftMenu==='strategy'" aria-label="Seleziona strategia">{{draft.strategyKey?strategyLabel(draft.strategyKey):'Seleziona strategia'}}<span class="dark-select-chevron">▾</span></button>
+            <div *ngIf="draftMenu==='strategy'" class="dark-select-options">
+              <button *ngFor="let strategy of strategies" type="button" (click)="changeStrategy(-1,strategy.key);draftMenu=null">{{strategy.label}}</button>
+            </div>
+          </div>
           <div class="etf-slots" [class.etf-slots--compare]="draft.strategyKey === 'ts-momentum-12m'" [class.etf-slots--three]="draft.strategyKey === 'momentum-world-xeon'">
             <div class="primary-slot">
           <div class="benchmark-search primary-search">
@@ -51,11 +59,29 @@ const STRATEGIES = [
             </div>
           <div class="secondary-slot" *ngIf="draft.strategyKey === 'momentum-world-xeon'">
             <span class="compare-sign">&gt;</span>
-            <select class="etf-select" [ngModel]="draft.benchmarkIsin" (ngModelChange)="draft.benchmarkIsin=$event" aria-label="Secondo ETF"><option value="">Secondo ETF</option><option *ngFor="let etf of allEtfs" [value]="etf.isin">{{etf.label}}</option></select>
+            <div class="benchmark-search primary-search">
+              <input type="text" [value]="secondSearch" (input)="filterExtra(second,$any($event.target).value)"
+                (focus)="secondSearchOpen=true" (blur)="closeExtra(second)"
+                [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF" aria-label="Cerca ETF 2" autocomplete="off">
+              <button *ngIf="draft.benchmarkIsin || secondSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectExtra('second','')">×</button>
+              <div *ngIf="secondSearchOpen" class="benchmark-options">
+                <button *ngFor="let etf of filteredExtra('second')" type="button" (mousedown)="$event.preventDefault();selectExtra('second',etf.isin)">{{etf.label}}</button>
+                <span *ngIf="!filteredExtra('second').length" class="filter-empty">Nessun ETF trovato</span>
+              </div>
+            </div>
           </div>
           <div class="third-slot" *ngIf="draft.strategyKey === 'momentum-world-xeon'">
             <span class="compare-sign">&gt;</span>
-            <select class="etf-select" [ngModel]="draft.thirdIsin" (ngModelChange)="draft.thirdIsin=$event" aria-label="Terzo ETF"><option value="">Terzo ETF</option><option *ngFor="let etf of allEtfs" [value]="etf.isin">{{etf.label}}</option></select>
+            <div class="benchmark-search primary-search">
+              <input type="text" [value]="thirdSearch" (input)="filterExtra(third,$any($event.target).value)"
+                (focus)="thirdSearchOpen=true" (blur)="closeExtra(third)"
+                [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF" aria-label="Cerca ETF 3" autocomplete="off">
+              <button *ngIf="draft.thirdIsin || thirdSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectExtra('third','')">×</button>
+              <div *ngIf="thirdSearchOpen" class="benchmark-options">
+                <button *ngFor="let etf of filteredExtra('third')" type="button" (mousedown)="$event.preventDefault();selectExtra('third',etf.isin)">{{etf.label}}</button>
+                <span *ngIf="!filteredExtra('third').length" class="filter-empty">Nessun ETF trovato</span>
+              </div>
+            </div>
           </div>
           <div class="secondary-slot" *ngIf="draft.strategyKey === 'ts-momentum-12m'"><ng-container>
             <span class="compare-sign">&gt;</span>
@@ -251,6 +277,14 @@ const STRATEGIES = [
     .draft-list .primary-search{width:100%;flex:1 1 0;min-width:0}
     .filter-empty{display:block;padding:9px;color:var(--text-secondary);font-size:12px}
     .trend-metric-tooltip{position:fixed;z-index:6000;pointer-events:none;max-width:300px;white-space:normal;padding:5px 8px;border-radius:6px;background:rgba(7,14,23,.96);border:1px solid rgba(93,167,255,.65);color:#f2f8ff;font-size:11px;font-weight:700;line-height:1.2;box-shadow:0 10px 28px rgba(0,0,0,.34)}
+    .draft-list .dark-select{position:relative;min-width:0;max-width:none}
+    .draft-list .dark-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:7px;width:100%;height:39px;padding:0 9px;text-align:left;font:inherit;color:var(--text);background:var(--surface-elevated);border:1px solid var(--border);border-radius:7px;cursor:pointer;white-space:nowrap;overflow:hidden}
+    .draft-list .dark-select-chevron{flex:none;color:var(--text-secondary)}
+    .draft-list .dark-select-options{position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:200;max-height:270px;overflow:auto;background:var(--surface-elevated);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.4)}
+    .draft-list .dark-select-options button{display:block;width:100%;padding:10px;text-align:left;border:0;background:transparent;color:var(--text);font:inherit;cursor:pointer}
+    .draft-list .dark-select-options button:hover{background:var(--surface)}
+    .draft-list .signal-select{flex:0 0 205px}
+    .draft-list .strategy-select{flex:0 0 200px}
     .delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px)}
     .delete-confirm-dialog{width:min(390px,calc(100vw - 32px));padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48)}
     .delete-confirm-dialog h2{margin:0 0 18px;text-align:center;color:#edf5ff;font-size:1rem;line-height:1.35}
@@ -286,6 +320,15 @@ export class TrendFollowingPageComponent implements OnDestroy {
   readonly signalGroups:('sell'|'buy')[]=['sell','buy'];
   draft:Criterion|null=null;
   primarySearch='';primarySearchOpen=false;
+  secondSearch='';secondSearchOpen=false;
+  thirdSearch='';thirdSearchOpen=false;
+  draftMenu:'signal'|'strategy'|null=null;
+  toggleDraftMenu(menu:'signal'|'strategy'):void{this.draftMenu=this.draftMenu===menu?null:menu}
+  filteredExtra(which:'second'|'third'):Etf[]{const q=(which==='second'?this.secondSearch:this.thirdSearch).trim().toLowerCase();return this.allEtfs.filter(e=>!q||e.search.includes(q)).slice(0,40)}
+  filterExtra(which:'second'|'third',q:string):void{if(!this.draft)return;if(which==='second'){this.secondSearch=q;this.secondSearchOpen=true;this.draft.benchmarkIsin=''}else{this.thirdSearch=q;this.thirdSearchOpen=true;this.draft.thirdIsin=''}}
+  selectExtra(which:'second'|'third',isin:string):void{if(!this.draft)return;const label=isin?(this.allEtfs.find(e=>e.isin===isin)?.label||isin):'';if(which==='second'){this.draft.benchmarkIsin=isin;this.secondSearch=label;this.secondSearchOpen=false}else{this.draft.thirdIsin=isin;this.thirdSearch=label;this.thirdSearchOpen=false}}
+  closeExtra(which:'second'|'third'):void{setTimeout(()=>{if(which==='second')this.secondSearchOpen=false;else this.thirdSearchOpen=false},120)}
+  resetDraftFilters():void{this.primarySearch='';this.primarySearchOpen=false;this.secondSearch='';this.secondSearchOpen=false;this.thirdSearch='';this.thirdSearchOpen=false;this.draftMenu=null}
   tooltipText='';tooltipX=0;tooltipY=0;
   showMetricTooltip(event:MouseEvent,text:string):void{this.tooltipText=text;this.moveMetricTooltip(event)}
   moveMetricTooltip(event:MouseEvent):void{this.tooltipX=Math.max(8,Math.min(event.clientX+12,window.innerWidth-310));this.tooltipY=Math.max(8,event.clientY-42)}
@@ -296,7 +339,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   closePrimary():void{setTimeout(()=>this.primarySearchOpen=false,120)}
   rowsForSignal(signal:'sell'|'buy'):Criterion[]{return this.criteria.filter(row=>row.signal===signal)}
   private rowAt(i:number):Criterion|null{return i===-1?this.draft:(this.criteria[i]??null)}
-  cancelDraft():void{if(this.draft)this.clearRequests(this.draft);this.draft=null;this.primarySearch='';this.primarySearchOpen=false}
+  cancelDraft():void{if(this.draft)this.clearRequests(this.draft);this.draft=null;this.resetDraftFilters()}
   confirmDraft():void{const row=this.draft;if(!row||!row.strategyKey||!row.isin)return;this.draft=null;row.searchOpen=false;this.criteria.push(row);if(row.strategyKey==='momentum-world-xeon')this.loadThreeStates(row);else{if(this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.loadRestoredBenchmark(row)}this.queueSave()}
   etfs:Etf[]=[];allEtfs:Etf[]=[];
   loadingPortfolio=false;loadingSettings=false;saveError='';portfolioMessage='';
@@ -417,7 +460,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private createRow(strategyKey='',isin='',benchmarkIsin='',signal:'buy'|'sell'='sell'):Criterion{
     return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
-  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.primarySearch='';this.primarySearchOpen=false;this.draft=this.createRow()}
+  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.resetDraftFilters();this.draft=this.createRow()}
   pendingRemoveRow:Criterion|null=null;
   requestRemoveCriterion(row:Criterion):void{this.pendingRemoveRow=row}
   cancelRemoveCriterion():void{this.pendingRemoveRow=null}
