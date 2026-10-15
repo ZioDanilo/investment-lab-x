@@ -90,7 +90,7 @@ const STRATEGIES = [
             <span class="compare-sign">&gt;</span>
             <div class="benchmark-search">
               <input type="text" [value]="row.benchmarkSearch" (input)="filterBenchmark(criteria.indexOf(row),$any($event.target).value)"
-                (focus)="row.searchOpen=true" (blur)="closeBenchmark(i)"
+                (focus)="row.searchOpen=true" (blur)="closeBenchmark(criteria.indexOf(row))"
                 placeholder="Confronto: ETF o 0%" [attr.aria-label]="'ETF confronto '+(criteria.indexOf(row)+1)" autocomplete="off">
               <button *ngIf="row.benchmarkIsin || row.benchmarkSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectBenchmark(criteria.indexOf(row),'')">×</button>
               <div *ngIf="row.searchOpen" class="benchmark-options">
