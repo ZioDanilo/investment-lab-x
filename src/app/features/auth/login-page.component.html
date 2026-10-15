@@ -67,6 +67,17 @@
             {{ diagnosticLoading ? 'Analisi...' : 'Diagnostica MF' }}
           </button>
         </div>
+        <div class="diagnostic-panel">
+          <button type="button" class="factor-test-button" (click)="runComparison()" [disabled]="comparisonLoading">
+            {{ comparisonLoading ? 'Confronto in corso...' : 'Confronta calibrazioni MF' }}
+          </button>
+          <p class="helper-text helper-text--error" *ngIf="comparisonError">{{ comparisonError }}</p>
+          <ng-container *ngIf="comparisonResult as comparison">
+            <p class="diagnostic-run">Confronto MU: {{ comparison.runPrevious }} → {{ comparison.runActive }}</p>
+            <p class="diagnostic-run">World invariato: {{ comparison.references?.world?.differentMonths === 0 ? 'Sì' : 'No' }}</p>
+            <button type="button" class="factor-test-button" (click)="copyComparison()">{{ comparisonCopied ? 'JSON copiato' : 'COPIA JSON' }}</button>
+          </ng-container>
+        </div>
         <div class="diagnostic-panel" *ngIf="diagnosticResult || diagnosticError">
           <p class="helper-text helper-text--error" *ngIf="diagnosticError">{{ diagnosticError }}</p>
           <ng-container *ngIf="diagnosticResult as result">
