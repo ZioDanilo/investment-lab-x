@@ -287,7 +287,7 @@ const STRATEGIES = [
     .draft-list .signal-select{flex:0 0 205px}
     .draft-list .strategy-select{flex:0 0 200px}
     /* Same small magnifying glass as Monte Carlo's composition search. */
-    .draft-list .etf-search-with-icon::before{content:"⌕";position:absolute;left:.65rem;top:19.5px;transform:translateY(-52%);z-index:1;color:#8297af;font-size:1rem;pointer-events:none}
+    .draft-list .etf-search-with-icon::before{content:"⌕";position:absolute;left:.65rem;top:16px;transform:translateY(-52%);z-index:1;color:#8297af;font-size:1rem;pointer-events:none}
     .draft-list .etf-search-with-icon input{padding-left:30px}
     .draft-list .etf-search-with-icon .benchmark-options{min-width:100%;width:max-content;max-width:min(480px,85vw)}
     /* Compact one-line draft card; the shell now allocates its true height. */
