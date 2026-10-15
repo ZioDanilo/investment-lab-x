@@ -195,6 +195,21 @@ const STRATEGIES = [
     .outcome.outcome--negative{border-color:#f07181}
     .criterion .outcome.outcome--signal{border:3px solid #ffd447}
     .remove{flex:0 0 32px;width:32px;height:32px;padding:0}
+    /* Saved strategies: fixed row geometry independent of the number of ETFs or metrics. */
+    .criterion:not(.criterion--draft){display:grid;grid-template-columns:5% 10% 45% 40%;column-gap:0;align-items:center;position:relative;padding:9px 12px}
+    .criterion:not(.criterion--draft) .criterion-action-label{grid-column:1;min-width:0;width:100%;justify-content:center}
+    .criterion:not(.criterion--draft) .saved-strategy-text,
+    .criterion:has(.metric--six) .saved-strategy-text{grid-column:2;min-width:0;max-width:none;width:100%;padding-right:8px;box-sizing:border-box;flex:none}
+    .criterion:not(.criterion--draft) .saved-etf-slots,
+    .criterion:has(.metric--six) .saved-etf-slots{grid-column:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;max-width:none;min-width:0;flex:none;align-items:center}
+    .criterion:not(.criterion--draft) .saved-etf-slots .primary-slot{grid-column:1;min-width:0}
+    .criterion:not(.criterion--draft) .saved-etf-slots .secondary-slot{grid-column:2;min-width:0}
+    .criterion:not(.criterion--draft) .saved-etf-slots .third-slot{grid-column:3;min-width:0}
+    .criterion:not(.criterion--draft) .saved-etf-slots .saved-etf-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .criterion:not(.criterion--draft) .saved-metrics{grid-column:4;grid-row:1;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:5px;min-width:0;width:100%;max-width:none;flex:none;padding-right:34px;box-sizing:border-box}
+    .criterion:not(.criterion--draft) .saved-metrics .metric{min-width:0;width:100%;max-width:none;padding:0 3px;overflow:hidden;text-overflow:ellipsis}
+    .criterion:not(.criterion--draft) > .remove{grid-column:4;grid-row:1;justify-self:end;z-index:1}
+    .criterion:not(.criterion--draft) > .row-error{grid-column:2 / -1;grid-row:2}
     .delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px)}
     .delete-confirm-dialog{width:min(390px,calc(100vw - 32px));padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48)}
     .delete-confirm-dialog h2{margin:0 0 18px;text-align:center;color:#edf5ff;font-size:1rem;line-height:1.35}
