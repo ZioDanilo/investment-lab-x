@@ -491,7 +491,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     return [{isin:row.isin,label:found?.label||row.isin,search:found?.search||row.isin.toLowerCase()},...this.etfs];
   }
   private createRow(strategyKey='',isin='',benchmarkIsin='',signal:'buy'|'sell'='sell'):Criterion{
-    return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
+    return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,price:null,average:null,benchmarkReturn:null,continuityCount:null,continuityTrend:false,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
   addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.resetDraftFilters();this.draft=this.createRow()}
   pendingRemoveRow:Criterion|null=null;
