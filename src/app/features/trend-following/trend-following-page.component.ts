@@ -296,6 +296,17 @@ const STRATEGIES = [
     .draft-list .dark-select-trigger{height:32px}
     .draft-list .benchmark-search input{height:32px;min-height:32px}
     .draft-list .draft-confirm,.draft-list .remove{height:30px;min-height:30px}
+    .signal-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:27px}
+    .signal-card-header .criteria-list-heading{padding:0;margin:0}
+    .signal-activation{display:flex;align-items:center;gap:9px;color:#d9e7f7;font-size:12px;font-weight:600;white-space:nowrap}
+    .signal-toggle{display:inline-flex;align-items:center;width:44px;height:24px;padding:2px;border:1px solid rgba(176,192,210,.4);border-radius:99px;background:transparent;cursor:pointer;transition:background .22s ease,border-color .22s ease}
+    .signal-toggle--on{background:#20a568;border-color:#20a568}
+    .signal-toggle-thumb{display:block;width:18px;height:18px;border-radius:50%;background:linear-gradient(145deg,#fff,#d5dbe0);box-shadow:0 1px 3px rgba(0,0,0,.28);transform:translateX(0);transition:transform .22s ease}
+    .signal-toggle--on .signal-toggle-thumb{transform:translateX(20px)}
+    .signal-toggle:focus-visible{outline:2px solid #18d9f6;outline-offset:3px}
+    .signal-group--disabled .criteria-list{background:rgba(9,15,22,.68);border-color:rgba(85,128,173,.23)}
+    .signal-group--disabled .criteria-list > :not(.signal-card-header){opacity:.38;filter:grayscale(1);transition:opacity .2s ease,filter .2s ease}
+    .signal-group--disabled .signal-card-header h3,.signal-group--disabled .signal-activation{color:#8998a8}
     .delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px)}
     .delete-confirm-dialog{width:min(390px,calc(100vw - 32px));padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48)}
     .delete-confirm-dialog h2{margin:0 0 18px;text-align:center;color:#edf5ff;font-size:1rem;line-height:1.35}
