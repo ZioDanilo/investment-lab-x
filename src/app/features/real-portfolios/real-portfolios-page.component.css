@@ -172,7 +172,7 @@ input.invalid,
 .create-dialog-footer .create-btn__content{width:100%}
 
 /* Generous vertical drag/drop hit area without changing card geometry. */
-.portfolio-strip{position:relative;padding-top:22px;padding-bottom:22px;margin-top:-22px;margin-bottom:-22px}
+.portfolio-strip{position:relative;padding-top:22px;padding-bottom:22px;margin-top:-22px;margin-bottom:-10px}
 
 /* Native source must never acquire translucency while dragging. */
 .portfolio-choice[draggable="true"]{opacity:1!important;visibility:visible!important;position:relative;z-index:1}
