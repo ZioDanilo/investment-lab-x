@@ -36,11 +36,7 @@ export class PortfolioSelectorComponent {
       const id = this.portfolioSelectionService.lastLaboratoryPortfolioId();
       return this.laboratoryOptions().find(option => option.id === id) ?? null;
     }
-    if (mode === 'reale') {
-      if (selected?.tipo === 'reale') return this.realOptions().find(option => option.id === selected.id) ?? null;
-      const lastRealId = this.portfolioSelectionService.lastRealPortfolioId();
-      return this.realOptions().find(option => option.id === lastRealId) ?? null;
-    }
+    if (mode === 'reale') return selected?.tipo === 'reale' ? selected : null;
     // Restore the last globally selected portfolio when the route allows both types.
     return selected;
   });
@@ -54,17 +50,7 @@ export class PortfolioSelectorComponent {
   constructor() {
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       this.currentUrl.set(event.urlAfterRedirects);
-      this.restoreRealSelectionForTrend();
     });
-  }
-
-  private restoreRealSelectionForTrend(): void {
-    if (!this.currentUrl().startsWith('/trend-following')) return;
-    const selected = this.portfolioSelectionService.selectedPortfolio();
-    if (selected?.tipo === 'reale') return;
-    const lastId = this.portfolioSelectionService.lastRealPortfolioId();
-    const lastReal = this.realOptions().find(option => option.id === lastId);
-    if (lastReal) this.portfolioSelectionService.setSelectedPortfolio(lastReal.id);
   }
 
   @HostListener('document:click', ['$event'])
