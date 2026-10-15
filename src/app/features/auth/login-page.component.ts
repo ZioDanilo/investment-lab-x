@@ -17,61 +17,6 @@ export class LoginPageComponent {
   private readonly apiService = inject(ApiService);
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
-  diagnosticLoading = false;
-  diagnosticResult: any = null;
-  diagnosticError = '';
-  readonly diagnosticIsin = 'LU3307218399';
-
-  runDiagnostic(): void {
-    if (this.diagnosticLoading) return;
-    this.diagnosticLoading = true;
-    this.diagnosticError = '';
-    this.diagnosticResult = null;
-    this.apiService.diagnoseMarketUniverseEtfV2(this.diagnosticIsin).subscribe({
-      next: (response) => {
-        this.diagnosticLoading = false;
-        this.diagnosticResult = response?.data ?? response;
-      },
-      error: (error) => {
-        this.diagnosticLoading = false;
-        this.diagnosticError = error?.error?.error || 'Diagnostica non disponibile.';
-      }
-    });
-  }
-
-  comparisonLoading = false;
-  comparisonResult: any = null;
-  comparisonError = '';
-  comparisonCopied = false;
-
-  runComparison(): void {
-    if (this.comparisonLoading) return;
-    this.comparisonLoading = true;
-    this.comparisonResult = null;
-    this.comparisonError = '';
-    this.comparisonCopied = false;
-    this.apiService.compareManagedFuturesRuns().subscribe({
-      next: (response: any) => {
-        this.comparisonLoading = false;
-        this.comparisonResult = response?.data ?? response;
-      },
-      error: (error: any) => {
-        this.comparisonLoading = false;
-        this.comparisonError = error?.error?.error || 'Confronto non disponibile.';
-      }
-    });
-  }
-
-  async copyComparison(): Promise<void> {
-    if (!this.comparisonResult) return;
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(this.comparisonResult));
-      this.comparisonCopied = true;
-    } catch {
-      this.comparisonError = 'Impossibile copiare automaticamente il JSON.';
-    }
-  }
-
   username = '';
   password = '';
   registerMode = false;
