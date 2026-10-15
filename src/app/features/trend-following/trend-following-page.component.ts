@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnDestroy, untracked } from '@angular/core';
+import { Component, effect, inject, OnDestroy, TemplateRef, ViewChild, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -28,12 +28,11 @@ const STRATEGIES = [
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="trend-page">
-      <div class="draft-space"><div *ngIf="draft" class="criteria-list draft-list">
+    <ng-template #draftEditor><div *ngIf="draft" class="criteria-list draft-list">
         <article class="criterion criterion--draft">
           <select class="signal-select" [(ngModel)]="draft.signal" aria-label="Tipo di segnale"><option value="sell">Segnale di vendita</option><option value="buy">Segnale di acquisto</option></select>
           <select class="strategy-select" [ngModel]="draft.strategyKey" (ngModelChange)="changeStrategy(-1,$event)" [attr.aria-label]="'Strategia criterio '+'nuova'">
-            <option value="">Seleziona criterio</option>
+            <option value="">Seleziona strategia</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
           <div class="etf-slots">
@@ -71,12 +70,13 @@ const STRATEGIES = [
           <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
         </article>
       </div>
-      </div>
+    </ng-template>
+    <section class="trend-page">
       <div class="signal-group" *ngFor="let signal of signalGroups"><h3>{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)">
         <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion" draggable="true" [class.is-dragging]="draggedRow===row" [class.shift-up]="dragShiftFor(row,signal)==='up'" [class.shift-down]="dragShiftFor(row,signal)==='down'" (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
           <span class="criterion-status material-symbols-rounded" [class.criterion-status--success]="isPositive(row)" [class.criterion-status--failure]="isNegative(row)" [attr.aria-label]="isPositive(row) ? 'Criterio soddisfatto' : isNegative(row) ? 'Criterio non soddisfatto' : 'Criterio non valutato'" role="img">{{isPositive(row) ? 'check_circle' : isNegative(row) ? 'cancel' : 'radio_button_unchecked'}}</span>
           <select class="strategy-select" [disabled]="!!row.strategyKey" [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(criteria.indexOf(row),$event)" [attr.aria-label]="'Strategia criterio '+(criteria.indexOf(row)+1)">
-            <option value="">Seleziona criterio</option>
+            <option value="">Seleziona strategia</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
           <div class="etf-slots">
@@ -131,14 +131,14 @@ const STRATEGIES = [
   `,
   styles: [`
     .trend-page{display:flex;flex-direction:column;min-height:calc(100dvh - 190px);gap:12px}
-    .draft-space{min-height:80px;position:relative}
-    .draft-list{padding:8px 10px;min-height:64px}
+
+    .draft-list{padding:4px 8px;min-height:0;width:100%;box-sizing:border-box}
     .draft-list .criterion{padding:4px 2px}
-    .draft-list .signal-select{flex:0 0 155px}
-    .draft-list .strategy-select{flex:0 0 210px}
-    .draft-list .etf-slots{flex:1 1 320px;min-width:230px;overflow:visible}
-    .draft-list .metric{flex:0 0 85px;min-width:70px}
-    .draft-list .outcome{flex:0 0 145px;min-width:110px}
+    .draft-list .signal-select{flex:0 0 205px}
+    .draft-list .strategy-select{flex:0 0 200px}
+    .draft-list .etf-slots{flex:1 1 240px;min-width:170px;overflow:visible}
+    .draft-list .metric{flex:0 1 76px;min-width:60px}
+    .draft-list .outcome{flex:0 1 110px;min-width:85px}
     .signal-group{display:flex;flex-direction:column;gap:8px}
     .signal-group h3,.draft-list h3{margin:0 0 3px;color:#e6f1fc;font-size:14px}
     .empty-signal{margin:0;padding:8px;color:#8ca4bb;font-size:13px}
@@ -201,6 +201,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   muGenerating=false;muProgress=0;
   setMarketUniverseGenerationStatus(running:boolean,progress:number):void{this.muGenerating=running;this.muProgress=progress}
   runHeaderAction():void{this.addCriterion()}
+  @ViewChild('draftEditor') draftEditorTemplate?:TemplateRef<unknown>;
   readonly criteria:Criterion[]=[];
   readonly signalGroups:('sell'|'buy')[]=['sell','buy'];
   draft:Criterion|null=null;
