@@ -16,8 +16,8 @@ export class ActionConfirmationService {
     this.pending.set({ title, confirmLabel, action });
   }
 
-  notify(message: string, isError = false): void {
-    this.pending.set({ title: message, confirmLabel: 'OK', action: () => {}, acknowledgeOnly: true, isError });
+  notify(message: string, isError = false, onAcknowledge: () => void = () => {}): void {
+    this.pending.set({ title: message, confirmLabel: 'OK', action: onAcknowledge, acknowledgeOnly: true, isError });
   }
 
   cancel(): void { this.pending.set(null); }
