@@ -510,18 +510,26 @@
 .app-feature-action-row > .draft-list{grid-column:1 / -1;grid-row:1;min-width:0;max-width:100%;align-self:center}
 
 /* The wrapper is the actual CSS grid item: ng-container does not create a grid box. */
+/* Expand the parent grid track as well: the desktop shell normally fixes row 1
+   at 58px, which caused the editor to paint over the first signal card. */
+@media(min-width:1181px){
+  .route-content--feature:has(.trend-draft-header-slot){
+    grid-template-rows:auto auto;
+    row-gap:12px;
+  }
+}
 /* The draft editor replaces the header action and must reserve its full height,
    including on narrow screens, instead of overlapping the first signal card. */
 .app-feature-action-row:has(> .trend-draft-header-slot){
   height:auto;
-  min-height:58px;
-  grid-template-rows:minmax(50px,auto);
+  min-height:0;
+  grid-template-rows:auto;
   align-items:start;
-  padding-bottom:12px;
+  padding:0;
 }
 .app-feature-action-row:has(> .trend-draft-header-slot) > .trend-draft-header-slot{
   align-self:start;
-  min-height:50px;
+  min-height:0;
 }
 .app-feature-action-row > .trend-draft-header-slot{grid-column:1 / -1;grid-row:1;width:100%;min-width:0;display:block;align-self:center}
 .app-feature-action-row > .trend-draft-header-slot > .draft-list{width:100%;max-width:none;box-sizing:border-box}
