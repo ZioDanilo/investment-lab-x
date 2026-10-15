@@ -103,7 +103,7 @@ const STRATEGIES = [
       </div>
     </ng-template>
     <section class="trend-page">
-      <div class="signal-group" *ngFor="let signal of signalGroups"><h3>{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)">
+      <div class="signal-group" *ngFor="let signal of signalGroups"><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)"><h3 class="criteria-list-heading">{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3>
         <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion" draggable="true" [class.is-dragging]="draggedRow===row" [class.shift-up]="dragShiftFor(row,signal)==='up'" [class.shift-down]="dragShiftFor(row,signal)==='down'" (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
           <span class="criterion-action-label" [class.criterion-action-label--active]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))"><svg *ngIf="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))" class="signal-warning-icon" viewBox="0 0 32 30" role="img" [attr.aria-label]="signal === 'sell' ? 'Segnale di vendita' : 'Segnale di acquisto'"><path d="M16 2.5 L30 27.5 H2 Z" fill="#ffd447" stroke="#ffd447" stroke-width="2" stroke-linejoin="round"/><path d="M16 10 V19" stroke="#141414" stroke-width="3.4" stroke-linecap="round"/><circle cx="16" cy="24" r="1.9" fill="#141414"/></svg></span>
           <span class="saved-strategy-text" [title]="strategyLabel(row.strategyKey)">{{strategyLabel(row.strategyKey)}}</span>
@@ -176,7 +176,8 @@ const STRATEGIES = [
     .draft-list .metric{flex:0 1 76px;min-width:60px}
     .draft-list .outcome{flex:0 1 110px;min-width:85px}
     .signal-group{display:flex;flex-direction:column;gap:8px}
-    .signal-group h3,.draft-list h3{margin:0 0 3px;color:#e6f1fc;font-size:14px}
+    .signal-group h3,.draft-list h3{margin:0;color:#e6f1fc;font-size:14px}
+    .criteria-list .criteria-list-heading{align-self:stretch;padding:0 0 3px;text-align:left;font-size:.9rem;font-weight:600;line-height:1.4}
     .empty-signal{margin:0;padding:8px;color:#8ca4bb;font-size:13px}
     .signal-select{flex:0 0 175px}
     .draft-confirm{flex:0 0 32px;width:32px;height:32px;border:0;background:transparent;color:#48d1a3;cursor:pointer;font-size:22px}
