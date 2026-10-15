@@ -177,7 +177,10 @@ const STRATEGIES = [
     .benchmark-options button{display:block;width:100%;text-align:left;color:white;background:transparent;border:0;padding:9px;cursor:pointer}
     .benchmark-options button:hover{background:var(--surface)}
     .criterion:not(.criterion--draft){flex-wrap:nowrap}
-    .saved-metrics{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;flex:1 1 0;min-width:0}
+    .saved-metrics{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;flex:0 0 40%;width:40%;max-width:40%;min-width:0}
+    .criterion:not(.criterion--draft) .saved-strategy-text{flex:0 1 180px;min-width:0}
+    .criterion:not(.criterion--draft) .saved-etf-slots{flex:1 1 0;min-width:0;max-width:none}
+    .criterion:has(.metric--six) .saved-etf-slots{flex:1 1 0;min-width:0;max-width:none}
     .saved-metrics .metric{width:100%;min-width:0;max-width:none;flex:none;padding:0 4px;overflow:hidden;text-overflow:ellipsis}
     .saved-metrics .outcome{min-width:0;flex:none}
     .saved-etf-slots{flex:0 1 300px;min-width:175px}
