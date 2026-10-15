@@ -32,14 +32,14 @@ const STRATEGIES = [
       <div *ngIf="draft" class="criteria-list draft-list"><h3>Nuova strategia</h3>
         <article class="criterion criterion--draft">
           <select class="signal-select" [(ngModel)]="draft.signal" aria-label="Tipo di segnale"><option value="sell">Segnale di vendita</option><option value="buy">Segnale di acquisto</option></select>
-          <select class="strategy-select" [ngModel]="draft.strategyKey" (ngModelChange)="changeStrategy(-1,$event)" [attr.aria-label]="'Strategia criterio '+(i+1)">
+          <select class="strategy-select" [ngModel]="draft.strategyKey" (ngModelChange)="changeStrategy(-1,$event)" [attr.aria-label]="'Strategia criterio '+'nuova'">
             <option value="">Seleziona criterio</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
           <div class="etf-slots">
             <div class="primary-slot">
           <select class="etf-select" [ngModel]="draft.isin" (ngModelChange)="selectEtf(-1,$event)"
-            [disabled]="loadingPortfolio || !etfs.length" [attr.aria-label]="'ETF criterio '+(i+1)">
+            [disabled]="loadingPortfolio || !etfs.length" [attr.aria-label]="'ETF criterio '+'nuova'">
             <option value="">Seleziona ETF</option>
             <option *ngFor="let etf of availableEtfs(draft)" [value]="etf.isin">{{etf.label}}</option>
           </select>
@@ -48,8 +48,8 @@ const STRATEGIES = [
             <span class="compare-sign">&gt;</span>
             <div class="benchmark-search">
               <input type="text" [value]="draft.benchmarkSearch" (input)="filterBenchmark(-1,$any($event.target).value)"
-                (focus)="draft.searchOpen=true" (blur)="closeBenchmark(i)"
-                placeholder="Confronto: ETF o 0%" [attr.aria-label]="'ETF confronto '+(i+1)" autocomplete="off">
+                (focus)="draft.searchOpen=true" (blur)="closeBenchmark(-1)"
+                placeholder="Confronto: ETF o 0%" [attr.aria-label]="'ETF confronto '+'nuova'" autocomplete="off">
               <button *ngIf="draft.benchmarkIsin || draft.benchmarkSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectBenchmark(-1,'')">×</button>
               <div *ngIf="draft.searchOpen" class="benchmark-options">
                 <button type="button" (mousedown)="$event.preventDefault();selectBenchmark(-1,'')">Nessun ETF — 0%</button>
@@ -67,7 +67,7 @@ const STRATEGIES = [
           <div class="metric outcome" [class.outcome--positive]="isPositive(draft)" [class.outcome--negative]="isNegative(draft)" [title]="draft.error || 'Differenza'">
             {{draft.strategyKey === 'ts-momentum-12m' ? comparisonText(draft) : differenceText(draft)}}
           </div>
-          <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+(i+1)"><span class="icon-action-button__glyph">✕</span></button>
+          <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+'nuova'"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
         </article>
       </div>
