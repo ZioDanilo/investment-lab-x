@@ -35,7 +35,7 @@ const STRATEGIES = [
             <option value="">Seleziona strategia</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
           </select>
-          <div class="etf-slots">
+          <div class="etf-slots" [class.etf-slots--compare]="draft.strategyKey === 'ts-momentum-12m'">
             <div class="primary-slot">
           <select class="etf-select" [ngModel]="draft.isin" (ngModelChange)="selectEtf(-1,$event)"
             [disabled]="loadingPortfolio || !etfs.length" [attr.aria-label]="'ETF criterio '+'nuova'">
@@ -56,15 +56,6 @@ const STRATEGIES = [
               </div>
             </div>
           </ng-container></div>
-          </div>
-          <div class="metric" [title]="draft.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : draft.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'">
-            {{draft.loading ? '—' : draft.strategyKey === 'ts-momentum-12m' ? formatPercent(annualReturn(draft)) : formatPrice(draft.price)}}
-          </div>
-          <div class="metric" [title]="draft.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'">
-            {{draft.loading || draft.benchmarkLoading ? '—' : draft.strategyKey === 'ts-momentum-12m' ? formatPercent(draft.benchmarkIsin ? draft.benchmarkReturn : 0) : formatPrice(draft.average)}}
-          </div>
-          <div class="metric outcome" [class.outcome--positive]="isPositive(draft)" [class.outcome--negative]="isNegative(draft)" [title]="draft.error || 'Differenza'">
-            {{draft.strategyKey === 'ts-momentum-12m' ? comparisonText(draft) : differenceText(draft)}}
           </div>
           <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+'nuova'"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
@@ -130,7 +121,10 @@ const STRATEGIES = [
     .draft-list .criterion{padding:4px 2px}
     .draft-list .signal-select{flex:0 0 205px}
     .draft-list .strategy-select{flex:0 0 200px}
-    .draft-list .etf-slots{flex:1 1 240px;min-width:170px;overflow:visible}
+    .draft-list .etf-slots{flex:1 1 360px;min-width:260px;overflow:visible}
+    .draft-list .etf-slots--compare{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+    .draft-list .etf-slots--compare .secondary-slot{display:flex;min-width:0}
+    .draft-list .etf-slots--compare .benchmark-search{min-width:0}
     .draft-list .metric{flex:0 1 76px;min-width:60px}
     .draft-list .outcome{flex:0 1 110px;min-width:85px}
     .signal-group{display:flex;flex-direction:column;gap:8px}
@@ -203,7 +197,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   rowsForSignal(signal:'sell'|'buy'):Criterion[]{return this.criteria.filter(row=>row.signal===signal)}
   private rowAt(i:number):Criterion|null{return i===-1?this.draft:(this.criteria[i]??null)}
   cancelDraft():void{if(this.draft)this.clearRequests(this.draft);this.draft=null}
-  confirmDraft():void{const row=this.draft;if(!row||!row.strategyKey||!row.isin)return;this.criteria.push(row);this.draft=null;this.queueSave()}
+  confirmDraft():void{const row=this.draft;if(!row||!row.strategyKey||!row.isin)return;this.draft=null;row.searchOpen=false;this.criteria.push(row);if(this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.loadRestoredBenchmark(row);this.queueSave()}
   etfs:Etf[]=[];allEtfs:Etf[]=[];
   loadingPortfolio=false;loadingSettings=false;saveError='';portfolioMessage='';
   private currentPortfolioId:string|null=null;
@@ -333,18 +327,18 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   isImplemented(key:string):boolean{return ['sma-200','ts-momentum-12m','dual-sma-50-200'].includes(key)}
   changeStrategy(i:number,key:string):void{
-    const row=this.rowAt(i);if(i!==-1||!row||row.strategyKey||!STRATEGIES.some(s=>s.key===key))return;
+    const row=this.rowAt(i);if(i!==-1||!row||!STRATEGIES.some(s=>s.key===key))return;
     this.clearRequests(row);row.strategyKey=key;row.price=null;row.average=null;row.error='';
     row.benchmarkIsin='';row.benchmarkSearch='';row.benchmarkReturn=null;
 
-    if(row.isin&&this.isImplemented(key))this.loadQuote(row);if(i!==-1)this.queueSave();
+    // Draft configuration: no requests or writes before confirmation.
   }
   selectEtf(i:number,isin:string):void{
     if(i!==-1)return;
     const row=this.rowAt(i);if(!row)return;
     this.clearRequests(row);
     row.isin=isin;row.price=null;row.average=null;row.error='';
-    if(isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);if(i!==-1)this.queueSave();
+    // Quotations load only after confirmation.
   }
   private clearRequests(row:Criterion):void{row.subscription?.unsubscribe();row.benchmarkSubscription?.unsubscribe();row.version++;row.loading=false;row.benchmarkLoading=false}
   private loadQuote(row:Criterion):void{
@@ -405,7 +399,8 @@ export class TrendFollowingPageComponent implements OnDestroy {
     const row=this.rowAt(i);if(!row)return;
     row.benchmarkSubscription?.unsubscribe();row.benchmarkIsin=isin;row.benchmarkReturn=null;row.benchmarkLoading=!!isin;
     row.benchmarkSearch=isin?(this.allEtfs.find(e=>e.isin===isin)?.label||isin):'';row.searchOpen=false;
-    if(i!==-1)this.queueSave();if(!isin)return;
+    // Draft benchmark selection does not load prices or persist.
+    if(!isin||i===-1)return;
     const version=row.version;
     row.benchmarkSubscription=this.quotations.getQuotationHistory(isin,5000).subscribe({
       next:(res:any)=>{
@@ -467,7 +462,8 @@ export class TrendFollowingPageComponent implements OnDestroy {
       error:()=>{if(version===this.loadVersion){this.loadingSettings=false;this.saveError='Impossibile recuperare i criteri salvati.'}}
     });
   }
-  private selectBenchmarkRestored(row:Criterion):void{
+  private selectBenchmarkRestored(row:Criterion):void{this.loadRestoredBenchmark(row)}
+  private loadRestoredBenchmark(row:Criterion):void{
     const isin=row.benchmarkIsin;
     const version=row.version;
     row.benchmarkSearch=this.allEtfs.find(e=>e.isin===isin)?.label||isin;
