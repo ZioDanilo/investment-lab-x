@@ -86,6 +86,7 @@ const STRATEGIES = [
               <span class="saved-etf-text" [title]="row.benchmarkIsin ? etfLabel(row.benchmarkIsin) : '0%'">{{row.benchmarkIsin ? etfLabel(row.benchmarkIsin) : '0%'}}</span>
             </div>
           </div>
+          <div class="saved-metrics">
           <ng-container *ngIf="row.strategyKey === 'momentum-world-xeon'">
             <div class="metric metric--six" *ngFor="let value of row.sixValues; let i=index" [class.outcome--signal]="i>=4 && ((signal==='sell' && value!==null && value<0) || (signal==='buy' && value!==null && value>0))" [title]="threeStateTitles[i]">{{row.loading?'—':formatRatio(value)}}</div>
           </ng-container>
@@ -97,6 +98,7 @@ const STRATEGIES = [
           </div>
           <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric outcome" [class.outcome--signal]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))" [title]="row.error || 'Differenza'">
             {{row.strategyKey === 'ts-momentum-12m' ? comparisonText(row) : differenceText(row)}}
+          </div>
           </div>
           <button type="button" class="remove icon-action-button icon-action-button--danger" (click)="requestRemoveCriterion(row)" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+(criteria.indexOf(row)+1)"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="row.error" class="row-error">{{row.error}}</span>
@@ -159,11 +161,11 @@ const STRATEGIES = [
     .criterion-action-label{flex:0 0 32px;width:32px;display:flex;align-items:center;justify-content:center;line-height:1}
     .signal-warning-icon{width:24px;height:23px;display:block;flex:none}
     select,.benchmark-search input{height:39px;box-sizing:border-box;background:var(--surface-elevated);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:0 9px;min-width:0;font:inherit}
-    .saved-strategy-text{flex:0 1 21%;max-width:280px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary);font:inherit}
+    .saved-strategy-text{flex:0 0 170px;max-width:170px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary);font:inherit}
     .saved-etf-slots .saved-etf-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary);font:inherit}
     .saved-etf-slots .primary-slot .saved-etf-text{width:100%}
     .strategy-select{flex:0 1 21%;max-width:280px}
-    .etf-slots{flex:1 1 38%;min-width:260px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
+    .etf-slots{flex:0 1 300px;min-width:175px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
     .primary-slot,.secondary-slot{min-width:0;display:flex;align-items:center;gap:6px;min-height:39px}
     .primary-slot .etf-select{width:100%;min-width:0}
     .secondary-slot .benchmark-search{flex:1 1 auto;min-width:0}
@@ -174,11 +176,17 @@ const STRATEGIES = [
     .benchmark-options{position:absolute;z-index:50;top:42px;left:0;right:0;max-height:240px;overflow:auto;background:var(--surface-elevated);border:1px solid var(--border);border-radius:8px}
     .benchmark-options button{display:block;width:100%;text-align:left;color:white;background:transparent;border:0;padding:9px;cursor:pointer}
     .benchmark-options button:hover{background:var(--surface)}
+    .criterion:not(.criterion--draft){flex-wrap:nowrap}
+    .saved-metrics{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;flex:1 1 0;min-width:0}
+    .saved-metrics .metric{width:100%;min-width:0;max-width:none;flex:none;padding:0 4px;overflow:hidden;text-overflow:ellipsis}
+    .saved-metrics .outcome{min-width:0;flex:none}
+    .saved-etf-slots{flex:0 1 300px;min-width:175px}
+    .saved-etf-slots .saved-etf-text{font-size:13px}
     .metric{flex:0 1 104px;min-width:80px;min-height:39px;display:flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;border:1px solid rgba(115,150,190,.34);border-radius:7px;background:rgba(30,51,80,.62);font-weight:600;font-size:13px;white-space:nowrap}
-    .metric--six{flex:1 1 0;min-width:0;padding:0 3px;font-size:12px}
+    .metric--six{font-size:12px}
     .metric--six.outcome--signal{border:3px solid #ffd447}
     .criterion:has(.metric--six) .saved-strategy-text{flex:0 0 110px}
-    .criterion:has(.metric--six) .saved-etf-slots{flex:1 1 28%;min-width:200px}
+    .criterion:has(.metric--six) .saved-etf-slots{flex:0 1 300px;min-width:180px}
     .outcome{flex:1 1 155px;min-width:130px}.metric,.outcome{color:#f4f7fc}
     .outcome.outcome--positive{border-color:#48d1a3}
     .outcome.outcome--negative{border-color:#f07181}
@@ -477,7 +485,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.catalogSub=this.api.getETFs().subscribe({next:(res:any)=>{
       if(version!==this.loadVersion)return;
       const rows=Array.isArray(res?.data)?res.data:Array.isArray(res)?res:[];
-      this.allEtfs=rows.map((e:any)=>({isin:String(e.isin||'').toUpperCase(),label:(e.nickname||e.name||e.isin)+' ('+e.isin+')',
+      this.allEtfs=rows.map((e:any)=>({isin:String(e.isin||'').toUpperCase(),label:String(e.nickname||e.isin),
         search:[e.nickname,e.name,e.ticker,e.symbol,e.isin].filter(Boolean).join(' ').toLowerCase()})).filter((e:Etf)=>!!e.isin);
       this.criteria.forEach(row=>{if(row.benchmarkIsin)row.benchmarkSearch=this.allEtfs.find(e=>e.isin===row.benchmarkIsin)?.label||row.benchmarkIsin});
       if(this.draft?.benchmarkIsin)this.draft.benchmarkSearch=this.allEtfs.find(e=>e.isin===this.draft?.benchmarkIsin)?.label||this.draft.benchmarkIsin;
@@ -492,8 +500,8 @@ export class TrendFollowingPageComponent implements OnDestroy {
         const unique=new Map<string,Etf>();
         for(const h of (Array.isArray(res?.data)?res.data:[])){
           const isin=String(h?.isin||h?.etf?.isin||'').toUpperCase();if(!isin)continue;
-          const label=h?.nickname||h?.etf?.nickname||h?.name||h?.etf?.name||isin;
-          unique.set(isin,{isin,label:label+' ('+isin+')',search:label.toLowerCase()});
+          const label=h?.nickname||h?.etf?.nickname||this.allEtfs.find(e=>e.isin===isin)?.label||isin;
+          unique.set(isin,{isin,label:String(label),search:[label,isin].join(' ').toLowerCase()});
         }
         this.etfs=[...unique.values()];this.loadingPortfolio=false;
         this.loadSaved(version,selected.id);
