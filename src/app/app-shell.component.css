@@ -505,3 +505,34 @@
 .trend-strategy-selector > label { position:absolute; right:calc(100% + 12px); white-space:nowrap; text-align:right; }
 .trend-strategy-selector > select { width:100%; min-width:0; height:38px; padding:7px 30px 7px 12px; border:1px solid rgba(125,150,190,.55); border-radius:8px; background:#203554; color:#fff; font:inherit; cursor:pointer; text-overflow:ellipsis; }
 @media(max-width:1180px) { .trend-strategy-selector > label { position:static; } .trend-strategy-selector { width:min(100%,420px) !important; } }
+
+/* The Trend Following draft replaces the action button in the same 58px header row. */
+.app-feature-action-row > .draft-list{grid-column:1 / -1;grid-row:1;min-width:0;max-width:100%;align-self:center}
+
+/* The wrapper is the actual CSS grid item: ng-container does not create a grid box. */
+/* Draft replaces the CTA inside the EXISTING 58px header track.
+   Never resize the parent grid: the body and sidebar must not move. */
+@media(min-width:1181px){
+  .route-content--feature:has(.trend-draft-header-slot){
+    grid-template-rows:58px auto;
+    row-gap:3px;
+  }
+  .app-feature-action-row:has(> .trend-draft-header-slot){
+    height:58px;
+    min-height:58px;
+    grid-template-rows:1fr;
+    align-items:center;
+    padding:0;
+  }
+  .app-feature-action-row:has(> .trend-draft-header-slot) > .trend-draft-header-slot{
+    align-self:center;
+    min-height:0;
+  }
+}
+.app-feature-action-row > .trend-draft-header-slot{grid-column:1 / -1;grid-row:1;width:100%;min-width:0;display:block;align-self:center}
+.app-feature-action-row > .trend-draft-header-slot > .draft-list{width:100%;max-width:none;box-sizing:border-box}
+
+/* Keep the open Time Series benchmark menu above the signal cards below. */
+.app-feature-action-row:has(.trend-draft-header-slot .benchmark-options){z-index:3000;isolation:isolate}
+.app-feature-action-row .trend-draft-header-slot{position:relative;z-index:1;overflow:visible}
+.app-feature-action-row .trend-draft-header-slot .draft-list{position:relative;overflow:visible}

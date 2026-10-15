@@ -62,6 +62,10 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/etfs`);
   }
 
+  saveTrendSignalEnabled(portfolioId: string, signal: 'buy' | 'sell', enabled: boolean): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/signal-enabled`, { signal, enabled });
+  }
+
   getTrendCriteria(portfolioId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/criteria`);
   }
