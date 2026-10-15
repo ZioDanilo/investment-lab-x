@@ -65,7 +65,7 @@ const STRATEGIES = [
     <section class="trend-page">
       <div class="signal-group" *ngFor="let signal of signalGroups"><h3>{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)">
         <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion" draggable="true" [class.is-dragging]="draggedRow===row" [class.shift-up]="dragShiftFor(row,signal)==='up'" [class.shift-down]="dragShiftFor(row,signal)==='down'" (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
-          <span class="criterion-action-label" [class.criterion-action-label--active]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))">{{signal === 'sell' && isNegative(row) ? 'Vendi!' : signal === 'buy' && isPositive(row) ? 'Acquista!' : ''}}</span>
+          <span class="criterion-action-label" [class.criterion-action-label--active]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))"><svg *ngIf="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))" class="signal-warning-icon" viewBox="0 0 32 30" role="img" [attr.aria-label]="signal === 'sell' ? 'Segnale di vendita' : 'Segnale di acquisto'"><path d="M16 2.5 L30 27.5 H2 Z" fill="#ffd447" stroke="#ffd447" stroke-width="2" stroke-linejoin="round"/><path d="M16 10 V19" stroke="#141414" stroke-width="3.4" stroke-linecap="round"/><circle cx="16" cy="24" r="1.9" fill="#141414"/></svg></span>
           <select class="strategy-select" disabled [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(criteria.indexOf(row),$event)" [attr.aria-label]="'Strategia criterio '+(criteria.indexOf(row)+1)">
             <option value="">Seleziona strategia</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
@@ -143,8 +143,8 @@ const STRATEGIES = [
     .criterion-status{flex:0 0 23px;font-size:23px;line-height:1;color:#b9c6d8;text-align:center}
     .criterion-status--success{color:#48d1a3}
     .criterion-status--failure{color:#f07181}
-    .criterion-action-label{flex:0 0 62px;width:62px;white-space:nowrap;font-family:inherit;font-size:11px;font-weight:800;letter-spacing:-.25px;text-align:center;color:transparent;line-height:1}
-    .criterion-action-label--active{color:#ffd447}
+    .criterion-action-label{flex:0 0 32px;width:32px;display:flex;align-items:center;justify-content:center;line-height:1}
+    .signal-warning-icon{width:24px;height:23px;display:block;flex:none}
     select,.benchmark-search input{height:39px;box-sizing:border-box;background:var(--surface-elevated);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:0 9px;min-width:0;font:inherit}
     .strategy-select{flex:0 1 21%;max-width:280px}
     .etf-slots{flex:1 1 38%;min-width:260px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
