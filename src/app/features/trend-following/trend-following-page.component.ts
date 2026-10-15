@@ -290,6 +290,12 @@ const STRATEGIES = [
     .draft-list .etf-search-with-icon::before{content:"⌕";position:absolute;left:.65rem;top:19.5px;transform:translateY(-52%);z-index:1;color:#8297af;font-size:1rem;pointer-events:none}
     .draft-list .etf-search-with-icon input{padding-left:30px}
     .draft-list .etf-search-with-icon .benchmark-options{min-width:100%;width:max-content;max-width:min(480px,85vw)}
+    /* Compact one-line draft card; the shell now allocates its true height. */
+    .draft-list.criteria-list{padding:3px 7px;min-height:0;gap:0;border-radius:10px}
+    .draft-list .criterion.criterion--draft{padding:1px 0;gap:6px}
+    .draft-list .dark-select-trigger{height:32px}
+    .draft-list .benchmark-search input{height:32px;min-height:32px}
+    .draft-list .draft-confirm,.draft-list .remove{height:30px;min-height:30px}
     .delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px)}
     .delete-confirm-dialog{width:min(390px,calc(100vw - 32px));padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48)}
     .delete-confirm-dialog h2{margin:0 0 18px;text-align:center;color:#edf5ff;font-size:1rem;line-height:1.35}
