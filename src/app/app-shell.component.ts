@@ -102,31 +102,29 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     this.pushMarketUniverseStatusToActivePage();
   }
   get featureActionLabel(): string {
-    return (this.isMonteCarloPage || this.isTrendFollowingPage) && this.isRegeneratingMarketUniverse
+    return this.isRegeneratingMarketUniverse
       ? 'Generazione Market Universe'
       : (this.activeFeaturePage?.headerActionLabel ?? '');
   }
   get featureActionIcon(): string {
-    return (this.isMonteCarloPage || this.isTrendFollowingPage) && this.isRegeneratingMarketUniverse
+    return this.isRegeneratingMarketUniverse
       ? 'autorenew'
       : (this.activeFeaturePage?.headerActionIcon ?? '');
   }
   get featureActionDisabled(): boolean {
-    return ((this.isMonteCarloPage || this.isTrendFollowingPage) && this.isRegeneratingMarketUniverse)
-      || (this.activeFeaturePage?.headerActionDisabled ?? false);
+    return this.isRegeneratingMarketUniverse || (this.activeFeaturePage?.headerActionDisabled ?? false);
   }
   get featureActionRunning(): boolean {
-    return ((this.isMonteCarloPage || this.isTrendFollowingPage) && this.isRegeneratingMarketUniverse)
-      || (this.activeFeaturePage?.headerActionRunning ?? false);
+    return this.isRegeneratingMarketUniverse || (this.activeFeaturePage?.headerActionRunning ?? false);
   }
   get featureActionProgress(): number {
-    return (this.isMonteCarloPage || this.isTrendFollowingPage) && this.isRegeneratingMarketUniverse
+    return this.isRegeneratingMarketUniverse
       ? Math.max(1, this.marketUniverseGenerationProgress)
       : (this.activeFeaturePage?.headerActionProgress ?? 0);
   }
   get isRebalancePage(): boolean { return this.router.url.startsWith('/ribilanciamento'); }
   private get isMonteCarloPage(): boolean { return this.router.url.startsWith('/monte-carlo'); }
-  runFeatureAction(): void { this.activeFeaturePage?.runHeaderAction?.(); }
+  runFeatureAction(): void { if (!this.isRegeneratingMarketUniverse) this.activeFeaturePage?.runHeaderAction?.(); }
   get secondaryFeatureActionLabel(): string { return this.activeFeaturePage?.secondaryHeaderActionLabel ?? ''; }
   get secondaryFeatureActionIcon(): string { return this.activeFeaturePage?.secondaryHeaderActionIcon ?? ''; }
   get secondaryFeatureActionDisabled(): boolean { return this.activeFeaturePage?.secondaryHeaderActionDisabled ?? false; }
