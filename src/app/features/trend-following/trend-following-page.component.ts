@@ -37,11 +37,17 @@ const STRATEGIES = [
           </select>
           <div class="etf-slots" [class.etf-slots--compare]="draft.strategyKey === 'ts-momentum-12m'" [class.etf-slots--three]="draft.strategyKey === 'momentum-world-xeon'">
             <div class="primary-slot">
-          <select class="etf-select" [ngModel]="draft.isin" (ngModelChange)="selectEtf(-1,$event)"
-            [disabled]="loadingPortfolio || !etfs.length" [attr.aria-label]="'ETF criterio '+'nuova'">
-            <option value="">Seleziona ETF</option>
-            <option *ngFor="let etf of availableEtfs(draft)" [value]="etf.isin">{{etf.label}}</option>
-          </select>
+          <div class="benchmark-search primary-search">
+              <input type="text" [value]="primarySearch" (input)="filterPrimary($any($event.target).value)"
+                (focus)="primarySearchOpen=true" (blur)="closePrimary()"
+                [disabled]="loadingPortfolio || !allEtfs.length"
+                placeholder="Cerca ETF" aria-label="Cerca primo ETF" autocomplete="off">
+              <button *ngIf="draft.isin || primarySearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectPrimary('')">×</button>
+              <div *ngIf="primarySearchOpen" class="benchmark-options">
+                <button *ngFor="let etf of filteredPrimary()" type="button" (mousedown)="$event.preventDefault();selectPrimary(etf.isin)">{{etf.label}}</button>
+                <span *ngIf="!filteredPrimary().length" class="filter-empty">Nessun ETF trovato</span>
+              </div>
+            </div>
             </div>
           <div class="secondary-slot" *ngIf="draft.strategyKey === 'momentum-world-xeon'">
             <span class="compare-sign">&gt;</span>
@@ -88,15 +94,15 @@ const STRATEGIES = [
           </div>
           <div class="saved-metrics">
           <ng-container *ngIf="row.strategyKey === 'momentum-world-xeon'">
-            <div class="metric metric--six" *ngFor="let value of row.sixValues; let i=index" [class.outcome--signal]="i>=4 && ((signal==='sell' && value!==null && value<0) || (signal==='buy' && value!==null && value>0))" [title]="threeStateTitles[i]">{{row.loading?'—':formatRatio(value)}}</div>
+            <div class="metric metric--six" *ngFor="let value of row.sixValues; let i=index" [class.outcome--signal]="i>=4 && ((signal==='sell' && value!==null && value<0) || (signal==='buy' && value!==null && value>0))" [attr.aria-label]="threeStateTitles[i]" (mouseenter)="showMetricTooltip($event,threeStateTitles[i])" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">{{row.loading?'—':formatRatio(value)}}</div>
           </ng-container>
-          <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric" [title]="row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'">
+          <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric" [attr.aria-label]="row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'" (mouseenter)="showMetricTooltip($event,row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.loading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(annualReturn(row)) : formatPrice(row.price)}}
           </div>
-          <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric" [title]="row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'">
+          <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric" [attr.aria-label]="row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'" (mouseenter)="showMetricTooltip($event,row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.loading || row.benchmarkLoading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(row.benchmarkIsin ? row.benchmarkReturn : 0) : formatPrice(row.average)}}
           </div>
-          <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric outcome" [class.outcome--signal]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))" [title]="row.error || 'Differenza'">
+          <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric outcome" [class.outcome--signal]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))" [attr.aria-label]="row.error || 'Differenza'" (mouseenter)="showMetricTooltip($event,row.error || 'Differenza')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.strategyKey === 'ts-momentum-12m' ? comparisonText(row) : differenceText(row)}}
           </div>
           </div>
@@ -104,6 +110,7 @@ const STRATEGIES = [
           <span *ngIf="row.error" class="row-error">{{row.error}}</span>
         </article>
 <p *ngIf="!rowsForSignal(signal).length" class="empty-signal">Nessuna strategia inserita.</p></div></div>
+      <div *ngIf="tooltipText" class="trend-metric-tooltip" [style.left.px]="tooltipX" [style.top.px]="tooltipY" role="tooltip">{{tooltipText}}</div>
       <div *ngIf="pendingRemoveRow" class="delete-confirm-overlay" (click)="cancelRemoveCriterion()">
         <section class="delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-strategy-title" (click)="$event.stopPropagation()">
           <h2 id="delete-strategy-title">Vuoi eliminare questa strategia di trend following?</h2>
@@ -240,6 +247,10 @@ const STRATEGIES = [
     .criterion:not(.criterion--draft) .saved-etf-slots .secondary-slot .saved-etf-text,
     .criterion:not(.criterion--draft) .saved-etf-slots .third-slot .saved-etf-text{flex:1 1 0;min-width:0}
     .criterion:not(.criterion--draft) .saved-metrics .metric.outcome--signal{border:3px solid #ffd447}
+    .criterion:not(.criterion--draft) .saved-strategy-text{width:calc(100% - 8px);margin-right:8px}
+    .draft-list .primary-search{width:100%;flex:1 1 0;min-width:0}
+    .filter-empty{display:block;padding:9px;color:var(--text-secondary);font-size:12px}
+    .trend-metric-tooltip{position:fixed;z-index:6000;pointer-events:none;max-width:300px;white-space:normal;padding:5px 8px;border-radius:6px;background:rgba(7,14,23,.96);border:1px solid rgba(93,167,255,.65);color:#f2f8ff;font-size:11px;font-weight:700;line-height:1.2;box-shadow:0 10px 28px rgba(0,0,0,.34)}
     .delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px)}
     .delete-confirm-dialog{width:min(390px,calc(100vw - 32px));padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48)}
     .delete-confirm-dialog h2{margin:0 0 18px;text-align:center;color:#edf5ff;font-size:1rem;line-height:1.35}
@@ -274,9 +285,18 @@ export class TrendFollowingPageComponent implements OnDestroy {
   readonly criteria:Criterion[]=[];
   readonly signalGroups:('sell'|'buy')[]=['sell','buy'];
   draft:Criterion|null=null;
+  primarySearch='';primarySearchOpen=false;
+  tooltipText='';tooltipX=0;tooltipY=0;
+  showMetricTooltip(event:MouseEvent,text:string):void{this.tooltipText=text;this.moveMetricTooltip(event)}
+  moveMetricTooltip(event:MouseEvent):void{this.tooltipX=Math.max(8,Math.min(event.clientX+12,window.innerWidth-310));this.tooltipY=Math.max(8,event.clientY-42)}
+  hideMetricTooltip():void{this.tooltipText=''}
+  filteredPrimary():Etf[]{const q=this.primarySearch.trim().toLowerCase();return this.allEtfs.filter(e=>!q||e.search.includes(q)).slice(0,40)}
+  filterPrimary(q:string):void{if(!this.draft)return;this.primarySearch=q;this.primarySearchOpen=true;this.draft.isin=''}
+  selectPrimary(isin:string):void{if(!this.draft)return;this.selectEtf(-1,isin);this.primarySearch=isin?(this.allEtfs.find(e=>e.isin===isin)?.label||isin):'';this.primarySearchOpen=false}
+  closePrimary():void{setTimeout(()=>this.primarySearchOpen=false,120)}
   rowsForSignal(signal:'sell'|'buy'):Criterion[]{return this.criteria.filter(row=>row.signal===signal)}
   private rowAt(i:number):Criterion|null{return i===-1?this.draft:(this.criteria[i]??null)}
-  cancelDraft():void{if(this.draft)this.clearRequests(this.draft);this.draft=null}
+  cancelDraft():void{if(this.draft)this.clearRequests(this.draft);this.draft=null;this.primarySearch='';this.primarySearchOpen=false}
   confirmDraft():void{const row=this.draft;if(!row||!row.strategyKey||!row.isin)return;this.draft=null;row.searchOpen=false;this.criteria.push(row);if(row.strategyKey==='momentum-world-xeon')this.loadThreeStates(row);else{if(this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.loadRestoredBenchmark(row)}this.queueSave()}
   etfs:Etf[]=[];allEtfs:Etf[]=[];
   loadingPortfolio=false;loadingSettings=false;saveError='';portfolioMessage='';
@@ -397,7 +417,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private createRow(strategyKey='',isin='',benchmarkIsin='',signal:'buy'|'sell'='sell'):Criterion{
     return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,price:null,average:null,benchmarkReturn:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
-  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.draft=this.createRow()}
+  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.primarySearch='';this.primarySearchOpen=false;this.draft=this.createRow()}
   pendingRemoveRow:Criterion|null=null;
   requestRemoveCriterion(row:Criterion):void{this.pendingRemoveRow=row}
   cancelRemoveCriterion():void{this.pendingRemoveRow=null}
