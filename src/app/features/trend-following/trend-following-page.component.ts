@@ -136,7 +136,7 @@ const STRATEGIES = [
     .draft-list .criterion{padding:4px 2px}
     .draft-list .signal-select{flex:0 0 155px}
     .draft-list .strategy-select{flex:0 0 210px}
-    .draft-list .etf-slots{flex:1 1 320px;min-width:230px}
+    .draft-list .etf-slots{flex:1 1 320px;min-width:230px;overflow:visible}
     .draft-list .metric{flex:0 0 85px;min-width:70px}
     .draft-list .outcome{flex:0 0 145px;min-width:110px}
     .signal-group{display:flex;flex-direction:column;gap:8px}
@@ -162,7 +162,7 @@ const STRATEGIES = [
     .primary-slot .etf-select{width:100%;min-width:0}
     .secondary-slot .benchmark-search{flex:1 1 auto;min-width:0}
     .strategy-select:disabled{background:var(--surface);color:var(--text-secondary);border-color:var(--border);opacity:1;cursor:not-allowed}.etf-select{flex:1 1 18%;min-width:130px}
-    .benchmark-search{flex:1 1 15%;min-width:120px;position:relative}.benchmark-search input{width:100%;padding-right:26px}
+    .benchmark-search{flex:1 1 15%;min-width:120px;position:relative;z-index:3}.benchmark-search input{width:100%;padding-right:26px}
     .compare-sign{font-weight:700;font-size:19px}.clear{position:absolute;right:5px;top:6px;background:transparent;border:0;color:white;font-size:20px;cursor:pointer}
     .benchmark-options{position:absolute;z-index:50;top:42px;left:0;right:0;max-height:240px;overflow:auto;background:var(--surface-elevated);border:1px solid var(--border);border-radius:8px}
     .benchmark-options button{display:block;width:100%;text-align:left;color:white;background:transparent;border:0;padding:9px;cursor:pointer}
