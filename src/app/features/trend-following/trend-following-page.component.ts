@@ -29,7 +29,7 @@ const STRATEGIES = [
   imports: [CommonModule, FormsModule],
   template: `
     <section class="trend-page">
-      <div *ngIf="draft" class="criteria-list draft-list"><h3>Nuova strategia</h3>
+      <div class="draft-space"><div *ngIf="draft" class="criteria-list draft-list">
         <article class="criterion criterion--draft">
           <select class="signal-select" [(ngModel)]="draft.signal" aria-label="Tipo di segnale"><option value="sell">Segnale di vendita</option><option value="buy">Segnale di acquisto</option></select>
           <select class="strategy-select" [ngModel]="draft.strategyKey" (ngModelChange)="changeStrategy(-1,$event)" [attr.aria-label]="'Strategia criterio '+'nuova'">
@@ -71,8 +71,9 @@ const STRATEGIES = [
           <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
         </article>
       </div>
-      <div class="signal-group" *ngFor="let signal of signalGroups"><h3>{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div class="criteria-list">
-        <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion">
+      </div>
+      <div class="signal-group" *ngFor="let signal of signalGroups"><h3>{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)">
+        <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion" draggable="true" [class.is-dragging]="draggedRow===row" [class.shift-up]="dragShiftFor(row,signal)==='up'" [class.shift-down]="dragShiftFor(row,signal)==='down'" (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
           <span class="criterion-status material-symbols-rounded" [class.criterion-status--success]="isPositive(row)" [class.criterion-status--failure]="isNegative(row)" [attr.aria-label]="isPositive(row) ? 'Criterio soddisfatto' : isNegative(row) ? 'Criterio non soddisfatto' : 'Criterio non valutato'" role="img">{{isPositive(row) ? 'check_circle' : isNegative(row) ? 'cancel' : 'radio_button_unchecked'}}</span>
           <select class="strategy-select" [disabled]="!!row.strategyKey" [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(criteria.indexOf(row),$event)" [attr.aria-label]="'Strategia criterio '+(criteria.indexOf(row)+1)">
             <option value="">Seleziona criterio</option>
@@ -130,6 +131,14 @@ const STRATEGIES = [
   `,
   styles: [`
     .trend-page{display:flex;flex-direction:column;min-height:calc(100dvh - 190px);gap:12px}
+    .draft-space{min-height:80px;position:relative}
+    .draft-list{padding:8px 10px;min-height:64px}
+    .draft-list .criterion{padding:4px 2px}
+    .draft-list .signal-select{flex:0 0 155px}
+    .draft-list .strategy-select{flex:0 0 210px}
+    .draft-list .etf-slots{flex:1 1 320px;min-width:230px}
+    .draft-list .metric{flex:0 0 85px;min-width:70px}
+    .draft-list .outcome{flex:0 0 145px;min-width:110px}
     .signal-group{display:flex;flex-direction:column;gap:8px}
     .signal-group h3,.draft-list h3{margin:0 0 3px;color:#e6f1fc;font-size:14px}
     .empty-signal{margin:0;padding:8px;color:#8ca4bb;font-size:13px}
@@ -186,7 +195,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   readonly strategies=STRATEGIES;
   get headerActionLabel():string{return this.draft ? '' : 'AGGIUNGI STRATEGIA'}
   readonly headerActionIcon='add';
-  get headerActionDisabled():boolean{return !this.currentPortfolioId || this.loadingPortfolio || this.loadingSettings || this.muGenerating}
+  get headerActionDisabled():boolean{return !!this.draft || !this.currentPortfolioId || this.loadingPortfolio || this.loadingSettings || this.muGenerating}
   get headerActionRunning():boolean{return this.muGenerating}
   get headerActionProgress():number{return this.muGenerating?Math.max(1,this.muProgress):0}
   muGenerating=false;muProgress=0;
@@ -261,43 +270,41 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.dragPreview.style.left=(event.clientX-this.dragOffset.x)+'px';
     this.dragPreview.style.top=(event.clientY-this.dragOffset.y)+'px';
   }
-  onListDragOver(event:DragEvent):void{
-    if(!this.draggedRow)return;
+  onListDragOver(event:DragEvent,signal:'buy'|'sell'):void{
+    if(!this.draggedRow||this.draggedRow.signal!==signal)return;
     event.preventDefault();
     if(event.dataTransfer)event.dataTransfer.dropEffect='move';
     const container=event.currentTarget as HTMLElement;
     const rows=Array.from(container.querySelectorAll<HTMLElement>('.criterion'));
     if(!rows.length)return;
-    // offsetTop is unaffected by the translateY preview animation.
-    // Bounding-rect distances collapse when row 2 shifts into row 1's slot,
-    // incorrectly sending a downward drag straight to the last position.
     const first=rows[0].getBoundingClientRect();
-    const stride=rows.length>1
-      ? Math.max(1,rows[1].offsetTop-rows[0].offsetTop)
-      : rows[0].offsetHeight+8;
-    const y=event.clientY-first.top;
-    this.insertRowIndex=Math.max(0,Math.min(rows.length,Math.floor((y+stride/2)/Math.max(1,stride))));
+    const stride=rows.length>1?Math.max(1,rows[1].offsetTop-rows[0].offsetTop):rows[0].offsetHeight+8;
+    this.insertRowIndex=Math.max(0,Math.min(rows.length,Math.floor((event.clientY-first.top+stride/2)/stride)));
   }
-  dragShift(index:number):'up'|'down'|null{
-    if(!this.draggedRow||this.insertRowIndex===null)return null;
-    const from=this.criteria.indexOf(this.draggedRow);
-    if(from<0)return null;
-    const to=Math.max(0,Math.min(this.criteria.length-1,this.insertRowIndex-(from<this.insertRowIndex?1:0)));
+  dragShiftFor(row:Criterion,signal:'buy'|'sell'):'up'|'down'|null{
+    if(!this.draggedRow||this.draggedRow.signal!==signal||this.insertRowIndex===null)return null;
+    const rows=this.rowsForSignal(signal);
+    const from=rows.indexOf(this.draggedRow),index=rows.indexOf(row);
+    if(from<0||index<0)return null;
+    const to=Math.max(0,Math.min(rows.length-1,this.insertRowIndex-(from<this.insertRowIndex?1:0)));
     if(to>from&&index>from&&index<=to)return 'up';
     if(to<from&&index>=to&&index<from)return 'down';
     return null;
   }
-  onListDrop(event:DragEvent):void{
-    if(!this.draggedRow)return;
+  onListDrop(event:DragEvent,signal:'buy'|'sell'):void{
+    if(!this.draggedRow||this.draggedRow.signal!==signal)return;
     event.preventDefault();event.stopPropagation();
-    const from=this.criteria.indexOf(this.draggedRow);
-    const raw=this.insertRowIndex;
+    const rows=this.rowsForSignal(signal);
+    const from=rows.indexOf(this.draggedRow),raw=this.insertRowIndex;
     this.settlingDrag=true;
     if(from>=0&&raw!==null){
-      const to=Math.max(0,Math.min(this.criteria.length-1,raw-(from<raw?1:0)));
+      const to=Math.max(0,Math.min(rows.length-1,raw-(from<raw?1:0)));
       if(from!==to){
-        const moved=this.criteria.splice(from,1)[0];
-        this.criteria.splice(to,0,moved);
+        rows.splice(from,1);
+        rows.splice(to,0,this.draggedRow);
+        const sells=signal==='sell'?rows:this.rowsForSignal('sell');
+        const buys=signal==='buy'?rows:this.rowsForSignal('buy');
+        this.criteria.splice(0,this.criteria.length,...sells,...buys);
         this.queueSave();
       }
     }
@@ -422,6 +429,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
       this.allEtfs=rows.map((e:any)=>({isin:String(e.isin||'').toUpperCase(),label:(e.nickname||e.name||e.isin)+' ('+e.isin+')',
         search:[e.nickname,e.name,e.ticker,e.symbol,e.isin].filter(Boolean).join(' ').toLowerCase()})).filter((e:Etf)=>!!e.isin);
       this.criteria.forEach(row=>{if(row.benchmarkIsin)row.benchmarkSearch=this.allEtfs.find(e=>e.isin===row.benchmarkIsin)?.label||row.benchmarkIsin});
+      if(this.draft?.benchmarkIsin)this.draft.benchmarkSearch=this.allEtfs.find(e=>e.isin===this.draft?.benchmarkIsin)?.label||this.draft.benchmarkIsin;
     }});
     const selected=this.portfolioSelection.selectedPortfolio();
     if(!selected){this.loadingPortfolio=false;this.portfolioMessage='Seleziona un portafoglio dalla navbar.';return}
