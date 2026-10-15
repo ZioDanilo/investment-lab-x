@@ -1,6 +1,7 @@
 import { Component, effect, inject, OnDestroy, TemplateRef, ViewChild, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { PillToggleComponent } from '../../shared/components/pill-toggle/pill-toggle.component';
 import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { QuotationService } from '../../core/services/quotation.service';
@@ -26,7 +27,7 @@ const STRATEGIES = [
 @Component({
   selector: 'app-trend-following-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PillToggleComponent],
   template: `
     <ng-template #draftEditor><div *ngIf="draft" class="criteria-list draft-list">
         <article class="criterion criterion--draft">
@@ -103,7 +104,7 @@ const STRATEGIES = [
       </div>
     </ng-template>
     <section class="trend-page">
-      <div class="signal-group" *ngFor="let signal of signalGroups" [class.signal-group--disabled]="!signalEnabled[signal]"><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)"><div class="signal-card-header"><h3 class="criteria-list-heading">{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div class="signal-activation">{{signalEnabled[signal] ? 'Attivato' : 'Disattivato'}} <button type="button" class="signal-toggle" [class.signal-toggle--on]="signalEnabled[signal]" role="switch" [attr.aria-checked]="signalEnabled[signal]" (click)="toggleSignal(signal)"><span class="signal-toggle-thumb"></span></button></div></div>
+      <div class="signal-group" *ngFor="let signal of signalGroups" [class.signal-group--disabled]="!signalEnabled[signal]"><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)"><div class="signal-card-header"><h3 class="criteria-list-heading">{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div *ngIf="currentPortfolioId" class="signal-activation">{{signalEnabled[signal] ? 'Attivato' : 'Disattivato'}} <app-pill-toggle [checked]="signalEnabled[signal]" [disabled]="loadingSettings || signalSaving[signal]" [ariaLabel]="signal === 'sell' ? 'Attiva segnali di vendita' : 'Attiva segnali di acquisto'" (checkedChange)="toggleSignal(signal, $event)"></app-pill-toggle></div></div>
         <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion" draggable="true" [class.is-dragging]="draggedRow===row" [class.shift-up]="dragShiftFor(row,signal)==='up'" [class.shift-down]="dragShiftFor(row,signal)==='down'" (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
           <span class="criterion-action-label" [class.criterion-action-label--active]="signalEnabled[signal] && ((signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row)))"><svg *ngIf="signalEnabled[signal] && ((signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row)))" class="signal-warning-icon" viewBox="0 0 32 30" role="img" [attr.aria-label]="signal === 'sell' ? 'Segnale di vendita' : 'Segnale di acquisto'"><path d="M16 2.5 L30 27.5 H2 Z" fill="#ffd447" stroke="#ffd447" stroke-width="2" stroke-linejoin="round"/><path d="M16 10 V19" stroke="#141414" stroke-width="3.4" stroke-linecap="round"/><circle cx="16" cy="24" r="1.9" fill="#141414"/></svg></span>
           <span class="saved-strategy-text" [title]="strategyLabel(row.strategyKey)">{{strategyLabel(row.strategyKey)}}</span>
@@ -299,11 +300,6 @@ const STRATEGIES = [
     .signal-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:27px}
     .signal-card-header .criteria-list-heading{padding:0;margin:0}
     .signal-activation{display:flex;align-items:center;gap:9px;color:#d9e7f7;font-size:12px;font-weight:600;white-space:nowrap}
-    .signal-toggle{display:inline-flex;align-items:center;width:44px;height:18px;padding:2px;border:0;border-radius:99px;background:#646d78;box-sizing:border-box;flex-shrink:0;cursor:pointer;transition:background .22s ease}
-    .signal-toggle--on{background:#20a568}
-    .signal-toggle-thumb{display:block;width:22px;height:14px;flex-shrink:0;border-radius:99px;background:linear-gradient(145deg,#fff,#d5dbe0);box-shadow:0 1px 3px rgba(0,0,0,.28);transform:translateX(0);transition:transform .22s ease}
-    .signal-toggle--on .signal-toggle-thumb{transform:translateX(18px)}
-    .signal-toggle:focus-visible{outline:2px solid #18d9f6;outline-offset:3px}
     .signal-group--disabled .criteria-list{background:rgba(9,15,22,.68);border-color:rgba(85,128,173,.23)}
     .signal-group--disabled .criteria-list > :not(.signal-card-header){opacity:.38;filter:grayscale(1);transition:opacity .2s ease,filter .2s ease}
     .signal-group--disabled .signal-card-header h3,.signal-group--disabled .signal-activation{color:#8998a8}
@@ -341,8 +337,22 @@ export class TrendFollowingPageComponent implements OnDestroy {
   readonly criteria:Criterion[]=[];
   readonly signalGroups:('sell'|'buy')[]=['sell','buy'];
   signalEnabled: Record<'sell' | 'buy', boolean> = { sell: true, buy: true };
-  toggleSignal(signal: 'sell' | 'buy'): void {
-    this.signalEnabled[signal] = !this.signalEnabled[signal];
+  signalSaving: Record<'sell' | 'buy', boolean> = { sell: false, buy: false };
+  toggleSignal(signal: 'sell' | 'buy', enabled: boolean): void {
+    const portfolioId = this.currentPortfolioId;
+    if (!portfolioId || this.loadingSettings || this.signalSaving[signal]) return;
+    const previous = this.signalEnabled[signal];
+    this.signalEnabled[signal] = enabled;
+    this.signalSaving[signal] = true;
+    this.api.saveTrendSignalEnabled(portfolioId, signal, enabled).subscribe({
+      next: () => { if (this.currentPortfolioId === portfolioId) this.signalSaving[signal] = false; },
+      error: () => {
+        if (this.currentPortfolioId !== portfolioId) return;
+        this.signalEnabled[signal] = previous;
+        this.signalSaving[signal] = false;
+        this.saveError = 'Impossibile salvare lo stato dei segnali.';
+      }
+    });
   }
 
   draft:Criterion|null=null;
@@ -621,6 +631,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.portfolioSub?.unsubscribe();this.settingsSub?.unsubscribe();this.catalogSub?.unsubscribe();
     this.criteria.forEach(row=>this.clearRequests(row));this.cancelDraft();this.criteria.splice(0);
     this.etfs=[];this.allEtfs=[];this.saveError='';this.portfolioMessage='';this.loadingSettings=false;this.saveQueued=false;
+    this.signalEnabled={sell:true,buy:true};this.signalSaving={sell:false,buy:false};
     this.catalogSub=this.api.getETFs().subscribe({next:(res:any)=>{
       if(version!==this.loadVersion)return;
       const rows=Array.isArray(res?.data)?res.data:Array.isArray(res)?res:[];
@@ -655,6 +666,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
       next:(res:any)=>{
         if(version!==this.loadVersion)return;
         const saved=Array.isArray(res?.data?.criteria)?res.data.criteria:[];
+        this.signalEnabled={sell:res?.data?.signalEnabled?.sell!==false,buy:res?.data?.signalEnabled?.buy!==false};
         for(const item of saved){
           if(!item.strategyKey || !STRATEGIES.some(s=>s.key===item.strategyKey))continue;
           const isin=String(item.isin||'').toUpperCase();
