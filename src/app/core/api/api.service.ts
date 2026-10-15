@@ -57,6 +57,37 @@ export class ApiService {
     return this.http.put(`${this.apiUrl}/portfolio/${id}/kpi-targets`, { kpis });
   }
 
+  // Trend Following: one persisted strategy and its ETF slots per real portfolio.
+  getTrendFollowingEtfs(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/etfs`);
+  }
+
+  getTrendCriteria(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/criteria`);
+  }
+
+  saveTrendCriteria(portfolioId: string, criteria: Array<{strategyKey:string;isin:string;benchmarkIsin:string}>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/criteria`, {criteria});
+  }
+
+  getTrendFollowingSettings(portfolioId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}`);
+  }
+
+  saveTrendFollowingSettings(portfolioId: string, strategyKey: string, etfIsins: string[]): Observable<any> {
+    return this.http.put(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}`, {
+      strategyKey, settings: { etfIsins }
+    });
+  }
+
+  getTrendEtfSelections(portfolioId: string, strategyKey: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/strategies/${encodeURIComponent(strategyKey)}/etfs`);
+  }
+
+  saveTrendEtfSelections(portfolioId: string, strategyKey: string, etfIsins: string[]): Observable<any> {
+    return this.http.put(`${this.apiUrl}/trend-following/${encodeURIComponent(portfolioId)}/strategies/${encodeURIComponent(strategyKey)}/etfs`, { etfIsins });
+  }
+
   // Real portfolio endpoints
   getRealPortfolios(): Observable<any> {
     return this.http.get(`${this.apiUrl}/real-portfolios`);
@@ -195,6 +226,14 @@ export class ApiService {
 
   getMarketUniverseAssetByIsin(isin: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/market-universe/assets/isin/${encodeURIComponent(isin)}`);
+  }
+
+  compareManagedFuturesRuns(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/v2/diagnostics/mf-comparison`);
+  }
+
+  diagnoseMarketUniverseEtfV2(isin: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/v2/diagnostics/etf/${encodeURIComponent(isin)}`);
   }
 
   // Market Universe V2: ETF-oriented persistence, no application warm-up cache.

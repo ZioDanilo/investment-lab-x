@@ -500,3 +500,8 @@
     width:100%;
   }
 }
+
+/* Trend Following: mirror the rebalance selector's navbar alignment. */
+.trend-strategy-selector > label { position:absolute; right:calc(100% + 12px); white-space:nowrap; text-align:right; }
+.trend-strategy-selector > select { width:100%; min-width:0; height:38px; padding:7px 30px 7px 12px; border:1px solid rgba(125,150,190,.55); border-radius:8px; background:#203554; color:#fff; font:inherit; cursor:pointer; text-overflow:ellipsis; }
+@media(max-width:1180px) { .trend-strategy-selector > label { position:static; } .trend-strategy-selector { width:min(100%,420px) !important; } }

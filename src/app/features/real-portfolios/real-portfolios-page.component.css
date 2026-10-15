@@ -56,6 +56,10 @@
 /* Portfolio strip now occupies the space previously used by the page heading. */
 .portfolio-strip{margin-top:0}
 
+/* The open menu and its owning card must paint above adjacent portfolio cards. */
+.portfolio-choice:not(.add):has(.portfolio-dropdown.is-open){z-index:2000}
+.portfolio-choice:not(.add):has(.portfolio-dropdown.is-open) .portfolio-menu{z-index:2001}
+
 /* Anchor dropdown so the trigger sits above its left/icon edge: menu opens down-right. */
 .portfolio-dropdown{left:0;right:auto}
 
@@ -172,7 +176,7 @@ input.invalid,
 .create-dialog-footer .create-btn__content{width:100%}
 
 /* Generous vertical drag/drop hit area without changing card geometry. */
-.portfolio-strip{position:relative;padding-top:22px;padding-bottom:22px;margin-top:-22px;margin-bottom:-22px}
+.portfolio-strip{position:relative;padding-top:22px;padding-bottom:22px;margin-top:-22px;margin-bottom:-10px}
 
 /* Native source must never acquire translucency while dragging. */
 .portfolio-choice[draggable="true"]{opacity:1!important;visibility:visible!important;position:relative;z-index:1}

@@ -98,7 +98,6 @@ export class MontecarloPageComponent {
   marketUniverseGenerationMissingRecords = 0;
   private marketUniverseGenerationPollTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private marketUniverseGenerationPollActive = false;
-  isRegeneratingMarketUniverse = false;
   marketUniverseStatusMessage: string | null = null;
   kpis: KpiCard[] = [...this.defaultKpis];
   readonly kpiTargetOptions: Record<string, string[]> = {
@@ -383,34 +382,6 @@ export class MontecarloPageComponent {
       return;
     }
     console.error(message);
-  }
-
-  async regenerateMarketUniverse(): Promise<void> {
-    if (this.isRegeneratingMarketUniverse) {
-      return;
-    }
-
-    this.isRegeneratingMarketUniverse = true;
-    this.marketUniverseStatusMessage = 'RIGENERAZIONE...';
-
-    try {
-      const response = await firstValueFrom(this.apiService.regenerateMarketUniverseV2());
-      const payload = response?.data ?? response;
-      const assetCount = Number(payload?.assetCount ?? payload?.assets?.length ?? 0);
-      const incompleteCount = Number(payload?.incompleteAssetCount ?? 0);
-
-      if (!payload?.success) {
-        throw new Error(payload?.error || 'Market Universe regeneration failed');
-      }
-
-      this.marketUniverseStatusMessage = null;
-    } catch (error: any) {
-      const message = error?.error?.error || error?.message || 'Errore nella rigenerazione del Market Universe';
-      this.marketUniverseStatusMessage = null;
-      this.showToast(message);
-    } finally {
-      this.isRegeneratingMarketUniverse = false;
-    }
   }
 
   private buildScenarioPathFromMonthEntries(

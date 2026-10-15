@@ -10,10 +10,6 @@
     <nav class="nav-links" aria-label="Menu principale">
       <a routerLink="/home" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="goHome($event)">Home</a>
       <app-portfolio-selector></app-portfolio-selector>
-      <button type="button" class="nav-cta">
-        <span class="material-symbols-rounded">add</span>
-        <span>Nuovo ETF</span>
-      </button>
     </nav>
 
     <div class="nav-actions" aria-label="Profilo">
@@ -22,15 +18,15 @@
           <span>{{ loggedUsername }}</span>
         </button>
         <div class="profile-dropdown" [class.is-open]="profileMenuOpen" role="menu" [attr.aria-hidden]="!profileMenuOpen" (click)="$event.stopPropagation()">
-          <button type="button" class="profile-dropdown__item" role="menuitem" [disabled]="isImportingYahooPrices" (click)="importYahooPrices($event)">
+          <button *ngIf="isAdmin" type="button" class="profile-dropdown__item" role="menuitem" [disabled]="isImportingYahooPrices" (click)="importYahooPrices($event)">
             <span class="material-symbols-rounded">download</span>
             <span>{{ isImportingYahooPrices ? 'Aggiornamento quotazioni…' : 'Aggiorna quotazioni' }}</span>
           </button>
-          <button type="button" class="profile-dropdown__item" role="menuitem" [disabled]="isRegeneratingMarketUniverse" (click)="regenerateMarketUniverse($event)">
+          <button *ngIf="isAdmin" type="button" class="profile-dropdown__item" role="menuitem" [disabled]="isRegeneratingMarketUniverse" (click)="regenerateMarketUniverse($event)">
             <span class="material-symbols-rounded">autorenew</span>
             <span>{{ isRegeneratingMarketUniverse ? 'Generazione in corso…' : 'Genera Market Universe' }}</span>
           </button>
-          <div class="profile-dropdown__separator" aria-hidden="true"></div>
+          <div *ngIf="isAdmin" class="profile-dropdown__separator" aria-hidden="true"></div>
           <button type="button" class="profile-dropdown__item profile-dropdown__item--logout" role="menuitem" (click)="logout($event)">
             <span class="material-symbols-rounded">logout</span>
             <span>Logout</span>
@@ -41,13 +37,13 @@
   </header>
 
   <main class="route-content" [class.route-content--feature]="showFeatureSidebar">
-    <div *ngIf="showFeatureSidebar" class="app-feature-action-row">
+    <div *ngIf="showFeatureSidebar || isRegeneratingMarketUniverse" class="app-feature-action-row" [class.app-feature-action-row--home]="!showFeatureSidebar">
       <div *ngIf="isRebalancePage" class="rebalance-target-selector" [style.left.px]="rebalanceTargetLeft" [style.width.px]="rebalanceTargetWidth"><span>Portafoglio target</span><app-portfolio-selector mode="laboratorio" [showLabel]="false"></app-portfolio-selector><label class="rebalance-cash-selector"><span>Liquidità da aggiungere</span><app-money-input label="Liquidità da aggiungere" [value]="rebalanceInputs.cashToAdd()" (valueChange)="rebalanceInputs.setCash($event)"></app-money-input></label></div>
       <button *ngIf="featureActionLabel" type="button" class="app-feature-action" [class.is-running]="featureActionRunning" [disabled]="featureActionDisabled" (click)="runFeatureAction()">
         <span class="app-feature-action__fill" [style.width.%]="featureActionProgress"></span>
         <span class="app-feature-action__content"><span class="material-symbols-rounded">{{ featureActionIcon }}</span><span>{{ featureActionLabel }}</span></span>
       </button>
-      <button *ngIf="secondaryFeatureActionLabel" type="button" class="app-feature-action app-feature-action--secondary" [class.is-running]="secondaryFeatureActionRunning" [disabled]="secondaryFeatureActionDisabled" (click)="runSecondaryFeatureAction()">
+      <button *ngIf="!isRegeneratingMarketUniverse && secondaryFeatureActionLabel" type="button" class="app-feature-action app-feature-action--secondary" [class.is-running]="secondaryFeatureActionRunning" [disabled]="secondaryFeatureActionDisabled" (click)="runSecondaryFeatureAction()">
         <span class="app-feature-action__content"><span class="material-symbols-rounded">{{ secondaryFeatureActionIcon }}</span><span>{{ secondaryFeatureActionLabel }}</span></span>
       </button>
     </div>
@@ -62,3 +58,5 @@
     <section class="route-page"><router-outlet (activate)="onFeatureActivate($event)"></router-outlet></section>
   </main>
 </div>
+
+<app-action-confirmation></app-action-confirmation>

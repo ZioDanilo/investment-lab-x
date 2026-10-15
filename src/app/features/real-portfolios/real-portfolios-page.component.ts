@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit, effect, signal } from '@angular/core';
+import { Component, HostListener, OnInit, effect, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { UiCardComponent } from '../../shared/components/ui-card/ui-card.component';
@@ -8,6 +8,7 @@ import { LineChartComponent, LineChartSeries, LineChartTick } from '../../shared
 import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/chart-legend/chart-legend.component';
 import { ChartTooltipComponent } from '../../shared/components/chart-tooltip/chart-tooltip.component';
 import { ApiService } from '../../core/api/api.service';
+import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
@@ -30,9 +31,15 @@ export class RealPortfoliosPageComponent implements OnInit {
   private quotationFinishTimer:any=null;
   get headerActionDisabled():boolean { return this.loadingPortfolios || this.portfolios.length===0 || !this.hasSelectedPortfolio || this.quotationRefreshRunning; }
   get headerActionRunning():boolean { return this.quotationRefreshRunning; }
+  private readonly actionConfirmation = inject(ActionConfirmationService);
   runHeaderAction():void {
     const portfolio=this.portfolios[this.selected];
     if(!portfolio || this.quotationRefreshRunning)return;
+    this.actionConfirmation.ask(`Aggiornare le quotazioni del portafoglio ${portfolio.name}?`, 'Aggiorna', () => this.executeQuotationRefresh(portfolio.id));
+  }
+
+  private executeQuotationRefresh(portfolioId:string):void {
+    if (this.quotationRefreshRunning) return;
 
     // The refresh POST must be the first request. Previously a preliminary GET
     // /holdings could be satisfied with HTTP 304 and prevent the refresh chain
@@ -41,8 +48,14 @@ export class RealPortfoliosPageComponent implements OnInit {
     this.headerActionProgress=1;
     this.startQuotationProgress(Math.max(1,this.holdings.length));
 
-    this.api.refreshRealPortfolioQuotations(portfolio.id).subscribe({
-      next:()=>{
+    this.api.refreshRealPortfolioQuotations(portfolioId).subscribe({
+      next:(response:any)=>{
+        if (response?.success === false) {
+          this.resetQuotationProgress();
+          this.actionConfirmation.notify('Aggiornamento quotazioni portafoglio non riuscito: ' + (response.error || 'errore sconosciuto'), true);
+          return;
+        }
+        this.actionConfirmation.notify('Quotazioni del portafoglio aggiornate correttamente.');
         this.loadMarketValues();
         this.loadHoldings();
         this.loadHistory();
@@ -51,6 +64,7 @@ export class RealPortfoliosPageComponent implements OnInit {
       error:(error)=>{
         this.resetQuotationProgress();
         console.error('Errore aggiornamento quotazioni portafoglio',error);
+        this.actionConfirmation.notify('Aggiornamento quotazioni portafoglio non riuscito: ' + (error?.error?.error || error?.message || 'errore sconosciuto'), true);
       }
     });
   }
@@ -200,8 +214,8 @@ export class RealPortfoliosPageComponent implements OnInit {
     ['Valore di mercato',this.formatCurrency(value),`${sign}${this.formatCurrency(Math.abs(gain))}  (${this.formatSignedPercent(pct)})`,tone],
     ['Capitale investito',this.formatCurrencyTrailing(p?.investedCapital ?? 0),'',''],
     ['Gain/Loss',`${sign}${this.formatCurrency(Math.abs(gain))}`,this.formatSignedPercent(pct),tone],
-    ['Rendimento annuo (TWR)','+8,1%','','positive'],
-    ['Volatilità annua','11,3%','',''],
+    ['Rendimento annuo (TWR)',this.performance.annualReturn === null ? '—' : this.formatSignedPercent(this.performance.annualReturn),'',this.performance.annualReturn === null ? '' : this.valueTone(this.performance.annualReturn)],
+    ['Volatilità annua',this.performance.volatility === null ? '—' : this.formatSignedPercent(this.performance.volatility).replace(/^\+/,''),'',''],
     ['Numero ETF',String(this.holdings.length),'','']
   ];
   }
@@ -261,13 +275,81 @@ export class RealPortfoliosPageComponent implements OnInit {
   }
   leaveComposition():void { this.compositionHoverIndex=null; this.compositionTooltip={...this.compositionTooltip,visible:false}; }
   operations:Operation[]=[];
-  readonly stats=[['Rendimento totale','+12,4%','positive'],['Rendimento annuo (TWR)','+8,1%','positive'],['Volatilità annua','11,3%',''],['Sharpe ratio (rf 2%)','0,54',''],['Massimo drawdown','-7,8%','negative'],['Mese migliore','+4,9%','positive'],['Mese peggiore','-4,1%','negative'],['Mesi positivi','18 (66%)','']];
-  readonly legend:ChartLegendItem[]=[{label:'Valore di mercato',color:'#2d91ff'},{label:'Capitale investito',color:'#9ab2cf'}];
-  history:Array<{date:string;month:string;marketValue:number|null;netContributions:number;valuation:string;estimatedPositions:number}>=[];
+  private readonly riskFreeRate = 0.02;
+  get performance() {
+    const rows = this.history
+      .filter(row => row.valuation !== 'incomplete' && Number.isFinite(row.performancePercent))
+      .slice().sort((a,b) => a.date.localeCompare(b.date));
+    const empty = { totalReturn:null as number|null, annualReturn:null as number|null, volatility:null as number|null,
+      sharpe:null as number|null, maxDrawdown:null as number|null, bestMonth:null as number|null,
+      worstMonth:null as number|null, positiveMonths:0, months:0 };
+    if (rows.length < 2) return empty;
+    const index = (row: typeof rows[number]) => 1 + Number(row.performancePercent) / 100;
+    const start = index(rows[0]), end = index(rows[rows.length-1]);
+    if (!(start > 0 && end > 0)) return empty;
+    const days = (Date.parse(rows[rows.length-1].date+'T00:00:00Z') - Date.parse(rows[0].date+'T00:00:00Z')) / 86400000;
+    const annualReturn = days >= 30 ? (Math.pow(end/start,365.25/days)-1)*100 : null;
+    const returns:number[] = [];
+    let peak = start, maxDrawdown = 0;
+    for (let i=0;i<rows.length;i++) {
+      const current = index(rows[i]);
+      if (!(current > 0)) continue;
+      peak = Math.max(peak,current);
+      maxDrawdown = Math.min(maxDrawdown,(current/peak-1)*100);
+      if(i>0) {
+        const previous=index(rows[i-1]);
+        if(previous>0 && rows[i].date!==rows[i-1].date) returns.push(current/previous-1);
+      }
+    }
+    const mean=returns.length ? returns.reduce((a,b)=>a+b,0)/returns.length : 0;
+    const variance=returns.length>1 ? returns.reduce((sum,r)=>sum+(r-mean)**2,0)/(returns.length-1) : 0;
+    const volatility=returns.length>=20 ? Math.sqrt(variance)*Math.sqrt(252)*100 : null;
+    const sharpe=volatility!==null && volatility>0 && annualReturn!==null ? (annualReturn-this.riskFreeRate*100)/volatility : null;
+    const months=new Map<string,typeof rows[number]>();
+    for(const row of rows) months.set(row.date.slice(0,7),row);
+    const monthRows=[...months.values()].sort((a,b)=>a.date.localeCompare(b.date));
+    const monthReturns:number[]=[];
+    for(let i=1;i<monthRows.length;i++) {
+      const prev=index(monthRows[i-1]),current=index(monthRows[i]);
+      if(prev>0 && current>0) monthReturns.push((current/prev-1)*100);
+    }
+    return { totalReturn:(end/start-1)*100, annualReturn, volatility, sharpe, maxDrawdown,
+      bestMonth:monthReturns.length?Math.max(...monthReturns):null,
+      worstMonth:monthReturns.length?Math.min(...monthReturns):null,
+      positiveMonths:monthReturns.filter(r=>r>0).length, months:monthReturns.length };
+  }
+  get stats():string[][] {
+    const p=this.performance;
+    const pct=(v:number|null)=>v===null?'—':this.formatSignedPercent(v);
+    const tone=(v:number|null)=>v===null?'':this.valueTone(v);
+    return [
+      ['Rendimento totale (TWR)',pct(p.totalReturn),tone(p.totalReturn)],
+      ['Rendimento annuo (TWR)',pct(p.annualReturn),tone(p.annualReturn)],
+      ['Volatilità annua',p.volatility===null?'—':pct(p.volatility).replace(/^\\+/,''),''],
+      ['Sharpe ratio',p.sharpe===null?'—':p.sharpe.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}),''],
+      ['Massimo drawdown',pct(p.maxDrawdown),tone(p.maxDrawdown)],
+      ['Mese migliore',pct(p.bestMonth),tone(p.bestMonth)],
+      ['Mese peggiore',pct(p.worstMonth),tone(p.worstMonth)],
+      ['Mesi positivi',p.months? p.positiveMonths+' su '+p.months+' ('+(p.positiveMonths/p.months*100).toFixed(0)+'%)':'—','']
+    ];
+  }
+  readonly legend:ChartLegendItem[]=[
+    {label:'Valore del portafoglio',color:'#2586d9'},
+    {label:'Capitale netto investito',color:'#9ab2cf'}
+  ];
+  history:Array<{date:string;month:string;marketValue:number|null;netContributions:number;performancePercent:number;valuation:string;estimatedPositions:number}>=[];
   historyPeriod:'1Y'|'3Y'|'5Y'|'MAX'='MAX';
+  historyMode:'value'|'performance'='performance';
   historyLoading=false;
-  get visibleHistory(){ const months=this.historyPeriod==='MAX'?Infinity:this.historyPeriod==='1Y'?12:this.historyPeriod==='3Y'?36:60; return this.history.slice(-months); }
-  setHistoryPeriod(period:'1Y'|'3Y'|'5Y'|'MAX'):void { this.historyPeriod=period; }
+  get visibleHistory(){
+    const days=this.historyPeriod==='MAX'?Infinity:this.historyPeriod==='1Y'?365:this.historyPeriod==='3Y'?1095:1826;
+    if(days===Infinity)return this.history;
+    const cutoff=new Date();cutoff.setUTCDate(cutoff.getUTCDate()-days);
+    const min=cutoff.toISOString().slice(0,10);
+    return this.history.filter(row=>row.date>=min);
+  }
+  setHistoryPeriod(period:'1Y'|'3Y'|'5Y'|'MAX'):void {this.historyPeriod=period;}
+  setHistoryMode(mode:'value'|'performance'):void {this.historyMode=mode;}
   private loadHistory():void {
     const portfolio=this.portfolios[this.selected];
     if(!portfolio){this.history=[];return;}
@@ -281,38 +363,47 @@ export class RealPortfoliosPageComponent implements OnInit {
       error:(error)=>{this.historyLoading=false;this.history=[];console.error('Errore storico portafoglio',error);}
     });
   }
-  get historyMonths():string[] {
+  get historyMonths():string[]{
     const rows=this.visibleHistory;
     if(!rows.length)return [];
     const indexes=[0,Math.floor((rows.length-1)/4),Math.floor((rows.length-1)/2),Math.floor(3*(rows.length-1)/4),rows.length-1];
     return [...new Set(indexes)].map(i=>new Intl.DateTimeFormat('it-IT',{month:'short',year:'numeric'}).format(new Date(rows[i].date+'T12:00:00')));
   }
-  // One end-of-month portfolio valuation in EUR per point. Monthly holdings
-  // and last available historical ETF prices are reconstructed by the API.
   private get chartScale(){
-    const values=this.visibleHistory.map(p=>p.marketValue).filter((v):v is number=>v!==null&&Number.isFinite(v));
-    if(!values.length)return {min:0,max:1};
-    const low=Math.min(...values),high=Math.max(...values);
-    const span=Math.max(high-low,1);
-    const roughStep=span/4;
-    const magnitude=Math.pow(10,Math.floor(Math.log10(roughStep)));
-    const step=([1,2,2.5,5,10].find(n=>n*magnitude>=roughStep)||10)*magnitude;
-    const min=Math.max(0,Math.floor((low-step*.15)/step)*step);
-    const max=Math.ceil((high+step*.15)/step)*step;
-    return {min,max:max>min?max:min+step};
+    const rows=this.visibleHistory;
+    const values=this.historyMode==='performance'
+      ?rows.map(p=>p.performancePercent)
+      :rows.flatMap(p=>[p.marketValue,p.netContributions]);
+    const valid=values.filter((v):v is number=>v!==null&&Number.isFinite(v));
+    if(!valid.length)return {min:0,max:1};
+    const low=Math.min(...valid),high=Math.max(...valid);
+    const span=Math.max(high-low,1),padding=span*.08;
+    return {min:Math.floor(low-padding),max:Math.ceil(high+padding)};
   }
   get ticks():LineChartTick[]{
     const {min,max}=this.chartScale;
-    return Array.from({length:5},(_,i)=>({
-      value:new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(max-(max-min)*i/4),
-      y:35+47.5*i
-    }));
+    return Array.from({length:5},(_,i)=>{
+      const value=max-(max-min)*i/4;
+      return {
+        value:this.historyMode==='performance'?value.toFixed(1)+'%':
+          new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(value),
+        y:35+47.5*i
+      };
+    });
   }
   get series():LineChartSeries[]{
     const rows=this.visibleHistory,{min,max}=this.chartScale;
     const x=(i:number)=>rows.length===1?365:95+i*525/(rows.length-1);
     const y=(value:number)=>225-(value-min)*190/(max-min);
-    return [{label:'Valore del portafoglio',color:'#2586d9',points:rows.map((r,i)=>r.marketValue===null?'':`${x(i).toFixed(1)},${y(r.marketValue).toFixed(1)}`).filter(Boolean).join(' ')}];
+    const points=(value:(r:typeof rows[number])=>number|null)=>rows.map((r,i)=>{
+      const n=value(r);
+      return n===null||!Number.isFinite(n)?'':x(i).toFixed(1)+','+y(n).toFixed(1);
+    }).filter(Boolean).join(' ');
+    if(this.historyMode==='performance')return [{label:'Performance TWR (%)',color:'#2586d9',points:points(r=>r.performancePercent)}];
+    return [
+      {label:'Valore del portafoglio',color:'#2586d9',points:points(r=>r.marketValue)},
+      {label:'Capitale netto investito',color:'#9ab2cf',points:points(r=>r.netContributions)}
+    ];
   }
   startPortfolioDrag(i:number,event:DragEvent):void {
     this.openPortfolioMenu=null;

@@ -59,19 +59,166 @@
           />
         </label>
 
-        <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && usernameTaken)">
-          {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
-        </button>
-
-        <button type="button" class="factor-test-button" [disabled]="factorTestRunning" (click)="testFactorEngineV2()">
-          {{ factorTestRunning ? 'Test V2.1 in corso...' : 'Test Factor Engine V2.1 (4 scenari)' }}
-        </button>
-        <pre class="factor-test-result" *ngIf="factorTestResult" [class.ok]="factorTestOk">{{ factorTestResult }}</pre>
-
-        <button type="button" class="factor-test-button" [disabled]="etfValidationRunning" (click)="testEtfHistoricalValidation()">
-          {{ etfValidationRunning ? 'Test ETF in corso...' : 'Test ETF Validation Engine' }}
-        </button>
-        <pre class="factor-test-result" *ngIf="etfValidationResult" [class.ok]="etfValidationOk">{{ etfValidationResult }}</pre>
+        <div class="login-action-row">
+          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && usernameTaken)">
+            {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
+          </button>
+          <button type="button" class="factor-test-button" (click)="runDiagnostic()" [disabled]="diagnosticLoading">
+            {{ diagnosticLoading ? 'Analisi...' : 'Diagnostica MF' }}
+          </button>
+        </div>
+        <div class="diagnostic-panel">
+          <button type="button" class="factor-test-button" (click)="runComparison()" [disabled]="comparisonLoading">
+            {{ comparisonLoading ? 'Confronto in corso...' : 'Confronta calibrazioni MF' }}
+          </button>
+          <p class="helper-text helper-text--error" *ngIf="comparisonError">{{ comparisonError }}</p>
+          <ng-container *ngIf="comparisonResult as comparison">
+            <p class="diagnostic-run">Confronto MU: {{ comparison.runPrevious }} → {{ comparison.runActive }}</p>
+            <p class="diagnostic-run">World invariato: {{ comparison.references?.world?.differentMonths === 0 ? 'Sì' : 'No' }}</p>
+            <button type="button" class="factor-test-button" (click)="copyComparison()">{{ comparisonCopied ? 'JSON copiato' : 'COPIA JSON' }}</button>
+          </ng-container>
+        </div>
+        <div class="diagnostic-panel" *ngIf="diagnosticResult || diagnosticError">
+          <p class="helper-text helper-text--error" *ngIf="diagnosticError">{{ diagnosticError }}</p>
+          <ng-container *ngIf="diagnosticResult as result">
+            <strong>Managed Futures · {{ result.diagnostics?.totalObservations }} osservazioni</strong>
+            <p class="diagnostic-run">MU {{ result.runId }}</p>
+            <div class="diagnostic-table-wrap">
+              <table class="diagnostic-table">
+                <thead><tr><th>Scenario</th><th>Intensità</th><th>Rend. annuo</th><th>Vol.</th><th>Mesi −</th><th>P5 mese</th><th>Corr. World</th><th>World P5</th><th>World P10</th><th>Corr. Quality</th><th>Quality P5</th><th>Quality P10</th><th>Corr. Momentum</th><th>Momentum P5</th><th>Momentum P10</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let s of result.scenarios">
+                    <td>{{ s.scenario }}</td>
+                    <td>{{ s.intensityMean == null ? '—' : (s.intensityMean * 100 | number:'1.1-1') + '%' }}</td>
+                    <td>{{ s.annualizedArithmeticMean == null ? '—' : (s.annualizedArithmeticMean * 100 | number:'1.2-2') + '%' }}</td>
+                    <td>{{ s.annualizedVolatility == null ? '—' : (s.annualizedVolatility * 100 | number:'1.2-2') + '%' }}</td>
+                    <td>{{ s.negativeMonthsPct == null ? '—' : (s.negativeMonthsPct | number:'1.1-1') + '%' }}</td>
+                    <td>{{ s.monthlyP5 == null ? '—' : (s.monthlyP5 * 100 | number:'1.2-2') + '%' }}</td>
+                    <ng-container *ngFor="let name of ['world', 'quality', 'momentum']">
+                      <td>{{ s.correlations?.[name]?.overall == null ? '—' : (s.correlations[name].overall | number:'1.3-3') }}</td>
+                      <td>{{ s.correlations?.[name]?.equityWorst5 == null ? '—' : (s.correlations[name].equityWorst5 | number:'1.3-3') }}</td>
+                      <td>{{ s.correlations?.[name]?.equityWorst10 == null ? '—' : (s.correlations[name].equityWorst10 | number:'1.3-3') }}</td>
+                    </ng-container>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3 class="diagnostic-section-title">Protezione nei mesi peggiori dell'azionario</h3>
+            <p class="diagnostic-run">P5/P10: peggiori 5%/10% dei mesi dell'ETF azionario, selezionati separatamente per scenario. Soglia −5%: mesi con rendimento azionario ≤ −5%. Beneficio: rendimento medio 80/20 meno rendimento medio 100% azionario, in punti percentuali.</p>
+            <div class="diagnostic-table-wrap">
+              <table class="diagnostic-table">
+                <thead><tr><th>Scenario</th><th>ETF</th><th>Selezione</th><th>Mesi</th><th>Azionario medio</th><th>MF medio</th><th>MF negativo</th><th>Entrambi negativi</th><th>80/20 medio</th><th>Beneficio 80/20</th></tr></thead>
+                <tbody>
+                  <ng-container *ngFor="let s of result.scenarios">
+                    <ng-container *ngFor="let name of ['world', 'quality', 'momentum']">
+                      <tr *ngFor="let threshold of ['worst5', 'worst10', 'equityBelowMinus5']">
+                        <td>{{ s.scenario }}</td><td>{{ name }}</td>
+                        <td>{{ threshold === 'worst5' ? 'P5' : threshold === 'worst10' ? 'P10' : '≤ −5%' }}</td>
+                        <ng-container *ngIf="s.downside?.[name]?.[threshold] as d; else emptyDownside">
+                          <td>{{ d.observations }}</td>
+                          <td>{{ d.equityMean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ d.mfMean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ d.mfNegativePct | number:'1.1-1' }}%</td>
+                          <td>{{ d.bothNegativePct | number:'1.1-1' }}%</td>
+                          <td>{{ d.portfolio80_20Mean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ d.benefit80_20 * 100 | number:'1.2-2' }} pp</td>
+                        </ng-container>
+                        <ng-template #emptyDownside>
+                          <td colspan="7">—</td>
+                        </ng-template>
+                      </tr>
+                    </ng-container>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
+            <h3>Persistenza delle crisi azionarie (soglia −5%)</h3>
+            <p class="diagnostic-run">Inizio = primo mese sotto soglia; persistente = mese consecutivo sotto soglia. M+1, M+2 e M+3 sono mesi successivi allo shock, classificati per scenario iniziale; le finestre possono sovrapporsi.</p>
+            <div class="diagnostic-table-wrap">
+              <table class="diagnostic-table">
+                <thead><tr><th>Scenario</th><th>ETF</th><th>Fase</th><th>Osservazioni</th><th>Azionario medio</th><th>MF medio</th><th>MF negativo</th><th>80/20 medio</th><th>Beneficio 80/20</th></tr></thead>
+                <tbody>
+                  <ng-container *ngFor="let s of result.scenarios">
+                    <ng-container *ngFor="let name of ['world', 'quality', 'momentum']">
+                      <tr *ngFor="let phase of ['onset', 'continuing', 'next1', 'next2', 'next3']">
+                        <td>{{ s.scenario }}</td>
+                        <td>{{ name }}</td>
+                        <td>{{ phase === 'onset' ? 'Inizio' : phase === 'continuing' ? 'Persistente' : phase === 'next1' ? 'M+1' : phase === 'next2' ? 'M+2' : 'M+3' }}</td>
+                        <ng-container *ngIf="s.persistence?.[name]?.[phase] as p; else noPersistence">
+                          <td>{{ p.observations }}</td>
+                          <td>{{ p.equityMean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ p.mfMean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ p.mfNegativePct | number:'1.1-1' }}%</td>
+                          <td>{{ p.portfolio80_20Mean * 100 | number:'1.2-2' }}%</td>
+                          <td>{{ p.benefit80_20 * 100 | number:'1.2-2' }} pp</td>
+                        </ng-container>
+                        <ng-template #noPersistence><td colspan="6">—</td></ng-template>
+                      </tr>
+                    </ng-container>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
+            <h3 class="diagnostic-section-title">Ribassi persistenti: 3, 6 e 12 mesi</h3>
+            <p class="diagnostic-run">Rendimenti cumulati. Persistente: almeno metà dei mesi negativi e drawdown azionario di almeno 5%. Portafoglio 80/20 ribilanciato mensilmente. Finestre sovrapposte; scenario del primo mese.</p>
+            <div class="diagnostic-table-wrap">
+              <table class="diagnostic-table">
+                <thead><tr><th>Scenario</th><th>ETF</th><th>Orizzonte</th><th>Tipo</th><th>Finestre</th><th>Azionario</th><th>MF</th><th>MF negativo</th><th>Beneficio 80/20</th></tr></thead>
+                <tbody>
+                  <ng-container *ngFor="let s of result.scenarios">
+                    <ng-container *ngFor="let name of ['world', 'quality', 'momentum']">
+                      <ng-container *ngFor="let h of ['3', '6', '12']">
+                        <tr *ngFor="let kind of ['negative', 'persistent']">
+                          <td>{{ s.scenario }}</td><td>{{ name }}</td><td>{{ h }} mesi</td>
+                          <td>{{ kind === 'negative' ? 'Negative' : 'Persistenti' }}</td>
+                          <ng-container *ngIf="s.rolling?.[name]?.[h]?.[kind] as d; else emptyRolling">
+                            <td>{{ d.observations }}</td>
+                            <td>{{ d.equityMean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfMean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfNegativePct | number:'1.1-1' }}%</td>
+                            <td>{{ d.benefit80_20 * 100 | number:'1.2-2' }} pp</td>
+                          </ng-container>
+                          <ng-template #emptyRolling><td colspan="5">—</td></ng-template>
+                        </tr>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
+            <h3>Protezione condizionata alla traiettoria (12 mesi)</h3>
+            <p class="diagnostic-run">Perdita finale comparabile: 5-10%, 10-20%, oltre 20%. Progressivo: almeno 7 mesi negativi senza singoli ribassi oltre 5%; concentrato: un mese pesa almeno meta della perdita finale. Finestre sovrapposte.</p>
+            <div class="diagnostic-table-wrap">
+              <table class="diagnostic-table">
+                <thead><tr><th>Scenario</th><th>ETF</th><th>Perdita</th><th>Traiettoria</th><th>Finestre</th><th>Azionario</th><th>MF 12m</th><th>MF 1-6m</th><th>MF 7-12m</th><th>MF positivo</th><th>Beneficio 80/20</th></tr></thead>
+                <tbody>
+                  <ng-container *ngFor="let s of result.scenarios">
+                    <ng-container *ngFor="let name of ['world', 'quality', 'momentum']">
+                      <ng-container *ngFor="let band of ['loss5to10', 'loss10to20', 'lossOver20']">
+                        <tr *ngFor="let kind of ['progressive', 'concentrated', 'mixed']">
+                          <td>{{ s.scenario }}</td><td>{{ name }}</td>
+                          <td>{{ band === 'loss5to10' ? '5-10%' : band === 'loss10to20' ? '10-20%' : '>20%' }}</td>
+                          <td>{{ kind === 'progressive' ? 'Progressivo' : kind === 'concentrated' ? 'Concentrato' : 'Misto' }}</td>
+                          <ng-container *ngIf="s.trajectories?.[name]?.[band]?.[kind] as d; else noTrajectory">
+                            <td>{{ d.observations }}</td>
+                            <td>{{ d.equityMean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfMean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfFirst6Mean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfLast6Mean * 100 | number:'1.2-2' }}%</td>
+                            <td>{{ d.mfPositivePct | number:'1.1-1' }}%</td>
+                            <td>{{ d.benefit80_20 * 100 | number:'1.2-2' }} pp</td>
+                          </ng-container>
+                          <ng-template #noTrajectory><td colspan="7">—</td></ng-template>
+                        </tr>
+                      </ng-container>
+                    </ng-container>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
+            <p class="diagnostic-warning" *ngFor="let warning of result.warnings">{{ warning }}</p>
+          </ng-container>
+        </div>
 
         <p class="helper-text helper-text--error" *ngIf="authError">{{ authError }}</p>
         <p class="helper-text helper-text--success" *ngIf="authSuccess">{{ authSuccess }}</p>

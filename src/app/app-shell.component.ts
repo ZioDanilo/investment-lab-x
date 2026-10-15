@@ -8,12 +8,15 @@ import { PortfolioSelectorComponent } from './shared/portfolio-selector/portfoli
 import { MoneyInputComponent } from './shared/inputs/money-input.component';
 import { RebalanceInputService } from './core/services/rebalance-input.service';
 import { ApiService } from './core/api/api.service';
+import { ActionConfirmationService } from './core/services/action-confirmation.service';
+import { ActionConfirmationComponent } from './shared/components/action-confirmation/action-confirmation.component';
 import { PortfolioSelectionService } from './core/services/portfolio-selection.service';
+import { TrendStrategyService } from './core/services/trend-strategy.service';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent, MoneyInputComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent, MoneyInputComponent, ActionConfirmationComponent],
   templateUrl: './app-shell.component.html',
   styleUrls: ['./app-shell.component.css']
 })
@@ -26,6 +29,8 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     }
   }
 
+  readonly trendStrategy = inject(TrendStrategyService);
+  get isTrendFollowingPage(): boolean { return this.router.url.startsWith('/trend-following'); }
   rebalanceTargetLeft = 0;
   rebalanceTargetWidth = 280;
   private targetResizeObserver: ResizeObserver | null = null;
@@ -59,20 +64,27 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private readonly router = inject(Router);
   readonly rebalanceInputs = inject(RebalanceInputService);
   private readonly apiService = inject(ApiService);
+  private readonly confirmation = inject(ActionConfirmationService);
   private readonly http = inject(HttpClient);
   isImportingYahooPrices = false;
 
   async importYahooPrices(event: Event): Promise<void> {
     event.stopPropagation();
+    if (!this.isAdmin || this.isImportingYahooPrices) return;
+    this.confirmation.ask('Aggiornare tutte le quotazioni?', 'Aggiorna', () => this.executeYahooPricesUpdate());
+  }
+
+  private async executeYahooPricesUpdate(): Promise<void> {
     if (this.isImportingYahooPrices) return;
     this.isImportingYahooPrices = true;
     try {
       const result = await firstValueFrom(this.http.post<any>(environment.apiUrl + '/yahoo-finance/update-quotations', {}));
       console.info('[Yahoo import]', result);
-      window.alert('Aggiornamento quotazioni: ' + result.inserted + ' inserite, ' + result.existing + ' già presenti, ' + result.skippedPrices + ' prezzi assenti, ' + result.failures.length + ' errori, ' + result.skippedMappings.length + ' ticker/mercati non risolti.');
+      this.confirmation.notify('Aggiornamento quotazioni: ' + (result.inserted ?? 0) + ' inserite, ' + (result.updatedToday ?? 0) + ' aggiornate, ' + (result.existing ?? 0) + ' già presenti, ' + (result.skippedPrices ?? 0) + ' prezzi assenti, ' + (result.failures?.length ?? 0) + ' errori, ' + (result.rejectedPrices?.length ?? 0) + ' prezzi anomali rifiutati.', (result.failures?.length ?? 0) > 0 || (result.rejectedPrices?.length ?? 0) > 0 || result.success === false, result.success !== false ? () => window.location.reload() : undefined);
+
     } catch (error: any) {
       console.error('[Yahoo import]', error);
-      window.alert('Importazione Yahoo non riuscita: ' + (error?.error?.error || error?.message || 'errore sconosciuto'));
+      this.confirmation.notify('Importazione Yahoo non riuscita: ' + (error?.error?.error || error?.message || 'errore sconosciuto'), true);
     } finally {
       this.isImportingYahooPrices = false;
     }
@@ -81,6 +93,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
   get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
+  get isAdmin(): boolean { return this.loggedUsername !== '' && localStorage.getItem('investmentLabRole') === 'ADMIN'; }
   get loggedUsername(): string { return localStorage.getItem('investmentLabUsername')?.trim() || ''; }
 
   activeFeaturePage: any = null;
@@ -89,31 +102,29 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     this.pushMarketUniverseStatusToActivePage();
   }
   get featureActionLabel(): string {
-    return this.isMonteCarloPage && this.isRegeneratingMarketUniverse
+    return this.isRegeneratingMarketUniverse
       ? 'Generazione Market Universe'
       : (this.activeFeaturePage?.headerActionLabel ?? '');
   }
   get featureActionIcon(): string {
-    return this.isMonteCarloPage && this.isRegeneratingMarketUniverse
+    return this.isRegeneratingMarketUniverse
       ? 'autorenew'
       : (this.activeFeaturePage?.headerActionIcon ?? '');
   }
   get featureActionDisabled(): boolean {
-    return (this.isMonteCarloPage && this.isRegeneratingMarketUniverse)
-      || (this.activeFeaturePage?.headerActionDisabled ?? false);
+    return this.isRegeneratingMarketUniverse || (this.activeFeaturePage?.headerActionDisabled ?? false);
   }
   get featureActionRunning(): boolean {
-    return (this.isMonteCarloPage && this.isRegeneratingMarketUniverse)
-      || (this.activeFeaturePage?.headerActionRunning ?? false);
+    return this.isRegeneratingMarketUniverse || (this.activeFeaturePage?.headerActionRunning ?? false);
   }
   get featureActionProgress(): number {
-    return this.isMonteCarloPage && this.isRegeneratingMarketUniverse
+    return this.isRegeneratingMarketUniverse
       ? Math.max(1, this.marketUniverseGenerationProgress)
       : (this.activeFeaturePage?.headerActionProgress ?? 0);
   }
   get isRebalancePage(): boolean { return this.router.url.startsWith('/ribilanciamento'); }
   private get isMonteCarloPage(): boolean { return this.router.url.startsWith('/monte-carlo'); }
-  runFeatureAction(): void { this.activeFeaturePage?.runHeaderAction?.(); }
+  runFeatureAction(): void { if (!this.isRegeneratingMarketUniverse) this.activeFeaturePage?.runHeaderAction?.(); }
   get secondaryFeatureActionLabel(): string { return this.activeFeaturePage?.secondaryHeaderActionLabel ?? ''; }
   get secondaryFeatureActionIcon(): string { return this.activeFeaturePage?.secondaryHeaderActionIcon ?? ''; }
   get secondaryFeatureActionDisabled(): boolean { return this.activeFeaturePage?.secondaryHeaderActionDisabled ?? false; }
@@ -125,6 +136,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   marketUniverseGenerationProgress = 0;
   private marketUniversePollTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private marketUniversePolling = false;
+  private pendingMarketUniverseRunId: string | null = null;
 
   private pushMarketUniverseStatusToActivePage(): void {
     this.activeFeaturePage?.setMarketUniverseGenerationStatus?.(
@@ -136,6 +148,13 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private applyMarketUniverseGenerationStatus(response: any): boolean {
     const data = response?.data ?? response ?? {};
     const inProgress = data?.inProgress === true;
+    if (!inProgress && this.pendingMarketUniverseRunId && data?.runId === this.pendingMarketUniverseRunId) {
+      const success = data?.status === 'ACTIVE';
+      this.confirmation.notify(success
+        ? `Market Universe generato correttamente (${data?.assetCount ?? 0} ETF).`
+        : `Generazione Market Universe non riuscita (stato: ${data?.status || 'sconosciuto'}).`, !success);
+      this.pendingMarketUniverseRunId = null;
+    }
     this.isRegeneratingMarketUniverse = inProgress;
     this.marketUniverseGenerationProgress = inProgress
       ? Math.max(0, Math.min(100, Number(data?.progressPercentage) || 0))
@@ -211,10 +230,16 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
 
   async regenerateMarketUniverse(event: MouseEvent): Promise<void> {
     event.stopPropagation();
-    if (this.isRegeneratingMarketUniverse) {
+    if (!this.isAdmin || this.isRegeneratingMarketUniverse) {
       return;
     }
 
+    this.profileMenuOpen = false;
+    this.confirmation.ask('Generare nuovamente il Market Universe?', 'Genera', () => this.executeMarketUniverseRegeneration());
+  }
+
+  private async executeMarketUniverseRegeneration(): Promise<void> {
+    if (!this.isAdmin || this.isRegeneratingMarketUniverse) return;
     this.isRegeneratingMarketUniverse = true;
     this.marketUniverseGenerationProgress = 0;
     this.pushMarketUniverseStatusToActivePage();
@@ -230,9 +255,12 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
         throw new Error(payload?.error || 'Market Universe regeneration failed');
       }
 
+      this.pendingMarketUniverseRunId = String(payload?.runId || '') || null;
       this.startMarketUniversePolling();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Errore nella rigenerazione del Market Universe', error);
+      this.pendingMarketUniverseRunId = null;
+      this.confirmation.notify('Generazione Market Universe non avviata: ' + (error?.error?.error || error?.message || 'errore sconosciuto'), true);
       this.stopMarketUniversePolling();
       this.isRegeneratingMarketUniverse = false;
       this.marketUniverseGenerationProgress = 0;
@@ -248,6 +276,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
 
     try {
       localStorage.removeItem('investmentLabUsername');
+      localStorage.removeItem('investmentLabRole');
       sessionStorage.clear();
     } catch {}
 

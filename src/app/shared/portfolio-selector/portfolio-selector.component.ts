@@ -25,7 +25,7 @@ export class PortfolioSelectorComponent {
   readonly effectiveMode = computed((): 'reale' | 'laboratorio' | 'all' => {
     if (this.mode !== 'auto') return this.mode;
     const url = this.currentUrl();
-    return url.startsWith('/portafogli') || url.startsWith('/ribilanciamento') ? 'reale' : 'all';
+    return url.startsWith('/portafogli') || url.startsWith('/ribilanciamento') || url.startsWith('/trend-following') ? 'reale' : 'all';
   });
   readonly visibleOptions = computed(() => this.effectiveMode() === 'reale' ? this.realOptions() : this.effectiveMode() === 'laboratorio' ? this.laboratoryOptions() : this.options());
   readonly selectedPortfolio = this.portfolioSelectionService.selectedPortfolio;

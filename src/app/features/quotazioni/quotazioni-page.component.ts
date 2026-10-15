@@ -2,6 +2,7 @@ import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { QuotationService } from '../../core/services/quotation.service';
 import { ApiService } from '../../core/api/api.service';
+import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
 import { TastoConfermaComponent } from '../../shared/components/tasto-conferma/tasto-conferma.component';
 
 interface Quotation {
@@ -24,6 +25,7 @@ interface Quotation {
 export class QuotazioniPageComponent implements OnInit {
   private quotationService = inject(QuotationService);
   private apiService = inject(ApiService);
+  private actionConfirmation = inject(ActionConfirmationService);
 
   quotations = signal<Quotation[]>([]);
   filterText = signal('');
@@ -143,6 +145,10 @@ export class QuotazioniPageComponent implements OnInit {
   }
 
   refreshSingleQuotation(isin: string): void {
+    this.actionConfirmation.ask(`Aggiornare la quotazione di ${isin}?`, 'Aggiorna', () => this.executeSingleQuotationRefresh(isin));
+  }
+
+  private executeSingleQuotationRefresh(isin: string): void {
     const index = this.quotations().findIndex((q) => q.isin === isin);
     if (index < 0) return;
 
@@ -156,6 +162,7 @@ export class QuotazioniPageComponent implements OnInit {
     this.quotationService.refreshSingleQuotation(isin).subscribe({
       next: (response: any) => {
         if (response.success && response.data) {
+          this.actionConfirmation.notify('Quotazione ' + isin + ' aggiornata correttamente.');
           // Update just this ETF
           const updated = [...this.quotations()];
           const targetIndex = updated.findIndex((q) => q.isin === isin);
@@ -170,10 +177,14 @@ export class QuotazioniPageComponent implements OnInit {
             };
             this.quotations.set(updated);
           }
+        } else {
+          this.quotations.update(rows => rows.map(row => row.isin === isin ? {...row, refreshing: false} : row));
+          this.actionConfirmation.notify('Aggiornamento quotazione ' + isin + ' non riuscito: ' + (response.error || 'quotazione non disponibile'), true);
         }
       },
       error: (err: any) => {
         console.error('Error refreshing single quotation:', err);
+        this.actionConfirmation.notify('Aggiornamento quotazione ' + isin + ' non riuscito: ' + (err?.error?.error || err?.message || 'errore sconosciuto'), true);
         // Clear refreshing flag
         const updated = [...this.quotations()];
         if (updated[index]) {
@@ -185,6 +196,10 @@ export class QuotazioniPageComponent implements OnInit {
   }
 
   async forceRefreshQuotations(): Promise<void> {
+    this.actionConfirmation.ask('Aggiornare tutte le quotazioni?', 'Aggiorna', () => this.executeForceRefreshQuotations());
+  }
+
+  private async executeForceRefreshQuotations(): Promise<void> {
     this.error.set('');
 
     // Force refresh from JustETF - update ALL ETFs, overwrite DB
@@ -194,18 +209,21 @@ export class QuotazioniPageComponent implements OnInit {
           if (response.success) {
             this.quotations.set(response.data || []);
             this.lastUpdateDate.set(response.date || new Date().toISOString().split('T')[0]);
+            this.actionConfirmation.notify('Quotazioni aggiornate correttamente.');
             resolve();
           } else {
             const errorMsg = this.sanitizeErrorMessage(response.error || 'Errore nel refresh delle quotazioni');
             this.error.set(errorMsg);
-            reject(new Error(errorMsg));
+            this.actionConfirmation.notify(errorMsg, true);
+            resolve();
           }
         },
         error: (err: any) => {
           console.error('Error force refreshing quotations:', err);
           const errorMsg = this.sanitizeErrorMessage(err.error?.error || 'Errore nel refresh delle quotazioni');
           this.error.set(errorMsg);
-          reject(err);
+          this.actionConfirmation.notify(errorMsg, true);
+          resolve();
         }
       });
     });
