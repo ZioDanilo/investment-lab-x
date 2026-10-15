@@ -66,25 +66,15 @@ const STRATEGIES = [
       <div class="signal-group" *ngFor="let signal of signalGroups"><h3>{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)">
         <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion" draggable="true" [class.is-dragging]="draggedRow===row" [class.shift-up]="dragShiftFor(row,signal)==='up'" [class.shift-down]="dragShiftFor(row,signal)==='down'" (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
           <span class="criterion-action-label" [class.criterion-action-label--active]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))"><svg *ngIf="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))" class="signal-warning-icon" viewBox="0 0 32 30" role="img" [attr.aria-label]="signal === 'sell' ? 'Segnale di vendita' : 'Segnale di acquisto'"><path d="M16 2.5 L30 27.5 H2 Z" fill="#ffd447" stroke="#ffd447" stroke-width="2" stroke-linejoin="round"/><path d="M16 10 V19" stroke="#141414" stroke-width="3.4" stroke-linecap="round"/><circle cx="16" cy="24" r="1.9" fill="#141414"/></svg></span>
-          <select class="strategy-select" disabled [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(criteria.indexOf(row),$event)" [attr.aria-label]="'Strategia criterio '+(criteria.indexOf(row)+1)">
-            <option value="">Seleziona strategia</option>
-            <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
-          </select>
-          <div class="etf-slots">
+          <span class="saved-strategy-text" [title]="strategyLabel(row.strategyKey)">{{strategyLabel(row.strategyKey)}}</span>
+          <div class="etf-slots saved-etf-slots">
             <div class="primary-slot">
-          <select class="etf-select" [ngModel]="row.isin" (ngModelChange)="selectEtf(criteria.indexOf(row),$event)"
-            disabled [attr.aria-label]="'ETF criterio '+(criteria.indexOf(row)+1)">
-            <option value="">Seleziona ETF</option>
-            <option *ngFor="let etf of availableEtfs(row)" [value]="etf.isin">{{etf.label}}</option>
-          </select>
+              <span class="saved-etf-text" [title]="etfLabel(row.isin)">{{etfLabel(row.isin)}}</span>
             </div>
-          <div class="secondary-slot"><ng-container *ngIf="row.strategyKey === 'ts-momentum-12m'">
-            <span class="compare-sign">&gt;</span>
-            <div class="benchmark-search">
-              <input type="text" [value]="row.benchmarkSearch" readonly
-                placeholder="Confronto: ETF o 0%" [attr.aria-label]="'ETF confronto '+(criteria.indexOf(row)+1)" autocomplete="off">
+            <div class="secondary-slot" *ngIf="row.strategyKey === 'ts-momentum-12m'">
+              <span class="compare-sign">&gt;</span>
+              <span class="saved-etf-text" [title]="row.benchmarkIsin ? etfLabel(row.benchmarkIsin) : '0%'">{{row.benchmarkIsin ? etfLabel(row.benchmarkIsin) : '0%'}}</span>
             </div>
-          </ng-container></div>
           </div>
           <div class="metric" [title]="row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'">
             {{row.loading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(annualReturn(row)) : formatPrice(row.price)}}
@@ -146,6 +136,9 @@ const STRATEGIES = [
     .criterion-action-label{flex:0 0 32px;width:32px;display:flex;align-items:center;justify-content:center;line-height:1}
     .signal-warning-icon{width:24px;height:23px;display:block;flex:none}
     select,.benchmark-search input{height:39px;box-sizing:border-box;background:var(--surface-elevated);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:0 9px;min-width:0;font:inherit}
+    .saved-strategy-text{flex:0 1 21%;max-width:280px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary);font:inherit}
+    .saved-etf-slots .saved-etf-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary);font:inherit}
+    .saved-etf-slots .primary-slot .saved-etf-text{width:100%}
     .strategy-select{flex:0 1 21%;max-width:280px}
     .etf-slots{flex:1 1 38%;min-width:260px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
     .primary-slot,.secondary-slot{min-width:0;display:flex;align-items:center;gap:6px;min-height:39px}
@@ -310,6 +303,8 @@ export class TrendFollowingPageComponent implements OnDestroy {
     this.draggedRow=null;this.insertRowIndex=null;
   }
   trackRow(_i:number,row:Criterion):Criterion{return row}
+  strategyLabel(key:string):string{return STRATEGIES.find(strategy=>strategy.key===key)?.label||key}
+  etfLabel(isin:string):string{return this.allEtfs.find(etf=>etf.isin===isin)?.label||this.etfs.find(etf=>etf.isin===isin)?.label||isin}
   availableEtfs(row:Criterion):Etf[]{
     if(!row.isin || this.etfs.some(etf=>etf.isin===row.isin))return this.etfs;
     const found=this.allEtfs.find(etf=>etf.isin===row.isin);
