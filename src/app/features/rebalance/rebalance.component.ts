@@ -259,6 +259,8 @@ export class RebalanceComponent {
     const rows=this.rows();
     if(!rows.length)return null;
     if (rows.some(r => !Number.isFinite(r.marketPrice) || r.marketPrice <= 0)) return null;
+    // Never estimate sale taxes using an unknown or zero cost basis.
+    if (this.holdings().some(h => Number(h.quantity)>0 && !(Number(h.averageCost)>0))) return null;
     return optimizeRebalance(rows.map(r=>({
       isin:r.isin,quantity:r.quantity,price:r.marketPrice,targetWeight:r.targetWeight,
       averageCost:Number(this.holdings().find(h=>h.isin.toUpperCase()===r.isin.toUpperCase())?.averageCost ?? 0)
