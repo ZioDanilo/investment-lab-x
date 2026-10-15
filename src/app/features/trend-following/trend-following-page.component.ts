@@ -71,19 +71,6 @@ const STRATEGIES = [
               </div>
             </div>
           </div>
-          <div class="third-slot" *ngIf="draft.strategyKey === 'momentum-world-xeon'">
-            <span class="compare-sign">&gt;</span>
-            <div class="benchmark-search primary-search etf-search-with-icon">
-              <input type="text" [value]="thirdSearch" (input)="filterExtra('third',$any($event.target).value)"
-                (focus)="openExtra('third')" (blur)="closeExtra('third')"
-                [disabled]="loadingPortfolio || !allEtfs.length" placeholder="Cerca ETF per nickname, nome, ISIN, ticker" aria-label="Cerca ETF 3" autocomplete="off">
-              <button *ngIf="draft.thirdIsin || thirdSearch" class="clear" type="button" (mousedown)="$event.preventDefault()" (click)="selectExtra('third','')">×</button>
-              <div *ngIf="thirdSearchOpen && thirdSearch.trim().length >= 3" class="benchmark-options">
-                <button *ngFor="let etf of filteredExtra('third')" type="button" (mousedown)="$event.preventDefault();selectExtra('third',etf.isin)">{{etf.label}} ({{etf.isin}})</button>
-                <span *ngIf="!filteredExtra('third').length" class="filter-empty">Nessun ETF trovato</span>
-              </div>
-            </div>
-          </div>
           <div class="secondary-slot" *ngIf="draft.strategyKey === 'ts-momentum-12m'"><ng-container>
             <span class="compare-sign">&gt;</span>
             <div class="benchmark-search etf-search-with-icon">
@@ -98,7 +85,7 @@ const STRATEGIES = [
             </div>
           </ng-container></div>
           </div>
-          <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin || (draft.strategyKey === 'momentum-world-xeon' && (!draft.benchmarkIsin || !draft.thirdIsin))" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+'nuova'"><span class="icon-action-button__glyph">✕</span></button>
+          <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin || (draft.strategyKey === 'momentum-world-xeon' && !draft.benchmarkIsin)" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+'nuova'"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
         </article>
       </div>
@@ -113,7 +100,7 @@ const STRATEGIES = [
               <span class="saved-etf-text" [title]="etfLabel(row.isin)">{{etfLabel(row.isin)}}</span>
             </div>
             <div class="secondary-slot" *ngIf="row.strategyKey === 'momentum-world-xeon'"><span class="compare-sign">&gt;</span><span class="saved-etf-text" [title]="etfLabel(row.benchmarkIsin)">{{etfLabel(row.benchmarkIsin)}}</span></div>
-          <div class="third-slot" *ngIf="row.strategyKey === 'momentum-world-xeon'"><span class="compare-sign">&gt;</span><span class="saved-etf-text" [title]="etfLabel(row.thirdIsin)">{{etfLabel(row.thirdIsin)}}</span></div>
+          
           <div class="secondary-slot" *ngIf="row.strategyKey === 'ts-momentum-12m'">
               <span class="compare-sign">&gt;</span>
               <span class="saved-etf-text" [title]="row.benchmarkIsin ? etfLabel(row.benchmarkIsin) : '0%'">{{row.benchmarkIsin ? etfLabel(row.benchmarkIsin) : '0%'}}</span>
@@ -160,17 +147,17 @@ const STRATEGIES = [
     .draft-list .criterion{padding:4px 2px;flex-wrap:nowrap;align-items:center;width:100%}
     .draft-list .criterion > *{min-width:0}
     .draft-list .criterion .etf-slots{min-width:0}
-    .draft-list .criterion .etf-slots--three{grid-template-columns:repeat(3,minmax(0,1fr));align-items:center}
+    .draft-list .criterion .etf-slots--three{grid-template-columns:repeat(2,minmax(0,1fr));align-items:center}
     .draft-list .criterion .etf-slots--three .primary-slot,.draft-list .criterion .etf-slots--three .secondary-slot,.draft-list .criterion .etf-slots--three .third-slot{min-width:0}
     .draft-list .criterion .etf-slots--three .etf-select{min-width:0;width:100%;max-width:100%;flex:1 1 0}
     .draft-list .criterion .draft-confirm,.draft-list .criterion .remove{flex-shrink:0}
     .draft-list .signal-select{flex:0 0 205px}
     .draft-list .strategy-select{flex:0 0 200px}
     .draft-list .etf-slots{flex:1 1 360px;min-width:260px;overflow:visible}
-    .etf-slots--three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .etf-slots--three{grid-template-columns:repeat(2,minmax(0,1fr))}
     .third-slot{min-width:0;display:flex;align-items:center;gap:6px;min-height:39px}
     .third-slot .etf-select,.secondary-slot .etf-select{width:100%;min-width:0}
-    .draft-list .etf-slots--three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .draft-list .etf-slots--three{grid-template-columns:repeat(2,minmax(0,1fr))}
     .draft-list .etf-slots--compare{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
     .draft-list .etf-slots--compare .secondary-slot{display:flex;min-width:0}
     .draft-list .etf-slots--compare .benchmark-search{min-width:0}
@@ -231,12 +218,12 @@ const STRATEGIES = [
     .criterion .outcome.outcome--signal{border:3px solid #ffd447}
     .remove{flex:0 0 32px;width:32px;height:32px;padding:0}
     /* Saved strategies: fixed row geometry independent of the number of ETFs or metrics. */
-    .criterion:not(.criterion--draft){display:grid;grid-template-columns:5% 10% 45% 40%;column-gap:0;align-items:center;position:relative;padding:9px 12px}
+    .criterion:not(.criterion--draft){display:grid;grid-template-columns:5% 15% 40% 40%;column-gap:0;align-items:center;position:relative;padding:9px 12px}
     .criterion:not(.criterion--draft) .criterion-action-label{grid-column:1;min-width:0;width:100%;justify-content:center}
     .criterion:not(.criterion--draft) .saved-strategy-text,
     .criterion:has(.metric--six) .saved-strategy-text{grid-column:2;min-width:0;max-width:none;width:100%;padding-right:8px;box-sizing:border-box;flex:none}
     .criterion:not(.criterion--draft) .saved-etf-slots,
-    .criterion:has(.metric--six) .saved-etf-slots{grid-column:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;max-width:none;min-width:0;flex:none;align-items:center}
+    .criterion:has(.metric--six) .saved-etf-slots{grid-column:3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:none;min-width:0;flex:none;align-items:center}
     .criterion:not(.criterion--draft) .saved-etf-slots .primary-slot{grid-column:1;min-width:0}
     .criterion:not(.criterion--draft) .saved-etf-slots .secondary-slot{grid-column:2;min-width:0}
     .criterion:not(.criterion--draft) .saved-etf-slots .third-slot{grid-column:3;min-width:0}
@@ -324,7 +311,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private readonly api=inject(ApiService);
   private readonly quotations=inject(QuotationService);
   readonly strategies=STRATEGIES;
-  readonly threeStateTitles=['Rapporto ETF 1 / ETF 2','Media mobile 100 giorni rapporto 1/2','Rapporto ETF 2 / ETF 3','Media mobile 100 giorni rapporto 2/3','Differenza rapporto 1/2','Differenza rapporto 2/3'];
+  readonly threeStateTitles=['Rapporto ETF 1 / ETF 2','Media mobile 100 giorni rapporto 1/2','Prezzo ETF 2','Media mobile 100 giorni prezzo ETF 2','Differenza rapporto 1/2','Differenza prezzo ETF 2'];
   get headerActionLabel():string{return this.draft ? '' : 'AGGIUNGI STRATEGIA'}
   readonly headerActionIcon='add';
   get headerActionDisabled():boolean{return !!this.draft || !this.currentPortfolioId || this.loadingPortfolio || this.loadingSettings || this.muGenerating}
@@ -525,8 +512,10 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
   private clearRequests(row:Criterion):void{row.subscription?.unsubscribe();row.benchmarkSubscription?.unsubscribe();row.version++;row.loading=false;row.benchmarkLoading=false}
   private loadThreeStates(row:Criterion):void{
-    const version=++row.version;row.loading=true;row.error='';row.sixValues=[null,null,null,null,null,null];
-    const isins=[row.isin,row.benchmarkIsin,row.thirdIsin];
+    this.clearRequests(row);
+    const version=row.version;row.loading=true;row.error='';row.sixValues=[null,null,null,null,null,null];
+    const isins=[row.isin,row.benchmarkIsin];
+    if(!isins[0]||!isins[1]){row.loading=false;row.error='Seleziona entrambi gli ETF.';return}
     const histories=new Map<string,Map<string,number>>();
     const subs=isins.map(isin=>this.quotations.getQuotationHistory(isin,400).subscribe({
       next:(res:any)=>{
@@ -537,19 +526,19 @@ export class TrendFollowingPageComponent implements OnDestroy {
           if(price>0&&date&&!prices.has(date))prices.set(date,price);
         }
         histories.set(isin,prices);
-        if(histories.size!==3)return;
-        const [first,second,third]=isins.map(key=>histories.get(key)!);
-        const dates=[...first.keys()].filter(date=>second.has(date)&&third.has(date)).sort().reverse();
-        if(dates.length<100){row.error='Servono almeno 100 sedute comuni ai tre ETF.';row.loading=false;return}
-        const ratios12=dates.slice(0,100).map(date=>first.get(date)!/second.get(date)!);
-        const ratios23=dates.slice(0,100).map(date=>second.get(date)!/third.get(date)!);
-        const current12=ratios12[0],current23=ratios23[0];
-        const sma12=ratios12.reduce((sum,value)=>sum+value,0)/100;
-        const sma23=ratios23.reduce((sum,value)=>sum+value,0)/100;
-        row.sixValues=[current12,sma12,current23,sma23,current12-sma12,current23-sma23];
+        if(histories.size!==2)return;
+        const first=histories.get(isins[0])!,second=histories.get(isins[1])!;
+        const dates=[...first.keys()].filter(date=>second.has(date)).sort().reverse();
+        if(dates.length<100){row.error='Servono almeno 100 sedute comuni ai due ETF.';row.loading=false;return}
+        const ratios=dates.slice(0,100).map(date=>first.get(date)!/second.get(date)!);
+        const secondPrices=dates.slice(0,100).map(date=>second.get(date)!);
+        const ratio=ratios[0],price=secondPrices[0];
+        const ratioSma=ratios.reduce((sum,value)=>sum+value,0)/100;
+        const priceSma=secondPrices.reduce((sum,value)=>sum+value,0)/100;
+        row.sixValues=[ratio,ratioSma,price,priceSma,ratio-ratioSma,price-priceSma];
         row.loading=false;
       },
-      error:()=>{if(row.version===version){row.error='Impossibile caricare le quotazioni A3Stati.';row.loading=false}}
+      error:()=>{if(row.version===version){row.error='Impossibile caricare le quotazioni A 3 Stati.';row.loading=false}}
     }));
     row.subscription=new Subscription();subs.forEach(sub=>row.subscription!.add(sub));
   }
@@ -671,7 +660,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
           if(!item.strategyKey || !STRATEGIES.some(s=>s.key===item.strategyKey))continue;
           const isin=String(item.isin||'').toUpperCase();
           const row=this.createRow(item.strategyKey,isin,String(item.benchmarkIsin||'').toUpperCase(),item.signal==='buy'?'buy':'sell');row.thirdIsin=String(item.thirdIsin||'').toUpperCase();
-          this.criteria.push(row);if(row.strategyKey==='momentum-world-xeon'&&row.thirdIsin)this.loadThreeStates(row);else{if(row.isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.selectBenchmarkRestored(row)}
+          this.criteria.push(row);if(row.strategyKey==='momentum-world-xeon'&&row.isin&&row.benchmarkIsin)this.loadThreeStates(row);else{if(row.isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.selectBenchmarkRestored(row)}
         }
         this.loadingSettings=false;
       },
@@ -702,7 +691,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if(!this.saveQueued){this.saving=false;return}
     const portfolioId=this.currentPortfolioId;if(!portfolioId){this.saving=false;return}
     this.saving=true;this.saveQueued=false;
-    const payload=this.criteria.filter(row=>!!row.strategyKey).map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin,thirdIsin:row.thirdIsin,signal:row.signal}));
+    const payload=this.criteria.filter(row=>!!row.strategyKey).map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin,thirdIsin:row.strategyKey==='momentum-world-xeon'?'':row.thirdIsin,signal:row.signal}));
     this.saveSub=this.api.saveTrendCriteria(portfolioId,payload).subscribe({
       next:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='';this.flushSave()},
       error:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='Impossibile salvare i criteri.';this.saving=false}
