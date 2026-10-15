@@ -65,7 +65,7 @@ const STRATEGIES = [
     <section class="trend-page">
       <div class="signal-group" *ngFor="let signal of signalGroups"><h3>{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)">
         <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion" draggable="true" [class.is-dragging]="draggedRow===row" [class.shift-up]="dragShiftFor(row,signal)==='up'" [class.shift-down]="dragShiftFor(row,signal)==='down'" (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
-          <span class="criterion-status material-symbols-rounded" [class.criterion-status--success]="isPositive(row)" [class.criterion-status--failure]="isNegative(row)" [attr.aria-label]="isPositive(row) ? 'Criterio soddisfatto' : isNegative(row) ? 'Criterio non soddisfatto' : 'Criterio non valutato'" role="img">{{isPositive(row) ? 'check_circle' : isNegative(row) ? 'cancel' : 'radio_button_unchecked'}}</span>
+          <span class="criterion-action-label" [class.criterion-action-label--active]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))">{{signal === 'sell' && isNegative(row) ? 'VENDI!' : signal === 'buy' && isPositive(row) ? 'ACQUISTA!' : ''}}</span>
           <select class="strategy-select" disabled [ngModel]="row.strategyKey" (ngModelChange)="changeStrategy(criteria.indexOf(row),$event)" [attr.aria-label]="'Strategia criterio '+(criteria.indexOf(row)+1)">
             <option value="">Seleziona strategia</option>
             <option *ngFor="let strategy of strategies" [value]="strategy.key">{{strategy.label}}</option>
@@ -92,7 +92,7 @@ const STRATEGIES = [
           <div class="metric" [title]="row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'">
             {{row.loading || row.benchmarkLoading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(row.benchmarkIsin ? row.benchmarkReturn : 0) : formatPrice(row.average)}}
           </div>
-          <div class="metric outcome" [class.outcome--positive]="isPositive(row)" [class.outcome--negative]="isNegative(row)" [title]="row.error || 'Differenza'">
+          <div class="metric outcome" [class.outcome--signal]="(signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row))" [title]="row.error || 'Differenza'">
             {{row.strategyKey === 'ts-momentum-12m' ? comparisonText(row) : differenceText(row)}}
           </div>
           <button type="button" class="remove icon-action-button icon-action-button--danger" (click)="requestRemoveCriterion(row)" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+(criteria.indexOf(row)+1)"><span class="icon-action-button__glyph">✕</span></button>
@@ -143,6 +143,8 @@ const STRATEGIES = [
     .criterion-status{flex:0 0 23px;font-size:23px;line-height:1;color:#b9c6d8;text-align:center}
     .criterion-status--success{color:#48d1a3}
     .criterion-status--failure{color:#f07181}
+    .criterion-action-label{flex:0 0 62px;width:62px;white-space:nowrap;font-family:inherit;font-size:11px;font-weight:800;letter-spacing:-.25px;text-align:center;color:transparent;line-height:1}
+    .criterion-action-label--active{color:#ffd447}
     select,.benchmark-search input{height:39px;box-sizing:border-box;background:var(--surface-elevated);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:0 9px;min-width:0;font:inherit}
     .strategy-select{flex:0 1 21%;max-width:280px}
     .etf-slots{flex:1 1 38%;min-width:260px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
@@ -160,6 +162,7 @@ const STRATEGIES = [
     .outcome{flex:1 1 155px;min-width:130px}.metric,.outcome{color:#f4f7fc}
     .outcome.outcome--positive{border-color:#48d1a3}
     .outcome.outcome--negative{border-color:#f07181}
+    .criterion .outcome.outcome--signal{border:3px solid #ffd447}
     .remove{flex:0 0 32px;width:32px;height:32px;padding:0}
     .delete-confirm-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:20px;background:rgba(2,7,13,.68);backdrop-filter:blur(4px)}
     .delete-confirm-dialog{width:min(390px,calc(100vw - 32px));padding:20px;border:1px solid rgba(122,176,224,.26);border-radius:14px;background:rgba(9,16,24,.97);box-shadow:0 22px 60px rgba(0,0,0,.48)}
