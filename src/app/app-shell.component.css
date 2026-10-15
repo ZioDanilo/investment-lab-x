@@ -508,3 +508,7 @@
 
 /* The Trend Following draft replaces the action button in the same 58px header row. */
 .app-feature-action-row > .draft-list{grid-column:1 / -1;grid-row:1;min-width:0;max-width:100%;align-self:center}
+
+/* The wrapper is the actual CSS grid item: ng-container does not create a grid box. */
+.app-feature-action-row > .trend-draft-header-slot{grid-column:1 / -1;grid-row:1;width:100%;min-width:0;display:block;align-self:center}
+.app-feature-action-row > .trend-draft-header-slot > .draft-list{width:100%;max-width:none;box-sizing:border-box}
