@@ -299,10 +299,10 @@ const STRATEGIES = [
     .signal-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:27px}
     .signal-card-header .criteria-list-heading{padding:0;margin:0}
     .signal-activation{display:flex;align-items:center;gap:9px;color:#d9e7f7;font-size:12px;font-weight:600;white-space:nowrap}
-    .signal-toggle{display:inline-flex;align-items:center;width:44px;height:24px;padding:3px;border:0;border-radius:99px;background:#646d78;box-sizing:border-box;cursor:pointer;transition:background .22s ease}
+    .signal-toggle{display:inline-flex;align-items:center;width:44px;height:18px;padding:2px;border:0;border-radius:99px;background:#646d78;box-sizing:border-box;flex-shrink:0;cursor:pointer;transition:background .22s ease}
     .signal-toggle--on{background:#20a568}
-    .signal-toggle-thumb{display:block;width:18px;height:18px;border-radius:50%;background:linear-gradient(145deg,#fff,#d5dbe0);box-shadow:0 1px 3px rgba(0,0,0,.28);transform:translateX(0);transition:transform .22s ease}
-    .signal-toggle--on .signal-toggle-thumb{transform:translateX(20px)}
+    .signal-toggle-thumb{display:block;width:22px;height:14px;flex-shrink:0;border-radius:99px;background:linear-gradient(145deg,#fff,#d5dbe0);box-shadow:0 1px 3px rgba(0,0,0,.28);transform:translateX(0);transition:transform .22s ease}
+    .signal-toggle--on .signal-toggle-thumb{transform:translateX(18px)}
     .signal-toggle:focus-visible{outline:2px solid #18d9f6;outline-offset:3px}
     .signal-group--disabled .criteria-list{background:rgba(9,15,22,.68);border-color:rgba(85,128,173,.23)}
     .signal-group--disabled .criteria-list > :not(.signal-card-header){opacity:.38;filter:grayscale(1);transition:opacity .2s ease,filter .2s ease}
