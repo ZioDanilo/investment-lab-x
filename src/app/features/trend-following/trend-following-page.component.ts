@@ -340,6 +340,11 @@ export class TrendFollowingPageComponent implements OnDestroy {
   @ViewChild('draftEditor') draftEditorTemplate?:TemplateRef<unknown>;
   readonly criteria:Criterion[]=[];
   readonly signalGroups:('sell'|'buy')[]=['sell','buy'];
+  signalEnabled: Record<'sell' | 'buy', boolean> = { sell: true, buy: true };
+  toggleSignal(signal: 'sell' | 'buy'): void {
+    this.signalEnabled[signal] = !this.signalEnabled[signal];
+  }
+
   draft:Criterion|null=null;
   primarySearch='';primarySearchOpen=false;
   secondSearch='';secondSearchOpen=false;
