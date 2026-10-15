@@ -15,9 +15,9 @@ interface Criterion {
   subscription?: Subscription; benchmarkSubscription?: Subscription;
 }
 const STRATEGIES = [
-  { key: 'sma-200', label: 'Media mobile 200 giorni' },
+  { key: 'sma-200', label: 'Media mobile 200 GG' },
   { key: 'ts-momentum-12m', label: 'Time Series 12 mesi' },
-  { key: 'dual-sma-50-200', label: 'Doppia media mobile 50/200' },
+  { key: 'dual-sma-50-200', label: 'Doppia MM 50/200' },
   { key: 'momentum-world-xeon', label: 'A 3 Stati' },
   { key: 'momentum-xeon-fast-reentry', label: 'Momentum → XEON con rientro rapido' },
   { key: 'trend-volatility-targeting', label: 'Trend Following + Volatility Targeting' },
