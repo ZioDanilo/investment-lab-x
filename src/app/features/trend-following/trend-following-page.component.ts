@@ -21,7 +21,7 @@ const STRATEGIES = [
   { key: 'ts-momentum-12m', label: 'Time Series 12 mesi' },
   { key: 'dual-sma-50-200', label: 'Doppia MM 50/200' },
   { key: 'momentum-world-xeon', label: 'Fattore - Mercato (100 gg)' },
-  { key: 'momentum-xeon-fast-reentry', label: 'Continuità di segno' },
+  { key: 'momentum-xeon-fast-reentry', label: 'Segno continuo (30 gg)' },
   { key: 'trend-volatility-targeting', label: 'Trend Following + Volatility Targeting' },
   { key: 'momentum-world-xeon-volatility-targeting', label: 'Momentum → World → XEON + Volatility Targeting' }
 ];
