@@ -18,7 +18,7 @@ const STRATEGIES = [
   { key: 'sma-200', label: 'Media mobile 200 giorni' },
   { key: 'ts-momentum-12m', label: 'Time Series 12 mesi' },
   { key: 'dual-sma-50-200', label: 'Doppia media mobile 50/200' },
-  { key: 'momentum-world-xeon', label: 'A3Stati' },
+  { key: 'momentum-world-xeon', label: 'A 3 Stati' },
   { key: 'momentum-xeon-fast-reentry', label: 'Momentum → XEON con rientro rapido' },
   { key: 'trend-volatility-targeting', label: 'Trend Following + Volatility Targeting' },
   { key: 'momentum-world-xeon-volatility-targeting', label: 'Momentum → World → XEON + Volatility Targeting' }
@@ -51,7 +51,7 @@ const STRATEGIES = [
             <span class="compare-sign">&gt;</span>
             <select class="etf-select" [ngModel]="draft.thirdIsin" (ngModelChange)="draft.thirdIsin=$event" aria-label="Terzo ETF"><option value="">Terzo ETF</option><option *ngFor="let etf of allEtfs" [value]="etf.isin">{{etf.label}}</option></select>
           </div>
-          <div class="secondary-slot"><ng-container *ngIf="draft.strategyKey === 'ts-momentum-12m'">
+          <div class="secondary-slot" *ngIf="draft.strategyKey === 'ts-momentum-12m'"><ng-container>
             <span class="compare-sign">&gt;</span>
             <div class="benchmark-search">
               <input type="text" [value]="draft.benchmarkSearch" (input)="filterBenchmark(-1,$any($event.target).value)"
@@ -121,7 +121,13 @@ const STRATEGIES = [
     .trend-page{display:flex;flex-direction:column;min-height:calc(100dvh - 190px);gap:12px}
 
     .draft-list{padding:4px 8px;min-height:0;width:100%;box-sizing:border-box}
-    .draft-list .criterion{padding:4px 2px}
+    .draft-list .criterion{padding:4px 2px;flex-wrap:nowrap;align-items:center;width:100%}
+    .draft-list .criterion > *{min-width:0}
+    .draft-list .criterion .etf-slots{min-width:0}
+    .draft-list .criterion .etf-slots--three{grid-template-columns:repeat(3,minmax(0,1fr));align-items:center}
+    .draft-list .criterion .etf-slots--three .primary-slot,.draft-list .criterion .etf-slots--three .secondary-slot,.draft-list .criterion .etf-slots--three .third-slot{min-width:0}
+    .draft-list .criterion .etf-slots--three .etf-select{min-width:0;width:100%;max-width:100%;flex:1 1 0}
+    .draft-list .criterion .draft-confirm,.draft-list .criterion .remove{flex-shrink:0}
     .draft-list .signal-select{flex:0 0 205px}
     .draft-list .strategy-select{flex:0 0 200px}
     .draft-list .etf-slots{flex:1 1 360px;min-width:260px;overflow:visible}
