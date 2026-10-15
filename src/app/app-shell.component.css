@@ -512,3 +512,8 @@
 /* The wrapper is the actual CSS grid item: ng-container does not create a grid box. */
 .app-feature-action-row > .trend-draft-header-slot{grid-column:1 / -1;grid-row:1;width:100%;min-width:0;display:block;align-self:center}
 .app-feature-action-row > .trend-draft-header-slot > .draft-list{width:100%;max-width:none;box-sizing:border-box}
+
+/* Keep the open Time Series benchmark menu above the signal cards below. */
+.app-feature-action-row:has(.trend-draft-header-slot .benchmark-options){z-index:3000;isolation:isolate}
+.app-feature-action-row .trend-draft-header-slot{position:relative;z-index:1;overflow:visible}
+.app-feature-action-row .trend-draft-header-slot .draft-list{position:relative;overflow:visible}
