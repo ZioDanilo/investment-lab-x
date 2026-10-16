@@ -7,7 +7,6 @@ import { Router, RouterLink } from '@angular/router';
  imports:[RouterLink],
  template:`<main class="legal">
  <nav><a routerLink="/login">← ETFolio</a> · <a routerLink="/chi-siamo">Informazioni sul servizio</a></nav>
- <ng-container *ngIf="false"></ng-container>
  <h1>{{ title }}</h1>
  @if (page === 'privacy') {
  <p>Questa pagina è in preparazione. Prima dell'attivazione di servizi pubblicitari e di tracciamento, il titolare del trattamento dovrà pubblicare un'informativa completa e verificata che descriva identità e contatti, finalità, basi giuridiche, destinatari, conservazione e diritti degli interessati.</p>
