@@ -17,7 +17,8 @@ export const usernameInterceptor: HttpInterceptorFn = (req, next) => {
 
   const authRequest = req.url.includes('/auth/login') ||
     req.url.includes('/auth/register') ||
-    req.url.includes('/auth/username-availability');
+    req.url.includes('/auth/username-availability') ||
+    req.url.includes('/auth/landing-stats');
 
   if (!username && !authRequest) {
     clearInvalidSession(router);
