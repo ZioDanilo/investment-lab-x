@@ -11,3 +11,5 @@ router-outlet {
 .analytics-consent{position:fixed;z-index:10000;bottom:16px;left:16px;right:16px;max-width:850px;margin:auto;padding:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #54708b;border-radius:12px;background:#102033;color:#edf5ff;box-shadow:0 12px 40px #0008;font:13px/1.5 system-ui,sans-serif}
 .analytics-consent span{flex:1 1 300px}.analytics-consent button{padding:9px 12px;border-radius:7px;border:1px solid #7ba7ce;background:#203d58;color:white;cursor:pointer}
 .analytics-preferences{position:fixed;bottom:4px;right:8px;z-index:9999;border:0;background:#102033;color:#d5e6f7;font:10px system-ui;padding:4px 7px;border-radius:5px;opacity:.8;cursor:pointer}
+
+.analytics-consent .consent-copy{flex:1 1 100%}.analytics-consent .consent-copy p{margin:6px 0}.analytics-consent .consent-copy a{color:#8bd1ff}.analytics-consent .consent-actions{display:flex;gap:10px;flex-wrap:wrap}
