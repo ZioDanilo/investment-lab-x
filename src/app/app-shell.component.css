@@ -546,3 +546,21 @@
 .mock-ad-slot--home{position:absolute;left:12px;top:73px;width:144px;z-index:2}
 @media(max-width:1180px){.app-feature-sidebar .mock-ad-slot{display:none}.mock-ad-slot--home{position:relative;left:auto;top:auto;width:min(320px,calc(100% - 24px));min-height:90px;margin:12px auto}}
 @media(min-width:1181px){.app-feature-sidebar .mock-ad-slot{margin-top:12px}}
+
+/* Home advertising rail: the first two slots occupy the future menu area.
+   The third slot begins at exactly the same vertical position as the
+   feature sidebar advertisement (58px header + 3px gap + six 54px
+   menu items + six 6px gaps + 12px ad margin). Route changes remove
+   the two Home-only slots from the DOM instead of covering them. */
+@media(min-width:1181px){
+  .mock-ad-home-stack{
+    position:absolute;left:12px;top:61px;width:144px;z-index:2;
+    display:grid;grid-template-rows:174px 174px 180px;gap:12px;
+  }
+  .mock-ad-home-stack .mock-ad-slot{min-height:0;height:100%;margin:0}
+  .app-feature-sidebar .mock-ad-slot{min-height:180px}
+}
+@media(max-width:1180px){
+  .mock-ad-home-stack{position:relative;display:flex;flex-direction:column;gap:12px;width:min(320px,calc(100% - 24px));margin:12px auto}
+  .mock-ad-home-stack .mock-ad-slot{min-height:90px;margin:0}
+}
