@@ -45,9 +45,9 @@
 .portfolio-dropdown__item:hover{background:rgba(39,118,191,.18);color:#fff}
 .portfolio-dropdown__item .material-symbols-rounded{font-size:18px;color:#67bdff}
 .portfolio-dropdown__item--sell .material-symbols-rounded{color:#ff7b8e}
-.portfolio-choice__metrics{display:flex;align-items:baseline;gap:8px;min-width:0}
-.portfolio-choice__metrics strong{margin:0;font-size:1rem;color:#f2f7fd}
-.portfolio-return{font-size:.72rem!important;font-weight:800;margin:0!important}
+.portfolio-choice__metrics{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;min-width:0;margin-top:-3px}
+.portfolio-choice__metrics strong{margin:0;font-size:1rem;color:#f2f7fd;line-height:1.25}
+.portfolio-return{font-size:.72rem!important;font-weight:800;margin:0!important;line-height:1.35;white-space:nowrap}
 .portfolio-return.positive{color:#25e6b1!important}.portfolio-return.negative{color:#ff526c!important}.portfolio-return.neutral{color:#8ea3ba!important}
 .portfolio-choice.add{min-height:96px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px}
 .portfolio-choice.add span{margin:0}
