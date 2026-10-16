@@ -1,1 +1,8 @@
 <router-outlet></router-outlet>
+
+<div class="analytics-consent" *ngIf="analytics.consent === null" role="dialog" aria-label="Preferenze statistiche">
+  <span>Razer vorrebbe utilizzare Google Analytics per misurare le visite e migliorare il sito. È facoltativo: puoi rifiutare senza limitazioni.</span>
+  <button type="button" (click)="chooseAnalytics(false)">Rifiuta</button>
+  <button type="button" (click)="chooseAnalytics(true)">Accetta statistiche</button>
+</div>
+<button *ngIf="analytics.consent !== null" class="analytics-preferences" type="button" (click)="chooseAnalytics(false)" aria-label="Revoca consenso statistiche">Privacy: disattiva statistiche</button>
