@@ -27,6 +27,10 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/auth/username-availability?username=${encodeURIComponent(username)}`);
   }
 
+  getLandingStats(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/auth/landing-stats`);
+  }
+
   // Portfolio endpoints
   getPortfolios(tipo?: 'reale' | 'laboratorio'): Observable<any> {
     const suffix = tipo ? `?tipo=${tipo}` : '';

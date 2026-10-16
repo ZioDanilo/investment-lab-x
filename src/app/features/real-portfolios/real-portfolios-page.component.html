@@ -18,15 +18,15 @@
           </div>
         </div>
         <div class="portfolio-choice__metrics">
-          <strong>{{formatCurrency(p.marketValue || 0)}}</strong>
-          <span class="portfolio-return" [class]="valueTone(p.gainLoss || 0)">{{formatSignedPercent(p.gainLossPercent || 0)}}</span>
+          <strong>{{formatCurrency(p.marketValue ?? 0)}}</strong>
+          <span class="portfolio-return" [class]="valueTone(p.gainLoss ?? 0)">{{formatPortfolioGain(p)}}</span>
         </div>
       </div>
       <button *ngIf="portfolios.length < 5" class="portfolio-choice add" (click)="openCreatePortfolio()"><span class="material-symbols-rounded">add</span> Aggiungi portafoglio</button>
     </div>
 
     <ng-container *ngIf="hasSelectedPortfolio">
-    <div class="kpi-grid">
+    <div class="kpi-grid" style="display:none" aria-hidden="true">
       <app-ui-card *ngFor="let k of kpis; let kpiIndex=index" [compact]="true" [class.kpi-card--primary-pair]="kpiIndex < 2"><span class="kpi-label">{{k[0]}}</span><strong class="kpi-value" [class]="k[3]">{{k[1]}}</strong><small [class]="k[3]" [class.kpi-empty-line]="kpiIndex === 1 || kpiIndex >= 3">{{(kpiIndex === 1 || kpiIndex >= 3) ? '\u00A0' : k[2]}}</small></app-ui-card>
     </div>
 

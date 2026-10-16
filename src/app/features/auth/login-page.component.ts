@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../core/api/api.service';
@@ -12,10 +12,45 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
   templateUrl: './login-page.component.html',
   styleUrls: ['./login-page.component.css']
 })
-export class LoginPageComponent {
+export class LoginPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
   private readonly portfolioSelection = inject(PortfolioSelectionService);
+
+  landingStats: { users: number | null; portfolios: number | null; etfs: number | null; operations: number | null } = { users: null, portfolios: null, etfs: null, operations: null };
+  landingStatsError = '';
+
+  ngOnInit(): void {
+    this.apiService.getLandingStats().subscribe({
+      next: (response: any) => {
+        if (!response?.success || !response?.data) {
+          this.landingStatsError = 'Statistiche non disponibili: risposta del servizio non valida.';
+          return;
+        }
+        const data = response.data;
+        const parseCount = (value: unknown): number | null => {
+          if (value === null || value === undefined || value === '') return null;
+          const count = Number(value);
+          return Number.isSafeInteger(count) && count >= 0 ? count : null;
+        };
+        this.landingStats = {
+          users: parseCount(data.users),
+          portfolios: parseCount(data.portfolios),
+          etfs: parseCount(data.etfs),
+          operations: parseCount(data.operations)
+        };
+        if (Object.values(this.landingStats).some(value => value === null)) {
+          this.landingStatsError = 'Alcuni conteggi non sono stati restituiti dal servizio.';
+        } else {
+          this.landingStatsError = '';
+        }
+      },
+      error: (error: any) => {
+        this.landingStatsError = 'Statistiche non disponibili (HTTP ' + (error?.status || 'rete') + ').';
+        console.error('Errore caricamento statistiche landing', error);
+      }
+    });
+  }
 
   username = '';
   password = '';

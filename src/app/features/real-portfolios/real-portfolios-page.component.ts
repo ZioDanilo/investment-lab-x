@@ -181,6 +181,14 @@ export class RealPortfoliosPageComponent implements OnInit {
     });
   }
 
+  // Angular templates do not expose the global Math object: format signed gains in TS.
+  formatPortfolioGain(p:Portfolio):string {
+    const gain=Number(p.gainLoss ?? 0);
+    const percent=Number(p.gainLossPercent ?? 0);
+    const sign=gain>0?'+':gain<0?'−':'';
+    return sign+this.formatCurrencyTrailing(Math.abs(gain))+' ('+this.formatSignedPercent(percent)+')';
+  }
+
   get hasSelectedPortfolio():boolean { return this.portfolios.length>0 && !!this.portfolios[this.selected]; }
 
   openCreatePortfolio():void { this.portfolioName.set(''); this.portfolioDescription.set(''); this.showCreateDialog.set(true); }
@@ -330,7 +338,8 @@ export class RealPortfoliosPageComponent implements OnInit {
       ['Massimo drawdown',pct(p.maxDrawdown),tone(p.maxDrawdown)],
       ['Mese migliore',pct(p.bestMonth),tone(p.bestMonth)],
       ['Mese peggiore',pct(p.worstMonth),tone(p.worstMonth)],
-      ['Mesi positivi',p.months? p.positiveMonths+' su '+p.months+' ('+(p.positiveMonths/p.months*100).toFixed(0)+'%)':'—','']
+      ['Mesi positivi',p.months? p.positiveMonths+' su '+p.months+' ('+(p.positiveMonths/p.months*100).toFixed(0)+'%)':'—',''],
+      ['Numero ETF',String(this.holdings.length),'']
     ];
   }
   readonly legend:ChartLegendItem[]=[

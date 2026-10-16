@@ -15,6 +15,7 @@ interface RealHolding {
   nickname?: string;
   ticker?: string;
   quantity: number;
+  averageCost: number;
   currentPrice: number | null;
   marketValue: number | null;
 }
@@ -258,8 +259,11 @@ export class RebalanceComponent {
     const rows=this.rows();
     if(!rows.length)return null;
     if (rows.some(r => !Number.isFinite(r.marketPrice) || r.marketPrice <= 0)) return null;
+    // Never estimate sale taxes using an unknown or zero cost basis.
+    if (this.holdings().some(h => Number(h.quantity)>0 && !(Number(h.averageCost)>0))) return null;
     return optimizeRebalance(rows.map(r=>({
-      isin:r.isin,quantity:r.quantity,price:r.marketPrice,targetWeight:r.targetWeight
+      isin:r.isin,quantity:r.quantity,price:r.marketPrice,targetWeight:r.targetWeight,
+      averageCost:Number(this.holdings().find(h=>h.isin.toUpperCase()===r.isin.toUpperCase())?.averageCost ?? 0)
     })),this.cashToAdd(),this.feePerOperation);
   });
   readonly missingPrices = computed(() => this.rows().filter(r=>r.marketPrice<=0).map(r=>r.isin));
@@ -267,7 +271,7 @@ export class RebalanceComponent {
     const result=this.optimization();
     const rows=this.rows();
     if(!result)return rows;
-    const net=this.totalValue()+this.cashToAdd()-result.transactionCosts;
+    const net=this.totalValue()+this.cashToAdd()-result.transactionCosts-result.estimatedTax;
     return rows.map((r,i)=>{
       const deltaQuantity=result.quantities[i]-r.quantity;
       const targetValue=r.targetWeight*net;
@@ -276,6 +280,7 @@ export class RebalanceComponent {
   });
   readonly operationCount = computed(() => this.optimization()?.operationCount ?? 0);
   readonly transactionCosts = computed(() => this.optimization()?.transactionCosts ?? 0);
+  readonly estimatedTax = computed(() => this.optimization()?.estimatedTax ?? 0);
   readonly remainingCash = computed(() => this.optimization()?.cashRemaining ?? 0);
   readonly totalValue = computed(() => this.rows().reduce((sum, row) => sum + row.marketValue, 0));
   readonly totalInvestable = computed(() => this.totalValue() + this.cashToAdd());
