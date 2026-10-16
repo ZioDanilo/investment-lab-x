@@ -234,6 +234,9 @@ const STRATEGIES = [
     .criterion:has(.metric--six) .saved-etf-slots{grid-column:3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:none;min-width:0;flex:none;align-items:center}
     .criterion:not(.criterion--draft) .saved-etf-slots .primary-slot{grid-column:1;min-width:0}
     .criterion:not(.criterion--draft) .saved-etf-slots .secondary-slot{grid-column:2;min-width:0}
+    /* Keep a visible gutter between the second ETF selector and the first metric. */
+    .criterion:not(.criterion--draft) .saved-etf-slots{padding-right:8px;box-sizing:border-box}
+    .criterion:not(.criterion--draft) .saved-metrics{padding-left:8px;box-sizing:border-box}
     .criterion:not(.criterion--draft) .saved-etf-slots .third-slot{grid-column:3;min-width:0}
     .criterion:not(.criterion--draft) .saved-etf-slots .saved-etf-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .criterion:not(.criterion--draft) .saved-metrics{grid-column:4;grid-row:1;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:5px;min-width:0;width:100%;max-width:none;flex:none;padding-right:34px;box-sizing:border-box}
