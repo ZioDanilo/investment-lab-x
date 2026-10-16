@@ -181,6 +181,14 @@ export class RealPortfoliosPageComponent implements OnInit {
     });
   }
 
+  // Angular templates do not expose the global Math object: format signed gains in TS.
+  formatPortfolioGain(p:Portfolio):string {
+    const gain=Number(p.gainLoss ?? 0);
+    const percent=Number(p.gainLossPercent ?? 0);
+    const sign=gain>0?'+':gain<0?'−':'';
+    return sign+this.formatCurrencyTrailing(Math.abs(gain))+' ('+this.formatSignedPercent(percent)+')';
+  }
+
   get hasSelectedPortfolio():boolean { return this.portfolios.length>0 && !!this.portfolios[this.selected]; }
 
   openCreatePortfolio():void { this.portfolioName.set(''); this.portfolioDescription.set(''); this.showCreateDialog.set(true); }
