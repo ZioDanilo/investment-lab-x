@@ -17,14 +17,14 @@ export class LoginPageComponent implements OnInit {
   private readonly apiService = inject(ApiService);
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
-  landingStats: { users: number | null; portfolios: number | null; etfs: number | null } = { users: null, portfolios: null, etfs: null };
+  landingStats: { users: number | null; portfolios: number | null; etfs: number | null; operations: number | null } = { users: null, portfolios: null, etfs: null, operations: null };
 
   ngOnInit(): void {
     this.apiService.getLandingStats().subscribe({
       next: (response: any) => {
         const data = response?.data;
-        if (response?.success && data && [data.users, data.portfolios, data.etfs].every((value: unknown) => Number.isSafeInteger(value) && (value as number) >= 0)) {
-          this.landingStats = { users: data.users, portfolios: data.portfolios, etfs: data.etfs };
+        if (response?.success && data && [data.users, data.portfolios, data.etfs, data.operations].every((value: unknown) => Number.isSafeInteger(value) && (value as number) >= 0)) {
+          this.landingStats = { users: data.users, portfolios: data.portfolios, etfs: data.etfs, operations: data.operations };
         }
       },
       error: () => { /* Keep placeholders if statistics cannot be loaded. */ }
