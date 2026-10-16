@@ -460,3 +460,10 @@
 
 .login-action-row { display: flex; }
 .login-action-row .primary-login { flex: 1 1 auto; min-width: 0; }
+
+/* Match the authenticated navbar brand position before login. */
+.message-navbar{position:relative}
+.prelogin-brand{position:absolute;left:clamp(18px,2vw,32px);top:0;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;z-index:2;pointer-events:none}
+.prelogin-brand-name{font-size:clamp(.96rem,.85vw,1.3rem);font-weight:800;letter-spacing:.04em;line-height:1;color:#edf6ff}
+.prelogin-brand-tag{margin-top:4px;font-size:.5rem;letter-spacing:.12em;color:#84a9d2;white-space:nowrap}
+@media(max-width:760px){.message-navbar{justify-content:flex-end}.message-rotator{width:calc(100% - 200px)}.message-rotator span{font-size:.66rem}}
