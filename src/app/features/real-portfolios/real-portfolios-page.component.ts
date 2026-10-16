@@ -330,7 +330,8 @@ export class RealPortfoliosPageComponent implements OnInit {
       ['Massimo drawdown',pct(p.maxDrawdown),tone(p.maxDrawdown)],
       ['Mese migliore',pct(p.bestMonth),tone(p.bestMonth)],
       ['Mese peggiore',pct(p.worstMonth),tone(p.worstMonth)],
-      ['Mesi positivi',p.months? p.positiveMonths+' su '+p.months+' ('+(p.positiveMonths/p.months*100).toFixed(0)+'%)':'—','']
+      ['Mesi positivi',p.months? p.positiveMonths+' su '+p.months+' ('+(p.positiveMonths/p.months*100).toFixed(0)+'%)':'—',''],
+      ['Numero ETF',String(this.holdings.length),'']
     ];
   }
   readonly legend:ChartLegendItem[]=[
