@@ -472,3 +472,6 @@
 .public-footer{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px;font-size:12px;line-height:1.4}
 .public-footer a{color:#a8dfff;text-decoration:underline;text-underline-offset:3px}
 @media(max-width:900px){.public-footer{margin:18px 0}}
+
+/* Keep the landing's three rows (hero, public links, statistics) inside the viewport. */
+@media(min-width:901px){.landing-shell{grid-template-rows:minmax(0,1fr) auto auto}}
