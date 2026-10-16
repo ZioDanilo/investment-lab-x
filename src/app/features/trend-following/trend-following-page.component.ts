@@ -116,7 +116,7 @@ const STRATEGIES = [
             {{row.loading || row.continuityCount===null ? '—' : row.continuityCount+' / 30'}}
           </div>
           <ng-container *ngIf="row.strategyKey === 'momentum-world-xeon'">
-            <div class="metric metric--six" *ngFor="let i of [0,1,4]" [class.outcome--signal]="signalEnabled[signal] && i===4 && ((signal==='sell' && row.sixValues[4]!==null && row.sixValues[4]!<0) || (signal==='buy' && row.sixValues[4]!==null && row.sixValues[4]!>0))" [attr.aria-label]="threeStateTitles[i]" (mouseenter)="showMetricTooltip($event,threeStateTitles[i])" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">{{row.loading?'—':formatRatio(row.sixValues[i])}}</div>
+            <div class="metric metric--six" *ngFor="let i of [0,1,4]" [class.outcome--signal]="signalEnabled[signal] && i===4 && ((signal==='sell' && row.sixValues[4]!==null && row.sixValues[4]!<0) || (signal==='buy' && row.sixValues[4]!==null && row.sixValues[4]!>0))" [attr.aria-label]="threeStateTitles[i]" (mouseenter)="showMetricTooltip($event,threeStateTitles[i])" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">{{row.loading ? '—' : i===4 ? formatPercent(row.sixValues[i]===null ? null : row.sixValues[i]!*100) : formatRatio(row.sixValues[i])}}</div>
           </ng-container>
           <div *ngIf="row.strategyKey !== 'momentum-world-xeon' && row.strategyKey !== 'momentum-xeon-fast-reentry'" class="metric" [attr.aria-label]="row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'" (mouseenter)="showMetricTooltip($event,row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.loading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(annualReturn(row)) : formatPrice(row.price)}}
@@ -629,7 +629,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   differenceText(row:Criterion):string{
     const d=this.delta(row);if(d===null)return '—';
     const pct=row.average&&row.average>0?this.formatPercent(d/row.average*100):'—';
-    return (d>0?'+':'')+this.formatPrice(d)+' ('+pct+')';
+    return pct;
   }
   filteredBenchmarks(row:Criterion):Etf[]{const q=row.benchmarkSearch.trim().toLowerCase();return q.length<3?[]:this.allEtfs.filter(e=>e.search.includes(q)).slice(0,40)}
   filterBenchmark(i:number,q:string):void{
