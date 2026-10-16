@@ -20,7 +20,7 @@ const STRATEGIES = [
   { key: 'sma-200', label: 'Media mobile 200 gg' },
   { key: 'ts-momentum-12m', label: 'Time Series 12 mesi' },
   { key: 'dual-sma-50-200', label: 'Doppia MM 50/200' },
-  { key: 'momentum-world-xeon', label: 'Fattore - Mercato (100 gg)' },
+  { key: 'momentum-world-xeon', label: 'Media mobile rapporto (100 gg)' },
   { key: 'momentum-xeon-fast-reentry', label: 'Segno continuo (30 gg)' },
   { key: 'trend-volatility-targeting', label: 'Trend Following + Volatility Targeting' },
   { key: 'momentum-world-xeon-volatility-targeting', label: 'Momentum → World → XEON + Volatility Targeting' }
@@ -544,7 +544,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
         row.sixValues=[ratio,ratioSma,null,null,ratio-ratioSma,null];
         row.loading=false;
       },
-      error:()=>{if(row.version===version){row.error='Impossibile caricare le quotazioni Fattore - Mercato (100 gg).';row.loading=false}}
+      error:()=>{if(row.version===version){row.error='Impossibile caricare le quotazioni Media mobile rapporto (100 gg).';row.loading=false}}
     }));
     row.subscription=new Subscription();subs.forEach(sub=>row.subscription!.add(sub));
   }
