@@ -11,7 +11,9 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
+  preferencesOpen = false;
   readonly analytics = inject(AnalyticsService);
   ngOnInit(): void { this.analytics.start(); }
-  chooseAnalytics(accepted: boolean): void { this.analytics.setConsent(accepted); }
+  chooseAnalytics(accepted: boolean): void { this.analytics.setConsent(accepted); this.preferencesOpen = false; }
+  openPreferences(): void { this.preferencesOpen = true; }
 }
