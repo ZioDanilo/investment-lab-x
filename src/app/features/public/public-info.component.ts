@@ -7,9 +7,9 @@ import { RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `
     <main class="info">
-      <nav><a routerLink="/login">← Torna a ETFolio</a></nav>
-      <h1>ETFolio: strumenti per analizzare portafogli ETF</h1>
-      <p>ETFolio è una piattaforma per costruire, confrontare e studiare portafogli di ETF. Le simulazioni sono strumenti di analisi e non previsioni dei risultati futuri.</p>
+      <nav><a routerLink="/login">← Torna a Razer</a></nav>
+      <h1>Razer: strumenti per analizzare portafogli ETF</h1>
+      <p>Razer è una piattaforma per costruire, confrontare e studiare portafogli di ETF. Le simulazioni sono strumenti di analisi e non previsioni dei risultati futuri.</p>
       <h2>Cosa puoi fare</h2>
       <section><h3>Laboratorio portafogli</h3><p>Componi portafogli con pesi differenti e confronta indicatori come rendimento atteso, volatilità e drawdown.</p></section>
       <section><h3>Simulazioni Monte Carlo</h3><p>Esplora la distribuzione dei possibili risultati attraverso simulazioni statistiche basate su ipotesi di mercato. I risultati dipendono dal modello e non sono garantiti.</p></section>
