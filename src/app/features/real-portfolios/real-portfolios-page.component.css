@@ -229,3 +229,8 @@ input.invalid,
 /* Keep the portfolio plot and axis labels within their own card. */
 .chart-wrap{overflow:hidden;min-width:0}
 .chart-wrap app-line-chart{display:block;width:100%;height:100%;overflow:hidden}
+
+/* Portfolio summary: preserve all other panels and keep the signed P/L visible. */
+.portfolio-choice:not(.add) .portfolio-choice__metrics{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:0;overflow:visible}
+.portfolio-choice:not(.add) .portfolio-choice__metrics>strong{display:block;margin:0;line-height:1.25}
+.portfolio-choice:not(.add) .portfolio-choice__metrics>.portfolio-return{display:block;margin:0!important;line-height:1.3;white-space:normal;overflow-wrap:anywhere;font-size:.75rem!important}
