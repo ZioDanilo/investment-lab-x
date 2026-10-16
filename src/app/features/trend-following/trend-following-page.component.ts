@@ -11,7 +11,7 @@ interface Etf { isin: string; label: string; search: string }
 interface Criterion {
   strategyKey: string; isin: string; benchmarkIsin: string; thirdIsin: string; sixValues: (number|null)[]; signal: 'buy' | 'sell';
   price: number | null; average: number | null; benchmarkReturn: number | null;
-  continuityCount: number | null; continuityTrend: boolean;
+  continuityCount: number | null;
   loading: boolean; benchmarkLoading: boolean; error: string;
   benchmarkSearch: string; searchOpen: boolean; version: number;
   subscription?: Subscription; benchmarkSubscription?: Subscription;
@@ -111,17 +111,17 @@ const STRATEGIES = [
           <div *ngIf="row.strategyKey === 'momentum-xeon-fast-reentry'" class="metric outcome"
             [class.outcome--signal]="signalEnabled[signal] && ((signal==='sell' && isNegative(row)) || (signal==='buy' && isPositive(row)))"
             [attr.aria-label]="'Variazioni consecutive di segno coerente negli ultimi 30 intervalli'"
-            (mouseenter)="showMetricTooltip($event,'Giorni '+(signal==='sell'?'in calo':'in rialzo')+' su 30; warning con almeno 26 e prezzo oltre il riferimento di 30 quotazioni fa')"
+            (mouseenter)="showMetricTooltip($event,'Giorni '+(signal==='sell'?'in calo':'in rialzo')+' su 30; warning con almeno 26 variazioni su 30')"
             (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.loading || row.continuityCount===null ? '—' : row.continuityCount+' / 30'}}
           </div>
           <ng-container *ngIf="row.strategyKey === 'momentum-world-xeon'">
-            <div class="metric metric--six" *ngFor="let value of row.sixValues; let i=index" [class.outcome--signal]="signalEnabled[signal] && i>=4 && ((signal==='sell' && value!==null && value<0) || (signal==='buy' && value!==null && value>0))" [attr.aria-label]="threeStateTitles[i]" (mouseenter)="showMetricTooltip($event,threeStateTitles[i])" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">{{row.loading?'—':formatRatio(value)}}</div>
+            <div class="metric metric--six" *ngFor="let i of [0,1,4]" [class.outcome--signal]="signalEnabled[signal] && i===4 && ((signal==='sell' && row.sixValues[4]!==null && row.sixValues[4]!<0) || (signal==='buy' && row.sixValues[4]!==null && row.sixValues[4]!>0))" [attr.aria-label]="threeStateTitles[i]" (mouseenter)="showMetricTooltip($event,threeStateTitles[i])" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">{{row.loading?'—':formatRatio(row.sixValues[i])}}</div>
           </ng-container>
           <div *ngIf="row.strategyKey !== 'momentum-world-xeon' && row.strategyKey !== 'momentum-xeon-fast-reentry'" class="metric" [attr.aria-label]="row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'" (mouseenter)="showMetricTooltip($event,row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.loading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(annualReturn(row)) : formatPrice(row.price)}}
           </div>
-          <div *ngIf="row.strategyKey !== 'momentum-world-xeon'" class="metric" [attr.aria-label]="row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'" (mouseenter)="showMetricTooltip($event,row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
+          <div *ngIf="row.strategyKey !== 'momentum-world-xeon' && row.strategyKey !== 'momentum-xeon-fast-reentry'" class="metric" [attr.aria-label]="row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'" (mouseenter)="showMetricTooltip($event,row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.loading || row.benchmarkLoading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(row.benchmarkIsin ? row.benchmarkReturn : 0) : formatPrice(row.average)}}
           </div>
           <div *ngIf="row.strategyKey !== 'momentum-world-xeon' && row.strategyKey !== 'momentum-xeon-fast-reentry'" class="metric outcome" [class.outcome--signal]="signalEnabled[signal] && ((signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row)))" [attr.aria-label]="row.error || 'Differenza'" (mouseenter)="showMetricTooltip($event,row.error || 'Differenza')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
@@ -491,7 +491,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     return [{isin:row.isin,label:found?.label||row.isin,search:found?.search||row.isin.toLowerCase()},...this.etfs];
   }
   private createRow(strategyKey='',isin='',benchmarkIsin='',signal:'buy'|'sell'='sell'):Criterion{
-    return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,price:null,average:null,benchmarkReturn:null,continuityCount:null,continuityTrend:false,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
+    return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,price:null,average:null,benchmarkReturn:null,continuityCount:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
   addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.resetDraftFilters();this.draft=this.createRow()}
   pendingRemoveRow:Criterion|null=null;
@@ -506,7 +506,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   isImplemented(key:string):boolean{return ['sma-200','ts-momentum-12m','dual-sma-50-200','momentum-world-xeon','momentum-xeon-fast-reentry'].includes(key)}
   changeStrategy(i:number,key:string):void{
     const row=this.rowAt(i);if(i!==-1||!row||!STRATEGIES.some(s=>s.key===key))return;
-    this.clearRequests(row);row.strategyKey=key;row.price=null;row.average=null;row.continuityCount=null;row.continuityTrend=false;row.error='';
+    this.clearRequests(row);row.strategyKey=key;row.price=null;row.average=null;row.continuityCount=null;row.error='';
     row.benchmarkIsin='';row.thirdIsin='';row.sixValues=[null,null,null,null,null,null];row.benchmarkSearch='';row.benchmarkReturn=null;
 
     // Draft configuration: no requests or writes before confirmation.
@@ -515,7 +515,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if(i!==-1)return;
     const row=this.rowAt(i);if(!row)return;
     this.clearRequests(row);
-    row.isin=isin;row.price=null;row.average=null;row.continuityCount=null;row.continuityTrend=false;row.error='';
+    row.isin=isin;row.price=null;row.average=null;row.continuityCount=null;row.error='';
     // Quotations load only after confirmation.
   }
   private clearRequests(row:Criterion):void{row.subscription?.unsubscribe();row.benchmarkSubscription?.unsubscribe();row.version++;row.loading=false;row.benchmarkLoading=false}
@@ -539,11 +539,9 @@ export class TrendFollowingPageComponent implements OnDestroy {
         const dates=[...first.keys()].filter(date=>second.has(date)).sort().reverse();
         if(dates.length<100){row.error='Servono almeno 100 sedute comuni ai due ETF.';row.loading=false;return}
         const ratios=dates.slice(0,100).map(date=>first.get(date)!/second.get(date)!);
-        const secondPrices=dates.slice(0,100).map(date=>second.get(date)!);
-        const ratio=ratios[0],price=secondPrices[0];
+        const ratio=ratios[0];
         const ratioSma=ratios.reduce((sum,value)=>sum+value,0)/100;
-        const priceSma=secondPrices.reduce((sum,value)=>sum+value,0)/100;
-        row.sixValues=[ratio,ratioSma,price,priceSma,ratio-ratioSma,price-priceSma];
+        row.sixValues=[ratio,ratioSma,null,null,ratio-ratioSma,null];
         row.loading=false;
       },
       error:()=>{if(row.version===version){row.error='Impossibile caricare le quotazioni Fattore - Mercato (100 gg).';row.loading=false}}
@@ -553,7 +551,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private loadContinuity(row:Criterion):void{
     this.clearRequests(row);
     const version=row.version;
-    row.loading=true;row.error='';row.continuityCount=null;row.continuityTrend=false;
+    row.loading=true;row.error='';row.continuityCount=null;
     row.subscription=this.quotations.getQuotationHistory(row.isin,100).subscribe({
       next:(response:any)=>{
         if(row.version!==version)return;
@@ -569,7 +567,6 @@ export class TrendFollowingPageComponent implements OnDestroy {
           const window=prices.slice(0,31);
           row.continuityCount=window.slice(0,30).reduce((count,price,i)=>count+
             (row.signal==='sell'?Number(price<window[i+1]):Number(price>window[i+1])),0);
-          row.continuityTrend=row.signal==='sell'?window[0]<window[30]:window[0]>window[30];
         }
         row.loading=false;
       },
@@ -608,18 +605,18 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private benchmarkValue(row:Criterion):number|null{return row.benchmarkIsin?row.benchmarkReturn:0}
   private delta(row:Criterion):number|null{
     if(!this.isImplemented(row.strategyKey)||row.loading||row.benchmarkLoading)return null;
-    if(row.strategyKey==='momentum-world-xeon')return row.sixValues[4]!==null&&row.sixValues[5]!==null?Math.min(row.sixValues[4]!,row.sixValues[5]!):null;
+    if(row.strategyKey==='momentum-world-xeon')return row.sixValues[4];
     if(row.strategyKey==='ts-momentum-12m'){const a=this.annualReturn(row),b=this.benchmarkValue(row);return a===null||b===null?null:a-b}
     return row.price!==null&&row.average!==null?row.price-row.average:null;
   }
   isPositive(row:Criterion):boolean{
-    if(row.strategyKey==='momentum-xeon-fast-reentry')return row.signal==='buy' && row.continuityCount!==null && row.continuityCount>25 && row.continuityTrend && !row.loading;
-    if(row.strategyKey==='momentum-world-xeon')return [row.sixValues[4],row.sixValues[5]].some(value=>value!==null&&value>0);
+    if(row.strategyKey==='momentum-xeon-fast-reentry')return row.signal==='buy' && row.continuityCount!==null && row.continuityCount>25 && !row.loading;
+    if(row.strategyKey==='momentum-world-xeon')return row.sixValues[4]!==null && row.sixValues[4]!>0;
     return (this.delta(row)??0)>0;
   }
   isNegative(row:Criterion):boolean{
-    if(row.strategyKey==='momentum-xeon-fast-reentry')return row.signal==='sell' && row.continuityCount!==null && row.continuityCount>25 && row.continuityTrend && !row.loading;
-    if(row.strategyKey==='momentum-world-xeon')return [row.sixValues[4],row.sixValues[5]].some(value=>value!==null&&value<0);
+    if(row.strategyKey==='momentum-xeon-fast-reentry')return row.signal==='sell' && row.continuityCount!==null && row.continuityCount>25 && !row.loading;
+    if(row.strategyKey==='momentum-world-xeon')return row.sixValues[4]!==null && row.sixValues[4]!<0;
     return (this.delta(row)??0)<0;
   }
   formatPrice(v:number|null):string{return v===null?'—':new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:true}).format(v)+' €'}
