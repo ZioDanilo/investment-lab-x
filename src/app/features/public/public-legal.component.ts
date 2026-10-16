@@ -9,7 +9,7 @@ import { Router, RouterLink } from '@angular/router';
  <nav><a routerLink="/login">← Razer</a> · <a routerLink="/chi-siamo">Informazioni sul servizio</a></nav>
  <h1>{{ title }}</h1>
  @if (page === 'privacy') {
- <p>Questa pagina è in preparazione. Prima dell'attivazione di servizi pubblicitari e di tracciamento, il titolare del trattamento dovrà pubblicare un'informativa completa e verificata che descriva identità e contatti, finalità, basi giuridiche, destinatari, conservazione e diritti degli interessati.</p>
+ <p>Questa pagina è in preparazione. Il sito include una gestione facoltativa del consenso alle statistiche Google Analytics, che rimane inattiva finché non viene fornito consenso e configurato un ID GA4 reale. Prima dell'attivazione di servizi pubblicitari e di tracciamento, il titolare del trattamento dovrà pubblicare un'informativa completa e verificata che descriva identità e contatti, finalità, basi giuridiche, destinatari, conservazione e diritti degli interessati.</p>
  <p>Non vengono attivati nuovi tracker pubblicitari da questa pagina.</p>
  } @else if (page === 'cookies') {
  <p>Gli annunci pubblicitari e i relativi strumenti di profilazione non sono ancora attivi. Prima dell'attivazione verranno pubblicate informazioni sui cookie effettivamente utilizzati e, quando richiesto, sarà implementata una piattaforma di gestione del consenso.</p>
