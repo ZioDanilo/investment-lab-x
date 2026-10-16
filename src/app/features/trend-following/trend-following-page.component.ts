@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnDestroy, TemplateRef, ViewChild, untracked } from '@angular/core';
+import { Component, effect, inject, HostListener, OnDestroy, TemplateRef, ViewChild, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PillToggleComponent } from '../../shared/components/pill-toggle/pill-toggle.component';
@@ -113,7 +113,7 @@ const STRATEGIES = [
             [attr.aria-label]="'Variazioni consecutive di segno coerente negli ultimi 30 intervalli'"
             (mouseenter)="showMetricTooltip($event,'Giorni '+(signal==='sell'?'in calo':'in rialzo')+' su 30; warning con almeno 26 variazioni su 30')"
             (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
-            {{row.loading || row.continuityCount===null ? '—' : row.continuityCount+' / 30'}}
+            {{row.loading || row.continuityCount===null ? '—' : formatPercent(row.continuityCount/30*100)}}
           </div>
           <ng-container *ngIf="row.strategyKey === 'momentum-world-xeon'">
             <div class="metric metric--six" *ngFor="let i of [0,1,4]" [class.outcome--signal]="signalEnabled[signal] && i===4 && ((signal==='sell' && row.sixValues[4]!==null && row.sixValues[4]!<0) || (signal==='buy' && row.sixValues[4]!==null && row.sixValues[4]!>0))" [attr.aria-label]="threeStateTitles[i]" (mouseenter)="showMetricTooltip($event,threeStateTitles[i])" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">{{row.loading ? '—' : i===4 ? formatPercent(row.sixValues[i]===null ? null : row.sixValues[i]!*100) : formatRatio(row.sixValues[i])}}</div>
@@ -359,6 +359,13 @@ export class TrendFollowingPageComponent implements OnDestroy {
   thirdSearch='';thirdSearchOpen=false;
   draftMenu:'signal'|'strategy'|null=null;
   toggleDraftMenu(menu:'signal'|'strategy'):void{this.draftMenu=this.draftMenu===menu?null:menu}
+  @HostListener('document:click', ['$event'])
+  closeDraftMenuOutside(event:MouseEvent):void{
+    const target=event.target;
+    if(this.draftMenu && target instanceof Element && !target.closest('.criterion--draft .dark-select.signal-select, .criterion--draft .dark-select.strategy-select'))this.draftMenu=null;
+  }
+  @HostListener('document:keydown.escape')
+  closeDraftMenuOnEscape():void{this.draftMenu=null}
   openExtra(which:'second'|'third'):void{this.primarySearchOpen=false;if(this.draft)this.draft.searchOpen=false;this.secondSearchOpen=which==='second';this.thirdSearchOpen=which==='third'}
   filteredExtra(which:'second'|'third'):Etf[]{const q=(which==='second'?this.secondSearch:this.thirdSearch).trim().toLowerCase();return q.length<3?[]:this.allEtfs.filter(e=>e.search.includes(q)).slice(0,40)}
   filterExtra(which:'second'|'third',q:string):void{if(!this.draft)return;if(which==='second'){this.secondSearch=q;this.openExtra('second');this.draft.benchmarkIsin=''}else{this.thirdSearch=q;this.openExtra('third');this.draft.thirdIsin=''}}
@@ -613,7 +620,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     return row.price!==null&&row.average!==null?row.price-row.average:null;
   }
   isPositive(row:Criterion):boolean{
-    if(row.strategyKey==='momentum-xeon-fast-reentry')return row.signal==='buy' && row.continuityCount!==null && row.continuityCount>25 && !row.loading;
+    if(row.strategyKey==='momentum-xeon-fast-reentry')return row.signal==='buy' && row.continuityCount!==null && row.continuityCount/30>0.85 && !row.loading;
     if(row.strategyKey==='momentum-world-xeon')return row.sixValues[4]!==null && row.sixValues[4]!>0;
     return (this.delta(row)??0)>0;
   }
