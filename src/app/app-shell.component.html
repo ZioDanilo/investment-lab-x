@@ -55,7 +55,9 @@
       <a class="app-feature-menu-card app-feature-menu-card--amber" routerLink="/ribilanciamento" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">sync</span><span>Ribilanciamento</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--blue" routerLink="/trend-following" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">show_chart</span><span>Trend Following</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--cyan" routerLink="/market-universe" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">bar_chart</span><span>ETF & Mercati</span></a>
+      <div class="mock-ad-slot" aria-label="Spazio pubblicitario dimostrativo"><span class="mock-ad-slot__label">PUBBLICITÀ</span><span class="mock-ad-slot__icon material-symbols-rounded" aria-hidden="true">campaign</span><span class="mock-ad-slot__text">Il tuo annuncio qui</span><span class="mock-ad-slot__note">Banner dimostrativo</span></div>
     </aside>
+    <div *ngIf="!showFeatureSidebar" class="mock-ad-slot mock-ad-slot--home" aria-label="Spazio pubblicitario dimostrativo"><span class="mock-ad-slot__label">PUBBLICITÀ</span><span class="mock-ad-slot__icon material-symbols-rounded" aria-hidden="true">campaign</span><span class="mock-ad-slot__text">Il tuo annuncio qui</span><span class="mock-ad-slot__note">Banner dimostrativo</span></div>
     <section class="route-page"><router-outlet (activate)="onFeatureActivate($event)"></router-outlet></section>
   </main>
 </div>
