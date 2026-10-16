@@ -19,3 +19,10 @@
 - Chiarire titolarità e trattamento fiscale dei ricavi.
 
 Nessuna modifica in questo branch garantisce l'approvazione di Google.
+
+## Google Analytics 4
+- Servizio Angular di tracciamento page_view sulle navigazioni SPA, senza parametri personali o query string.
+- Nessuna richiesta GA4 senza consenso esplicito; pulsanti Accetta/Rifiuta e revoca.
+- Configurare gaMeasurementId in src/environments/environment.prod.ts dopo aver creato la proprietà GA4.
+- Verificare l'informativa privacy completa e la CMP prima della messa in produzione: il banner implementato è un consenso basilare per sole statistiche, non una CMP pubblicitaria certificata.
+- Le impression AdSense non sono conteggiate da GA4: richiedono integrazione AdSense separata e ID publisher.
