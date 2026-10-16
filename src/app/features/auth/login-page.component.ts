@@ -18,16 +18,37 @@ export class LoginPageComponent implements OnInit {
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
   landingStats: { users: number | null; portfolios: number | null; etfs: number | null; operations: number | null } = { users: null, portfolios: null, etfs: null, operations: null };
+  landingStatsError = '';
 
   ngOnInit(): void {
     this.apiService.getLandingStats().subscribe({
       next: (response: any) => {
-        const data = response?.data;
-        if (response?.success && data && [data.users, data.portfolios, data.etfs, data.operations].every((value: unknown) => Number.isSafeInteger(value) && (value as number) >= 0)) {
-          this.landingStats = { users: data.users, portfolios: data.portfolios, etfs: data.etfs, operations: data.operations };
+        if (!response?.success || !response?.data) {
+          this.landingStatsError = 'Statistiche non disponibili: risposta del servizio non valida.';
+          return;
+        }
+        const data = response.data;
+        const parseCount = (value: unknown): number | null => {
+          if (value === null || value === undefined || value === '') return null;
+          const count = Number(value);
+          return Number.isSafeInteger(count) && count >= 0 ? count : null;
+        };
+        this.landingStats = {
+          users: parseCount(data.users),
+          portfolios: parseCount(data.portfolios),
+          etfs: parseCount(data.etfs),
+          operations: parseCount(data.operations)
+        };
+        if (Object.values(this.landingStats).some(value => value === null)) {
+          this.landingStatsError = 'Alcuni conteggi non sono stati restituiti dal servizio.';
+        } else {
+          this.landingStatsError = '';
         }
       },
-      error: () => { /* Keep placeholders if statistics cannot be loaded. */ }
+      error: (error: any) => {
+        this.landingStatsError = 'Statistiche non disponibili (HTTP ' + (error?.status || 'rete') + ').';
+        console.error('Errore caricamento statistiche landing', error);
+      }
     });
   }
 
