@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../core/api/api.service';
@@ -12,10 +12,24 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
   templateUrl: './login-page.component.html',
   styleUrls: ['./login-page.component.css']
 })
-export class LoginPageComponent {
+export class LoginPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly apiService = inject(ApiService);
   private readonly portfolioSelection = inject(PortfolioSelectionService);
+
+  landingStats: { users: number | null; portfolios: number | null; etfs: number | null } = { users: null, portfolios: null, etfs: null };
+
+  ngOnInit(): void {
+    this.apiService.getLandingStats().subscribe({
+      next: (response: any) => {
+        const data = response?.data;
+        if (response?.success && data && [data.users, data.portfolios, data.etfs].every((value: unknown) => Number.isSafeInteger(value) && (value as number) >= 0)) {
+          this.landingStats = { users: data.users, portfolios: data.portfolios, etfs: data.etfs };
+        }
+      },
+      error: () => { /* Keep placeholders if statistics cannot be loaded. */ }
+    });
+  }
 
   username = '';
   password = '';
