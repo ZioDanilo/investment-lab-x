@@ -467,3 +467,8 @@
 .prelogin-brand-name{font-size:clamp(.96rem,.85vw,1.3rem);font-weight:800;letter-spacing:.04em;line-height:1;color:#edf6ff}
 .prelogin-brand-tag{margin-top:4px;font-size:.5rem;letter-spacing:.12em;color:#84a9d2;white-space:nowrap}
 @media(max-width:760px){.message-navbar{justify-content:flex-end}.message-rotator{width:calc(100% - 200px)}.message-rotator span{font-size:.66rem}}
+
+/* Public informational navigation, visible without login. */
+.public-footer{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px;font-size:12px;line-height:1.4}
+.public-footer a{color:#a8dfff;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:900px){.public-footer{margin:18px 0}}
