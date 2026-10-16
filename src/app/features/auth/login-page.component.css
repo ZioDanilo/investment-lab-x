@@ -17,7 +17,7 @@
 }
 
 .message-navbar {
-  height: 48px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -29,7 +29,7 @@
 .message-rotator {
   position: relative;
   width: min(92vw, 1050px);
-  height: 48px;
+  height: 64px;
   overflow: hidden;
   text-align: center;
 }
@@ -61,7 +61,7 @@
 
 .landing-shell {
   width: min(100%, 1600px);
-  height: calc(100% - 48px);
+  height: calc(100% - 64px);
   margin: 0 auto;
   padding: clamp(12px, 1.5vh, 20px) clamp(18px, 2vw, 32px);
   box-sizing: border-box;
@@ -350,8 +350,8 @@
 }
 
 @media (max-height: 760px) and (min-width: 901px) {
-  .message-navbar, .message-rotator { height: 40px; }
-  .landing-shell { height: calc(100% - 40px); gap: 10px; padding-top: 10px; padding-bottom: 10px; }
+  .message-navbar, .message-rotator { height: 64px; }
+  .landing-shell { height: calc(100% - 64px); gap: 10px; padding-top: 10px; padding-bottom: 10px; }
   .hero-panel { padding-top: 24px; padding-bottom: 24px; }
   .pillars-panel article { min-height: 64px; }
 }
@@ -362,7 +362,7 @@
 }
 
 @media (max-width: 560px) {
-  .message-navbar, .message-rotator { height: 42px; }
+  .message-navbar, .message-rotator { height: 64px; }
   .message-rotator span { font-size: 0.72rem; }
   .pillars-panel { grid-template-columns: 1fr; padding: 0 16px 16px; }
 }
