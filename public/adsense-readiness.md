@@ -1,4 +1,4 @@
-# Checklist di pubblicazione AdSense — ETFolio
+# Checklist di pubblicazione AdSense — Razer
 
 ## Implementato
 - Pagina pubblica informativa, accessibile senza autenticazione: /chi-siamo.
