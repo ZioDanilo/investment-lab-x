@@ -1,14 +1,18 @@
 <div class="login-page">
-  <div class="message-navbar" aria-label="Messaggi ETFolio">
+  <div class="message-navbar" aria-label="Navigazione e messaggi Razer">
+    <div class="prelogin-brand" aria-label="Razer">
+      <span class="prelogin-brand-name">Razer</span>
+      <span class="prelogin-brand-tag">COSTRUISCI • ANALIZZA • MIGLIORA</span>
+    </div>
     <div class="message-rotator">
       <span>Perché portfolio.com era già occupato</span>
-      <span>“Benvenuto su ETFolio.” — <em>Accetta tutti i cookie per scoprire che VWCE esiste.</em></span>
+      <span>“Benvenuto su Razer.” — <em>Accetta tutti i cookie per scoprire che VWCE esiste.</em></span>
       <span>Portfolio… ma con meno lettere e più TER</span>
-      <span>Abbiamo costruito scenari macroeconomici, matrici di correlazione, Market Universe, Monte Carlo… per poi chiamarlo <strong>ETFolio</strong></span>
+      <span>Abbiamo costruito scenari macroeconomici, matrici di correlazione, Market Universe, Monte Carlo… per poi chiamarlo <strong>Razer</strong></span>
     </div>
   </div>
   <main class="landing-shell">
-    <section class="hero-panel" aria-label="ETFolio">
+    <section class="hero-panel" aria-label="Razer">
       <div class="hero-copy-wrap">
         <div class="hero-copy">
           <h1>
@@ -30,7 +34,7 @@
           <button type="button" role="tab" [class.active]="registerMode" [attr.aria-selected]="registerMode" (click)="setRegisterMode(true)">Registrati</button>
         </div>
 
-        <h2>{{ registerMode ? 'Crea il tuo account' : 'Accedi a ETFolio' }}</h2>
+        <h2>{{ registerMode ? 'Crea il tuo account' : 'Accedi a Razer' }}</h2>
 
         <label class="field">
           <span>Username</span>
@@ -74,7 +78,7 @@
     </section>
 
     <p *ngIf="landingStatsError" role="status" style="margin:8px 0;color:#f4b5b5;font-size:12px;text-align:center">{{ landingStatsError }}</p>
-    <section class="pillars-panel" aria-label="I quattro pilastri di ETFolio">
+    <section class="pillars-panel" aria-label="I quattro pilastri di Razer">
       <article><strong>{{ landingStats.users ?? '—' }}</strong><span>Utenti</span></article>
       <article><strong>{{ landingStats.portfolios ?? '—' }}</strong><span>Portafogli</span></article>
       <article><strong>{{ landingStats.etfs ?? '—' }}</strong><span>ETF</span></article>
