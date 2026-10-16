@@ -177,8 +177,9 @@
   display: grid;
   grid-template-rows: auto auto auto auto;
   gap: 12px;
-  width: min(100%, 1760px);
-  margin: 0 auto;
+  width: calc(100% - 164px);
+  margin: 0 0 0 164px;
+  box-sizing: border-box;
   padding: 10px clamp(18px, 2vw, 30px) 8px;
   flex: 1;
   min-height: 0;
@@ -832,4 +833,8 @@
   .nav-item {
     font-size: 0.64rem;
   }
+}
+
+@media (max-width: 760px) {
+  .home-main { width: 100%; margin-left: 0; }
 }
