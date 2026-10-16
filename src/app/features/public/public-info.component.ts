@@ -2,24 +2,22 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 @Component({
-  selector: 'app-public-info',
-  standalone: true,
-  imports: [RouterLink],
-  template: `
-    <main class="info">
-      <nav><a routerLink="/login">← Torna a Razer</a></nav>
-      <h1>Razer: strumenti per analizzare portafogli ETF</h1>
-      <p>Razer è una piattaforma per costruire, confrontare e studiare portafogli di ETF. Le simulazioni sono strumenti di analisi e non previsioni dei risultati futuri.</p>
-      <h2>Cosa puoi fare</h2>
-      <section><h3>Laboratorio portafogli</h3><p>Componi portafogli con pesi differenti e confronta indicatori come rendimento atteso, volatilità e drawdown.</p></section>
-      <section><h3>Simulazioni Monte Carlo</h3><p>Esplora la distribuzione dei possibili risultati attraverso simulazioni statistiche basate su ipotesi di mercato. I risultati dipendono dal modello e non sono garantiti.</p></section>
-      <section><h3>Ribilanciamento</h3><p>Confronta una composizione obiettivo con un portafoglio reale e analizza possibili operazioni di acquisto e vendita, tenendo conto dei vincoli previsti dal modello.</p></section>
-      <section><h3>Trend following</h3><p>Studia strategie sistematiche basate sull'andamento storico dei prezzi e confrontane caratteristiche e limiti.</p></section>
-      <h2>Avvertenze</h2>
-      <p>I contenuti sono informativi e didattici, non costituiscono consulenza finanziaria personalizzata né inviti all'investimento. Investire comporta il rischio di perdere capitale. Rendimenti storici e simulati non garantiscono risultati futuri.</p>
-      <p>Per utilizzare gli strumenti, <a routerLink="/login">accedi o registrati</a>.</p>
-      <footer><a routerLink="/privacy">Privacy</a> · <a routerLink="/cookies">Cookie</a> · <a routerLink="/contatti">Contatti</a></footer>
-    </main>`,
-  styles: [`.info{max-width:850px;margin:0 auto;padding:40px 24px 80px;color:#e4edf8;font:16px/1.65 system-ui,sans-serif}.info h1{font-size:clamp(28px,4vw,42px);line-height:1.2}.info h2{margin-top:32px}.info section{padding:8px 0;border-bottom:1px solid #283a4c}.info a{color:#79caff}.info footer{margin-top:40px;border-top:1px solid #283a4c;padding-top:20px}:host{display:block;min-height:100vh;background:#08131f}`]
+ selector:'app-public-info',standalone:true,imports:[RouterLink],
+ template:`<main class="info">
+ <nav><a routerLink="/login">← Razer</a> <span> / Guida alla piattaforma</span></nav>
+ <header><p class="eyebrow">RAZER · EDUCAZIONE FINANZIARIA</p><h1>Analizzare un portafoglio ETF, oltre il rendimento</h1>
+ <p class="lead">Razer offre strumenti per confrontare composizioni, rischi e scenari di mercato. Il suo obiettivo è rendere più comprensibili le ipotesi dietro una decisione d'investimento, non prevedere i mercati.</p></header>
+ <section><h2>1. Costruzione e diversificazione</h2><p>Un portafoglio è un insieme di strumenti con pesi percentuali. Diversificare significa distribuire le esposizioni fra mercati, settori, fattori e classi di attività. Avere molti ETF non equivale necessariamente a diversificare: due fondi possono detenere titoli simili o reagire nello stesso modo a uno shock.</p><p>Il laboratorio permette di osservare come cambia il profilo complessivo modificando i pesi. La correlazione fra strumenti può variare nel tempo, specialmente nelle fasi di crisi.</p></section>
+ <section><h2>2. Rendimento atteso, volatilità e drawdown</h2><p>Il rendimento atteso è una stima, non una promessa. La volatilità descrive la dispersione dei rendimenti intorno alla media; non esaurisce tutti i rischi, come liquidità, concentrazione e perdite estreme. Il massimo drawdown misura la maggiore discesa da un picco a un minimo nel periodo considerato.</p><p>Due portafogli con lo stesso rendimento atteso possono avere percorsi molto diversi. Una perdita del 40% richiede un successivo guadagno di circa il 66,7% per tornare al capitale iniziale.</p></section>
+ <section><h2>3. Simulazioni Monte Carlo</h2><p>Una simulazione Monte Carlo genera molti percorsi ipotetici utilizzando rendimenti, volatilità, correlazioni e altre assunzioni statistiche. Permette di studiare una distribuzione di esiti, non di assegnare certezze al futuro. Cambiando le ipotesi, possono cambiare sensibilmente i risultati.</p><p>Le probabilità prodotte sono condizionate al modello e non sono probabilità oggettive o garanzie. Eventi rari, cambiamenti strutturali e costi reali possono non essere rappresentati adeguatamente.</p></section>
+ <section><h2>4. Scenari macroeconomici</h2><p>Espansione, soft landing, recessione e stagflazione rappresentano contesti economici differenti. La risposta di azioni, obbligazioni e materie prime dipende anche da valutazioni iniziali, politica monetaria e sorprese rispetto alle aspettative. Non esiste un ETF che vinca sempre in un determinato scenario.</p></section>
+ <section><h2>5. Ribilanciamento</h2><p>Con il tempo i pesi effettivi si allontanano da quelli obiettivo. Ribilanciare significa valutare acquisti e vendite per ridurre tale distanza. Costi di negoziazione, imposte, liquidità e quantità intere possono impedire di raggiungere esattamente il target. Una proposta automatica non sostituisce una verifica operativa.</p></section>
+ <section><h2>6. Trend following</h2><p>Le strategie trend following utilizzano regole sui prezzi passati, come medie mobili o segnali di momentum temporale, per modificare l'esposizione. Possono ridurre alcune perdite prolungate, ma soffrono mercati laterali, falsi segnali, ritardi di ingresso e uscita. I backtest sono particolarmente sensibili a costi, parametri e selezione dei periodi.</p></section>
+ <section><h2>Come leggere correttamente i risultati</h2><p>Confronta più indicatori, controlla le assunzioni, considera scenari sfavorevoli e verifica la sensibilità a costi e orizzonte temporale. Rendimenti storici, backtest e simulazioni non garantiscono risultati futuri; il capitale investito può diminuire.</p></section>
+ <aside><strong>Informazioni, non consulenza</strong><p>Razer è uno strumento di studio e analisi. I contenuti non costituiscono raccomandazioni personalizzate, offerte di strumenti finanziari o consulenza in materia di investimenti.</p></aside>
+ <p><a routerLink="/login">Accedi o registrati per esplorare gli strumenti →</a></p>
+ <footer><a routerLink="/privacy">Privacy</a><a routerLink="/cookies">Cookie</a><a routerLink="/contatti">Contatti</a></footer>
+ </main>`,
+ styles:[`:host{display:block;min-height:100vh;background:#08131f;color:#e4edf8}.info{max-width:900px;margin:auto;padding:35px 25px 90px;font:16px/1.75 system-ui,sans-serif}.info nav,.info footer{display:flex;gap:20px;flex-wrap:wrap}.info nav span,.eyebrow{color:#9cb3c8}.info header{margin:38px 0 45px}.info h1{font-size:clamp(32px,4.5vw,50px);line-height:1.17;letter-spacing:-.03em}.info h2{font-size:24px;margin:0 0 12px}.info section{padding:26px 0;border-top:1px solid #284154}.info a{color:#81ccff}.info .lead{font-size:19px;color:#c5d7e7}.info aside{padding:18px 22px;border-left:3px solid #68b6ed;background:#102437;margin:25px 0}.info footer{margin-top:55px;padding-top:25px;border-top:1px solid #284154}`]
 })
 export class PublicInfoComponent {}
