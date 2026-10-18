@@ -103,6 +103,13 @@ export class LoginPageComponent implements OnInit {
     this.usernameVerified = '';
     this.usernameCheckError = false;
     this.usernameChecking = false;
+    if (this.emailCheckTimer) clearTimeout(this.emailCheckTimer);
+    if (this.usernameCheckTimer) clearTimeout(this.usernameCheckTimer);
+    if (registerMode) {
+      // Fields may already be populated from the login tab or browser autofill.
+      if (this.username.trim()) this.onUsernameChange(this.username);
+      if (this.email.trim()) this.onEmailChange(this.email);
+    }
   }
 
   get emailFormatInvalid(): boolean {
@@ -149,8 +156,12 @@ export class LoginPageComponent implements OnInit {
         this.emailVerified = !this.emailCheckError && !this.emailTaken ? email : '';
         this.emailChecking = false;
       },
-      error: () => {
-        if (this.email.trim().toLowerCase() === email) { this.emailChecking = false; this.emailCheckError = true; this.emailVerified = ''; }
+      error: (error: any) => {
+        if (this.email.trim().toLowerCase() !== email) return;
+        this.emailChecking = false;
+        this.emailCheckError = true;
+        this.emailVerified = '';
+        console.error('Verifica disponibilità email fallita', error?.status, error?.error);
       }
     });
   }
