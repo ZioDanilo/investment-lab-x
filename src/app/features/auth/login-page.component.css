@@ -475,3 +475,9 @@
 
 /* Keep the landing's three rows (hero, public links, statistics) inside the viewport. */
 @media(min-width:901px){.landing-shell{grid-template-rows:minmax(0,1fr) auto auto}}
+
+/* Registration-only birth date selectors, matching the existing auth fields. */
+.birth-date-selects{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.5fr) minmax(0,1fr);gap:8px;width:100%}
+.birth-date-selects select{width:100%;min-width:0;box-sizing:border-box;border:1px solid rgba(145,176,211,.32);border-radius:9px;background:#111c2b;color:#f1f7ff;padding:10px 7px;font:inherit}
+.birth-date-selects select:focus{outline:2px solid #39a9ff;outline-offset:1px}
+@media(max-width:420px){.birth-date-selects{gap:5px}.birth-date-selects select{padding:9px 3px;font-size:.78rem}}
