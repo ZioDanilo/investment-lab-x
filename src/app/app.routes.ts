@@ -11,8 +11,8 @@ import { TrendFollowingPageComponent } from './features/trend-following/trend-fo
 import { authGuard } from './core/guards/auth.guard';
 
 export const appRoutes: Routes = [
-  { path: 'login', component: LoginPageComponent },
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: '', component: LoginPageComponent, pathMatch: 'full' },
+  { path: 'login', redirectTo: '/', pathMatch: 'full' },
   {
     path: '',
     component: AppShellComponent,
