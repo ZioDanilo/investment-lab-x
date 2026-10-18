@@ -27,6 +27,10 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/auth/username-availability?username=${encodeURIComponent(username)}`);
   }
 
+  checkEmailAvailability(email: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/auth/email-availability?email=${encodeURIComponent(email)}`);
+  }
+
   getLandingStats(): Observable<any> {
     return this.http.get(`${this.apiUrl}/auth/landing-stats`);
   }
