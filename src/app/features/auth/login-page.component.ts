@@ -85,6 +85,7 @@ export class LoginPageComponent implements OnInit {
   emailChecking = false;
   emailVerified = '';
   emailCheckError = false;
+  emailCheckErrorMessage = '';
   usernameChecking = false;
   usernameVerified = '';
   usernameCheckError = false;
@@ -100,6 +101,7 @@ export class LoginPageComponent implements OnInit {
     this.emailTaken = false;
     this.emailVerified = '';
     this.emailCheckError = false;
+    this.emailCheckErrorMessage = '';
     this.usernameVerified = '';
     this.usernameCheckError = false;
     this.usernameChecking = false;
@@ -130,6 +132,7 @@ export class LoginPageComponent implements OnInit {
     this.emailTaken = false;
     this.emailVerified = '';
     this.emailCheckError = false;
+    this.emailCheckErrorMessage = '';
     this.authError = '';
     if (this.emailCheckTimer) clearTimeout(this.emailCheckTimer);
     if (!this.registerMode) return;
@@ -153,6 +156,7 @@ export class LoginPageComponent implements OnInit {
         if (this.email.trim().toLowerCase() !== email) return;
         this.emailTaken = response?.data?.available === false;
         this.emailCheckError = response?.success !== true || typeof response?.data?.available !== 'boolean';
+        this.emailCheckErrorMessage = this.emailCheckError ? 'Risposta non valida dal servizio di verifica email.' : '';
         this.emailVerified = !this.emailCheckError && !this.emailTaken ? email : '';
         this.emailChecking = false;
       },
@@ -160,6 +164,8 @@ export class LoginPageComponent implements OnInit {
         if (this.email.trim().toLowerCase() !== email) return;
         this.emailChecking = false;
         this.emailCheckError = true;
+        const status = Number(error?.status || 0);
+        this.emailCheckErrorMessage = status === 404 ? 'Servizio di verifica email non trovato (HTTP 404): aggiornare il backend.' : status === 500 ? 'Errore del servizio di verifica email (HTTP 500): controllare il backend e il database.' : status === 0 ? 'Servizio email non raggiungibile: controllare connessione e CORS.' : 'Verifica email non disponibile (HTTP ' + status + ').';
         this.emailVerified = '';
         console.error('Verifica disponibilità email fallita', error?.status, error?.error);
       }
