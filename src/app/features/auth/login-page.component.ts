@@ -85,6 +85,9 @@ export class LoginPageComponent implements OnInit {
   emailChecking = false;
   emailVerified = '';
   emailCheckError = false;
+  usernameChecking = false;
+  usernameVerified = '';
+  usernameCheckError = false;
   private emailCheckTimer?: ReturnType<typeof setTimeout>;
   private usernameCheckTimer?: ReturnType<typeof setTimeout>;
 
@@ -97,6 +100,23 @@ export class LoginPageComponent implements OnInit {
     this.emailTaken = false;
     this.emailVerified = '';
     this.emailCheckError = false;
+    this.usernameVerified = '';
+    this.usernameCheckError = false;
+    this.usernameChecking = false;
+  }
+
+  get emailFormatInvalid(): boolean {
+    return !!this.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim());
+  }
+
+  get birthDateError(): string {
+    const y=Number(this.birthYear),m=Number(this.birthMonth),d=Number(this.birthDay);
+    if(!y||!m||!d)return '';
+    const date=new Date(y,m-1,d);
+    if(date.getFullYear()!==y || date.getMonth()!==m-1 || date.getDate()!==d)return 'Data di nascita non valida.';
+    const now=new Date();
+    const limit=new Date(now.getFullYear()-18,now.getMonth(),now.getDate());
+    return date>limit?'Devi aver compiuto almeno 18 anni.':'';
   }
 
   onEmailChange(value: string): void {
@@ -107,7 +127,7 @@ export class LoginPageComponent implements OnInit {
     if (this.emailCheckTimer) clearTimeout(this.emailCheckTimer);
     if (!this.registerMode) return;
     const email = String(value ?? '').trim();
-    if (!email || !email.includes('@') || !email.includes('.')) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       this.emailChecking = false;
       return;
     }
@@ -137,12 +157,16 @@ export class LoginPageComponent implements OnInit {
 
   onUsernameChange(value: string): void {
     this.usernameTaken = false;
+    this.usernameVerified = '';
+    this.usernameCheckError = false;
     this.authError = '';
+    if (this.usernameCheckTimer) clearTimeout(this.usernameCheckTimer);
     if (!this.registerMode) return;
 
     if (this.usernameCheckTimer) clearTimeout(this.usernameCheckTimer);
     const username = String(value ?? '').trim();
-    if (!username) return;
+    if (!username) { this.usernameChecking = false; return; }
+    this.usernameChecking = true;
 
     this.usernameCheckTimer = setTimeout(() => this.checkUsernameAvailability(), 350);
   }
@@ -152,23 +176,30 @@ export class LoginPageComponent implements OnInit {
     const username = this.username.trim();
     if (!username) {
       this.usernameTaken = false;
+      this.usernameChecking = false;
       return;
     }
-
+    if (this.usernameVerified === username.toLowerCase() && !this.usernameCheckError) return;
+    this.usernameChecking = true;
     this.apiService.checkUsernameAvailability(username).subscribe({
       next: (response: any) => {
         if (this.username.trim().toLowerCase() !== username.toLowerCase()) return;
         this.usernameTaken = response?.data?.available === false;
+        this.usernameCheckError = response?.success !== true || typeof response?.data?.available !== 'boolean';
+        this.usernameVerified = !this.usernameCheckError && !this.usernameTaken ? username.toLowerCase() : '';
+        this.usernameChecking = false;
       },
       error: () => {
-        // Registration itself remains the authoritative uniqueness check.
-        this.usernameTaken = false;
+        if(this.username.trim().toLowerCase()!==username.toLowerCase())return;
+        this.usernameChecking = false;
+        this.usernameCheckError = true;
+        this.usernameVerified = '';
       }
     });
   }
 
   onSubmit(): void {
-    if (this.submitting || !this.username || !this.password || (this.registerMode && (this.usernameTaken || this.emailTaken || this.emailChecking || this.emailCheckError || this.emailVerified !== this.email.trim().toLowerCase() || !this.registrationValid))) return;
+    if (this.submitting || !this.username || !this.password || (this.registerMode && (this.usernameTaken || this.usernameChecking || this.usernameCheckError || this.usernameVerified !== this.username.trim().toLowerCase() || this.emailTaken || this.emailChecking || this.emailCheckError || this.emailVerified !== this.email.trim().toLowerCase() || !this.registrationValid))) return;
     if (this.registerMode) {
       this.onRegister();
       return;
