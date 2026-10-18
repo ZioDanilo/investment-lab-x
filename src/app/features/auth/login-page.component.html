@@ -72,7 +72,7 @@
           </label>
           <p class="field-error" *ngIf="emailFormatInvalid">Inserisci un indirizzo email valido.</p>
           <p class="field-error" *ngIf="emailTaken">Questa email è già registrata. Usane un'altra.</p>
-          <p class="field-error" *ngIf="emailCheckError && !emailFormatInvalid">Verifica email non disponibile. Riprova.</p>
+          <p class="field-error" *ngIf="emailCheckError && !emailFormatInvalid">{{emailCheckErrorMessage || 'Verifica email non disponibile. Riprova.'}}</p>
           <div class="field">
             <span>Data di nascita</span>
             <div class="birth-date-selects">
