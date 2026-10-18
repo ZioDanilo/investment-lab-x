@@ -63,8 +63,33 @@
           />
         </label>
 
+        <ng-container *ngIf="registerMode">
+          <label class="field">
+            <span>Email</span>
+            <input type="email" name="email" [(ngModel)]="email" autocomplete="email"
+              aria-label="Indirizzo email" placeholder="nome@esempio.it" required />
+          </label>
+          <div class="field">
+            <span>Data di nascita</span>
+            <div class="birth-date-selects">
+              <select name="birthDay" [(ngModel)]="birthDay" aria-label="Giorno di nascita" required>
+                <option value="" disabled>Giorno</option>
+                <option *ngFor="let day of birthDays" [value]="day">{{day}}</option>
+              </select>
+              <select name="birthMonth" [(ngModel)]="birthMonth" aria-label="Mese di nascita" required>
+                <option value="" disabled>Mese</option>
+                <option *ngFor="let month of birthMonths; let i=index" [value]="i+1">{{month}}</option>
+              </select>
+              <select name="birthYear" [(ngModel)]="birthYear" aria-label="Anno di nascita" required>
+                <option value="" disabled>Anno</option>
+                <option *ngFor="let year of birthYears" [value]="year">{{year}}</option>
+              </select>
+            </div>
+          </div>
+        </ng-container>
+
         <div class="login-action-row">
-          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && usernameTaken)">
+          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && (usernameTaken || !registrationValid))">
             {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
           </button>
         </div>
@@ -72,7 +97,7 @@
         <p class="helper-text helper-text--error" *ngIf="authError">{{ authError }}</p>
         <p class="helper-text helper-text--success" *ngIf="authSuccess">{{ authSuccess }}</p>
         <p class="helper-text">
-          {{ registerMode ? 'Scegli username e password per creare il tuo profilo.' : 'Accedi al tuo laboratorio di investimento.' }}
+          {{ registerMode ? 'Inserisci username, password, email e data di nascita per creare il tuo profilo.' : 'Accedi al tuo laboratorio di investimento.' }}
         </p>
       </form>
     </section>
