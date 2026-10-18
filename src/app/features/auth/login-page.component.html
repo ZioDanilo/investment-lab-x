@@ -50,6 +50,7 @@
           />
         </label>
         <p class="field-error" *ngIf="registerMode && usernameTaken">Username già esistente. Scegline un altro.</p>
+        <p class="field-error" *ngIf="registerMode && usernameCheckError">Verifica username non disponibile. Riprova.</p>
 
         <label class="field">
           <span>Password</span>
@@ -69,6 +70,9 @@
             <input type="email" name="email" [(ngModel)]="email" (ngModelChange)="onEmailChange($event)" (blur)="checkEmailAvailability()" autocomplete="email"
               aria-label="Indirizzo email" placeholder="nome@esempio.it" required />
           </label>
+          <p class="field-error" *ngIf="emailFormatInvalid">Inserisci un indirizzo email valido.</p>
+          <p class="field-error" *ngIf="emailTaken">Questa email è già registrata. Usane un'altra.</p>
+          <p class="field-error" *ngIf="emailCheckError && !emailFormatInvalid">Verifica email non disponibile. Riprova.</p>
           <div class="field">
             <span>Data di nascita</span>
             <div class="birth-date-selects">
@@ -86,13 +90,10 @@
               </select>
             </div>
           </div>
+          <p class="field-error" *ngIf="birthDateError">{{birthDateError}}</p>
         </ng-container>
-
-        <p class="field-error" *ngIf="registerMode && emailTaken">Email già utilizzata. Scegline un’altra.</p>
-        <p class="field-error" *ngIf="registerMode && emailCheckError">Impossibile verificare l’email. Riprova modificando il campo.</p>
-        <p class="field-error" *ngIf="registerMode && birthDay && birthMonth && birthYear && !registrationValid && email">Verifica la data di nascita: è necessario aver compiuto 18 anni e inserire una data reale.</p>
         <div class="login-action-row">
-          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && (usernameTaken || emailTaken || emailChecking || emailCheckError || emailVerified !== email.trim().toLowerCase() || !registrationValid))">
+          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && (usernameTaken || usernameChecking || usernameCheckError || usernameVerified !== username.trim().toLowerCase() || emailTaken || emailChecking || emailCheckError || emailVerified !== email.trim().toLowerCase() || !registrationValid))">
             {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
           </button>
         </div>
