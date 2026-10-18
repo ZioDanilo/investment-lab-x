@@ -65,7 +65,7 @@ export class LoginPageComponent implements OnInit {
   ];
   readonly birthYears = Array.from({length:127},(_,i)=>new Date().getFullYear()-i);
   get registrationValid():boolean {
-    if(!this.email.trim() || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(this.email.trim()))return false;
+    if(!this.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim()))return false;
     const y=Number(this.birthYear),m=Number(this.birthMonth),d=Number(this.birthDay);
     if(!y||!m||!d)return false;
     const date=new Date(y,m-1,d);
