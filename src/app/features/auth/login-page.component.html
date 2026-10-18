@@ -89,8 +89,10 @@
         </ng-container>
 
         <p class="field-error" *ngIf="registerMode && emailTaken">Email già utilizzata. Scegline un’altra.</p>
+        <p class="field-error" *ngIf="registerMode && emailCheckError">Impossibile verificare l’email. Riprova modificando il campo.</p>
+        <p class="field-error" *ngIf="registerMode && birthDay && birthMonth && birthYear && !registrationValid && email">Verifica la data di nascita: è necessario aver compiuto 18 anni e inserire una data reale.</p>
         <div class="login-action-row">
-          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && (usernameTaken || emailTaken || emailChecking || !registrationValid))">
+          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && (usernameTaken || emailTaken || emailChecking || emailCheckError || emailVerified !== email.trim().toLowerCase() || !registrationValid))">
             {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
           </button>
         </div>
