@@ -69,7 +69,9 @@ export class LoginPageComponent implements OnInit {
     const y=Number(this.birthYear),m=Number(this.birthMonth),d=Number(this.birthDay);
     if(!y||!m||!d)return false;
     const date=new Date(y,m-1,d);
-    return date.getFullYear()===y && date.getMonth()===m-1 && date.getDate()===d && date.getTime()<=Date.now();
+    const today=new Date();
+    const adultCutoff=new Date(today.getFullYear()-18,today.getMonth(),today.getDate());
+    return date.getFullYear()===y && date.getMonth()===m-1 && date.getDate()===d && date.getTime()<=adultCutoff.getTime();
   }
   get birthDate():string {
     return this.birthYear+'-'+this.birthMonth.padStart(2,'0')+'-'+this.birthDay.padStart(2,'0');
@@ -81,6 +83,8 @@ export class LoginPageComponent implements OnInit {
   usernameTaken = false;
   emailTaken = false;
   emailChecking = false;
+  emailVerified = '';
+  emailCheckError = false;
   private emailCheckTimer?: ReturnType<typeof setTimeout>;
   private usernameCheckTimer?: ReturnType<typeof setTimeout>;
 
@@ -91,10 +95,14 @@ export class LoginPageComponent implements OnInit {
     this.authSuccess = '';
     this.usernameTaken = false;
     this.emailTaken = false;
+    this.emailVerified = '';
+    this.emailCheckError = false;
   }
 
   onEmailChange(value: string): void {
     this.emailTaken = false;
+    this.emailVerified = '';
+    this.emailCheckError = false;
     this.authError = '';
     if (this.emailCheckTimer) clearTimeout(this.emailCheckTimer);
     if (!this.registerMode) return;
@@ -110,16 +118,19 @@ export class LoginPageComponent implements OnInit {
   checkEmailAvailability(): void {
     if (!this.registerMode) return;
     const email = this.email.trim().toLowerCase();
-    if (!email) { this.emailChecking = false; return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { this.emailChecking = false; return; }
+    if (this.emailVerified === email && !this.emailCheckError) return;
     this.emailChecking = true;
     this.apiService.checkEmailAvailability(email).subscribe({
       next: (response: any) => {
         if (this.email.trim().toLowerCase() !== email) return;
         this.emailTaken = response?.data?.available === false;
+        this.emailCheckError = response?.success !== true || typeof response?.data?.available !== 'boolean';
+        this.emailVerified = !this.emailCheckError && !this.emailTaken ? email : '';
         this.emailChecking = false;
       },
       error: () => {
-        if (this.email.trim().toLowerCase() === email) this.emailChecking = false;
+        if (this.email.trim().toLowerCase() === email) { this.emailChecking = false; this.emailCheckError = true; this.emailVerified = ''; }
       }
     });
   }
@@ -157,7 +168,7 @@ export class LoginPageComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.submitting || !this.username || !this.password || (this.registerMode && (this.usernameTaken || this.emailTaken || this.emailChecking || !this.registrationValid))) return;
+    if (this.submitting || !this.username || !this.password || (this.registerMode && (this.usernameTaken || this.emailTaken || this.emailChecking || this.emailCheckError || this.emailVerified !== this.email.trim().toLowerCase() || !this.registrationValid))) return;
     if (this.registerMode) {
       this.onRegister();
       return;
