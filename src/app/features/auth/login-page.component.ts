@@ -79,6 +79,9 @@ export class LoginPageComponent implements OnInit {
   authError = '';
   authSuccess = '';
   usernameTaken = false;
+  emailTaken = false;
+  emailChecking = false;
+  private emailCheckTimer?: ReturnType<typeof setTimeout>;
   private usernameCheckTimer?: ReturnType<typeof setTimeout>;
 
   setRegisterMode(registerMode: boolean): void {
@@ -87,6 +90,38 @@ export class LoginPageComponent implements OnInit {
     this.authError = '';
     this.authSuccess = '';
     this.usernameTaken = false;
+    this.emailTaken = false;
+  }
+
+  onEmailChange(value: string): void {
+    this.emailTaken = false;
+    this.authError = '';
+    if (this.emailCheckTimer) clearTimeout(this.emailCheckTimer);
+    if (!this.registerMode) return;
+    const email = String(value ?? '').trim();
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      this.emailChecking = false;
+      return;
+    }
+    this.emailChecking = true;
+    this.emailCheckTimer = setTimeout(() => this.checkEmailAvailability(), 350);
+  }
+
+  checkEmailAvailability(): void {
+    if (!this.registerMode) return;
+    const email = this.email.trim().toLowerCase();
+    if (!email) { this.emailChecking = false; return; }
+    this.emailChecking = true;
+    this.apiService.checkEmailAvailability(email).subscribe({
+      next: (response: any) => {
+        if (this.email.trim().toLowerCase() !== email) return;
+        this.emailTaken = response?.data?.available === false;
+        this.emailChecking = false;
+      },
+      error: () => {
+        if (this.email.trim().toLowerCase() === email) this.emailChecking = false;
+      }
+    });
   }
 
   onUsernameChange(value: string): void {
@@ -122,7 +157,7 @@ export class LoginPageComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.submitting || !this.username || !this.password || (this.registerMode && (this.usernameTaken || !this.registrationValid))) return;
+    if (this.submitting || !this.username || !this.password || (this.registerMode && (this.usernameTaken || this.emailTaken || this.emailChecking || !this.registrationValid))) return;
     if (this.registerMode) {
       this.onRegister();
       return;
@@ -172,6 +207,7 @@ export class LoginPageComponent implements OnInit {
       error: (error) => {
         this.submitting = false;
         if (error?.status === 409) {
+          if (error?.error?.field === 'email') { this.emailTaken = true; this.authError = 'Email già utilizzata. Cambiala.'; return; }
           this.authError = 'Username già esistente. Scegline un altro.';
           return;
         }
