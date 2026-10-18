@@ -66,7 +66,7 @@
         <ng-container *ngIf="registerMode">
           <label class="field">
             <span>Email</span>
-            <input type="email" name="email" [(ngModel)]="email" autocomplete="email"
+            <input type="email" name="email" [(ngModel)]="email" (ngModelChange)="onEmailChange($event)" (blur)="checkEmailAvailability()" autocomplete="email"
               aria-label="Indirizzo email" placeholder="nome@esempio.it" required />
           </label>
           <div class="field">
@@ -88,8 +88,9 @@
           </div>
         </ng-container>
 
+        <p class="field-error" *ngIf="registerMode && emailTaken">Email già utilizzata. Scegline un’altra.</p>
         <div class="login-action-row">
-          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && (usernameTaken || !registrationValid))">
+          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && (usernameTaken || emailTaken || emailChecking || !registrationValid))">
             {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
           </button>
         </div>
