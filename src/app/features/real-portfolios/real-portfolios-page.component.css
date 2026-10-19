@@ -242,3 +242,9 @@ input.invalid,
   .bottom-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,.95fr)}
   .main-grid > app-ui-card{min-width:0;height:100%;box-sizing:border-box}
 }
+
+/* The grid stretches app-ui-card hosts, but their internal article remains auto-height.
+   Stretch the actual card surface so composition and statistics end at chart level. */
+@media (min-width:1181px){
+  :host ::ng-deep .main-grid > app-ui-card > .ui-card{height:100%;box-sizing:border-box}
+}
