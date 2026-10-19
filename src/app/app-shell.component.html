@@ -57,7 +57,7 @@
       <a class="app-feature-menu-card app-feature-menu-card--cyan" routerLink="/market-universe" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">bar_chart</span><span>ETF & Mercati</span></a>
       <div class="mock-ad-slot mock-ad-slot--sidebar"><app-adsense-slot slot="2590507807" /></div>
     </aside>
-    <div *ngIf="!showFeatureSidebar" class="mock-ad-home-stack" aria-label="Spazi pubblicitari"><app-adsense-slot slot="7612479205" /><app-adsense-slot slot="9075850092" /><app-adsense-slot slot="4538014291" /></div>
+    <app-ad-rail *ngIf="!showFeatureSidebar" class="mock-ad-home-stack" aria-label="Spazi pubblicitari" />
     <section class="route-page"><router-outlet (activate)="onFeatureActivate($event)"></router-outlet></section>
   </main>
 </div>
