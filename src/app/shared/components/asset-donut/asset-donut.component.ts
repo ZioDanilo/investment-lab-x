@@ -22,17 +22,12 @@ export interface AssetDonutItem { label: string; value: number; weight: number; 
           <circle class="donut-track" cx="50" cy="50" r="38" pathLength="100"/>
           <g class="donut-slices">
             <circle *ngFor="let item of items; let i=index" class="donut-slice" cx="50" cy="50" r="38" pathLength="100"
-              [class.donut-slice--hidden]="hoverIndex===i"
+              [class.donut-slice--active]="hoverIndex===i"
               [class.donut-slice--dimmed]="hoverIndex!==null && hoverIndex!==i"
               [attr.stroke]="item.color" [attr.stroke-dasharray]="item.weight + ' ' + (100-item.weight)"
               [attr.stroke-dashoffset]="offset(i)" (mouseenter)="hover(i,$event)" (mousemove)="moveTooltip($event)"/>
           </g>
-          <circle *ngIf="hoverIndex!==null && items[hoverIndex]" class="donut-slice donut-slice--lifted"
-            cx="50" cy="50" r="38" pathLength="100"
-            [attr.stroke]="items[hoverIndex].color"
-            [attr.stroke-dasharray]="items[hoverIndex].weight + ' ' + (100-items[hoverIndex].weight)"
-            [attr.stroke-dashoffset]="offset(hoverIndex)"
-            [attr.transform]="sliceTransform(hoverIndex)" (mousemove)="moveTooltip($event)"/>
+
         </svg>
         <div class="donut-center"><strong>{{ centerText }}</strong><small *ngIf="centerCaption">{{ centerCaption }}</small></div>
       </div>
@@ -40,7 +35,7 @@ export interface AssetDonutItem { label: string; value: number; weight: number; 
       <app-chart-tooltip *ngIf="tooltip.visible && hoverIndex!==null && items[hoverIndex]"
         class="composition-tooltip" [style.left.px]="tooltip.x" [style.top.px]="tooltip.y"
         [label]="items[hoverIndex].label"
-        [value]="(items[hoverIndex].weight | number:'1.1-1':'it-IT') + '%'"/>
+        [value]="tooltipValue(items[hoverIndex])"/>
     </div>
   `,
   styles: [`
@@ -54,7 +49,7 @@ export interface AssetDonutItem { label: string; value: number; weight: number; 
     .donut-slices{filter:drop-shadow(1.4px 2.4px 2.4px rgba(0,0,0,.38))}
     .donut-slice{cursor:pointer;stroke-linecap:butt;filter:brightness(1.035) saturate(1.07) drop-shadow(-.65px -.65px .45px rgba(255,255,255,.12));transition:opacity .16s ease,filter .18s ease}
     .donut-slice--dimmed{opacity:.96;filter:brightness(.99) saturate(1.02)}
-    .donut-slice--hidden{opacity:0}
+    .donut-slice--active{filter:brightness(1.2) saturate(1.14) drop-shadow(0 0 1px rgba(255,255,255,.35));stroke-width:19}
     .donut-slice--lifted{pointer-events:auto;stroke-linecap:butt;filter:brightness(1.13) saturate(1.12) drop-shadow(-1px -1px .7px rgba(255,255,255,.18));transition:transform .2s cubic-bezier(.2,.85,.2,1),filter .2s ease;transform-box:view-box;transform-origin:50px 50px}
     .donut-center{position:relative;z-index:2;width:82px;height:82px;border-radius:50%;background:linear-gradient(145deg,rgba(14,31,48,.98),rgba(5,14,24,.99));display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;text-align:center;pointer-events:none;box-shadow:inset 2px 2px 6px rgba(115,183,235,.055),inset -3px -4px 9px rgba(0,0,0,.28),0 2px 7px rgba(0,0,0,.16)}
     .donut-center strong{font-size:.72rem;white-space:nowrap}
@@ -76,6 +71,12 @@ export class AssetDonutComponent {
   hoverIndex: number | null = null;
   tooltip = { x: 0, y: 0, visible: false };
   offset(index: number): number { return -this.items.slice(0,index).reduce((sum,item)=>sum+item.weight,0); }
+  tooltipValue(item: AssetDonutItem): string {
+    const total = this.items.reduce((sum, entry) => sum + (Number(entry.value) || 0), 0);
+    const percentage = total > 0 ? (Number(item.value) || 0) / total * 100 : Number(item.weight) || 0;
+    const percentText = percentage.toLocaleString('it-IT', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+    return `${percentText}% (${Number(item.value) || 0} su ${total})`;
+  }
   sliceTransform(index: number): string {
     if (this.hoverIndex !== index) return 'translate(0 0)';
     const before = this.items.slice(0,index).reduce((sum,item)=>sum+item.weight,0);
