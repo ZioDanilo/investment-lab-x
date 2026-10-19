@@ -588,3 +588,14 @@
     contain: layout paint;
   }
 }
+
+/* Keep Home and feature-page advertising at the same lowered baseline.
+   This adjusts the actual ad rail positions, not only sidebar grid tracks. */
+@media (min-width: 1181px) {
+  .route-content .mock-ad-home-stack {
+    top: 109px;
+  }
+  .route-content--feature .app-feature-sidebar > app-adsense-slot {
+    margin-top: 60px;
+  }
+}
