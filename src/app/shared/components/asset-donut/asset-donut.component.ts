@@ -9,9 +9,9 @@ export interface AssetDonutItem { label: string; value: number; weight: number; 
   standalone: true,
   imports: [CommonModule, ChartTooltipComponent],
   template: `
-    <div class="composition">
+    <div class="composition" (mouseleave)="leave()">
       <div class="donut donut--interactive">
-        <svg class="donut-svg" viewBox="0 0 100 100" (mouseleave)="leave()">
+        <svg class="donut-svg" viewBox="0 0 100 100">
           <circle class="donut-track" cx="50" cy="50" r="38"/>
           <g class="donut-slices">
             <path *ngFor="let item of items; let i=index" class="donut-slice"
@@ -23,7 +23,7 @@ export interface AssetDonutItem { label: string; value: number; weight: number; 
         </svg>
         <div class="donut-center"><strong>{{ centerText }}</strong><small *ngIf="centerCaption">{{ centerCaption }}</small></div>
       </div>
-      <ul><li *ngFor="let item of items"><i [style.background]="item.color"></i><span [title]="item.label">{{ item.label }}</span></li></ul>
+      <ul><li *ngFor="let item of items; let i=index" (mouseenter)="hover(i,$event)" (mousemove)="moveTooltip($event)" (mouseleave)="leave()"><i [style.background]="item.color"></i><span [title]="item.label">{{ item.label }}</span></li></ul>
       <app-chart-tooltip *ngIf="tooltip.visible && hoverIndex!==null && items[hoverIndex]"
         class="composition-tooltip" [style.left.px]="tooltip.x" [style.top.px]="tooltip.y"
         [label]="items[hoverIndex].label"
@@ -50,7 +50,7 @@ export interface AssetDonutItem { label: string; value: number; weight: number; 
     .composition li{display:grid;grid-template-columns:10px minmax(0,1fr);align-items:center;gap:6px;padding:4px 0;font-size:.62rem}
     .composition i{width:7px;height:7px;border-radius:50%}
     .composition li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .composition-tooltip{position:fixed;z-index:6000;pointer-events:none;transform:translate(10px,-100%);display:block}
+    .composition-tooltip{position:fixed;z-index:2147483000;pointer-events:none;transform:translate(10px,-100%);display:block}
     @media(max-width:480px){.composition{gap:9px}.donut{width:120px;height:120px}.donut-center{width:70px;height:70px}}
   `]
 })
