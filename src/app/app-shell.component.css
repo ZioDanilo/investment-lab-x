@@ -557,36 +557,5 @@
     top: 109px;
   }
 }
-/* Sidebar ad only (slot 2590507807). Keep Home and login ad slots untouched.
-   Six fixed-height navigation cards plus gaps; ad stays in normal flow. */
-@media (min-width: 1181px) {
-  .route-content--feature aside.app-feature-sidebar {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    gap: 6px;
-    height: auto;
-    overflow: visible;
-  }
-  .route-content--feature aside.app-feature-sidebar > .app-feature-menu-card {
-    box-sizing: border-box;
-    flex: 0 0 54px;
-    min-height: 54px;
-    height: 54px;
-    width: 100%;
-    margin: 0;
-  }
-  .route-content--feature aside.app-feature-sidebar > app-adsense-slot {
-    box-sizing: border-box;
-    display: block;
-    flex: 0 0 180px;
-    align-self: stretch;
-    position: static;
-    width: 100%;
-    height: 180px;
-    min-height: 180px;
-    margin: 60px 0 0;
-    overflow: hidden;
-  }
-}
+/* Sidebar slot 2590507807: restore the original pre-adjustment placement.
+   No additional margins, fixed grid rows, or flex overrides. */
