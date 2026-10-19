@@ -508,3 +508,27 @@
 @media (max-width: 1180px) {
   .prelogin-ad-stack { display: none; }
 }
+
+/* Keep the landing headline and quote fixed while the auth form changes
+   between login/registration or displays validation errors. The left grid
+   column must not inherit the right form column's changing row height. */
+@media (min-width: 901px) {
+  .hero-panel {
+    align-items: stretch;
+  }
+  .hero-copy-wrap {
+    align-self: stretch;
+    justify-content: flex-start;
+  }
+  .hero-copy {
+    margin-top: 0;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+  }
+  .quote-block {
+    bottom: 0;
+  }
+}
