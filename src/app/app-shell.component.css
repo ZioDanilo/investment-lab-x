@@ -580,3 +580,41 @@
     margin: 12px 0 0;
   }
 }
+
+/* Force the feature-page ad BELOW the complete six-item side menu.
+   A dedicated seventh flex item ensures it cannot occupy or overlap menu rows. */
+@media (min-width: 1181px) {
+  .route-content--feature > aside.app-feature-sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .route-content--feature > aside.app-feature-sidebar > .app-feature-menu-card {
+    display: grid;
+    box-sizing: border-box;
+    flex: 0 0 54px !important;
+    min-height: 54px !important;
+    height: 54px !important;
+    width: 100%;
+    margin: 0 !important;
+  }
+  .route-content--feature > aside.app-feature-sidebar > app-adsense-slot {
+    display: block !important;
+    box-sizing: border-box;
+    flex: 0 0 180px !important;
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    height: 180px !important;
+    min-height: 180px !important;
+    margin: 24px 0 0 !important;
+    overflow: hidden !important;
+    isolation: isolate;
+  }
+}
