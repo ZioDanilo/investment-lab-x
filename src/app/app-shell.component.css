@@ -552,57 +552,13 @@
   .mock-ad-home-stack app-adsense-slot { display:block; height:180px; width:100%; }
 }
 
-/* Restore the original six-card sidebar geometry from before AdSense.
-   Explicit card rows prevent the ad from moving upward into navigation. */
-@media (min-width: 1181px) {
-  .route-content--feature .app-feature-sidebar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: repeat(6, 54px) 180px;
-    grid-auto-rows: max-content;
-    row-gap: 6px;
-    align-content: start;
-    isolation: isolate;
-  }
-  .route-content--feature .app-feature-sidebar > .app-feature-menu-card {
-    box-sizing: border-box;
-    min-height: 54px;
-    height: 54px;
-    margin: 0;
-    position: relative;
-    z-index: 2;
-  }
-  .route-content--feature .app-feature-sidebar > app-adsense-slot {
-    display: block;
-    box-sizing: border-box;
-    grid-column: 1;
-    grid-row: 7;
-    align-self: start;
-    position: relative;
-    z-index: 0;
-    width: 100%;
-    height: 180px;
-    min-height: 180px;
-    margin: 12px 0 0;
-    overflow: hidden;
-    contain: layout paint;
-  }
-}
-
-/* Keep Home and feature-page advertising at the same lowered baseline.
-   This adjusts the actual ad rail positions, not only sidebar grid tracks. */
 @media (min-width: 1181px) {
   .route-content .mock-ad-home-stack {
     top: 109px;
   }
-  .route-content--feature .app-feature-sidebar > app-adsense-slot {
-    margin-top: 60px;
-  }
 }
-
-/* AdSense sidebar isolation: use document flow, never overlay the navigation.
-   A flex column prevents grid auto-placement and ad iframe sizing from
-   collapsing or painting over the last navigation card. */
+/* Sidebar ad only (slot 2590507807). Keep Home and login ad slots untouched.
+   Six fixed-height navigation cards plus gaps; ad stays in normal flow. */
 @media (min-width: 1181px) {
   .route-content--feature aside.app-feature-sidebar {
     display: flex;
@@ -614,23 +570,23 @@
     overflow: visible;
   }
   .route-content--feature aside.app-feature-sidebar > .app-feature-menu-card {
+    box-sizing: border-box;
     flex: 0 0 54px;
-    width: 100%;
     min-height: 54px;
     height: 54px;
+    width: 100%;
+    margin: 0;
   }
   .route-content--feature aside.app-feature-sidebar > app-adsense-slot {
-    flex: 0 0 180px;
+    box-sizing: border-box;
     display: block;
-    position: relative;
-    inset: auto;
-    grid-row: auto;
-    grid-column: auto;
+    flex: 0 0 180px;
+    align-self: stretch;
+    position: static;
     width: 100%;
     height: 180px;
     min-height: 180px;
-    margin: 72px 0 0;
+    margin: 60px 0 0;
     overflow: hidden;
-    z-index: 0;
   }
 }
