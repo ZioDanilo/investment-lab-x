@@ -46,11 +46,11 @@ export interface AssetDonutItem { label: string; value: number; weight: number; 
     .donut-svg{position:absolute;inset:-10px;width:calc(100% + 20px);height:calc(100% + 20px);overflow:visible;transform:rotate(-90deg)}
     .donut-track,.donut-slice{fill:none;stroke-width:18}
     .donut-track{stroke:rgba(55,82,111,.34)}
-    .donut-slices{filter:drop-shadow(1.4px 2.4px 2.4px rgba(0,0,0,.38))}
-    .donut-slice{cursor:pointer;stroke-linecap:butt;filter:brightness(1.035) saturate(1.07) drop-shadow(-.65px -.65px .45px rgba(255,255,255,.12));transition:opacity .16s ease,filter .18s ease}
-    .donut-slice--dimmed{opacity:.96;filter:brightness(.99) saturate(1.02)}
-    .donut-slice--active{filter:brightness(1.2) saturate(1.14) drop-shadow(0 0 1px rgba(255,255,255,.35));stroke-width:19}
-    .donut-slice--lifted{pointer-events:auto;stroke-linecap:butt;filter:brightness(1.13) saturate(1.12) drop-shadow(-1px -1px .7px rgba(255,255,255,.18));transition:transform .2s cubic-bezier(.2,.85,.2,1),filter .2s ease;transform-box:view-box;transform-origin:50px 50px}
+    .donut-slices{filter:none}
+    .donut-slice{cursor:pointer;stroke-linecap:butt;filter:none;transition:opacity .16s ease}
+    .donut-slice--dimmed{opacity:.72}
+    .donut-slice--active{opacity:1;stroke-width:18}
+    
     .donut-center{position:relative;z-index:2;width:82px;height:82px;border-radius:50%;background:linear-gradient(145deg,rgba(14,31,48,.98),rgba(5,14,24,.99));display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box;text-align:center;pointer-events:none;box-shadow:inset 2px 2px 6px rgba(115,183,235,.055),inset -3px -4px 9px rgba(0,0,0,.28),0 2px 7px rgba(0,0,0,.16)}
     .donut-center strong{font-size:.72rem;white-space:nowrap}
     .donut-center small{font-size:.48rem;color:#8ea3ba;line-height:1.15}
