@@ -596,3 +596,26 @@
 .auth-tabs button.active {
   background: rgba(9, 17, 24, 0.92);
 }
+
+/* Keep the public navigation and statistics visible below the hero.
+   Size the photograph from the available grid row rather than forcing a
+   660px minimum that pushes the footer below the viewport. */
+@media (min-width: 901px) {
+  .landing-shell {
+    height: calc(100vh - 65px);
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+  }
+  .hero-panel {
+    height: 100%;
+    min-height: 0;
+  }
+  .hero-panel::before {
+    height: 100%;
+  }
+  .hero-panel .quote-block {
+    top: auto;
+    bottom: 24px;
+    transform: none;
+  }
+}
