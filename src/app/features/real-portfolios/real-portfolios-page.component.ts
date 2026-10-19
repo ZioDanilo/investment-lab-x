@@ -6,7 +6,7 @@ import { UiCardComponent } from '../../shared/components/ui-card/ui-card.compone
 import { UiButtonComponent } from '../../shared/components/ui-button/ui-button.component';
 import { LineChartComponent, LineChartSeries, LineChartTick } from '../../shared/components/line-chart/line-chart.component';
 import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/chart-legend/chart-legend.component';
-import { ChartTooltipComponent } from '../../shared/components/chart-tooltip/chart-tooltip.component';
+import { AssetDonutComponent } from '../../shared/components/asset-donut/asset-donut.component';
 import { ApiService } from '../../core/api/api.service';
 import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
@@ -18,7 +18,7 @@ interface Operation { date:string; type:'Acquisto'|'Vendita'|'Ritenuta'; isin:st
 @Component({
   selector:'app-real-portfolios-page',
   standalone:true,
-  imports:[CommonModule,FormsModule,RouterLink,UiCardComponent,UiButtonComponent,LineChartComponent,ChartLegendComponent,ChartTooltipComponent],
+  imports:[CommonModule,FormsModule,RouterLink,UiCardComponent,UiButtonComponent,LineChartComponent,ChartLegendComponent,AssetDonutComponent],
   templateUrl:'./real-portfolios-page.component.html',
   styleUrls:['./real-portfolios-page.component.css']
 })
