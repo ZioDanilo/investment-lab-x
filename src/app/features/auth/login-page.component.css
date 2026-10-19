@@ -45,7 +45,7 @@
   transform: translateY(100%);
   color: rgba(225, 238, 249, 0.88);
   font-size: 0.82rem;
-  animation: rotate-message-entry 10s ease-in-out both;
+  animation: rotate-message-entry 7s ease-in-out both;
 }
 
 @keyframes rotate-message-entry {
