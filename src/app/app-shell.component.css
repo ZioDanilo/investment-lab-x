@@ -599,3 +599,38 @@
     margin-top: 60px;
   }
 }
+
+/* AdSense sidebar isolation: use document flow, never overlay the navigation.
+   A flex column prevents grid auto-placement and ad iframe sizing from
+   collapsing or painting over the last navigation card. */
+@media (min-width: 1181px) {
+  .route-content--feature aside.app-feature-sidebar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 6px;
+    height: auto;
+    overflow: visible;
+  }
+  .route-content--feature aside.app-feature-sidebar > .app-feature-menu-card {
+    flex: 0 0 54px;
+    width: 100%;
+    min-height: 54px;
+    height: 54px;
+  }
+  .route-content--feature aside.app-feature-sidebar > app-adsense-slot {
+    flex: 0 0 180px;
+    display: block;
+    position: relative;
+    inset: auto;
+    grid-row: auto;
+    grid-column: auto;
+    width: 100%;
+    height: 180px;
+    min-height: 180px;
+    margin: 72px 0 0;
+    overflow: hidden;
+    z-index: 0;
+  }
+}
