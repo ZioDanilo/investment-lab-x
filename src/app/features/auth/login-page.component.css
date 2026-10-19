@@ -568,3 +568,16 @@
     pointer-events: none;
   }
 }
+
+/* Anchor the promotional quote to the bottom-left of the fixed photograph,
+   not to the variable-height hero/form. Match the ::before image height. */
+@media (min-width: 901px) {
+  .hero-panel .quote-block {
+    position: absolute;
+    left: clamp(28px, 4vw, 64px);
+    top: calc(max(660px, 100vh - 195px) - 24px);
+    bottom: auto;
+    transform: translateY(-100%);
+    z-index: 1;
+  }
+}
