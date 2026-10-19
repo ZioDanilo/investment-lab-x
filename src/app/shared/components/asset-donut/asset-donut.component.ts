@@ -12,22 +12,14 @@ export interface AssetDonutItem { label: string; value: number; weight: number; 
     <div class="composition">
       <div class="donut donut--interactive">
         <svg class="donut-svg" viewBox="0 0 100 100" (mouseleave)="leave()">
-          <defs><filter [attr.id]="filterId" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="1.45" result="blur"/>
-            <feOffset in="blur" dx="1.4" dy="2.3" result="offset"/>
-            <feFlood flood-color="#000000" flood-opacity=".58" result="shadowColor"/>
-            <feComposite in="shadowColor" in2="offset" operator="in" result="shadow"/>
-            <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter></defs>
-          <circle class="donut-track" cx="50" cy="50" r="38" pathLength="100"/>
+          <circle class="donut-track" cx="50" cy="50" r="38"/>
           <g class="donut-slices">
-            <circle *ngFor="let item of items; let i=index" class="donut-slice" cx="50" cy="50" r="38" pathLength="100"
+            <path *ngFor="let item of items; let i=index" class="donut-slice"
               [class.donut-slice--active]="hoverIndex===i"
               [class.donut-slice--dimmed]="hoverIndex!==null && hoverIndex!==i"
-              [attr.stroke]="item.color" [attr.stroke-dasharray]="item.weight + ' ' + (100-item.weight)"
-              [attr.stroke-dashoffset]="offset(i)" (mouseenter)="hover(i,$event)" (mousemove)="moveTooltip($event)"/>
+              [attr.stroke]="item.color" [attr.d]="slicePath(i)"
+              (mouseenter)="hover(i,$event)" (mousemove)="moveTooltip($event)"/>
           </g>
-
         </svg>
         <div class="donut-center"><strong>{{ centerText }}</strong><small *ngIf="centerCaption">{{ centerCaption }}</small></div>
       </div>
@@ -67,22 +59,34 @@ export class AssetDonutComponent {
   @Input() centerText = '';
   @Input() centerCaption = '';
   @Input() showCounts = false;
-  private static sequence = 0;
-  readonly filterId = 'assetDonutShadow' + ++AssetDonutComponent.sequence;
   hoverIndex: number | null = null;
   tooltip = { x: 0, y: 0, visible: false };
-  offset(index: number): number { return -this.items.slice(0,index).reduce((sum,item)=>sum+item.weight,0); }
+  // Each slice is its own explicit arc: no dash-array wraparound or overlap at 0/360 degrees.
+  slicePath(index: number): string {
+    const total = this.items.reduce((sum, item) => sum + Math.max(0, Number(item.value) || 0), 0);
+    if (total <= 0 || index < 0 || index >= this.items.length) return '';
+    const before = this.items.slice(0, index).reduce((sum, item) => sum + Math.max(0, Number(item.value) || 0), 0);
+    const amount = Math.max(0, Number(this.items[index].value) || 0);
+    if (amount <= 0) return '';
+    const start = before / total * Math.PI * 2;
+    const sweep = amount / total * Math.PI * 2;
+    const point = (angle: number) => ({
+      x: (50 + 38 * Math.cos(angle)).toFixed(6),
+      y: (50 + 38 * Math.sin(angle)).toFixed(6)
+    });
+    const first = point(start);
+    if (sweep >= Math.PI * 2 - 1e-8) {
+      const middle = point(start + Math.PI);
+      return `M ${first.x} ${first.y} A 38 38 0 0 1 ${middle.x} ${middle.y} A 38 38 0 0 1 ${first.x} ${first.y}`;
+    }
+    const last = point(start + sweep);
+    return `M ${first.x} ${first.y} A 38 38 0 ${sweep > Math.PI ? 1 : 0} 1 ${last.x} ${last.y}`;
+  }
   tooltipValue(item: AssetDonutItem): string {
     const total = this.items.reduce((sum, entry) => sum + (Number(entry.value) || 0), 0);
     const percentage = total > 0 ? (Number(item.value) || 0) / total * 100 : Number(item.weight) || 0;
     const percentText = percentage.toLocaleString('it-IT', {minimumFractionDigits: 1, maximumFractionDigits: 1});
     return this.showCounts ? `${percentText}% (${Number(item.value) || 0} ETF su ${total})` : `${percentText}%`;
-  }
-  sliceTransform(index: number): string {
-    if (this.hoverIndex !== index) return 'translate(0 0)';
-    const before = this.items.slice(0,index).reduce((sum,item)=>sum+item.weight,0);
-    const radians = (before+(this.items[index]?.weight??0)/2)*3.6*Math.PI/180;
-    return `translate(${(Math.cos(radians)*.45).toFixed(2)} ${(Math.sin(radians)*.45).toFixed(2)}) scale(1.035)`;
   }
   hover(index:number,event:MouseEvent):void { this.hoverIndex=index;this.moveTooltip(event); }
   moveTooltip(event:MouseEvent):void {this.tooltip={x:event.clientX+14,y:event.clientY-14,visible:true};}
