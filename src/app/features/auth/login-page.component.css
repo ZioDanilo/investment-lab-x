@@ -581,3 +581,17 @@
     z-index: 1;
   }
 }
+
+/* Restore the translucent glass appearance of the original auth card and tabs.
+   Keep the photograph visible behind the form, without altering geometry. */
+.login-card {
+  background: rgba(9, 17, 24, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.auth-tabs button {
+  background: rgba(8, 16, 24, 0.72);
+}
+.auth-tabs button.active {
+  background: rgba(9, 17, 24, 0.92);
+}
