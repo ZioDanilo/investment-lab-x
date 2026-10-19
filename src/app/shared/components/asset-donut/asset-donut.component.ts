@@ -1,13 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
-import { ChartTooltipComponent } from '../chart-tooltip/chart-tooltip.component';
+import { Component, Input, OnDestroy } from '@angular/core';
 
 export interface AssetDonutItem { label: string; value: number; weight: number; color: string; }
 
 @Component({
   selector: 'app-asset-donut',
   standalone: true,
-  imports: [CommonModule, ChartTooltipComponent],
+  imports: [CommonModule],
   template: `
     <div class="composition" (mouseleave)="leave()">
       <div class="donut donut--interactive">
@@ -24,10 +23,7 @@ export interface AssetDonutItem { label: string; value: number; weight: number; 
         <div class="donut-center"><strong>{{ centerText }}</strong><small *ngIf="centerCaption">{{ centerCaption }}</small></div>
       </div>
       <ul><li *ngFor="let item of items; let i=index" (mouseenter)="hover(i,$event)" (mousemove)="moveTooltip($event)" (mouseleave)="leave()"><i [style.background]="item.color"></i><span [title]="item.label">{{ item.label }}</span></li></ul>
-      <app-chart-tooltip *ngIf="tooltip.visible && hoverIndex!==null && items[hoverIndex]"
-        class="composition-tooltip" [style.left.px]="tooltip.x" [style.top.px]="tooltip.y"
-        [label]="items[hoverIndex].label"
-        [value]="tooltipValue(items[hoverIndex])"/>
+
     </div>
   `,
   styles: [`
@@ -54,11 +50,34 @@ export interface AssetDonutItem { label: string; value: number; weight: number; 
     @media(max-width:480px){.composition{gap:9px}.donut{width:120px;height:120px}.donut-center{width:70px;height:70px}}
   `]
 })
-export class AssetDonutComponent {
+export class AssetDonutComponent implements OnDestroy {
   @Input() items: AssetDonutItem[] = [];
   @Input() centerText = '';
   @Input() centerCaption = '';
   @Input() showCounts = false;
+  private floatingTooltip: HTMLDivElement | null = null;
+  private ensureTooltip(): HTMLDivElement {
+    if (this.floatingTooltip) return this.floatingTooltip;
+    const element = document.createElement('div');
+    element.setAttribute('role', 'tooltip');
+    Object.assign(element.style, {
+      position: 'fixed', zIndex: '2147483647', pointerEvents: 'none',
+      padding: '6px 9px', borderRadius: '6px',
+      border: '1px solid rgba(135,176,214,.22)',
+      background: 'rgba(9,16,24,.96)',
+      boxShadow: '0 14px 30px rgba(0,0,0,.28)',
+      color: '#edf7ff', fontSize: '13px', fontWeight: '700',
+      lineHeight: '1.2', whiteSpace: 'nowrap'
+    });
+    document.body.appendChild(element);
+    this.floatingTooltip = element;
+    return element;
+  }
+  ngOnDestroy(): void { this.removeTooltip(); }
+  private removeTooltip(): void {
+    this.floatingTooltip?.remove();
+    this.floatingTooltip = null;
+  }
   hoverIndex: number | null = null;
   tooltip = { x: 0, y: 0, visible: false };
   // Each slice is its own explicit arc: no dash-array wraparound or overlap at 0/360 degrees.
@@ -88,7 +107,22 @@ export class AssetDonutComponent {
     const percentText = percentage.toLocaleString('it-IT', {minimumFractionDigits: 1, maximumFractionDigits: 1});
     return this.showCounts ? `${percentText}% (${Number(item.value) || 0} ETF su ${total})` : `${percentText}%`;
   }
-  hover(index:number,event:MouseEvent):void { this.hoverIndex=index;this.moveTooltip(event); }
-  moveTooltip(event:MouseEvent):void {this.tooltip={x:event.clientX+14,y:event.clientY-14,visible:true};}
-  leave():void {this.hoverIndex=null;this.tooltip={...this.tooltip,visible:false};}
+  hover(index:number,event:MouseEvent):void {
+    this.hoverIndex=index;
+    const item = this.items[index];
+    if (!item) return;
+    this.ensureTooltip().textContent = `${item.label}: ${this.tooltipValue(item)}`;
+    this.moveTooltip(event);
+  }
+  moveTooltip(event:MouseEvent):void {
+    const tooltip = this.floatingTooltip;
+    if (!tooltip) return;
+    const width = tooltip.offsetWidth;
+    const height = tooltip.offsetHeight;
+    const x = Math.max(8, Math.min(event.clientX + 14, window.innerWidth - width - 8));
+    const y = Math.max(8, Math.min(event.clientY - height - 12, window.innerHeight - height - 8));
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+  }
+  leave():void {this.hoverIndex=null;this.removeTooltip();}
 }
