@@ -238,7 +238,7 @@ input.invalid,
 /* Align the upper chart edge with the ETF table below; keep composition width fixed,
    let statistics absorb the space recovered from the chart. */
 @media (min-width:1181px){
-  .main-grid{grid-template-columns:minmax(0,1.25fr) 260px minmax(0,.95fr);align-items:stretch}
+  .main-grid{grid-template-columns:minmax(0,calc((100% - 10px) * 1.25 / 2.2 - 10px)) 260px minmax(0,1fr);align-items:stretch}
   .bottom-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,.95fr)}
   .main-grid > app-ui-card{min-width:0;height:100%;box-sizing:border-box}
 }
