@@ -17,10 +17,51 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   private readonly apiService = inject(ApiService);
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
+  currentMessageIndex = 0;
+  private pendingMessages: number[] = [];
+  private rotationTimer?: ReturnType<typeof setTimeout>;
+  private rotationDeadline = 0;
+  private rotationRemaining = 10000;
+
+  private rotateMessage(): void {
+    if (this.pendingMessages.length === 0) {
+      this.pendingMessages = Array.from({ length: 18 }, (_, index) => index)
+        .filter(index => index !== this.currentMessageIndex);
+      for (let i = this.pendingMessages.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [this.pendingMessages[i], this.pendingMessages[j]] =
+          [this.pendingMessages[j], this.pendingMessages[i]];
+      }
+    }
+    this.currentMessageIndex = this.pendingMessages.pop() ?? 0;
+    this.rotationRemaining = 10000;
+    this.resumeRotation();
+  }
+
+  pauseRotation(): void {
+    if (this.rotationTimer) clearTimeout(this.rotationTimer);
+    this.rotationTimer = undefined;
+    this.rotationRemaining = Math.max(0, this.rotationDeadline - Date.now());
+  }
+
+  resumeRotation(): void {
+    if (this.rotationTimer) clearTimeout(this.rotationTimer);
+    this.rotationDeadline = Date.now() + this.rotationRemaining;
+    this.rotationTimer = setTimeout(() => this.rotateMessage(), this.rotationRemaining);
+  }
+
+  ngOnDestroy(): void {
+    if (this.rotationTimer) clearTimeout(this.rotationTimer);
+    if (this.emailCheckTimer) clearTimeout(this.emailCheckTimer);
+    if (this.usernameCheckTimer) clearTimeout(this.usernameCheckTimer);
+  }
+
   landingStats: { users: number | null; portfolios: number | null; etfs: number | null; operations: number | null } = { users: null, portfolios: null, etfs: null, operations: null };
   landingStatsError = '';
 
   ngOnInit(): void {
+    this.currentMessageIndex = Math.floor(Math.random() * 18);
+    this.resumeRotation();
     this.apiService.getLandingStats().subscribe({
       next: (response: any) => {
         if (!response?.success || !response?.data) {
