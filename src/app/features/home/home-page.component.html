@@ -109,22 +109,10 @@
           </div>
         </div>
 
-        <div class="asset-layout">
-          <div class="asset-donut" aria-label="Distribuzione asset class">
-            <div class="asset-donut__center">
-              <strong>312</strong>
-              <span>ETF disponibili</span>
-            </div>
-          </div>
-
-          <ul class="asset-legend">
-            <li *ngFor="let item of assetMix">
-              <span class="legend-dot" [style.background]="item.color"></span>
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </li>
-          </ul>
-        </div>
+        <div class="asset-state" *ngIf="assetLoading">Caricamento ETF...</div>
+        <div class="asset-state" *ngIf="assetError">Impossibile caricare la distribuzione ETF.</div>
+        <app-asset-donut *ngIf="!assetLoading && !assetError" [items]="assetMix"
+          [centerText]="totalEtfs.toString()" centerCaption="ETF disponibili"></app-asset-donut>
       </article>
     </section>
 
