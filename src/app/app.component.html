@@ -1,1 +1,6 @@
 <router-outlet></router-outlet>
+<div class="analytics-consent" *ngIf="analytics.consent === null || preferencesOpen" role="dialog" aria-modal="false" aria-label="Preferenze privacy e cookie">
+ <div class="consent-copy"><strong>Le tue preferenze di privacy</strong><p>Utilizziamo strumenti tecnici necessari al funzionamento di Razer. Con il tuo permesso possiamo attivare Google Analytics 4 per misurare le visite e migliorare il servizio. Il rifiuto non limita le funzionalità. Gli annunci pubblicitari non sono attivi.</p><a routerLink="/cookies">Informazioni sui cookie</a> · <a routerLink="/privacy">Privacy</a></div>
+ <div class="consent-actions"><button type="button" (click)="chooseAnalytics(false)">Rifiuta statistiche</button><button type="button" (click)="chooseAnalytics(true)">Accetta statistiche</button></div>
+</div>
+<button *ngIf="analytics.consent !== null && !preferencesOpen" class="analytics-preferences" type="button" (click)="openPreferences()">Preferenze privacy</button>

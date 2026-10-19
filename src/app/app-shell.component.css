@@ -536,3 +536,31 @@
 .app-feature-action-row:has(.trend-draft-header-slot .benchmark-options){z-index:3000;isolation:isolate}
 .app-feature-action-row .trend-draft-header-slot{position:relative;z-index:1;overflow:visible}
 .app-feature-action-row .trend-draft-header-slot .draft-list{position:relative;overflow:visible}
+
+/* Mock advertising inventory: sidebar on feature pages, same left rail on Home. */
+.mock-ad-slot{box-sizing:border-box;width:100%;min-height:180px;margin-top:12px;padding:13px 8px;border:1px dashed rgba(125,166,210,.45);border-radius:12px;background:linear-gradient(145deg,rgba(24,45,68,.65),rgba(9,17,29,.86));color:#b9cde1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;pointer-events:none}
+.mock-ad-slot__label{font-size:9px;letter-spacing:.15em;color:#8a9fb4;font-weight:700}
+.mock-ad-slot__icon{font-size:27px;color:#73b9ef}
+.mock-ad-slot__text{font-size:12px;font-weight:700;color:#dbe9f8}
+.mock-ad-slot__note{font-size:10px;color:#8a9fb4}
+.mock-ad-slot--home{position:absolute;left:12px;top:73px;width:144px;z-index:2}
+@media(max-width:1180px){.app-feature-sidebar .mock-ad-slot{display:none}.mock-ad-slot--home{position:relative;left:auto;top:auto;width:min(320px,calc(100% - 24px));min-height:90px;margin:12px auto}}
+@media(min-width:1181px){.app-feature-sidebar .mock-ad-slot{margin-top:12px}}
+
+/* Home advertising rail: the first two slots occupy the future menu area.
+   The third slot begins at exactly the same vertical position as the
+   feature sidebar advertisement (58px header + 3px gap + six 54px
+   menu items + six 6px gaps + 12px ad margin). Route changes remove
+   the two Home-only slots from the DOM instead of covering them. */
+@media(min-width:1181px){
+  .mock-ad-home-stack{
+    position:absolute;left:18px;top:61px;width:150px;z-index:2;
+    display:grid;grid-template-rows:174px 174px 180px;gap:12px;
+  }
+  .mock-ad-home-stack .mock-ad-slot{min-height:0;height:100%;margin:0}
+  .app-feature-sidebar .mock-ad-slot{min-height:180px}
+}
+@media(max-width:1180px){
+  .mock-ad-home-stack{position:relative;display:flex;flex-direction:column;gap:12px;width:min(320px,calc(100% - 24px));margin:12px auto}
+  .mock-ad-home-stack .mock-ad-slot{min-height:90px;margin:0}
+}

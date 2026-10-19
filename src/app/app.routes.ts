@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { PublicInfoComponent } from './features/public/public-info.component';
+import { PublicLegalComponent } from './features/public/public-legal.component';
 import { AppShellComponent } from './app-shell.component';
 import { HomePageComponent } from './features/home/home-page.component';
 import { LoginPageComponent } from './features/auth/login-page.component';
@@ -11,8 +13,12 @@ import { TrendFollowingPageComponent } from './features/trend-following/trend-fo
 import { authGuard } from './core/guards/auth.guard';
 
 export const appRoutes: Routes = [
-  { path: '', component: LoginPageComponent, pathMatch: 'full' },
-  { path: 'login', redirectTo: '/', pathMatch: 'full' },
+  { path: 'login', component: LoginPageComponent },
+  { path: 'chi-siamo', component: PublicInfoComponent },
+  { path: 'privacy', component: PublicLegalComponent },
+  { path: 'cookies', component: PublicLegalComponent },
+  { path: 'contatti', component: PublicLegalComponent },
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
   {
     path: '',
     component: AppShellComponent,

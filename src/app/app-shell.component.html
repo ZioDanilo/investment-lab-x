@@ -48,14 +48,16 @@
         <span class="app-feature-action__content"><span class="material-symbols-rounded">{{ secondaryFeatureActionIcon }}</span><span>{{ secondaryFeatureActionLabel }}</span></span>
       </button>
     </div>
-    <aside *ngIf="showFeatureSidebar" class="app-feature-sidebar" aria-label="Navigazione ETFolio">
+    <aside *ngIf="showFeatureSidebar" class="app-feature-sidebar" aria-label="Navigazione Razer">
       <a class="app-feature-menu-card app-feature-menu-card--blue" routerLink="/laboratorio-portafogli" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">science</span><span>Laboratorio Portafogli</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--purple" routerLink="/portafogli" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">folder</span><span>I miei Portafogli</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--green" routerLink="/monte-carlo" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">trending_up</span><span>Monte Carlo</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--amber" routerLink="/ribilanciamento" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">sync</span><span>Ribilanciamento</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--blue" routerLink="/trend-following" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">show_chart</span><span>Trend Following</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--cyan" routerLink="/market-universe" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">bar_chart</span><span>ETF & Mercati</span></a>
+      <div class="mock-ad-slot" aria-label="Spazio pubblicitario dimostrativo"><span class="mock-ad-slot__label">PUBBLICITÀ</span><span class="mock-ad-slot__icon material-symbols-rounded" aria-hidden="true">campaign</span><span class="mock-ad-slot__text">Il tuo annuncio qui</span><span class="mock-ad-slot__note">Banner dimostrativo</span></div>
     </aside>
+    <div *ngIf="!showFeatureSidebar" class="mock-ad-home-stack" aria-label="Spazi pubblicitari dimostrativi"><div class="mock-ad-slot" aria-label="Spazio pubblicitario dimostrativo"><span class="mock-ad-slot__label">PUBBLICITÀ</span><span class="mock-ad-slot__icon material-symbols-rounded" aria-hidden="true">campaign</span><span class="mock-ad-slot__text">Il tuo annuncio qui</span><span class="mock-ad-slot__note">Banner dimostrativo</span></div><div class="mock-ad-slot" aria-label="Spazio pubblicitario dimostrativo"><span class="mock-ad-slot__label">PUBBLICITÀ</span><span class="mock-ad-slot__icon material-symbols-rounded" aria-hidden="true">campaign</span><span class="mock-ad-slot__text">Il tuo annuncio qui</span><span class="mock-ad-slot__note">Banner dimostrativo</span></div><div class="mock-ad-slot" aria-label="Spazio pubblicitario dimostrativo"><span class="mock-ad-slot__label">PUBBLICITÀ</span><span class="mock-ad-slot__icon material-symbols-rounded" aria-hidden="true">campaign</span><span class="mock-ad-slot__text">Il tuo annuncio qui</span><span class="mock-ad-slot__note">Banner dimostrativo</span></div></div>
     <section class="route-page"><router-outlet (activate)="onFeatureActivate($event)"></router-outlet></section>
   </main>
 </div>

@@ -17,7 +17,7 @@
 }
 
 .message-navbar {
-  height: 48px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -29,7 +29,7 @@
 .message-rotator {
   position: relative;
   width: min(92vw, 1050px);
-  height: 48px;
+  height: 64px;
   overflow: hidden;
   text-align: center;
 }
@@ -45,23 +45,27 @@
   transform: translateY(100%);
   color: rgba(225, 238, 249, 0.88);
   font-size: 0.82rem;
-  animation: rotate-message 40s infinite;
+  animation: rotate-message-entry 650ms ease-in-out both;
 }
 
-.message-rotator span:nth-child(1) { animation-delay: 0s; }
-.message-rotator span:nth-child(2) { animation-delay: 10s; }
-.message-rotator span:nth-child(3) { animation-delay: 20s; }
-.message-rotator span:nth-child(4) { animation-delay: 30s; }
-
-@keyframes rotate-message {
-  0% { opacity: 0; transform: translateY(100%); }
-  2.5%, 23.5% { opacity: 1; transform: translateY(0); }
-  25%, 100% { opacity: 0; transform: translateY(-100%); }
+.message-rotator span.message-outgoing {
+  animation: rotate-message-exit 650ms ease-in-out both;
 }
+
+@keyframes rotate-message-entry {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rotate-message-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-100%); }
+}
+
 
 .landing-shell {
   width: min(100%, 1600px);
-  height: calc(100% - 48px);
+  height: calc(100% - 64px);
   margin: 0 auto;
   padding: clamp(12px, 1.5vh, 20px) clamp(18px, 2vw, 32px);
   box-sizing: border-box;
@@ -350,8 +354,8 @@
 }
 
 @media (max-height: 760px) and (min-width: 901px) {
-  .message-navbar, .message-rotator { height: 40px; }
-  .landing-shell { height: calc(100% - 40px); gap: 10px; padding-top: 10px; padding-bottom: 10px; }
+  .message-navbar, .message-rotator { height: 64px; }
+  .landing-shell { height: calc(100% - 64px); gap: 10px; padding-top: 10px; padding-bottom: 10px; }
   .hero-panel { padding-top: 24px; padding-bottom: 24px; }
   .pillars-panel article { min-height: 64px; }
 }
@@ -362,7 +366,7 @@
 }
 
 @media (max-width: 560px) {
-  .message-navbar, .message-rotator { height: 42px; }
+  .message-navbar, .message-rotator { height: 64px; }
   .message-rotator span { font-size: 0.72rem; }
   .pillars-panel { grid-template-columns: 1fr; padding: 0 16px 16px; }
 }
@@ -467,3 +471,17 @@
 .prelogin-brand-name{font-size:clamp(.96rem,.85vw,1.3rem);font-weight:800;letter-spacing:.04em;line-height:1;color:#edf6ff}
 .prelogin-brand-tag{margin-top:4px;font-size:.5rem;letter-spacing:.12em;color:#84a9d2;white-space:nowrap}
 @media(max-width:760px){.message-navbar{justify-content:flex-end}.message-rotator{width:calc(100% - 200px)}.message-rotator span{font-size:.66rem}}
+
+/* Public informational navigation, visible without login. */
+.public-footer{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px;font-size:12px;line-height:1.4}
+.public-footer a{color:#a8dfff;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:900px){.public-footer{margin:18px 0}}
+
+/* Keep the landing's three rows (hero, public links, statistics) inside the viewport. */
+@media(min-width:901px){.landing-shell{grid-template-rows:minmax(0,1fr) auto auto}}
+
+/* Registration-only birth date selectors, matching the existing auth fields. */
+.birth-date-selects{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.5fr) minmax(0,1fr);gap:8px;width:100%}
+.birth-date-selects select{width:100%;min-width:0;box-sizing:border-box;border:1px solid rgba(145,176,211,.32);border-radius:9px;background:#111c2b;color:#f1f7ff;padding:10px 7px;font:inherit}
+.birth-date-selects select:focus{outline:2px solid #39a9ff;outline-offset:1px}
+@media(max-width:420px){.birth-date-selects{gap:5px}.birth-date-selects select{padding:9px 3px;font-size:.78rem}}
