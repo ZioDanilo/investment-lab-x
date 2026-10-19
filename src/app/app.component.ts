@@ -1,19 +1,27 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { AnalyticsService } from './core/services/analytics.service';
-import { RouterLink, RouterOutlet } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, CommonModule],
+  imports: [RouterOutlet],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  preferencesOpen = false;
   readonly analytics = inject(AnalyticsService);
   ngOnInit(): void { this.analytics.start(); }
-  chooseAnalytics(accepted: boolean): void { this.analytics.setConsent(accepted); this.preferencesOpen = false; }
-  openPreferences(): void { this.preferencesOpen = true; }
+  openPrivacyChoices(): void {
+    // Google Funding Choices is loaded by the published AdSense privacy message.
+    const googleWindow = window as Window & {
+      googlefc?: { callbackQueue?: Array<() => void>; showRevocationMessage?: () => void };
+    };
+    if (typeof googleWindow.googlefc?.showRevocationMessage === 'function') {
+      googleWindow.googlefc.showRevocationMessage();
+    } else {
+      // Fallback: keep privacy information reachable when CMP has not loaded.
+      window.location.assign('/privacy');
+    }
+  }
 }
