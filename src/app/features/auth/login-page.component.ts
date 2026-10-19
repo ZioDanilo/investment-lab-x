@@ -21,7 +21,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   private pendingMessages: number[] = [];
   private rotationTimer?: ReturnType<typeof setTimeout>;
   private rotationDeadline = 0;
-  private rotationRemaining = 10000;
+  private rotationRemaining = 7000;
 
   private rotateMessage(): void {
     if (this.pendingMessages.length === 0) {
@@ -34,7 +34,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
       }
     }
     this.currentMessageIndex = this.pendingMessages.pop() ?? 0;
-    this.rotationRemaining = 10000;
+    this.rotationRemaining = 7000;
     this.resumeRotation();
   }
 
