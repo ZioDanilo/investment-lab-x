@@ -509,40 +509,40 @@
   .prelogin-ad-stack { display: none; }
 }
 
-/* The auth card can grow with registration errors. Keep the left copy
-   anchored to the HERO (not the form-dependent grid item's dimensions).
-   The form scrolls inside its own grid cell instead of stretching the hero. */
+/* Desktop: headline uses a viewport-based anchor, independent of the
+   registration form's intrinsic height. Never clip the form or its tabs. */
 @media (min-width: 901px) {
+  .login-page {
+    overflow-y: auto;
+  }
   .landing-shell {
-    min-height: 0;
+    min-height: calc(100vh - 65px);
+    height: auto;
   }
   .hero-panel {
-    min-height: 0;
-    align-items: stretch;
+    min-height: min(660px, calc(100vh - 195px));
+    height: auto;
+    align-items: center;
+    overflow: visible;
   }
   .hero-copy-wrap {
     position: static;
-    align-self: auto;
+    align-self: stretch;
     min-height: 0;
   }
   .hero-copy {
     position: absolute;
-    top: 50%;
+    top: clamp(180px, 34vh, 360px);
     left: clamp(28px, 4vw, 64px);
     width: calc((100% - 2 * clamp(28px, 4vw, 64px) - clamp(28px, 4vw, 72px)) * 0.574468);
     max-width: 780px;
     margin: 0;
     transform: translateY(-50%);
   }
-  .quote-block {
-    left: 0;
-    bottom: 0;
-  }
   .login-card {
-    min-height: 0;
-    max-height: 100%;
-    overflow-y: auto;
-    overflow-x: visible;
-    scrollbar-width: thin;
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
+    align-self: center;
   }
 }
