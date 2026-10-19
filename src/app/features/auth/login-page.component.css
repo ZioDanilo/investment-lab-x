@@ -509,26 +509,40 @@
   .prelogin-ad-stack { display: none; }
 }
 
-/* Keep the landing headline and quote fixed while the auth form changes
-   between login/registration or displays validation errors. The left grid
-   column must not inherit the right form column's changing row height. */
+/* The auth card can grow with registration errors. Keep the left copy
+   anchored to the HERO (not the form-dependent grid item's dimensions).
+   The form scrolls inside its own grid cell instead of stretching the hero. */
 @media (min-width: 901px) {
+  .landing-shell {
+    min-height: 0;
+  }
   .hero-panel {
+    min-height: 0;
     align-items: stretch;
   }
   .hero-copy-wrap {
-    align-self: stretch;
-    justify-content: flex-start;
+    position: static;
+    align-self: auto;
+    min-height: 0;
   }
   .hero-copy {
-    margin-top: 0;
     position: absolute;
     top: 50%;
-    left: 0;
-    right: 0;
+    left: clamp(28px, 4vw, 64px);
+    width: calc((100% - 2 * clamp(28px, 4vw, 64px) - clamp(28px, 4vw, 72px)) * 0.574468);
+    max-width: 780px;
+    margin: 0;
     transform: translateY(-50%);
   }
   .quote-block {
+    left: 0;
     bottom: 0;
+  }
+  .login-card {
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: visible;
+    scrollbar-width: thin;
   }
 }
