@@ -18,6 +18,8 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
   currentMessageIndex = 0;
+  outgoingMessageIndex: number | null = null;
+  private outgoingCleanupTimer?: ReturnType<typeof setTimeout>;
   private pendingMessages: number[] = [];
   private rotationTimer?: ReturnType<typeof setTimeout>;
   private rotationDeadline = 0;
@@ -33,7 +35,10 @@ export class LoginPageComponent implements OnInit, OnDestroy {
           [this.pendingMessages[j], this.pendingMessages[i]];
       }
     }
+    this.outgoingMessageIndex = this.currentMessageIndex;
     this.currentMessageIndex = this.pendingMessages.pop() ?? 0;
+    if (this.outgoingCleanupTimer) clearTimeout(this.outgoingCleanupTimer);
+    this.outgoingCleanupTimer = setTimeout(() => { this.outgoingMessageIndex = null; }, 700);
     this.rotationRemaining = 7000;
     this.resumeRotation();
   }
@@ -51,6 +56,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.outgoingCleanupTimer) clearTimeout(this.outgoingCleanupTimer);
     if (this.rotationTimer) clearTimeout(this.rotationTimer);
     if (this.emailCheckTimer) clearTimeout(this.emailCheckTimer);
     if (this.usernameCheckTimer) clearTimeout(this.usernameCheckTimer);
