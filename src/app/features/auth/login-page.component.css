@@ -35,29 +35,15 @@
 }
 
 .message-rotator span {
-  position: absolute;
-  inset: 0;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 16px;
-  opacity: 0;
-  transform: translateY(100%);
   color: rgba(225, 238, 249, 0.88);
   font-size: 0.82rem;
-  animation: rotate-message 40s infinite;
 }
 
-.message-rotator span:nth-child(1) { animation-delay: 0s; }
-.message-rotator span:nth-child(2) { animation-delay: 10s; }
-.message-rotator span:nth-child(3) { animation-delay: 20s; }
-.message-rotator span:nth-child(4) { animation-delay: 30s; }
-
-@keyframes rotate-message {
-  0% { opacity: 0; transform: translateY(100%); }
-  2.5%, 23.5% { opacity: 1; transform: translateY(0); }
-  25%, 100% { opacity: 0; transform: translateY(-100%); }
-}
 
 .landing-shell {
   width: min(100%, 1600px);
