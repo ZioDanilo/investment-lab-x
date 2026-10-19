@@ -4,25 +4,25 @@
       <span class="prelogin-brand-name">Razer</span>
       <span class="prelogin-brand-tag">COSTRUISCI • ANALIZZA • MIGLIORA</span>
     </div>
-    <div class="message-rotator">
-      <span><strong>Razer:</strong> Perché perdere soldi senza statistiche era troppo facile.</span>
-      <span><strong>Razer:</strong> Il mercato è imprevedibile. Noi almeno lo siamo con metodo.</span>
-      <span><strong>Razer:</strong> Dove il tuo portafoglio viene giudicato prima del mercato.</span>
-      <span><strong>Razer:</strong> Abbiamo 1.000 simulazioni. Il mercato non ne ha letta neanche una.</span>
-      <span><strong>Razer:</strong> Trasformiamo le tue pessime idee in grafici bellissimi.</span>
-      <span><strong>Razer:</strong> Più Monte Carlo, meno casinò. Almeno sulla carta.</span>
-      <span><strong>Razer:</strong> Diversificare è ammettere di non avere la minima idea.</span>
-      <span><strong>Razer:</strong> Il posto dove anche le perdite hanno una dashboard.</span>
-      <span><strong>Razer:</strong> Non prevediamo il futuro. Ma possiamo sbagliare con precisione.</span>
-      <span><strong>Razer:</strong> Ottimizziamo tutto. Tranne le tue decisioni impulsive.</span>
-      <span><strong>Razer:</strong> Perché un ETF non basta a sentirsi un investitore.</span>
-      <span><strong>Razer:</strong> Il tuo portafoglio non rende? <strong>Ora puoi dimostrarlo scientificamente.</strong></span>
-      <span><strong>Razer:</strong> I mercati sono efficienti. Tu ancora no.</span>
-      <span><strong>Razer:</strong> Il drawdown passa. Il trauma resta.</span>
-      <span><strong>Razer:</strong> Dove lo Sharpe è alto e l'autostima è bassa.</span>
-      <span><strong>Razer:</strong> Nessuna sfera di cristallo. Solo formule più complicate.</span>
-      <span><strong>Razer:</strong> Il backtest è fantastico. Peccato che sia già successo.</span>
-      <span><strong>Razer:</strong> Investire è semplice. Complicarlo è il nostro lavoro.</span>
+    <div class="message-rotator" (mouseenter)="pauseRotation()" (mouseleave)="resumeRotation()">
+      <ng-container *ngIf="currentMessageIndex === 0"><span><strong>Razer:</strong> Perché perdere soldi senza statistiche era troppo facile.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 1"><span><strong>Razer:</strong> Il mercato è imprevedibile. Noi almeno lo siamo con metodo.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 2"><span><strong>Razer:</strong> Dove il tuo portafoglio viene giudicato prima del mercato.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 3"><span><strong>Razer:</strong> Abbiamo 1.000 simulazioni. Il mercato non ne ha letta neanche una.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 4"><span><strong>Razer:</strong> Trasformiamo le tue pessime idee in grafici bellissimi.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 5"><span><strong>Razer:</strong> Più Monte Carlo, meno casinò. Almeno sulla carta.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 6"><span><strong>Razer:</strong> Diversificare è ammettere di non avere la minima idea.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 7"><span><strong>Razer:</strong> Il posto dove anche le perdite hanno una dashboard.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 8"><span><strong>Razer:</strong> Non prevediamo il futuro. Ma possiamo sbagliare con precisione.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 9"><span><strong>Razer:</strong> Ottimizziamo tutto. Tranne le tue decisioni impulsive.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 10"><span><strong>Razer:</strong> Perché un ETF non basta a sentirsi un investitore.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 11"><span><strong>Razer:</strong> Il tuo portafoglio non rende? <strong>Ora puoi dimostrarlo scientificamente.</strong></span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 12"><span><strong>Razer:</strong> I mercati sono efficienti. Tu ancora no.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 13"><span><strong>Razer:</strong> Il drawdown passa. Il trauma resta.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 14"><span><strong>Razer:</strong> Dove lo Sharpe è alto e l'autostima è bassa.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 15"><span><strong>Razer:</strong> Nessuna sfera di cristallo. Solo formule più complicate.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 16"><span><strong>Razer:</strong> Il backtest è fantastico. Peccato che sia già successo.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 17"><span><strong>Razer:</strong> Investire è semplice. Complicarlo è il nostro lavoro.</span></ng-container>
     </div>
   </div>
   <main class="landing-shell">
