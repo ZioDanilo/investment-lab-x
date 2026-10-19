@@ -551,3 +551,27 @@
   .mock-ad-home-stack { position:relative; display:flex; flex-direction:column; gap:12px; width:min(320px,calc(100% - 24px)); margin:12px auto; }
   .mock-ad-home-stack app-adsense-slot { display:block; height:180px; width:100%; }
 }
+
+/* Keep the authenticated left-rail ad in its original position after
+   all six navigation cards. AdSense iframes must never cover the menu. */
+@media (min-width: 1181px) {
+  .app-feature-sidebar {
+    isolation: isolate;
+    grid-auto-rows: max-content;
+  }
+  .app-feature-sidebar .app-feature-menu-card {
+    position: relative;
+    z-index: 2;
+  }
+  .app-feature-sidebar app-adsense-slot {
+    grid-column: 1;
+    grid-row: 7;
+    position: relative;
+    z-index: 0;
+    margin-top: 12px;
+    height: 180px;
+    min-height: 180px;
+    overflow: hidden;
+    contain: layout paint;
+  }
+}
