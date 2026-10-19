@@ -537,84 +537,51 @@
 .app-feature-action-row .trend-draft-header-slot{position:relative;z-index:1;overflow:visible}
 .app-feature-action-row .trend-draft-header-slot .draft-list{position:relative;overflow:visible}
 
-/* Real AdSense inventory: preserve the existing sidebar and Home positions. */
-.app-feature-sidebar app-adsense-slot { display:block; box-sizing:border-box; width:100%; height:180px; margin-top:12px; }
+/* Mock advertising inventory: sidebar on feature pages, same left rail on Home. */
+.mock-ad-slot{box-sizing:border-box;width:100%;min-height:180px;margin-top:12px;padding:13px 8px;border:1px dashed rgba(125,166,210,.45);border-radius:12px;background:linear-gradient(145deg,rgba(24,45,68,.65),rgba(9,17,29,.86));color:#b9cde1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;pointer-events:none}
+.mock-ad-slot__label{font-size:9px;letter-spacing:.15em;color:#8a9fb4;font-weight:700}
+.mock-ad-slot__icon{font-size:27px;color:#73b9ef}
+.mock-ad-slot__text{font-size:12px;font-weight:700;color:#dbe9f8}
+.mock-ad-slot__note{font-size:10px;color:#8a9fb4}
+.mock-ad-slot--home{position:absolute;left:12px;top:73px;width:144px;z-index:2}
+@media(max-width:1180px){.app-feature-sidebar .mock-ad-slot{display:none}.mock-ad-slot--home{position:relative;left:auto;top:auto;width:min(320px,calc(100% - 24px));min-height:90px;margin:12px auto}}
+@media(min-width:1181px){.app-feature-sidebar .mock-ad-slot{margin-top:12px}}
+
+/* Home advertising rail: the first two slots occupy the future menu area.
+   The third slot begins at exactly the same vertical position as the
+   feature sidebar advertisement (58px header + 3px gap + six 54px
+   menu items + six 6px gaps + 12px ad margin). Route changes remove
+   the two Home-only slots from the DOM instead of covering them. */
 @media(min-width:1181px){
-  .mock-ad-home-stack {
-    position:absolute; left:18px; top:61px; width:150px; z-index:2;
-    display:grid; grid-template-rows:174px 174px 180px; gap:12px;
+  .mock-ad-home-stack{
+    position:absolute;left:18px;top:61px;width:150px;z-index:2;
+    display:grid;grid-template-rows:174px 174px 180px;gap:12px;
   }
-  .mock-ad-home-stack app-adsense-slot { display:block; width:100%; height:100%; min-height:0; }
+  .mock-ad-home-stack .mock-ad-slot{min-height:0;height:100%;margin:0}
+  .app-feature-sidebar .mock-ad-slot{min-height:180px}
 }
 @media(max-width:1180px){
-  .app-feature-sidebar app-adsense-slot { display:none; }
-  .mock-ad-home-stack { position:relative; display:flex; flex-direction:column; gap:12px; width:min(320px,calc(100% - 24px)); margin:12px auto; }
-  .mock-ad-home-stack app-adsense-slot { display:block; height:180px; width:100%; }
+  .mock-ad-home-stack{position:relative;display:flex;flex-direction:column;gap:12px;width:min(320px,calc(100% - 24px));margin:12px auto}
+  .mock-ad-home-stack .mock-ad-slot{min-height:90px;margin:0}
 }
 
-/* Preserve the existing Home rail placement (unrelated to sidebar restore). */
-@media (min-width: 1181px) {
-  .route-content .mock-ad-home-stack { top: 109px; }
+/* Real sidebar AdSense uses the exact historical mock-ad-slot grid item geometry.
+   The wrapper, not the ad iframe, controls placement below the six links. */
+.app-feature-sidebar > .mock-ad-slot--sidebar {
+  display: block;
+  position: relative;
+  padding: 0;
+  height: 180px;
+  min-height: 180px;
+  overflow: hidden;
+  pointer-events: auto;
 }
-
-/* Sidebar-only historical placement: six menu cards in normal grid flow,
-   followed by the original 12px gap and 180px advertisement. */
-@media (min-width: 1181px) {
-  .route-content--feature > aside.app-feature-sidebar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: none;
-    grid-auto-rows: auto;
-    align-content: start;
-    gap: 6px;
-    height: auto;
-  }
-  .route-content--feature > aside.app-feature-sidebar > app-adsense-slot {
-    display: block;
-    position: static;
-    grid-column: auto;
-    grid-row: auto;
-    align-self: auto;
-    height: 180px;
-    min-height: 180px;
-    margin: 12px 0 0;
-  }
+.app-feature-sidebar > .mock-ad-slot--sidebar > app-adsense-slot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
-
-/* Force the feature-page ad BELOW the complete six-item side menu.
-   A dedicated seventh flex item ensures it cannot occupy or overlap menu rows. */
-@media (min-width: 1181px) {
-  .route-content--feature > aside.app-feature-sidebar {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    justify-content: flex-start !important;
-    gap: 6px !important;
-    overflow: visible !important;
-    height: auto !important;
-  }
-  .route-content--feature > aside.app-feature-sidebar > .app-feature-menu-card {
-    display: grid;
-    box-sizing: border-box;
-    flex: 0 0 54px !important;
-    min-height: 54px !important;
-    height: 54px !important;
-    width: 100%;
-    margin: 0 !important;
-  }
-  .route-content--feature > aside.app-feature-sidebar > app-adsense-slot {
-    display: block !important;
-    box-sizing: border-box;
-    flex: 0 0 180px !important;
-    position: relative !important;
-    inset: auto !important;
-    transform: none !important;
-    align-self: stretch !important;
-    width: 100% !important;
-    height: 180px !important;
-    min-height: 180px !important;
-    margin: 24px 0 0 !important;
-    overflow: hidden !important;
-    isolation: isolate;
-  }
+@media (max-width: 1180px) {
+  .app-feature-sidebar > .mock-ad-slot--sidebar { display: none; }
 }
