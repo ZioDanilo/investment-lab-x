@@ -555,7 +555,7 @@
 @media(min-width:1181px){
   .mock-ad-home-stack{
     position:absolute;left:18px;top:61px;width:150px;z-index:2;
-    display:grid;grid-template-rows:174px 174px 180px;gap:12px;
+    display:grid;
   }
   .mock-ad-home-stack .mock-ad-slot{min-height:0;height:100%;margin:0}
   .app-feature-sidebar .mock-ad-slot{min-height:180px}
@@ -595,3 +595,5 @@
   background: linear-gradient(145deg,rgba(24,45,68,.65),rgba(9,17,29,.86));
   overflow: hidden;
 }
+
+/* Home retains its existing coordinates; AdRail owns internal dimensions. */
