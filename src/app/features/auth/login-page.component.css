@@ -487,16 +487,14 @@
 @media(max-width:420px){.birth-date-selects{gap:5px}.birth-date-selects select{padding:9px 3px;font-size:.78rem}}
 
 
-/* Mirror the authenticated Home ad rail without changing Home/sidebar CSS.
-   Authenticated navbar: 64px minimum content height + 10px vertical padding
-   on each side + 1px bottom border = 85px. Home rail starts 61px below it.
-   Thus the first login ad starts at 146px from the viewport top; subsequent
-   ads use exactly the Home grid tracks (174px, 174px, 180px) and 12px gaps. */
+/* Align the login ad rail to the actual rendered Home rail.
+   Screenshot comparison: login slots were 20px lower than Home.
+   Keep Home/sidebar untouched; preserve grid dimensions and 12px gaps. */
 @media (min-width: 1181px) {
   .login-page { position: relative; }
   .prelogin-ad-stack {
     position: absolute;
-    top: 146px;
+    top: 126px;
     left: 18px;
     width: 150px;
     display: grid;
