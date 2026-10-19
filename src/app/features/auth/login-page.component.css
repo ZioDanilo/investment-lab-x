@@ -619,3 +619,11 @@
     transform: none;
   }
 }
+
+/* Move the auth card left by exactly half its own rendered width.
+   This affects only the card, not the hero text or image. */
+@media (min-width: 901px) {
+  .hero-panel > .login-card {
+    transform: translateX(-50%);
+  }
+}

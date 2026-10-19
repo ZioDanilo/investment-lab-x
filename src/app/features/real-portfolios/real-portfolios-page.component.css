@@ -234,3 +234,17 @@ input.invalid,
 .portfolio-choice:not(.add) .portfolio-choice__metrics{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:0;overflow:visible}
 .portfolio-choice:not(.add) .portfolio-choice__metrics>strong{display:block;margin:0;line-height:1.25}
 .portfolio-choice:not(.add) .portfolio-choice__metrics>.portfolio-return{display:block;margin:0!important;line-height:1.3;white-space:normal;overflow-wrap:anywhere;font-size:.75rem!important}
+
+/* Use the exact same first-column width in both grids: the four card corners
+   meet symmetrically around the shared 10px horizontal and vertical gutters. */
+@media (min-width:1181px){
+  .main-grid{--chart-column:calc((100% - 10px) * 1.25 / 2.2);grid-template-columns:minmax(0,var(--chart-column)) minmax(0,calc(260px + (100% - var(--chart-column) - 280px) * .2)) minmax(0,1fr);align-items:stretch}
+  .bottom-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,.95fr)}
+  .main-grid > app-ui-card{min-width:0;height:100%;box-sizing:border-box}
+}
+
+/* The grid stretches app-ui-card hosts, but their internal article remains auto-height.
+   Stretch the actual card surface so composition and statistics end at chart level. */
+@media (min-width:1181px){
+  :host ::ng-deep .main-grid > app-ui-card > .ui-card{height:100%;box-sizing:border-box}
+}
