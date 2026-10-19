@@ -485,3 +485,137 @@
 .birth-date-selects select{width:100%;min-width:0;box-sizing:border-box;border:1px solid rgba(145,176,211,.32);border-radius:9px;background:#111c2b;color:#f1f7ff;padding:10px 7px;font:inherit}
 .birth-date-selects select:focus{outline:2px solid #39a9ff;outline-offset:1px}
 @media(max-width:420px){.birth-date-selects{gap:5px}.birth-date-selects select{padding:9px 3px;font-size:.78rem}}
+
+
+/* Login rail uses the same shared component and 61px content-area offset
+   as Home. Navbar's 64px content box + 1px border are accounted for here;
+   the ad grid geometry lives only in AdRailComponent. */
+@media (min-width: 1181px) {
+  .login-page { position: relative; }
+  .prelogin-ad-stack {
+    position: absolute;
+    top: calc(64px + 1px + 61px);
+    left: 18px;
+    z-index: 2;
+  }
+  .landing-shell {
+    width: auto;
+    max-width: none;
+    margin-left: 180px;
+    margin-right: 0;
+  }
+}
+@media (max-width: 1180px) {
+  .prelogin-ad-stack { display: none; }
+}
+
+/* Desktop: headline uses a viewport-based anchor, independent of the
+   registration form's intrinsic height. Never clip the form or its tabs. */
+@media (min-width: 901px) {
+  .login-page {
+    overflow-y: auto;
+  }
+  .landing-shell {
+    min-height: calc(100vh - 65px);
+    height: auto;
+  }
+  .hero-panel {
+    min-height: min(660px, calc(100vh - 195px));
+    height: auto;
+    align-items: center;
+    overflow: visible;
+  }
+  .hero-copy-wrap {
+    position: static;
+    align-self: stretch;
+    min-height: 0;
+  }
+  .hero-copy {
+    position: absolute;
+    top: clamp(180px, 34vh, 360px);
+    left: clamp(28px, 4vw, 64px);
+    width: calc((100% - 2 * clamp(28px, 4vw, 64px) - clamp(28px, 4vw, 72px)) * 0.574468);
+    max-width: 780px;
+    margin: 0;
+    transform: translateY(-50%);
+  }
+  .login-card {
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
+    align-self: start;
+    margin-top: 0;
+  }
+}
+
+/* Decouple the photograph from the form-driven hero height.
+   The fixed-size image layer never rescales/repositions when registration
+   fields or validation messages increase the hero's content height. */
+@media (min-width: 901px) {
+  .hero-panel {
+    isolation: isolate;
+    background: linear-gradient(180deg, #10222b, #091a22);
+  }
+  .hero-panel::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0 0 auto 0;
+    height: max(660px, calc(100vh - 195px));
+    border-radius: inherit;
+    background:
+      linear-gradient(90deg, rgba(2,10,20,.82) 0%, rgba(7,16,26,.55) 42%, rgba(7,16,26,.22) 100%),
+      url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1800&q=80') center top / cover no-repeat;
+    pointer-events: none;
+  }
+}
+
+/* Anchor the promotional quote to the bottom-left of the fixed photograph,
+   not to the variable-height hero/form. Match the ::before image height. */
+@media (min-width: 901px) {
+  .hero-panel .quote-block {
+    position: absolute;
+    left: clamp(28px, 4vw, 64px);
+    top: calc(max(660px, 100vh - 195px) - 24px);
+    bottom: auto;
+    transform: translateY(-100%);
+    z-index: 1;
+  }
+}
+
+/* Restore the translucent glass appearance of the original auth card and tabs.
+   Keep the photograph visible behind the form, without altering geometry. */
+.login-card {
+  background: rgba(9, 17, 24, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.auth-tabs button {
+  background: rgba(8, 16, 24, 0.72);
+}
+.auth-tabs button.active {
+  background: rgba(9, 17, 24, 0.92);
+}
+
+/* Keep the public navigation and statistics visible below the hero.
+   Size the photograph from the available grid row rather than forcing a
+   660px minimum that pushes the footer below the viewport. */
+@media (min-width: 901px) {
+  .landing-shell {
+    height: calc(100vh - 65px);
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+  }
+  .hero-panel {
+    height: 100%;
+    min-height: 0;
+  }
+  .hero-panel::before {
+    height: 100%;
+  }
+  .hero-panel .quote-block {
+    top: auto;
+    bottom: 24px;
+    transform: none;
+  }
+}
