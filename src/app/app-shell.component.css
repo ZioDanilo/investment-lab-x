@@ -585,3 +585,13 @@
 @media (max-width: 1180px) {
   .app-feature-sidebar > .mock-ad-slot--sidebar { display: none; }
 }
+
+/* AdSense visual frame shared with the historical sidebar mock slot.
+   Purely decorative: does not alter slot position or size. */
+.mock-ad-home-stack > app-adsense-slot {
+  box-sizing: border-box;
+  border: 1px dashed rgba(125,166,210,.45);
+  border-radius: 12px;
+  background: linear-gradient(145deg,rgba(24,45,68,.65),rgba(9,17,29,.86));
+  overflow: hidden;
+}
