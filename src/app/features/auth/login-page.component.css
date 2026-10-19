@@ -546,3 +546,25 @@
     align-self: center;
   }
 }
+
+/* Decouple the photograph from the form-driven hero height.
+   The fixed-size image layer never rescales/repositions when registration
+   fields or validation messages increase the hero's content height. */
+@media (min-width: 901px) {
+  .hero-panel {
+    isolation: isolate;
+    background: linear-gradient(180deg, #10222b, #091a22);
+  }
+  .hero-panel::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0 0 auto 0;
+    height: max(660px, calc(100vh - 195px));
+    border-radius: inherit;
+    background:
+      linear-gradient(90deg, rgba(2,10,20,.82) 0%, rgba(7,16,26,.55) 42%, rgba(7,16,26,.22) 100%),
+      url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1800&q=80') center top / cover no-repeat;
+    pointer-events: none;
+  }
+}
