@@ -27,7 +27,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
 
   private rotateMessage(): void {
     if (this.pendingMessages.length === 0) {
-      this.pendingMessages = Array.from({ length: 18 }, (_, index) => index)
+      this.pendingMessages = Array.from({ length: 19 }, (_, index) => index)
         .filter(index => index !== this.currentMessageIndex);
       for (let i = this.pendingMessages.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
