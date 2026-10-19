@@ -544,7 +544,7 @@
     max-height: none;
     overflow: visible;
     align-self: start;
-    margin-top: clamp(96px, 16vh, 140px);
+    margin-top: clamp(32px, 7vh, 64px);
   }
 }
 
