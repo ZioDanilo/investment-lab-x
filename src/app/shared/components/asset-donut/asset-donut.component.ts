@@ -66,6 +66,7 @@ export class AssetDonutComponent {
   @Input() items: AssetDonutItem[] = [];
   @Input() centerText = '';
   @Input() centerCaption = '';
+  @Input() showCounts = false;
   private static sequence = 0;
   readonly filterId = 'assetDonutShadow' + ++AssetDonutComponent.sequence;
   hoverIndex: number | null = null;
@@ -75,7 +76,7 @@ export class AssetDonutComponent {
     const total = this.items.reduce((sum, entry) => sum + (Number(entry.value) || 0), 0);
     const percentage = total > 0 ? (Number(item.value) || 0) / total * 100 : Number(item.weight) || 0;
     const percentText = percentage.toLocaleString('it-IT', {minimumFractionDigits: 1, maximumFractionDigits: 1});
-    return `${percentText}% (${Number(item.value) || 0} su ${total})`;
+    return this.showCounts ? `${percentText}% (${Number(item.value) || 0} ETF su ${total})` : `${percentText}%`;
   }
   sliceTransform(index: number): string {
     if (this.hoverIndex !== index) return 'translate(0 0)';
