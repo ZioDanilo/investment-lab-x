@@ -347,17 +347,18 @@ export class RealPortfoliosPageComponent implements OnInit {
     {label:'Capitale netto investito',color:'#9ab2cf'}
   ];
   history:Array<{date:string;month:string;marketValue:number|null;netContributions:number;performancePercent:number;valuation:string;estimatedPositions:number}>=[];
-  historyPeriod:'1Y'|'3Y'|'5Y'|'MAX'='MAX';
+  historyPeriod:'1W'|'1M'|'3M'|'6M'|'1Y'|'3Y'|'5Y'|'MAX'='MAX';
   historyMode:'value'|'performance'='performance';
   historyLoading=false;
   get visibleHistory(){
-    const days=this.historyPeriod==='MAX'?Infinity:this.historyPeriod==='1Y'?365:this.historyPeriod==='3Y'?1095:1826;
-    if(days===Infinity)return this.history;
-    const cutoff=new Date();cutoff.setUTCDate(cutoff.getUTCDate()-days);
+    const days: Record<string, number> = { '1W': 7, '1M': 30, '3M': 91, '6M': 183, '1Y': 365, '3Y': 1095, '5Y': 1826, 'MAX': Infinity };
+    const selectedDays = days[this.historyPeriod];
+    if(selectedDays===Infinity)return this.history;
+    const cutoff=new Date();cutoff.setUTCDate(cutoff.getUTCDate()-selectedDays);
     const min=cutoff.toISOString().slice(0,10);
     return this.history.filter(row=>row.date>=min);
   }
-  setHistoryPeriod(period:'1Y'|'3Y'|'5Y'|'MAX'):void {this.historyPeriod=period;}
+  setHistoryPeriod(period:'1W'|'1M'|'3M'|'6M'|'1Y'|'3Y'|'5Y'|'MAX'):void {this.historyPeriod=period;}
   setHistoryMode(mode:'value'|'performance'):void {this.historyMode=mode;}
   private loadHistory():void {
     const portfolio=this.portfolios[this.selected];
