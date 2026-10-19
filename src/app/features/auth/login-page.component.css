@@ -487,13 +487,16 @@
 @media(max-width:420px){.birth-date-selects{gap:5px}.birth-date-selects select{padding:9px 3px;font-size:.78rem}}
 
 
-/* Match the three Home AdSense positions on the public landing page.
-   Navbar is 64px high; the authenticated Home ad rail begins 61px below it. */
+/* Mirror the authenticated Home ad rail without changing Home/sidebar CSS.
+   Authenticated navbar: 64px minimum content height + 10px vertical padding
+   on each side + 1px bottom border = 85px. Home rail starts 61px below it.
+   Thus the first login ad starts at 146px from the viewport top; subsequent
+   ads use exactly the Home grid tracks (174px, 174px, 180px) and 12px gaps. */
 @media (min-width: 1181px) {
   .login-page { position: relative; }
   .prelogin-ad-stack {
     position: absolute;
-    top: 173px;
+    top: 146px;
     left: 18px;
     width: 150px;
     display: grid;
