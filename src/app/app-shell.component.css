@@ -552,10 +552,31 @@
   .mock-ad-home-stack app-adsense-slot { display:block; height:180px; width:100%; }
 }
 
+/* Preserve the existing Home rail placement (unrelated to sidebar restore). */
 @media (min-width: 1181px) {
-  .route-content .mock-ad-home-stack {
-    top: 109px;
+  .route-content .mock-ad-home-stack { top: 109px; }
+}
+
+/* Sidebar-only historical placement: six menu cards in normal grid flow,
+   followed by the original 12px gap and 180px advertisement. */
+@media (min-width: 1181px) {
+  .route-content--feature > aside.app-feature-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+    align-content: start;
+    gap: 6px;
+    height: auto;
+  }
+  .route-content--feature > aside.app-feature-sidebar > app-adsense-slot {
+    display: block;
+    position: static;
+    grid-column: auto;
+    grid-row: auto;
+    align-self: auto;
+    height: 180px;
+    min-height: 180px;
+    margin: 12px 0 0;
   }
 }
-/* Sidebar slot 2590507807: restore the original pre-adjustment placement.
-   No additional margins, fixed grid rows, or flex overrides. */
