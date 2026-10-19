@@ -45,13 +45,21 @@
   transform: translateY(100%);
   color: rgba(225, 238, 249, 0.88);
   font-size: 0.82rem;
-  animation: rotate-message-entry 7s ease-in-out both;
+  animation: rotate-message-entry 650ms ease-in-out both;
+}
+
+.message-rotator span.message-outgoing {
+  animation: rotate-message-exit 650ms ease-in-out both;
 }
 
 @keyframes rotate-message-entry {
-  0% { opacity: 0; transform: translateY(100%); }
-  10%, 88% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-100%); }
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rotate-message-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-100%); }
 }
 
 
