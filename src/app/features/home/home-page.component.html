@@ -111,7 +111,7 @@
 
         <div class="asset-state" *ngIf="assetLoading">Caricamento ETF...</div>
         <div class="asset-state" *ngIf="assetError">Impossibile caricare la distribuzione ETF.</div>
-        <app-asset-donut *ngIf="!assetLoading && !assetError" [items]="assetMix"
+        <app-asset-donut *ngIf="!assetLoading && !assetError" [items]="assetMix" [showCounts]="true"
           [centerText]="totalEtfs.toString()" centerCaption="ETF disponibili"></app-asset-donut>
       </article>
     </section>
