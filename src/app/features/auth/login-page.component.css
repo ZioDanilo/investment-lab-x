@@ -543,7 +543,8 @@
     min-height: auto;
     max-height: none;
     overflow: visible;
-    align-self: center;
+    align-self: start;
+    margin-top: clamp(96px, 16vh, 140px);
   }
 }
 
