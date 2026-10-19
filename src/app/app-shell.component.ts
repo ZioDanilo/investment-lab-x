@@ -11,12 +11,13 @@ import { ApiService } from './core/api/api.service';
 import { ActionConfirmationService } from './core/services/action-confirmation.service';
 import { ActionConfirmationComponent } from './shared/components/action-confirmation/action-confirmation.component';
 import { PortfolioSelectionService } from './core/services/portfolio-selection.service';
+import { AdsenseSlotComponent } from './shared/components/adsense-slot.component';
 import { TrendStrategyService } from './core/services/trend-strategy.service';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent, MoneyInputComponent, ActionConfirmationComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, PortfolioSelectorComponent, MoneyInputComponent, ActionConfirmationComponent, AdsenseSlotComponent],
   templateUrl: './app-shell.component.html',
   styleUrls: ['./app-shell.component.css']
 })
