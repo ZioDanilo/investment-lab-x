@@ -9,6 +9,7 @@ import { MoneyInputComponent } from './shared/inputs/money-input.component';
 import { RebalanceInputService } from './core/services/rebalance-input.service';
 import { ApiService } from './core/api/api.service';
 import { ActionConfirmationService } from './core/services/action-confirmation.service';
+import { QuotationsUpdatedService } from './core/services/quotations-updated.service';
 import { ActionConfirmationComponent } from './shared/components/action-confirmation/action-confirmation.component';
 import { PortfolioSelectionService } from './core/services/portfolio-selection.service';
 import { AdsenseSlotComponent } from './shared/components/adsense-slot.component';
@@ -67,6 +68,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   readonly rebalanceInputs = inject(RebalanceInputService);
   private readonly apiService = inject(ApiService);
   private readonly confirmation = inject(ActionConfirmationService);
+  private readonly quotationsUpdated = inject(QuotationsUpdatedService);
   private readonly http = inject(HttpClient);
   isImportingYahooPrices = false;
 
@@ -82,7 +84,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     try {
       const result = await firstValueFrom(this.http.post<any>(environment.apiUrl + '/yahoo-finance/update-quotations', {}));
       console.info('[Yahoo import]', result);
-      this.confirmation.notify('Aggiornamento quotazioni: ' + (result.inserted ?? 0) + ' inserite, ' + (result.updatedToday ?? 0) + ' aggiornate, ' + (result.existing ?? 0) + ' già presenti, ' + (result.skippedPrices ?? 0) + ' prezzi assenti, ' + (result.failures?.length ?? 0) + ' errori, ' + (result.rejectedPrices?.length ?? 0) + ' prezzi anomali rifiutati.', (result.failures?.length ?? 0) > 0 || (result.rejectedPrices?.length ?? 0) > 0 || result.success === false, result.success !== false ? () => window.location.reload() : undefined);
+      if (result.success !== false) this.quotationsUpdated.publish();
 
     } catch (error: any) {
       console.error('[Yahoo import]', error);
