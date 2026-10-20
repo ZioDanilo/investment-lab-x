@@ -62,6 +62,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   ngOnDestroy(): void {
     this.targetResizeObserver?.disconnect();
     this.stopMarketUniversePolling();
+    this.stopYahooPricesProgress();
   }
   readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/trend-following'];
   private readonly router = inject(Router);
@@ -71,6 +72,35 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private readonly quotationsUpdated = inject(QuotationsUpdatedService);
   private readonly http = inject(HttpClient);
   isImportingYahooPrices = false;
+  yahooPricesProgress = 0;
+  private yahooPricesProgressTimer: ReturnType<typeof setInterval> | null = null;
+  private yahooPricesFinishTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private stopYahooPricesProgress(): void {
+    if (this.yahooPricesProgressTimer) clearInterval(this.yahooPricesProgressTimer);
+    if (this.yahooPricesFinishTimer) clearTimeout(this.yahooPricesFinishTimer);
+    this.yahooPricesProgressTimer = null;
+    this.yahooPricesFinishTimer = null;
+  }
+
+  private beginYahooPricesProgress(): void {
+    this.stopYahooPricesProgress();
+    this.yahooPricesProgress = 1;
+    const started = Date.now();
+    this.yahooPricesProgressTimer = setInterval(() => {
+      this.yahooPricesProgress = Math.min(80, Math.max(1, (Date.now() - started) / 20000 * 80));
+    }, 100);
+  }
+
+  private endYahooPricesProgress(): void {
+    this.stopYahooPricesProgress();
+    this.yahooPricesProgress = 100;
+    this.yahooPricesFinishTimer = setTimeout(() => {
+      this.isImportingYahooPrices = false;
+      this.yahooPricesProgress = 0;
+      this.yahooPricesFinishTimer = null;
+    }, 450);
+  }
 
   async importYahooPrices(event: Event): Promise<void> {
     event.stopPropagation();
@@ -81,16 +111,18 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private async executeYahooPricesUpdate(): Promise<void> {
     if (this.isImportingYahooPrices) return;
     this.isImportingYahooPrices = true;
+    this.beginYahooPricesProgress();
     try {
       const result = await firstValueFrom(this.http.post<any>(environment.apiUrl + '/yahoo-finance/update-quotations', {}));
       console.info('[Yahoo import]', result);
-      if (result.success !== false) this.quotationsUpdated.publish();
+      if (result.success === false) throw new Error(result.error || 'Aggiornamento non riuscito');
+      this.quotationsUpdated.publish();
 
     } catch (error: any) {
       console.error('[Yahoo import]', error);
       this.confirmation.notify('Importazione Yahoo non riuscita: ' + (error?.error?.error || error?.message || 'errore sconosciuto'), true);
     } finally {
-      this.isImportingYahooPrices = false;
+      this.endYahooPricesProgress();
     }
   }
 
