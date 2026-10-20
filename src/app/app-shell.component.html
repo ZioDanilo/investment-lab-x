@@ -36,6 +36,11 @@
     </div>
   </header>
 
+  <div *ngIf="isImportingYahooPrices" class="global-quotation-progress" role="progressbar" aria-label="Aggiornamento di tutte le quotazioni" [attr.aria-valuenow]="yahooPricesProgress" aria-valuemin="0" aria-valuemax="100">
+    <span class="global-quotation-progress__fill" [style.width.%]="yahooPricesProgress"></span>
+    <span class="global-quotation-progress__label">Aggiornamento quotazioni · {{ yahooPricesProgress | number:'1.0-0' }}%</span>
+  </div>
+
   <main class="route-content" [class.route-content--feature]="showFeatureSidebar">
     <div *ngIf="showFeatureSidebar || isRegeneratingMarketUniverse" class="app-feature-action-row" [class.app-feature-action-row--home]="!showFeatureSidebar">
       <div *ngIf="isRebalancePage" class="rebalance-target-selector" [style.left.px]="rebalanceTargetLeft" [style.width.px]="rebalanceTargetWidth"><span>Portafoglio target</span><app-portfolio-selector mode="laboratorio" [showLabel]="false"></app-portfolio-selector><label class="rebalance-cash-selector"><span>Liquidità da aggiungere</span><app-money-input label="Liquidità da aggiungere" [value]="rebalanceInputs.cashToAdd()" (valueChange)="rebalanceInputs.setCash($event)"></app-money-input></label></div>
