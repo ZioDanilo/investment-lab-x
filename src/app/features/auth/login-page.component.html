@@ -109,7 +109,13 @@
           <p class="field-error" *ngIf="birthDateError">{{birthDateError}}</p>
         </ng-container>
         <div class="login-action-row">
-          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && (usernameTaken || usernameChecking || usernameCheckError || usernameVerified !== username.trim().toLowerCase() || emailTaken || emailChecking || emailCheckError || emailVerified !== email.trim().toLowerCase() || !registrationValid))">
+          <div *ngIf="backendLoading" class="backend-ready-progress" role="progressbar"
+               [attr.aria-valuenow]="backendProgress" aria-valuemin="0" aria-valuemax="100"
+               aria-label="Avvio Market Universe">
+            <span class="backend-ready-progress__fill" [style.width.%]="backendProgress"></span>
+            <span class="backend-ready-progress__label">Generazione Market Universe · {{ backendProgress | number:'1.0-0' }}%</span>
+          </div>
+          <button *ngIf="!backendLoading" type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && (usernameTaken || usernameChecking || usernameCheckError || usernameVerified !== username.trim().toLowerCase() || emailTaken || emailChecking || emailCheckError || emailVerified !== email.trim().toLowerCase() || !registrationValid))">
             {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
           </button>
         </div>
