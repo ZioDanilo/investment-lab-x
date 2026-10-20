@@ -61,17 +61,47 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     if (this.rotationTimer) clearTimeout(this.rotationTimer);
     if (this.emailCheckTimer) clearTimeout(this.emailCheckTimer);
     if (this.usernameCheckTimer) clearTimeout(this.usernameCheckTimer);
+    if (this.backendProgressTimer) clearInterval(this.backendProgressTimer);
+    if (this.backendFinishTimer) clearTimeout(this.backendFinishTimer);
   }
 
   landingStats: { users: number | null; portfolios: number | null; etfs: number | null; operations: number | null } = { users: null, portfolios: null, etfs: null, operations: null };
   landingStatsError = '';
+  backendLoading = true;
+  backendProgress = 0;
+  private backendStartedAt = 0;
+  private backendProgressTimer?: ReturnType<typeof setInterval>;
+  private backendFinishTimer?: ReturnType<typeof setTimeout>;
+
+  private startBackendProgress(): void {
+    this.backendStartedAt = Date.now();
+    this.backendProgressTimer = setInterval(() => {
+      const elapsed = Date.now() - this.backendStartedAt;
+      this.backendProgress = elapsed <= 20000
+        ? Math.min(80, elapsed / 250)
+        : Math.min(98, 80 + Math.floor((elapsed - 20000) / 10000) * 2);
+    }, 100);
+  }
+
+  private finishBackendProgress(success: boolean): void {
+    if (this.backendProgressTimer) clearInterval(this.backendProgressTimer);
+    this.backendProgressTimer = undefined;
+    if (!success) { this.backendLoading = false; return; }
+    this.backendProgress = 100;
+    this.backendFinishTimer = setTimeout(() => {
+      this.backendLoading = false;
+      this.backendFinishTimer = undefined;
+    }, 350);
+  }
 
   ngOnInit(): void {
     this.currentMessageIndex = Math.floor(Math.random() * 18);
     this.resumeRotation();
+    this.startBackendProgress();
     this.apiService.getLandingStats().subscribe({
       next: (response: any) => {
         if (!response?.success || !response?.data) {
+          this.finishBackendProgress(false);
           this.landingStatsError = 'Statistiche non disponibili: risposta del servizio non valida.';
           return;
         }
@@ -88,12 +118,15 @@ export class LoginPageComponent implements OnInit, OnDestroy {
           operations: parseCount(data.operations)
         };
         if (Object.values(this.landingStats).some(value => value === null)) {
+          this.finishBackendProgress(false);
           this.landingStatsError = 'Alcuni conteggi non sono stati restituiti dal servizio.';
         } else {
           this.landingStatsError = '';
+          this.finishBackendProgress(true);
         }
       },
       error: (error: any) => {
+        this.finishBackendProgress(false);
         this.landingStatsError = 'Statistiche non disponibili (HTTP ' + (error?.status || 'rete') + ').';
         console.error('Errore caricamento statistiche landing', error);
       }
@@ -264,7 +297,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.submitting || !this.username || !this.password || (this.registerMode && (this.usernameTaken || this.usernameChecking || this.usernameCheckError || this.usernameVerified !== this.username.trim().toLowerCase() || this.emailTaken || this.emailChecking || this.emailCheckError || this.emailVerified !== this.email.trim().toLowerCase() || !this.registrationValid))) return;
+    if (this.backendLoading || this.submitting || !this.username || !this.password || (this.registerMode && (this.usernameTaken || this.usernameChecking || this.usernameCheckError || this.usernameVerified !== this.username.trim().toLowerCase() || this.emailTaken || this.emailChecking || this.emailCheckError || this.emailVerified !== this.email.trim().toLowerCase() || !this.registrationValid))) return;
     if (this.registerMode) {
       this.onRegister();
       return;
