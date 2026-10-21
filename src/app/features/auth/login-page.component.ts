@@ -170,6 +170,43 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     return this.monteCarloDiagnosticsReport ? JSON.stringify(this.monteCarloDiagnosticsReport, null, 2) : '';
   }
 
+  returnCalibrationLoading = false;
+  returnCalibrationOpen = false;
+  returnCalibrationError = '';
+  returnCalibrationReport: any = null;
+
+  runReturnCalibration(): void {
+    if (this.returnCalibrationLoading) return;
+    this.returnCalibrationLoading = true;
+    this.returnCalibrationError = '';
+    this.returnCalibrationReport = null;
+    this.returnCalibrationOpen = true;
+    this.apiService.getReturnCalibrationV6().subscribe({
+      next: (response: any) => {
+        this.returnCalibrationLoading = false;
+        if (response?.success && response?.data) this.returnCalibrationReport = response.data;
+        else this.returnCalibrationError = 'Risposta di calibrazione non valida.';
+      },
+      error: (error: any) => {
+        this.returnCalibrationLoading = false;
+        this.returnCalibrationError = error?.error?.error ||
+          ('Calibrazione non disponibile (HTTP ' + (error?.status || 'rete') + ').');
+      }
+    });
+  }
+
+  closeReturnCalibration(): void { this.returnCalibrationOpen = false; }
+
+  copyReturnCalibration(): void {
+    if (!this.returnCalibrationReport) return;
+    void navigator.clipboard.writeText(JSON.stringify(this.returnCalibrationReport, null, 2))
+      .catch(() => { this.returnCalibrationError = 'Copia non disponibile: seleziona il JSON e copialo manualmente.'; });
+  }
+
+  get returnCalibrationJson(): string {
+    return this.returnCalibrationReport ? JSON.stringify(this.returnCalibrationReport, null, 2) : '';
+  }
+
   factorAuditLoading = false;
   factorAuditOpen = false;
   factorAuditError = '';
