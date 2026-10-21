@@ -240,6 +240,10 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/market-universe/assets/isin/${encodeURIComponent(isin)}`);
   }
 
+  getMonteCarloDiagnostics(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/v2/monte-carlo-diagnostics`);
+  }
+
   getFactorAudit(): Observable<any> {
     return this.http.get(`${this.apiUrl}/market-universe/v2/factor-audit`);
   }
