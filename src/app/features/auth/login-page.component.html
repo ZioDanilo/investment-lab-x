@@ -151,7 +151,7 @@
   <div class="factor-audit-backdrop" *ngIf="monteCarloDiagnosticsOpen" (click)="closeMonteCarloDiagnostics()">
     <section class="factor-audit-dialog" role="dialog" aria-modal="true" aria-label="Diagnostica Monte Carlo" (click)="$event.stopPropagation()">
       <header class="factor-audit-header">
-        <h2>Certificazione Monte Carlo · Market Universe V4</h2>
+        <h2>Diagnostica Monte Carlo · Fondamenta V5</h2>
         <button type="button" class="factor-audit-close" (click)="closeMonteCarloDiagnostics()" aria-label="Chiudi diagnostica">×</button>
       </header>
       <p *ngIf="monteCarloDiagnosticsLoading">Analisi delle simulazioni salvate in corso...</p>
@@ -172,6 +172,17 @@
           <p>Le discrepanze teoriche non sono direttamente confrontabili senza considerare l'intensità dei regimi. Consulta il JSON per le limitazioni.</p>
         </div>
         <p *ngIf="report.performance as perf" class="factor-audit-summary">Tempi: totale {{ perf.totalMs }} ms · lettura DB {{ perf.dbReadMs }} ms · simulazioni {{ perf.simulationAnalysisMs }} ms · audit v3 {{ perf.economicAuditMs }} ms · validazione v4 {{ perf.momentValidationMs }} ms</p>
+        <div *ngIf="report.v5Foundation as v5" class="factor-audit-summary" role="status">
+          <strong>Monte Carlo V5 · {{ v5.status }}</strong>
+          · {{ v5.checks?.length }} controlli strutturali
+          <p>Modalità: sola lettura. Nessuna modifica ai parametri o alle simulazioni salvate.</p>
+          <p>Impronta SHA-256 configurazione fattoriale corrente: <code>{{ v5.configuration?.currentFactorSnapshotSha256 }}</code></p>
+          <p>Manifest originale del run: {{ v5.configuration?.historicallyReproducible ? 'verificato' : 'non disponibile' }}. L'impronta corrente non certifica la configurazione storica.</p>
+          <p>Premi stile incrementali: {{ v5.semantics?.verifiedIncrementalPremia ? 'verificati' : 'non verificati' }}.</p>
+          <div *ngFor="let check of v5.checks" style="margin:6px 0">
+            <strong>{{ check.status }}</strong> · {{ check.id }} — {{ check.detail }}
+          </div>
+        </div>
         <div *ngIf="report.v4Validation as v4" class="factor-audit-summary" role="status">
           <strong>Validazione matematica V4: {{ v4.status }}</strong>
           · {{ v4.etfs?.length }} ETF confrontati
