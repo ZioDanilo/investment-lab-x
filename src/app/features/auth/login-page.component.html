@@ -151,7 +151,7 @@
   <div class="factor-audit-backdrop" *ngIf="monteCarloDiagnosticsOpen" (click)="closeMonteCarloDiagnostics()">
     <section class="factor-audit-dialog" role="dialog" aria-modal="true" aria-label="Diagnostica Monte Carlo" (click)="$event.stopPropagation()">
       <header class="factor-audit-header">
-        <h2>Diagnostica Monte Carlo · Market Universe V2</h2>
+        <h2>Diagnostica Monte Carlo · Market Universe V3</h2>
         <button type="button" class="factor-audit-close" (click)="closeMonteCarloDiagnostics()" aria-label="Chiudi diagnostica">×</button>
       </header>
       <p *ngIf="monteCarloDiagnosticsLoading">Analisi delle simulazioni salvate in corso...</p>
@@ -161,7 +161,16 @@
           <strong>Analisi completata</strong>
           · {{ report.run?.pathCount }} percorsi · {{ report.run?.monthCount }} mesi
           · {{ report.etfs?.length }} ETF · {{ report.correlations?.length }} correlazioni
+          · {{ report.v3Audit?.warnings?.length || 0 }} avvisi strutturali
         </p>
+        <div *ngIf="report.v3Audit as v3" class="factor-audit-summary">
+          <strong>Audit economico V3</strong>
+          · {{ v3.stylePremia?.length }} premi azionari
+          · {{ v3.bondAndFx?.length }} ETF obbligazionari/valutari
+          · {{ v3.correlationComparisons?.length }} correlazioni teoriche per regime
+          · {{ v3.regimePersistence?.length }} scenari analizzati
+          <p>Le discrepanze teoriche non sono direttamente confrontabili senza considerare l'intensità dei regimi. Consulta il JSON per le limitazioni.</p>
+        </div>
         <div class="factor-audit-actions">
           <button type="button" (click)="copyMonteCarloDiagnostics()">Copia JSON</button>
           <button type="button" (click)="runMonteCarloDiagnostics()" [disabled]="monteCarloDiagnosticsLoading">Riesegui</button>
