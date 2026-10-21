@@ -133,6 +133,45 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  factorAuditLoading = false;
+  factorAuditOpen = false;
+  factorAuditError = '';
+  factorAuditReport: any = null;
+
+  runFactorAudit(): void {
+    if (this.factorAuditLoading) return;
+    this.factorAuditLoading = true;
+    this.factorAuditError = '';
+    this.factorAuditOpen = true;
+    this.apiService.getFactorAudit().subscribe({
+      next: (response: any) => {
+        this.factorAuditLoading = false;
+        if (response?.success && response?.data) {
+          this.factorAuditReport = response.data;
+        } else {
+          this.factorAuditError = 'Risposta diagnostica non valida.';
+        }
+      },
+      error: (error: any) => {
+        this.factorAuditLoading = false;
+        this.factorAuditError = error?.error?.error ||
+          ('Audit non disponibile (HTTP ' + (error?.status || 'rete') + ').');
+      }
+    });
+  }
+
+  closeFactorAudit(): void { this.factorAuditOpen = false; }
+
+  copyFactorAudit(): void {
+    if (!this.factorAuditReport) return;
+    void navigator.clipboard.writeText(JSON.stringify(this.factorAuditReport, null, 2))
+      .catch(() => { this.factorAuditError = 'Copia non disponibile: seleziona il JSON e copialo manualmente.'; });
+  }
+
+  get factorAuditJson(): string {
+    return this.factorAuditReport ? JSON.stringify(this.factorAuditReport, null, 2) : '';
+  }
+
   username = '';
   password = '';
   email = '';
