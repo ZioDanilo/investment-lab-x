@@ -171,6 +171,7 @@
           · {{ v3.regimePersistence?.length }} scenari analizzati
           <p>Le discrepanze teoriche non sono direttamente confrontabili senza considerare l'intensità dei regimi. Consulta il JSON per le limitazioni.</p>
         </div>
+        <p *ngIf="report.performance as perf" class="factor-audit-summary">Tempi: totale {{ perf.totalMs }} ms · lettura DB {{ perf.dbReadMs }} ms · simulazioni {{ perf.simulationAnalysisMs }} ms · audit v3 {{ perf.economicAuditMs }} ms · validazione v4 {{ perf.momentValidationMs }} ms</p>
         <div *ngIf="report.v4Validation as v4" class="factor-audit-summary" role="status">
           <strong>Validazione matematica V4: {{ v4.status }}</strong>
           · {{ v4.etfs?.length }} ETF confrontati
