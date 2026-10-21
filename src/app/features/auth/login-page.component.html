@@ -114,6 +114,11 @@
                   title="Esegui diagnostica fattoriale senza rigenerare il Market Universe">
             {{ factorAuditLoading ? 'Audit...' : 'Audit fattoriale' }}
           </button>
+          <button type="button" class="factor-audit-trigger" (click)="runMonteCarloDiagnostics()"
+                  [disabled]="backendLoading || monteCarloDiagnosticsLoading"
+                  title="Analizza le simulazioni salvate senza rigenerare il Market Universe">
+            {{ monteCarloDiagnosticsLoading ? 'Diagnostica...' : 'Diagnostica Monte Carlo' }}
+          </button>
           <div *ngIf="backendLoading" class="backend-ready-progress" role="progressbar"
                [attr.aria-valuenow]="backendProgress" aria-valuemin="0" aria-valuemax="100"
                aria-label="Avvio Market Universe">
@@ -143,6 +148,29 @@
     <p *ngIf="landingStatsError" role="status" style="margin:8px 0;color:#f4b5b5;font-size:12px;text-align:center">{{ landingStatsError }}</p>
     
   </main>
+  <div class="factor-audit-backdrop" *ngIf="monteCarloDiagnosticsOpen" (click)="closeMonteCarloDiagnostics()">
+    <section class="factor-audit-dialog" role="dialog" aria-modal="true" aria-label="Diagnostica Monte Carlo" (click)="$event.stopPropagation()">
+      <header class="factor-audit-header">
+        <h2>Diagnostica Monte Carlo · Market Universe V2</h2>
+        <button type="button" class="factor-audit-close" (click)="closeMonteCarloDiagnostics()" aria-label="Chiudi diagnostica">×</button>
+      </header>
+      <p *ngIf="monteCarloDiagnosticsLoading">Analisi delle simulazioni salvate in corso...</p>
+      <p *ngIf="monteCarloDiagnosticsError" class="helper-text--error" role="alert">{{ monteCarloDiagnosticsError }}</p>
+      <ng-container *ngIf="monteCarloDiagnosticsReport as report">
+        <p class="factor-audit-summary">
+          <strong>Analisi completata</strong>
+          · {{ report.run?.pathCount }} percorsi · {{ report.run?.monthCount }} mesi
+          · {{ report.etfs?.length }} ETF · {{ report.correlations?.length }} correlazioni
+        </p>
+        <div class="factor-audit-actions">
+          <button type="button" (click)="copyMonteCarloDiagnostics()">Copia JSON</button>
+          <button type="button" (click)="runMonteCarloDiagnostics()" [disabled]="monteCarloDiagnosticsLoading">Riesegui</button>
+        </div>
+        <textarea class="factor-audit-json" readonly aria-label="Report completo diagnostica Monte Carlo"
+                  [value]="monteCarloDiagnosticsJson"></textarea>
+      </ng-container>
+    </section>
+  </div>
   <div class="factor-audit-backdrop" *ngIf="factorAuditOpen" (click)="closeFactorAudit()">
     <section class="factor-audit-dialog" role="dialog" aria-modal="true" aria-label="Audit fattoriale" (click)="$event.stopPropagation()">
       <header class="factor-audit-header">
