@@ -119,6 +119,11 @@
                   title="Analizza le simulazioni salvate senza rigenerare il Market Universe">
             {{ monteCarloDiagnosticsLoading ? 'Diagnostica...' : 'Diagnostica Monte Carlo' }}
           </button>
+          <button type="button" class="factor-audit-trigger" (click)="runReturnCalibration()"
+                  [disabled]="backendLoading || returnCalibrationLoading"
+                  title="Confronta i rendimenti fattoriali del Manifest V6 in sola lettura">
+            {{ returnCalibrationLoading ? 'Calibrazione...' : 'Calibrazione rendimenti V6' }}
+          </button>
           <div *ngIf="backendLoading" class="backend-ready-progress" role="progressbar"
                [attr.aria-valuenow]="backendProgress" aria-valuemin="0" aria-valuemax="100"
                aria-label="Avvio Market Universe">
@@ -208,6 +213,30 @@
         </div>
         <textarea class="factor-audit-json" readonly aria-label="Report completo diagnostica Monte Carlo"
                   [value]="monteCarloDiagnosticsJson"></textarea>
+      </ng-container>
+    </section>
+  </div>
+  <div class="factor-audit-backdrop" *ngIf="returnCalibrationOpen" (click)="closeReturnCalibration()">
+    <section class="factor-audit-dialog" role="dialog" aria-modal="true" aria-label="Calibrazione rendimenti V6" (click)="$event.stopPropagation()">
+      <header class="factor-audit-header">
+        <h2>Calibrazione rendimenti V6 · Confronto in sola lettura</h2>
+        <button type="button" class="factor-audit-close" (click)="closeReturnCalibration()" aria-label="Chiudi calibrazione">×</button>
+      </header>
+      <p *ngIf="returnCalibrationLoading">Ricostruzione dei rendimenti dal Manifest verificato...</p>
+      <p *ngIf="returnCalibrationError" class="helper-text--error" role="alert">{{ returnCalibrationError }}</p>
+      <ng-container *ngIf="returnCalibrationReport as report">
+        <p class="factor-audit-summary">
+          <strong>{{ report.status }}</strong>
+          · {{ report.etfCount }} ETF · {{ report.scenarioCount }} scenari
+          · Manifest: {{ report.manifestSha256 || 'non verificato' }}
+        </p>
+        <p class="factor-audit-summary">Premi di stile non certificati come incrementali. Variazioni teoriche della posizione media mensile annualizzata (×12), non CAGR né nuovi risultati Monte Carlo.</p>
+        <div class="factor-audit-actions">
+          <button type="button" (click)="copyReturnCalibration()">Copia JSON</button>
+          <button type="button" (click)="runReturnCalibration()" [disabled]="returnCalibrationLoading">Riesegui</button>
+        </div>
+        <textarea class="factor-audit-json" readonly aria-label="Report completo calibrazione rendimenti V6"
+                  [value]="returnCalibrationJson"></textarea>
       </ng-container>
     </section>
   </div>
