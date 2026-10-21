@@ -109,6 +109,11 @@
           <p class="field-error" *ngIf="birthDateError">{{birthDateError}}</p>
         </ng-container>
         <div class="login-action-row">
+          <button type="button" class="factor-audit-trigger" (click)="runFactorAudit()"
+                  [disabled]="backendLoading || factorAuditLoading"
+                  title="Esegui diagnostica fattoriale senza rigenerare il Market Universe">
+            {{ factorAuditLoading ? 'Audit...' : 'Audit fattoriale' }}
+          </button>
           <div *ngIf="backendLoading" class="backend-ready-progress" role="progressbar"
                [attr.aria-valuenow]="backendProgress" aria-valuemin="0" aria-valuemax="100"
                aria-label="Avvio Market Universe">
@@ -138,4 +143,27 @@
     <p *ngIf="landingStatsError" role="status" style="margin:8px 0;color:#f4b5b5;font-size:12px;text-align:center">{{ landingStatsError }}</p>
     
   </main>
+  <div class="factor-audit-backdrop" *ngIf="factorAuditOpen" (click)="closeFactorAudit()">
+    <section class="factor-audit-dialog" role="dialog" aria-modal="true" aria-label="Audit fattoriale" (click)="$event.stopPropagation()">
+      <header class="factor-audit-header">
+        <h2>Audit fattoriale · Market Universe V2</h2>
+        <button type="button" class="factor-audit-close" (click)="closeFactorAudit()" aria-label="Chiudi audit">×</button>
+      </header>
+      <p *ngIf="factorAuditLoading">Elaborazione diagnostica in corso...</p>
+      <p *ngIf="factorAuditError" class="helper-text--error" role="alert">{{ factorAuditError }}</p>
+      <ng-container *ngIf="factorAuditReport as audit">
+        <p class="factor-audit-summary">
+          <strong>{{ audit.valid ? 'Struttura valida' : 'Errori strutturali rilevati' }}</strong>
+          · {{ audit.factorCount }} fattori · {{ audit.etfCount }} ETF
+          · {{ audit.errors?.length || 0 }} errori · {{ audit.warnings?.length || 0 }} avvisi
+        </p>
+        <div class="factor-audit-actions">
+          <button type="button" (click)="copyFactorAudit()">Copia JSON</button>
+          <button type="button" (click)="runFactorAudit()" [disabled]="factorAuditLoading">Riesegui</button>
+        </div>
+        <textarea class="factor-audit-json" readonly aria-label="Report completo audit fattoriale"
+                  [value]="factorAuditJson"></textarea>
+      </ng-container>
+    </section>
+  </div>
 </div>
