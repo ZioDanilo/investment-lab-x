@@ -15,7 +15,7 @@ export const usernameInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const username = localStorage.getItem('investmentLabUsername');
 
-  const publicDiagnostics = req.method === 'GET' && ['/market-universe/v2/monte-carlo-diagnostics', '/market-universe/v2/factor-audit'].some(path => req.url.split('?')[0].endsWith(path));
+  const publicDiagnostics = req.method === 'GET' && ['/market-universe/v2/monte-carlo-diagnostics', '/market-universe/v2/factor-audit', '/market-universe/v2/return-calibration'].some(path => req.url.split('?')[0].endsWith(path));
   const authRequest = publicDiagnostics || req.url.includes('/auth/login') ||
     req.url.includes('/auth/register') ||
     req.url.includes('/auth/username-availability') ||
