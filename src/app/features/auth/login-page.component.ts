@@ -133,6 +133,43 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  monteCarloDiagnosticsLoading = false;
+  monteCarloDiagnosticsOpen = false;
+  monteCarloDiagnosticsError = '';
+  monteCarloDiagnosticsReport: any = null;
+
+  runMonteCarloDiagnostics(): void {
+    if (this.monteCarloDiagnosticsLoading) return;
+    this.monteCarloDiagnosticsLoading = true;
+    this.monteCarloDiagnosticsError = '';
+    this.monteCarloDiagnosticsReport = null;
+    this.monteCarloDiagnosticsOpen = true;
+    this.apiService.getMonteCarloDiagnostics().subscribe({
+      next: (response: any) => {
+        this.monteCarloDiagnosticsLoading = false;
+        if (response?.success && response?.data) this.monteCarloDiagnosticsReport = response.data;
+        else this.monteCarloDiagnosticsError = 'Risposta diagnostica non valida.';
+      },
+      error: (error: any) => {
+        this.monteCarloDiagnosticsLoading = false;
+        this.monteCarloDiagnosticsError = error?.error?.error ||
+          ('Diagnostica non disponibile (HTTP ' + (error?.status || 'rete') + ').');
+      }
+    });
+  }
+
+  closeMonteCarloDiagnostics(): void { this.monteCarloDiagnosticsOpen = false; }
+
+  copyMonteCarloDiagnostics(): void {
+    if (!this.monteCarloDiagnosticsReport) return;
+    void navigator.clipboard.writeText(JSON.stringify(this.monteCarloDiagnosticsReport, null, 2))
+      .catch(() => { this.monteCarloDiagnosticsError = 'Copia non disponibile: seleziona il JSON e copialo manualmente.'; });
+  }
+
+  get monteCarloDiagnosticsJson(): string {
+    return this.monteCarloDiagnosticsReport ? JSON.stringify(this.monteCarloDiagnosticsReport, null, 2) : '';
+  }
+
   factorAuditLoading = false;
   factorAuditOpen = false;
   factorAuditError = '';
