@@ -9,6 +9,7 @@ import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/c
 import { AssetDonutComponent } from '../../shared/components/asset-donut/asset-donut.component';
 import { ApiService } from '../../core/api/api.service';
 import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
+import { QuotationsUpdatedService } from '../../core/services/quotations-updated.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
@@ -32,6 +33,13 @@ export class RealPortfoliosPageComponent implements OnInit {
   get headerActionDisabled():boolean { return this.loadingPortfolios || this.portfolios.length===0 || !this.hasSelectedPortfolio || this.quotationRefreshRunning; }
   get headerActionRunning():boolean { return this.quotationRefreshRunning; }
   private readonly actionConfirmation = inject(ActionConfirmationService);
+  private readonly quotationsUpdated = inject(QuotationsUpdatedService);
+  private readonly quotationChangeEffect = effect(() => {
+    if (this.quotationsUpdated.version() === 0) return;
+    this.loadMarketValues();
+    this.loadHoldings();
+    this.loadHistory();
+  });
   runHeaderAction():void {
     const portfolio=this.portfolios[this.selected];
     if(!portfolio || this.quotationRefreshRunning)return;
@@ -55,10 +63,7 @@ export class RealPortfoliosPageComponent implements OnInit {
           this.actionConfirmation.notify('Aggiornamento quotazioni portafoglio non riuscito: ' + (response.error || 'errore sconosciuto'), true);
           return;
         }
-        this.actionConfirmation.notify('Quotazioni del portafoglio aggiornate correttamente.');
-        this.loadMarketValues();
-        this.loadHoldings();
-        this.loadHistory();
+        this.quotationsUpdated.publish();
         this.finishQuotationProgress();
       },
       error:(error)=>{

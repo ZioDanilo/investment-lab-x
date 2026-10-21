@@ -9,6 +9,7 @@ import { MoneyInputComponent } from './shared/inputs/money-input.component';
 import { RebalanceInputService } from './core/services/rebalance-input.service';
 import { ApiService } from './core/api/api.service';
 import { ActionConfirmationService } from './core/services/action-confirmation.service';
+import { QuotationsUpdatedService } from './core/services/quotations-updated.service';
 import { ActionConfirmationComponent } from './shared/components/action-confirmation/action-confirmation.component';
 import { PortfolioSelectionService } from './core/services/portfolio-selection.service';
 import { AdsenseSlotComponent } from './shared/components/adsense-slot.component';
@@ -61,14 +62,45 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   ngOnDestroy(): void {
     this.targetResizeObserver?.disconnect();
     this.stopMarketUniversePolling();
+    this.stopYahooPricesProgress();
   }
   readonly featureRoutes = ['/laboratorio-portafogli','/portafogli','/monte-carlo','/ribilanciamento','/market-universe','/trend-following'];
   private readonly router = inject(Router);
   readonly rebalanceInputs = inject(RebalanceInputService);
   private readonly apiService = inject(ApiService);
   private readonly confirmation = inject(ActionConfirmationService);
+  private readonly quotationsUpdated = inject(QuotationsUpdatedService);
   private readonly http = inject(HttpClient);
   isImportingYahooPrices = false;
+  yahooPricesProgress = 0;
+  private yahooPricesProgressTimer: ReturnType<typeof setInterval> | null = null;
+  private yahooPricesFinishTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private stopYahooPricesProgress(): void {
+    if (this.yahooPricesProgressTimer) clearInterval(this.yahooPricesProgressTimer);
+    if (this.yahooPricesFinishTimer) clearTimeout(this.yahooPricesFinishTimer);
+    this.yahooPricesProgressTimer = null;
+    this.yahooPricesFinishTimer = null;
+  }
+
+  private beginYahooPricesProgress(): void {
+    this.stopYahooPricesProgress();
+    this.yahooPricesProgress = 1;
+    const started = Date.now();
+    this.yahooPricesProgressTimer = setInterval(() => {
+      this.yahooPricesProgress = Math.min(80, Math.max(1, (Date.now() - started) / 20000 * 80));
+    }, 100);
+  }
+
+  private endYahooPricesProgress(): void {
+    this.stopYahooPricesProgress();
+    this.yahooPricesProgress = 100;
+    this.yahooPricesFinishTimer = setTimeout(() => {
+      this.isImportingYahooPrices = false;
+      this.yahooPricesProgress = 0;
+      this.yahooPricesFinishTimer = null;
+    }, 450);
+  }
 
   async importYahooPrices(event: Event): Promise<void> {
     event.stopPropagation();
@@ -79,16 +111,18 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private async executeYahooPricesUpdate(): Promise<void> {
     if (this.isImportingYahooPrices) return;
     this.isImportingYahooPrices = true;
+    this.beginYahooPricesProgress();
     try {
       const result = await firstValueFrom(this.http.post<any>(environment.apiUrl + '/yahoo-finance/update-quotations', {}));
       console.info('[Yahoo import]', result);
-      this.confirmation.notify('Aggiornamento quotazioni: ' + (result.inserted ?? 0) + ' inserite, ' + (result.updatedToday ?? 0) + ' aggiornate, ' + (result.existing ?? 0) + ' già presenti, ' + (result.skippedPrices ?? 0) + ' prezzi assenti, ' + (result.failures?.length ?? 0) + ' errori, ' + (result.rejectedPrices?.length ?? 0) + ' prezzi anomali rifiutati.', (result.failures?.length ?? 0) > 0 || (result.rejectedPrices?.length ?? 0) > 0 || result.success === false, result.success !== false ? () => window.location.reload() : undefined);
+      if (result.success === false) throw new Error(result.error || 'Aggiornamento non riuscito');
+      this.quotationsUpdated.publish();
 
     } catch (error: any) {
       console.error('[Yahoo import]', error);
       this.confirmation.notify('Importazione Yahoo non riuscita: ' + (error?.error?.error || error?.message || 'errore sconosciuto'), true);
     } finally {
-      this.isImportingYahooPrices = false;
+      this.endYahooPricesProgress();
     }
   }
 

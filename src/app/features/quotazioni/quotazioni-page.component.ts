@@ -1,8 +1,9 @@
-import { Component, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnInit, signal, inject, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { QuotationService } from '../../core/services/quotation.service';
 import { ApiService } from '../../core/api/api.service';
 import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
+import { QuotationsUpdatedService } from '../../core/services/quotations-updated.service';
 import { TastoConfermaComponent } from '../../shared/components/tasto-conferma/tasto-conferma.component';
 
 interface Quotation {
@@ -26,6 +27,10 @@ export class QuotazioniPageComponent implements OnInit {
   private quotationService = inject(QuotationService);
   private apiService = inject(ApiService);
   private actionConfirmation = inject(ActionConfirmationService);
+  private readonly quotationsUpdated = inject(QuotationsUpdatedService);
+  private readonly quotationChangeEffect = effect(() => {
+    if (this.quotationsUpdated.version() > 0) this.loadAllData();
+  });
 
   quotations = signal<Quotation[]>([]);
   filterText = signal('');
@@ -162,7 +167,7 @@ export class QuotazioniPageComponent implements OnInit {
     this.quotationService.refreshSingleQuotation(isin).subscribe({
       next: (response: any) => {
         if (response.success && response.data) {
-          this.actionConfirmation.notify('Quotazione ' + isin + ' aggiornata correttamente.');
+          this.quotationsUpdated.publish();
           // Update just this ETF
           const updated = [...this.quotations()];
           const targetIndex = updated.findIndex((q) => q.isin === isin);
@@ -209,7 +214,7 @@ export class QuotazioniPageComponent implements OnInit {
           if (response.success) {
             this.quotations.set(response.data || []);
             this.lastUpdateDate.set(response.date || new Date().toISOString().split('T')[0]);
-            this.actionConfirmation.notify('Quotazioni aggiornate correttamente.');
+            this.quotationsUpdated.publish();
             resolve();
           } else {
             const errorMsg = this.sanitizeErrorMessage(response.error || 'Errore nel refresh delle quotazioni');
