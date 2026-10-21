@@ -14,7 +14,7 @@ const monthlyFactorLocation = (annualValue, returnMode) => {
   }
   // The factor engine adds zero-mean arithmetic shocks to this location.
   // Convert annual expected compound growth into a monthly location separately
-  // from volatility; see monthlyGeometricLocation below.
+  // from volatility. This is a monthly location, not a calibrated geometric CAGR.
   return Math.pow(1 + annualValue, 1 / 12) - 1;
 };
 
@@ -44,9 +44,12 @@ const cholesky = (matrix) => {
       for (let k=0; k<j; k+=1) sum -= out[i][k] * out[j][k];
       if (i === j) {
         if (sum < -1e-8) throw new FactorProjectionError('NON_PSD_FACTOR_CORRELATION', 'Factor correlation matrix is not positive semidefinite', { index: i, value: sum });
-        out[i][j] = Math.sqrt(Math.max(sum, 1e-12));
+        out[i][j] = Math.sqrt(Math.max(sum, 0));
       } else {
-        out[i][j] = sum / out[j][j];
+        if (out[j][j] === 0) {
+          if (Math.abs(sum) > 1e-8) throw new FactorProjectionError('NON_PSD_FACTOR_CORRELATION', 'Singular correlation matrix has inconsistent off-diagonal', { i, j, value: sum });
+          out[i][j] = 0;
+        } else out[i][j] = sum / out[j][j];
       }
     }
   }
@@ -177,6 +180,14 @@ export const auditFactorMarketUniverse = (snapshot, scenarios = ['expansion','so
       }
       if (invalid) continue;
       const exposures = etf.exposures || [];
+      if (new Set(exposures.map(e => String(e.factorId))).size !== exposures.length) {
+        errors.push({ code: 'DUPLICATE_ETF_FACTOR_EXPOSURE', isin: etf.isin, scenario });
+        continue;
+      }
+      if (!Number.isFinite(Number(etf.specificRisk?.alpha ?? 0))) {
+        errors.push({ code: 'INVALID_ETF_ALPHA', isin: etf.isin, scenario });
+        continue;
+      }
       for (let i = 0; i < exposures.length; i++) {
         const left = exposures[i];
         const li = ids.findIndex(id => String(id) === String(left.factorId));
