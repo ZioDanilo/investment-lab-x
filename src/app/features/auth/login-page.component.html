@@ -177,7 +177,9 @@
           · {{ v5.checks?.length }} controlli strutturali
           <p>Modalità: sola lettura. Nessuna modifica ai parametri o alle simulazioni salvate.</p>
           <p>Impronta SHA-256 configurazione fattoriale corrente: <code>{{ v5.configuration?.currentFactorSnapshotSha256 }}</code></p>
-          <p>Manifest originale del run: {{ v5.configuration?.historicallyReproducible ? 'verificato' : 'non disponibile' }}. L'impronta corrente non certifica la configurazione storica.</p>
+          <p>Manifest originale del run: {{ v5.configuration?.generationInputsTraceable ? 'integrità e identità del run verificate' : 'non verificato o non disponibile' }}.</p>
+          <p *ngIf="v5.configuration?.generationTimeSha256">SHA-256 manifest di generazione: <code>{{ v5.configuration.generationTimeSha256 }}</code></p>
+          <p>{{ v5.configuration?.caveat }}</p>
           <p>Premi stile incrementali: {{ v5.semantics?.verifiedIncrementalPremia ? 'verificati' : 'non verificati' }}.</p>
           <div *ngFor="let check of v5.checks" style="margin:6px 0">
             <strong>{{ check.status }}</strong> · {{ check.id }} — {{ check.detail }}
