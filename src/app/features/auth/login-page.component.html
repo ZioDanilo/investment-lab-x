@@ -151,7 +151,7 @@
   <div class="factor-audit-backdrop" *ngIf="monteCarloDiagnosticsOpen" (click)="closeMonteCarloDiagnostics()">
     <section class="factor-audit-dialog" role="dialog" aria-modal="true" aria-label="Diagnostica Monte Carlo" (click)="$event.stopPropagation()">
       <header class="factor-audit-header">
-        <h2>Diagnostica Monte Carlo · Market Universe V3</h2>
+        <h2>Certificazione Monte Carlo · Market Universe V3</h2>
         <button type="button" class="factor-audit-close" (click)="closeMonteCarloDiagnostics()" aria-label="Chiudi diagnostica">×</button>
       </header>
       <p *ngIf="monteCarloDiagnosticsLoading">Analisi delle simulazioni salvate in corso...</p>
@@ -170,6 +170,15 @@
           · {{ v3.correlationComparisons?.length }} correlazioni teoriche per regime
           · {{ v3.regimePersistence?.length }} scenari analizzati
           <p>Le discrepanze teoriche non sono direttamente confrontabili senza considerare l'intensità dei regimi. Consulta il JSON per le limitazioni.</p>
+        </div>
+        <div *ngIf="report.v3Audit?.certification as cert" class="factor-audit-summary" role="status">
+          <strong>Certificazione motore: {{ cert.status === 'CERTIFIED' ? 'CERTIFICATO' : cert.status === 'FAILED' ? 'CONTROLLI FALLITI' : 'NON ANCORA CERTIFICATO' }}</strong>
+          · {{ cert.passed }} superati · {{ cert.failures }} falliti · {{ cert.unverified }} da verificare
+          <p>{{ cert.interpretation }}</p>
+          <div *ngFor="let check of cert.checks" style="margin:6px 0">
+            <strong>{{ check.status }}</strong> · {{ check.id }} — {{ check.detail }}
+          </div>
+          <p>Rischio di coda: {{ report.v3Audit?.tailRisk?.length || 0 }} ETF analizzati. Dettagli ES95, ES99 e drawdown nel JSON.</p>
         </div>
         <div class="factor-audit-actions">
           <button type="button" (click)="copyMonteCarloDiagnostics()">Copia JSON</button>
