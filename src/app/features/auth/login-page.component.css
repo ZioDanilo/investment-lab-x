@@ -715,3 +715,8 @@
   .factor-audit-trigger { padding: 0 7px; font-size: .67rem; }
   .factor-audit-dialog { padding: 12px; }
 }
+
+/* Keep both read-only diagnostics alongside login on narrow screens. */
+.login-action-row { flex-wrap: wrap; gap: 6px; }
+.login-action-row .backend-ready-progress,
+.login-action-row .primary-login { min-width: 180px; }
