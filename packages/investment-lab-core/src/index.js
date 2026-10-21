@@ -14,4 +14,4 @@ export const createDeterministicRandom = (simulationId, runSeed) => {
 
 export { FactorProjectionError, exposureWeightsForUsableHistory, blendFactorExposure, projectEtfReturnFromFactors, projectPortfolioReturnFromFactors } from './factors/factor-projection.js';
 
-export { FACTOR_RETURN_MODES, buildFactorCorrelationMatrix, generateMonthlyFactorReturns, generateMonthlyEtfReturnsFromFactors } from './factors/factor-market-universe.js';
+export { FACTOR_RETURN_MODES, buildFactorCorrelationMatrix, validateFactorCorrelationMatrix, auditFactorMarketUniverse, generateMonthlyFactorReturns, generateMonthlyEtfReturnsFromFactors } from './factors/factor-market-universe.js';
