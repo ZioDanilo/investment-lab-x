@@ -244,6 +244,10 @@ export class ApiService {
     return this.http.get(`${this.apiUrl}/market-universe/v2/monte-carlo-diagnostics`);
   }
 
+  getReturnCalibrationV6(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/market-universe/v2/return-calibration`);
+  }
+
   getFactorAudit(): Observable<any> {
     return this.http.get(`${this.apiUrl}/market-universe/v2/factor-audit`);
   }
