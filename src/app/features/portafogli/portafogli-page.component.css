@@ -685,3 +685,23 @@ input.invalid,
 .modal-content.tutorial-form-save .tutorial-name-spotlight .form-input {opacity:1;filter:none;pointer-events:none;}
 .modal-content .tutorial-save-spotlight--active app-tasto-conferma {display:block;pointer-events:auto;}
 @media(max-width:900px){.modal-content .tutorial-field-bubble{left:12px;right:auto;top:calc(100% + 12px);}}
+
+/* Typing and ETF-search steps share the same dimmed editor. */
+.modal-content.tutorial-form-typing,.modal-content.tutorial-form-etf {position:relative;isolation:isolate;}
+.modal-content.tutorial-form-typing::after,.modal-content.tutorial-form-etf::after {
+  content:"";position:absolute;inset:0;z-index:40;background:rgba(2,9,19,.72);pointer-events:auto;
+}
+.modal-content.tutorial-form-etf .tutorial-name-spotlight,
+.modal-content.tutorial-form-typing .tutorial-name-spotlight {z-index:41;pointer-events:none;}
+.modal-content.tutorial-form-etf .tutorial-name-spotlight .form-input,
+.modal-content.tutorial-form-typing .tutorial-name-spotlight .form-input {pointer-events:none;opacity:1;filter:none;}
+.modal-content .tutorial-etf-spotlight {position:relative;z-index:42;pointer-events:auto;}
+.modal-content .tutorial-etf-spotlight app-dropdown {position:relative;z-index:43;pointer-events:auto;}
+.modal-content .tutorial-etf-spotlight label {color:#edf6ff;}
+.modal-content .tutorial-etf-bubble {
+  position:absolute;left:calc(100% + 15px);top:50%;transform:translateY(-50%);
+  width:190px;padding:13px 16px;border:2px solid #5cbcff;border-radius:12px;
+  background:#f1f8ff;color:#12304a;box-shadow:0 12px 30px #0009;
+  font-size:14px;font-weight:700;line-height:1.45;pointer-events:none;
+}
+@media(max-width:1100px){.modal-content .tutorial-etf-bubble {left:12px;top:calc(100% + 12px);transform:none;}}
