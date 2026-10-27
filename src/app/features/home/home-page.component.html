@@ -47,7 +47,7 @@
         class="shortcut-card"
         [class.tutorial-target]="isTutorial && item.title === 'Laboratorio Portafogli'"
         [ngClass]="'shortcut-card--' + item.accent"
-        [routerLink]="isTutorial ? null : item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : item.title === 'I miei Portafogli' ? ['/portafogli'] : item.title === 'Monte Carlo' ? ['/monte-carlo'] : item.title === 'Ribilanciamento' ? ['/ribilanciamento'] : item.title === 'ETF & Mercati' ? ['/market-universe'] : item.title === 'Trend Following' ? ['/trend-following'] : null"
+        [routerLink]="isTutorial ? (item.title === 'Laboratorio Portafogli' ? ['/tutorial'] : null) : item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : item.title === 'I miei Portafogli' ? ['/portafogli'] : item.title === 'Monte Carlo' ? ['/monte-carlo'] : item.title === 'Ribilanciamento' ? ['/ribilanciamento'] : item.title === 'ETF & Mercati' ? ['/market-universe'] : item.title === 'Trend Following' ? ['/trend-following'] : null"
         [attr.aria-label]="item.title"
         tabindex="0"
         role="button"
