@@ -17,7 +17,7 @@
 
   <!-- New Portfolio Form Modal -->
   <div *ngIf="showForm()" class="modal-overlay">
-    <div class="modal-content">
+    <div class="modal-content" [class.tutorial-form-name]="isTutorial && tutorialFormStep() === 'name'" [class.tutorial-form-save]="isTutorial && tutorialFormStep() === 'save'">
       <div class="modal-header">
         <h3>{{ currentEditingPortfolioId() ? 'Modifica Portafoglio' : 'Crea Nuovo Portafoglio' }}</h3>
         <button class="btn-close" (click)="closeForm()">✕</button>
@@ -26,11 +26,14 @@
       <div class="modal-body">
         <div class="modal-fixed-fields">
           <!-- Portfolio Name -->
-          <div class="form-group">
+          <div class="form-group" [class.tutorial-name-spotlight]="isTutorial && tutorialFormStep() === 'name'">
             <label>Nome Portafoglio</label>
+            <div *ngIf="isTutorial && tutorialFormStep() === 'name'" class="tutorial-field-bubble" role="status">Inserisci il nome del tuo portafoglio.</div>
             <input 
               type="text" 
-              [(ngModel)]="nomePortafoglio" 
+              [(ngModel)]="nomePortafoglio"
+              (focus)="onTutorialNameFocus()"
+              [readonly]="isTutorial && tutorialFormStep() !== 'name'" 
               placeholder="es. Portafoglio Conservativo"
               class="form-input"
             />
@@ -112,13 +115,16 @@
 
       <div class="modal-footer">
         <button class="btn-cancel" (click)="closeForm()">Annulla</button>
+        <div class="tutorial-save-spotlight" [class.tutorial-save-spotlight--active]="isTutorial && tutorialFormStep() === 'save'">
+          <div *ngIf="isTutorial && tutorialFormStep() === 'save'" class="tutorial-save-bubble" role="status">Crea il portafoglio simulato.</div>
         <app-tasto-conferma 
           label="Salva Portafoglio"
           loadingText="Salvataggio..."
           variant="primary"
-          [disabled]="!isTotalValid() || selectedEtfs().length === 0 || !nomePortafoglio().trim() || isPortfolioNameUnavailable()"
+          [disabled]="isTutorial ? tutorialFormStep() !== 'save' : (!isTotalValid() || selectedEtfs().length === 0 || !nomePortafoglio().trim() || isPortfolioNameUnavailable())"
           [onConfirm]="savePortafoglio.bind(this)"
         ></app-tasto-conferma>
+        </div>
       </div>
     </div>
   </div>
