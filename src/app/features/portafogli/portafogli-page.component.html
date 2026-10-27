@@ -17,7 +17,7 @@
 
   <!-- New Portfolio Form Modal -->
   <div *ngIf="showForm()" class="modal-overlay">
-    <div class="modal-content" [class.tutorial-form-name]="isTutorial && tutorialFormStep() === 'name'" [class.tutorial-form-save]="isTutorial && tutorialFormStep() === 'save'">
+    <div class="modal-content" [class.tutorial-form-name]="isTutorial && tutorialFormStep() === 'name'" [class.tutorial-form-save]="isTutorial && tutorialFormStep() === 'save'" [class.tutorial-form-etf]="isTutorial && tutorialFormStep() === 'etf'" [class.tutorial-form-typing]="isTutorial && tutorialFormStep() === 'typing'">
       <div class="modal-header">
         <h3>{{ currentEditingPortfolioId() ? 'Modifica Portafoglio' : 'Crea Nuovo Portafoglio' }}</h3>
         <button class="btn-close" (click)="closeForm()">✕</button>
@@ -40,8 +40,9 @@
           </div>
 
           <!-- Search ETF -->
-          <div class="form-group">
+          <div class="form-group" [class.tutorial-etf-spotlight]="isTutorial && tutorialFormStep() === 'etf'">
             <label>Aggiungi ETF</label>
+            <div *ngIf="isTutorial && tutorialFormStep() === 'etf'" class="tutorial-etf-bubble" role="status">Ricerca il tuo ETF.</div>
             <app-dropdown
               mode="autocomplete"
               [query]="searchQuery()"
