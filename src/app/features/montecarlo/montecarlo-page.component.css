@@ -3222,3 +3222,30 @@ body .kpi-pointer-drag-preview {
   z-index:2147483647!important;background:#07121f!important;
   box-shadow:0 10px 32px rgba(0,0,0,.75)!important;
 }
+
+/* Floating tutorial KPI: replicate the real two-column card without expensive
+   per-node computed-style copying during the browser's dragstart event. */
+body .kpi-pointer-drag-preview {
+  display:grid!important;
+  grid-template-columns:minmax(0,4fr) minmax(0,1fr)!important;
+  gap:8px!important;
+  align-items:stretch!important;
+  border:2px solid #57baff!important;
+  border-radius:9px!important;
+  opacity:1!important;
+  background:#0b192a!important;
+}
+body .kpi-pointer-drag-preview .kpi-row__metric,
+body .kpi-pointer-drag-preview .kpi-row__target {
+  display:flex!important;align-items:center!important;
+  background:#0d1b2d!important;
+  border:1px solid #25415e!important;
+  border-radius:8px!important;
+  opacity:1!important;
+}
+body .kpi-pointer-drag-preview .kpi-row__metric {gap:10px!important;padding:10px 14px!important;}
+body .kpi-pointer-drag-preview .kpi-row__target {justify-content:center!important;padding:8px!important;}
+body .kpi-pointer-drag-preview .kpi-row__label,
+body .kpi-pointer-drag-preview .kpi-row__value,
+body .kpi-pointer-drag-preview .kpi-target-trigger {color:#f1f7ff!important;font-weight:700!important;}
+body .kpi-pointer-drag-preview .tutorial-drawdown-bubble {display:none!important;}
