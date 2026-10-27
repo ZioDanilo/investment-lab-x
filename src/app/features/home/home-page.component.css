@@ -862,3 +862,14 @@
 
 .home-shell--tutorial .shortcut-row { isolation:auto; }
 .home-shell--tutorial .tutorial-target { z-index:120;filter:none!important;opacity:1!important; }
+
+/* Home-main is a stacking context: place it ABOVE the overlay, then dim
+   individual sections, so the target card itself is never painted beneath it. */
+.home-shell--tutorial .home-main { z-index:3; }
+.home-shell--tutorial .workspace-header,
+.home-shell--tutorial .dashboard-grid { filter:brightness(.35);pointer-events:none; }
+.home-shell--tutorial .shortcut-card.tutorial-target {
+  background:linear-gradient(180deg,rgba(20,42,66,.9),rgba(11,18,25,.82));
+  border-color:rgba(100,180,255,.3);
+  filter:none!important;opacity:1!important;
+}
