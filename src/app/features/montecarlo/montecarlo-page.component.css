@@ -3185,3 +3185,23 @@ html, body {
   width:14px;height:14px;transform:rotate(45deg);
   background:#f8fbff;border-top:2px solid #5cbcff;border-right:2px solid #5cbcff;
 }
+
+/* Fix stacking-context issue: the full-page veil must sit behind the complete
+   KPI column, otherwise the instruction bubble remains dimmed beneath it. */
+.montecarlo-page.tutorial-drawdown-active {
+  overflow:visible!important;
+  isolation:isolate;
+}
+.montecarlo-page.tutorial-drawdown-active::before {z-index:100!important;}
+.montecarlo-page.tutorial-drawdown-active .montecarlo-main-layout,
+.montecarlo-page.tutorial-drawdown-active .main-grid {
+  overflow:visible!important;
+}
+.montecarlo-page.tutorial-drawdown-active .main-grid {position:relative;z-index:101;}
+.montecarlo-page.tutorial-drawdown-active .left-column {position:relative;z-index:0;filter:brightness(.24);pointer-events:none;}
+.montecarlo-page.tutorial-drawdown-active .right-column {position:relative;z-index:1;overflow:visible!important;}
+.montecarlo-page.tutorial-drawdown-active .right-column > :not(.kpi-panel) {filter:brightness(.24);pointer-events:none;}
+.montecarlo-page.tutorial-drawdown-active .kpi-panel {z-index:102!important;overflow:visible!important;}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .tutorial-drawdown-bubble {
+  z-index:9999!important;filter:none!important;opacity:1!important;
+}
