@@ -35,7 +35,7 @@
   <main class="home-main">
     <section class="workspace-header" aria-label="Header workspace">
       <div class="workspace-copy">
-        <p class="welcome-label">Bentornato, {{ loggedUsername }}</p>
+        <p class="welcome-label">{{ isTutorial ? 'Tutorial' : 'Bentornato, ' + loggedUsername }}</p>
         <h1>Cosa vuoi costruire oggi?</h1>
         <p class="workspace-subtitle">Costruisci, confronta e testa i tuoi portafogli.</p>
       </div>
@@ -47,7 +47,7 @@
         class="shortcut-card"
         [class.tutorial-target]="isTutorial && item.title === 'Laboratorio Portafogli'"
         [ngClass]="'shortcut-card--' + item.accent"
-        [routerLink]="isTutorial ? (item.title === 'Laboratorio Portafogli' ? ['/tutorial'] : null) : item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : item.title === 'I miei Portafogli' ? ['/portafogli'] : item.title === 'Monte Carlo' ? ['/monte-carlo'] : item.title === 'Ribilanciamento' ? ['/ribilanciamento'] : item.title === 'ETF & Mercati' ? ['/market-universe'] : item.title === 'Trend Following' ? ['/trend-following'] : null"
+        [routerLink]="isTutorial ? (item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : null) : item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : item.title === 'I miei Portafogli' ? ['/portafogli'] : item.title === 'Monte Carlo' ? ['/monte-carlo'] : item.title === 'Ribilanciamento' ? ['/ribilanciamento'] : item.title === 'ETF & Mercati' ? ['/market-universe'] : item.title === 'Trend Following' ? ['/trend-following'] : null"
         [attr.aria-label]="item.title"
         tabindex="0"
         role="button"
