@@ -33,6 +33,12 @@ interface PortfolioEtf {
 })
 export class PortafoliPageComponent implements OnInit {
   get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
+  tutorialFormStep = signal<'name' | 'save' | 'done'>('name');
+  onTutorialNameFocus(): void {
+    if (!this.isTutorial || this.tutorialFormStep() !== 'name') return;
+    this.nomePortafoglio.set('Portafoglio Titolo');
+    this.tutorialFormStep.set('save');
+  }
   private initialized = false;
   private apiService = inject(ApiService);
   private portfolioState = inject(PortfolioStateService);
@@ -146,6 +152,7 @@ export class PortafoliPageComponent implements OnInit {
   // Open new portfolio form
   async openNewPortfolioForm(): Promise<void> {
     this.currentEditingPortfolioId.set(null);
+    if (this.isTutorial) this.tutorialFormStep.set('name');
     this.showForm.set(true);
     this.nomePortafoglio.set('');
     this.searchQuery.set('');
@@ -276,6 +283,13 @@ export class PortafoliPageComponent implements OnInit {
 
   // Save portfolio
   async savePortafoglio(): Promise<void> {
+    if (this.isTutorial) {
+      if (this.tutorialFormStep() !== 'save') return;
+      this.portafogli.set([{ id: 'tutorial-demo', nome: 'Portafoglio Titolo', etfs: [], descrizione: 'Portafoglio simulato del tutorial' }]);
+      this.tutorialFormStep.set('done');
+      this.showForm.set(false);
+      return;
+    }
     if (!this.nomePortafoglio().trim()) {
       throw new Error('Inserisci il nome del portafoglio');
     }
