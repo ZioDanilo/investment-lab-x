@@ -162,8 +162,13 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   }
   get isRebalancePage(): boolean { return this.router.url.startsWith('/ribilanciamento'); }
   get isMonteCarloTutorial(): boolean { return this.router.url.startsWith('/monte-carlo'); }
+  get isMonteCarloTutorialBeforeRun(): boolean { return this.isTutorial && this.isMonteCarloTutorial && sessionStorage.getItem('investmentLabTutorialMonteCarloStarted') !== 'true'; }
   private get isMonteCarloPage(): boolean { return this.router.url.startsWith('/monte-carlo'); }
-  runFeatureAction(): void { if (!this.isRegeneratingMarketUniverse) this.activeFeaturePage?.runHeaderAction?.(); }
+  runFeatureAction(): void {
+    if (this.isRegeneratingMarketUniverse) return;
+    if (this.isTutorial && this.isMonteCarloTutorial) sessionStorage.setItem('investmentLabTutorialMonteCarloStarted', 'true');
+    this.activeFeaturePage?.runHeaderAction?.();
+  }
   get secondaryFeatureActionLabel(): string { return this.activeFeaturePage?.secondaryHeaderActionLabel ?? ''; }
   get secondaryFeatureActionIcon(): string { return this.activeFeaturePage?.secondaryHeaderActionIcon ?? ''; }
   get secondaryFeatureActionDisabled(): boolean { return this.activeFeaturePage?.secondaryHeaderActionDisabled ?? false; }
