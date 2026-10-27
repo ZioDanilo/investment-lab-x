@@ -88,6 +88,7 @@ export class MontecarloPageComponent {
   readonly isTutorial = localStorage.getItem('investmentLabRole') === 'TUTORIAL';
   tutorialDrawdownStep: 'idle' | 'waiting' | 'target' | 'drag' | 'done' = 'idle';
   private tutorialDrawdownTimeout: ReturnType<typeof setTimeout> | null = null;
+  tutorialDrawdownDragging = false;
   isRunning = false;
   simulationProgress = 0;
   completionHoldActive = false;
@@ -998,6 +999,7 @@ export class MontecarloPageComponent {
 
   onKpiDragStart(kpiId: string, event: DragEvent): void {
     if (this.isTutorial && (this.tutorialDrawdownStep !== 'drag' || kpiId !== 'averageMaxDrawdown')) { event.preventDefault(); return; }
+    if (this.isTutorial) this.tutorialDrawdownDragging = true;
     this.draggedKpiId = kpiId;
     this.draggedKpiPreview = this.kpis.find((kpi) => kpi.id === kpiId) ?? null;
     this.swapTargetId = null;
@@ -1072,8 +1074,15 @@ export class MontecarloPageComponent {
       return;
     }
 
-    this.swapKpis(this.draggedKpiId, kpiId);
-    this.queueKpiConfigurationSave();
+    if (this.isTutorial) {
+      if (this.tutorialDrawdownStep === 'drag' && kpiId === this.kpis[0]?.id) {
+        this.insertKpi('averageMaxDrawdown', 0);
+        this.tutorialDrawdownStep = 'done';
+      } else this.insertKpi('averageMaxDrawdown', this.kpis.length);
+    } else {
+      this.swapKpis(this.draggedKpiId, kpiId);
+      this.queueKpiConfigurationSave();
+    }
     this.finishDragState();
   }
 
@@ -1093,8 +1102,10 @@ export class MontecarloPageComponent {
       return;
     }
 
-    this.insertKpi(this.draggedKpiId, index);
-    this.queueKpiConfigurationSave();
+    if (this.isTutorial) {
+      if (index === 0) { this.insertKpi('averageMaxDrawdown', 0); this.tutorialDrawdownStep = 'done'; }
+      else this.insertKpi('averageMaxDrawdown', this.kpis.length);
+    } else { this.insertKpi(this.draggedKpiId, index); this.queueKpiConfigurationSave(); }
     this.finishDragState();
   }
 
@@ -1255,6 +1266,7 @@ export class MontecarloPageComponent {
   }
 
   private finishDragState(): void {
+    this.tutorialDrawdownDragging = false;
     this.kpiDragPreviewElement?.remove();
     this.kpiDragPreviewElement = null;
     this.draggedKpiId = null;
