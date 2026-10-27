@@ -696,3 +696,28 @@
 
 .app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row {pointer-events:auto;}
 .app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row > *:not(button) {pointer-events:none;}
+
+/* Monte Carlo guided step: all controls locked, first Run remains bright and clickable. */
+.app-shell--tutorial .tutorial-monte-carlo .route-page,
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-sidebar,
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-menu-card,
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action--secondary {pointer-events:none!important;}
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row {position:relative;z-index:1;}
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row .app-feature-action:not(.app-feature-action--secondary) {position:relative;z-index:202;pointer-events:auto!important;}
+.app-shell--tutorial .tutorial-monte-carlo-before-run::after {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.73);z-index:190;pointer-events:auto;
+}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row {z-index:201;}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row::before {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.73);z-index:200;pointer-events:none;
+}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble {
+  position:absolute;right:10px;top:calc(100% + 12px);z-index:203;
+  max-width:280px;padding:14px 18px;border:2px solid #5cbcff;border-radius:12px;
+  background:#f1f8ff;color:#12304a;font-size:14px;font-weight:700;line-height:1.4;
+  box-shadow:0 12px 30px #0009;pointer-events:none;
+}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble::before {
+  content:"";position:absolute;top:-9px;right:30px;width:14px;height:14px;
+  background:#f1f8ff;border-top:2px solid #5cbcff;border-left:2px solid #5cbcff;transform:rotate(45deg);
+}
