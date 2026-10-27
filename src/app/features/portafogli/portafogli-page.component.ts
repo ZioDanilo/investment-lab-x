@@ -81,7 +81,7 @@ export class PortafoliPageComponent implements OnInit {
   constructor() {
     effect(() => {
       this.portfolioSelection.refreshVersion();
-      if (this.initialized) this.loadPortafogli();
+      if (this.initialized && localStorage.getItem('investmentLabRole') !== 'TUTORIAL') this.loadPortafogli();
     });
   }
 
@@ -94,6 +94,12 @@ export class PortafoliPageComponent implements OnInit {
   });
 
   ngOnInit() {
+    if (localStorage.getItem('investmentLabRole') === 'TUTORIAL') {
+      this.initialized = true;
+      this.portafogli.set([]);
+      this.loading.set(false);
+      return;
+    }
     this.initialized = true;
     const remembered = this.portfolioSelection.lastLaboratoryPortfolioId();
     const current = this.portfolioSelection.selectedPortfolio();
@@ -105,6 +111,7 @@ export class PortafoliPageComponent implements OnInit {
 
   // Load all portfolios
   loadPortafogli() {
+    if (localStorage.getItem('investmentLabRole') === 'TUTORIAL') { this.portafogli.set([]); this.loading.set(false); return; }
     this.loading.set(true);
     this.apiService.getPortfolios('laboratorio').subscribe({
       next: (res: any) => {
