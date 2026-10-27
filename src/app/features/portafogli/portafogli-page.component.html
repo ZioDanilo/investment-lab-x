@@ -48,6 +48,7 @@
               [query]="searchQuery()"
               [items]="searchDropdownOptions()"
               [loading]="searchLoading()"
+              [disabled]="isTutorial && tutorialFormStep() !== 'etf'"
               placeholder="Cerca per ISIN o nome (min. 3 caratteri)"
               emptyText="Nessun ETF trovato"
               loadingText="Ricerca in corso..."
@@ -58,7 +59,7 @@
           </div>
         </div>
 
-        <div class="modal-list-zone">
+        <div class="modal-list-zone" [class.tutorial-selected-etf-visible]="isTutorial && tutorialFormStep() === 'save'">
           <!-- Selected ETFs Table -->
           <div *ngIf="selectedEtfs().length > 0" class="table-shell">
             <div class="etf-list-scroll">
@@ -88,10 +89,11 @@
                         step="1"
                         min="0"
                         [max]="getMaxWeight(i)"
+                        [readonly]="isTutorial"
                       />
                     </td>
                     <td>
-                      <button class="icon-action-button icon-action-button--danger" (click)="removeEtf(i)" title="Rimuovi ETF">
+                      <button class="icon-action-button icon-action-button--danger" [disabled]="isTutorial" (click)="removeEtf(i)" title="Rimuovi ETF">
                         <span class="icon-action-button__glyph">✕</span>
                       </button>
                     </td>
