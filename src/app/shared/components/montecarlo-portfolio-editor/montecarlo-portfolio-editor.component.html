@@ -21,6 +21,7 @@
         <span class="slider-edge-highlight" *ngIf="item.weight > 0" [style.left.%]="item.weight" aria-hidden="true"></span>
         <input
           class="slider"
+          [disabled]="isTutorial"
           type="range"
           min="0"
           max="100"
@@ -32,6 +33,7 @@
       </div>
       <input
         class="weight-input"
+        [readonly]="isTutorial"
         type="text"
         [value]="item.displayValue || formatWeight(item.weight)"
         inputmode="decimal"
@@ -40,7 +42,7 @@
         [attr.aria-label]="'Percentuale ' + (item.nickname || item.ticker || item.isin)"
       />
       <span class="percent-sign">%</span>
-      <button type="button" class="remove-btn" (click)="removeItem(i)" [attr.aria-label]="'Rimuovi ' + (item.nickname || item.ticker || item.isin)">×</button>
+      <button type="button" class="remove-btn" [disabled]="isTutorial" (click)="removeItem(i)" [attr.aria-label]="'Rimuovi ' + (item.nickname || item.ticker || item.isin)">×</button>
     </div>
   </div>
 
@@ -53,6 +55,7 @@
     <input
       type="text"
       class="search-input"
+      [disabled]="isTutorial"
       [value]="searchQuery()"
       placeholder="Cerca ETF per nickname, nome, ISIN, ticker"
       (input)="onSearchInput($any($event.target).value)"
@@ -74,13 +77,13 @@
   </div>
 
   <div class="editor-actions">
-    <button type="button" class="action-btn" (click)="restorePortfolio()" [disabled]="!canRestorePortfolio()">
+    <button type="button" class="action-btn" (click)="restorePortfolio()" [disabled]="isTutorial || !canRestorePortfolio()">
       Ripristina portafoglio
     </button>
-    <button type="button" class="action-btn" (click)="updatePortfolio()" [disabled]="!canUpdatePortfolio()">
+    <button type="button" class="action-btn" (click)="updatePortfolio()" [disabled]="isTutorial || !canUpdatePortfolio()">
       Aggiorna portafoglio
     </button>
-    <button type="button" class="action-btn" (click)="openCreatePortfolioDialog()" [disabled]="!canCreatePortfolio()">
+    <button type="button" class="action-btn" (click)="openCreatePortfolioDialog()" [disabled]="isTutorial || !canCreatePortfolio()">
       {{ createPortfolioActionLabel() }}
     </button>
   </div>
