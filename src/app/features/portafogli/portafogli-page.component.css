@@ -675,3 +675,8 @@ input.invalid,
 @media(max-width:900px){
   .tutorial-field-bubble,.tutorial-save-bubble {right:auto;left:0;top:calc(100% + 14px);transform:none;}
 }
+
+.modal-content .tutorial-field-bubble {left:55%;right:auto;top:calc(100% + 12px);transform:none;}
+.modal-content.tutorial-form-save .tutorial-name-spotlight {z-index:41;pointer-events:none;}
+.modal-content .tutorial-save-spotlight--active {z-index:100;opacity:1;filter:none;}
+.modal-content .tutorial-save-bubble {top:calc(50% - 35px);}
