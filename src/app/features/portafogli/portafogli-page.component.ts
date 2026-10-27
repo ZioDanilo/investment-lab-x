@@ -201,17 +201,7 @@ export class PortafoliPageComponent implements OnInit {
   // Search ETF
   onSearchChange(query: string) {
     this.searchQuery.set(query);
-    if (this.isTutorial) {
-      const sample: Etf[] = [
-        { id:'tutorial-world', isin:'IE00B4L5Y983', name:'iShares Core MSCI World UCITS ETF', description:'Azionario globale', ticker:'SWDA' },
-        { id:'tutorial-sp500', isin:'IE00B5BMR087', name:'iShares Core S&P 500 UCITS ETF', description:'Azionario USA', ticker:'CSPX' },
-        { id:'tutorial-em', isin:'IE00BKM4GZ66', name:'iShares Core MSCI EM IMI UCITS ETF', description:'Mercati emergenti', ticker:'EIMI' }
-      ];
-      const needle = query.trim().toLowerCase();
-      this.searchResults.set(needle.length < 3 ? [] : sample.filter(e => [e.name,e.isin,e.ticker].some(v => v?.toLowerCase().includes(needle))));
-      this.searchLoading.set(false);
-      return;
-    }
+    if (this.isTutorial && this.tutorialFormStep() !== 'etf') return;
     if (query.length < 3) {
       this.searchResults.set([]);
       return;
@@ -248,7 +238,7 @@ export class PortafoliPageComponent implements OnInit {
       etf: etf
     };
 
-    this.selectedEtfs.update(etfs => [...etfs, newEtf]);
+    this.selectedEtfs.update(etfs => this.isTutorial ? [newEtf] : [...etfs, newEtf]);
     this.searchResults.set([]);
     this.searchQuery.set('');
     if (this.isTutorial && this.tutorialFormStep() === 'etf') this.tutorialFormStep.set('save');
@@ -281,6 +271,7 @@ export class PortafoliPageComponent implements OnInit {
   }
 
   onWeightInput(index: number, event: Event) {
+    if (this.isTutorial) return;
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
     this.updateEtfWeight(index, value);
   }
@@ -296,6 +287,7 @@ export class PortafoliPageComponent implements OnInit {
 
   // Remove ETF from selection
   removeEtf(index: number) {
+    if (this.isTutorial) return;
     this.selectedEtfs.update(etfs => {
       etfs.splice(index, 1);
       return [...etfs];
