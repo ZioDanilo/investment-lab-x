@@ -38,7 +38,7 @@ export const usernameInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       // A persisted username is not enough: the backend is authoritative.
       // Any 401 means that the user/session can no longer be trusted.
-      if (error.status === 401 && !authRequest) {
+      if (error.status === 401 && !authRequest && localStorage.getItem('investmentLabRole') !== 'TUTORIAL') {
         clearInvalidSession(router);
       }
       return throwError(() => error);
