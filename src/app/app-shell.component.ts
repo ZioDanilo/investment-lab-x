@@ -129,6 +129,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
   get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
+  get isLaboratoryTutorial(): boolean { return this.router.url.split('?')[0] === '/laboratorio-portafogli'; }
   get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL' && sessionStorage.getItem('investmentLabTutorial') === 'true'; }
   get isAdmin(): boolean { return this.loggedUsername !== '' && localStorage.getItem('investmentLabRole') === 'ADMIN'; }
   get loggedUsername(): string { return localStorage.getItem('investmentLabUsername')?.trim() || ''; }
