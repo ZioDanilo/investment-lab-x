@@ -645,3 +645,33 @@ input.invalid,
   border-top:2px solid #5cbcff;border-right:2px solid #5cbcff;
 }
 @media(max-width:760px){.tutorial-new-portfolio-bubble{right:0;top:calc(100% + 15px);transform:none;}}
+
+/* Two-step tutorial editor: darken the real form and expose exactly one control. */
+.modal-content.tutorial-form-name,
+.modal-content.tutorial-form-save { position:relative;isolation:isolate; }
+.modal-content.tutorial-form-name::after,
+.modal-content.tutorial-form-save::after {
+  content:"";position:absolute;inset:0;z-index:40;
+  background:rgba(2,9,19,.72);pointer-events:auto;
+}
+.modal-content .tutorial-name-spotlight { position:relative;z-index:41; }
+.modal-content .tutorial-name-spotlight .form-input { position:relative;z-index:42;pointer-events:auto; }
+.modal-content .tutorial-name-spotlight label { color:#edf6ff; }
+.modal-content .tutorial-save-spotlight--active { position:relative;z-index:41;pointer-events:auto; }
+.modal-content.tutorial-form-save .tutorial-name-spotlight { z-index:auto; }
+.modal-content.tutorial-form-save .form-input { pointer-events:none; }
+.tutorial-field-bubble,.tutorial-save-bubble {
+  position:absolute;z-index:43;right:calc(100% + 16px);top:50%;
+  transform:translateY(-50%);width:235px;padding:13px 16px;
+  border:2px solid #5cbcff;border-radius:12px;background:#f1f8ff;
+  color:#12304a;box-shadow:0 12px 30px #0009;font-size:14px;
+  font-weight:700;line-height:1.45;pointer-events:none;
+}
+.tutorial-field-bubble::after,.tutorial-save-bubble::after {
+  content:"";position:absolute;right:-9px;top:calc(50% - 8px);
+  width:14px;height:14px;transform:rotate(45deg);background:#f1f8ff;
+  border-top:2px solid #5cbcff;border-right:2px solid #5cbcff;
+}
+@media(max-width:900px){
+  .tutorial-field-bubble,.tutorial-save-bubble {right:auto;left:0;top:calc(100% + 14px);transform:none;}
+}
