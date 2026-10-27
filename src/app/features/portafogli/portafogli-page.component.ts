@@ -339,6 +339,7 @@ export class PortafoliPageComponent implements OnInit {
       if (this.tutorialFormStep() !== 'save') return;
       const etf = this.selectedEtfs()[0]?.etf;
       if (!etf) return;
+      sessionStorage.removeItem('investmentLabTutorialMonteCarloStarted');
       sessionStorage.setItem('investmentLabTutorialEtf', JSON.stringify({
         id: etf.id, isin: etf.isin, name: etf.name,
         nickname: (etf as any).nickname || etf.name,
