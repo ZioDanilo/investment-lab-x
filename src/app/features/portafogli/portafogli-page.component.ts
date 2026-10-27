@@ -33,11 +33,22 @@ interface PortfolioEtf {
 })
 export class PortafoliPageComponent implements OnInit {
   get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
-  tutorialFormStep = signal<'name' | 'save' | 'done'>('name');
+  tutorialFormStep = signal<'name' | 'typing' | 'etf' | 'save' | 'done'>('name');
+  private tutorialTypingTimer: ReturnType<typeof setInterval> | null = null;
   onTutorialNameFocus(): void {
     if (!this.isTutorial || this.tutorialFormStep() !== 'name') return;
-    this.nomePortafoglio.set('Portafoglio Tutorial');
-    this.tutorialFormStep.set('save');
+    this.tutorialFormStep.set('typing');
+    const value = 'Portafoglio Tutorial';
+    let index = 0;
+    this.tutorialTypingTimer = setInterval(() => {
+      index++;
+      this.nomePortafoglio.set(value.slice(0, index));
+      if (index >= value.length) {
+        if (this.tutorialTypingTimer) clearInterval(this.tutorialTypingTimer);
+        this.tutorialTypingTimer = null;
+        this.tutorialFormStep.set('etf');
+      }
+    }, 3000 / value.length);
   }
   private initialized = false;
   private apiService = inject(ApiService);
@@ -152,6 +163,8 @@ export class PortafoliPageComponent implements OnInit {
   // Open new portfolio form
   async openNewPortfolioForm(): Promise<void> {
     this.currentEditingPortfolioId.set(null);
+    if (this.tutorialTypingTimer) clearInterval(this.tutorialTypingTimer);
+    this.tutorialTypingTimer = null;
     if (this.isTutorial) this.tutorialFormStep.set('name');
     this.showForm.set(true);
     this.nomePortafoglio.set('');
@@ -179,6 +192,8 @@ export class PortafoliPageComponent implements OnInit {
 
   // Close form
   closeForm() {
+    if (this.tutorialTypingTimer) clearInterval(this.tutorialTypingTimer);
+    this.tutorialTypingTimer = null;
     this.showForm.set(false);
     this.clearForm();
   }
@@ -186,7 +201,17 @@ export class PortafoliPageComponent implements OnInit {
   // Search ETF
   onSearchChange(query: string) {
     this.searchQuery.set(query);
-    
+    if (this.isTutorial) {
+      const sample: Etf[] = [
+        { id:'tutorial-world', isin:'IE00B4L5Y983', name:'iShares Core MSCI World UCITS ETF', description:'Azionario globale', ticker:'SWDA' },
+        { id:'tutorial-sp500', isin:'IE00B5BMR087', name:'iShares Core S&P 500 UCITS ETF', description:'Azionario USA', ticker:'CSPX' },
+        { id:'tutorial-em', isin:'IE00BKM4GZ66', name:'iShares Core MSCI EM IMI UCITS ETF', description:'Mercati emergenti', ticker:'EIMI' }
+      ];
+      const needle = query.trim().toLowerCase();
+      this.searchResults.set(needle.length < 3 ? [] : sample.filter(e => [e.name,e.isin,e.ticker].some(v => v?.toLowerCase().includes(needle))));
+      this.searchLoading.set(false);
+      return;
+    }
     if (query.length < 3) {
       this.searchResults.set([]);
       return;
@@ -219,13 +244,14 @@ export class PortafoliPageComponent implements OnInit {
 
     const newEtf: PortfolioEtf = {
       etfId: etf.id,
-      peso: null,
+      peso: this.isTutorial ? 100 : null,
       etf: etf
     };
 
     this.selectedEtfs.update(etfs => [...etfs, newEtf]);
     this.searchResults.set([]);
     this.searchQuery.set('');
+    if (this.isTutorial && this.tutorialFormStep() === 'etf') this.tutorialFormStep.set('save');
   }
 
   onSearchResultSelected(etfId: string): void {
@@ -285,7 +311,7 @@ export class PortafoliPageComponent implements OnInit {
   async savePortafoglio(): Promise<void> {
     if (this.isTutorial) {
       if (this.tutorialFormStep() !== 'save') return;
-      this.portafogli.set([{ id: 'tutorial-demo', nome: 'Portafoglio Titolo', etfs: [], descrizione: 'Portafoglio simulato del tutorial' }]);
+      this.portafogli.set([{ id: 'tutorial-demo', nome: 'Portafoglio Tutorial', etfs: this.selectedEtfs().map(e => ({ etf: e.etf, peso: e.peso })), descrizione: 'Portafoglio simulato del tutorial' }]);
       this.tutorialFormStep.set('done');
       this.showForm.set(false);
       return;
