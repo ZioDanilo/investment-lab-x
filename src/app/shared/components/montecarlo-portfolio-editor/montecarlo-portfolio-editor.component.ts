@@ -65,6 +65,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
 
   @Input() portfolioId: string | null = null;
+  get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
   @Output() stateChange = new EventEmitter<MontecarloPortfolioEditorChange>();
   @Output() portfolioSaved = new EventEmitter<string>();
 
@@ -170,6 +171,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   );
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (this.isTutorial) { this.loadTutorialComposition(); return; }
     if (changes['portfolioId']?.currentValue !== undefined) {
       if (this.portfolioId) {
         this.loadPortfolioComposition(this.portfolioId);
@@ -829,6 +831,26 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     };
 
     this.portfolioSelectionService.preserveWorkingPortfolio(this.portfolioId, snapshot);
+  }
+
+  private loadTutorialComposition(): void {
+    const raw = sessionStorage.getItem('investmentLabTutorialEtf');
+    if (!raw) { this.resetEditor(); return; }
+    try {
+      const etf = JSON.parse(raw);
+      if (!etf?.isin || !etf?.id) return;
+      const item: MontecarloPortfolioItem = {
+        etfId: String(etf.id), isin: String(etf.isin),
+        ticker: String(etf.ticker || ''), nickname: String(etf.nickname || etf.name || etf.isin),
+        fullName: String(etf.name || etf.isin), weight: 100, originalWeight: 100,
+        displayValue: '100,00'
+      };
+      this.items.set([item]);
+      this.originalItems.set([item]);
+      this.currentWeightValues.set({ [item.etfId]: 100 });
+      this.selectedPortfolioName.set('Portafoglio Tutorial');
+      this.emitState();
+    } catch { this.resetEditor(); }
   }
 
   private resetEditor(): void {
