@@ -645,3 +645,78 @@
   position:relative; z-index:1; font-size:13px; font-weight:700;
   text-align:center; padding:0 8px; text-shadow:0 1px 3px rgba(0,0,0,.55);
 }
+
+/* Monte Carlo factor audit: compact login action and read-only JSON dialog. */
+.factor-audit-trigger {
+  flex: 0 0 auto;
+  padding: 0 12px;
+  min-height: 46px;
+  border: 1px solid rgba(145,185,228,.35);
+  border-radius: 10px;
+  color: #c5e7ff;
+  background: rgba(16,32,47,.88);
+  font: inherit;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.factor-audit-trigger:disabled { opacity: .5; cursor: default; }
+.factor-audit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0,5,12,.82);
+  box-sizing: border-box;
+}
+.factor-audit-dialog {
+  width: min(960px,100%);
+  max-height: min(85vh,850px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid rgba(145,185,228,.36);
+  border-radius: 16px;
+  background: #0c1825;
+  color: #edf6ff;
+  box-sizing: border-box;
+}
+.factor-audit-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.factor-audit-header h2 { margin: 0; font-size: 1.1rem; }
+.factor-audit-close { border: 0; background: transparent; color: #edf6ff; font-size: 26px; cursor: pointer; }
+.factor-audit-summary { margin: 0; font-size: .85rem; }
+.factor-audit-actions { display: flex; gap: 8px; }
+.factor-audit-actions button {
+  padding: 8px 14px;
+  border: 1px solid rgba(119,201,255,.48);
+  border-radius: 8px;
+  background: rgba(22,131,204,.18);
+  color: #edf6ff;
+  cursor: pointer;
+}
+.factor-audit-json {
+  flex: 1 1 auto;
+  min-height: 250px;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid rgba(145,185,228,.22);
+  border-radius: 8px;
+  background: #07111c;
+  color: #d8edff;
+  font: 12px/1.5 monospace;
+}
+@media (max-width: 560px) {
+  .factor-audit-trigger { padding: 0 7px; font-size: .67rem; }
+  .factor-audit-dialog { padding: 12px; }
+}
+
+/* Keep both read-only diagnostics alongside login on narrow screens. */
+.login-action-row { flex-wrap: wrap; gap: 6px; }
+.login-action-row .backend-ready-progress,
+.login-action-row .primary-login { min-width: 180px; }
