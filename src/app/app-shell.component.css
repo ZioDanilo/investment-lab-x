@@ -632,7 +632,14 @@
 }
 
 /* Tutorial is a read-only home preview: all interactions are locked except the profile menu and exit. */
-.app-shell:has(.tutorial-locked) .route-page,
 .app-shell:has(.tutorial-locked) .nav-links,
 .app-shell:has(.tutorial-locked) .app-feature-action-row { pointer-events:none; }
-.app-shell:has(.tutorial-locked) .route-page { user-select:none; }
+
+
+/* Allow only the spotlight card (through the router outlet), profile exit and left ad rail. */
+.app-shell--tutorial .route-page { position:relative;pointer-events:none; }
+.app-shell--tutorial .route-page .tutorial-target { pointer-events:auto; }
+.app-shell--tutorial .mock-ad-home-stack { z-index:112;position:relative; }
+.app-shell--tutorial .global-navbar { position:relative;z-index:113; }
+.app-shell--tutorial .global-navbar .nav-links { pointer-events:none; }
+.app-shell--tutorial .global-navbar .profile-menu { pointer-events:auto; }
