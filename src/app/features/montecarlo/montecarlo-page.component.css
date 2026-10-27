@@ -3132,3 +3132,23 @@ html, body {
   box-shadow:none!important;
 }
 .kpi-row.is-dragging>*{visibility:hidden!important}
+
+/* Tutorial: isolate drawdown KPI above the full-page dimmer. */
+.montecarlo-page.tutorial-drawdown-active::before {
+  content:"";position:fixed;inset:0;background:rgba(2,9,19,.76);z-index:1000;pointer-events:auto;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-panel,
+.montecarlo-page.tutorial-drawdown-active .kpi-compact-list {position:relative;z-index:1001;}
+.montecarlo-page.tutorial-drawdown-active .kpi-panel {background:transparent;box-shadow:none;border-color:transparent;pointer-events:none;}
+.montecarlo-page.tutorial-drawdown-active .kpi-row:not(.tutorial-drawdown-focus) {filter:brightness(.22);pointer-events:none;}
+.montecarlo-page.tutorial-drawdown-active .tutorial-drawdown-focus {
+  position:relative;z-index:1002;filter:none;pointer-events:auto;background:#10243a;
+  box-shadow:0 0 0 2px #5cbcff,0 12px 35px #0008;
+}
+.montecarlo-page .tutorial-drawdown-bubble {
+  position:absolute;right:calc(100% + 18px);top:50%;transform:translateY(-50%);
+  width:260px;max-width:38vw;padding:14px 17px;background:#f1f8ff;color:#12304a;
+  border:2px solid #5cbcff;border-radius:12px;font-size:14px;font-weight:700;line-height:1.45;
+  box-shadow:0 12px 30px #0009;pointer-events:none;z-index:1004;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-target-menu {z-index:1005;pointer-events:auto;}
