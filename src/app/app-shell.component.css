@@ -684,3 +684,8 @@
 .app-shell--tutorial .tutorial-lab-locked .route-page .portafogli-header h2 { opacity:.35; }
 .app-shell--tutorial .tutorial-lab-locked .route-page .tutorial-new-portfolio { pointer-events:auto; }
 .app-shell--tutorial .tutorial-lab-locked .route-page .modal-overlay { z-index:5000;pointer-events:auto; }
+
+/* Avoid a second overlay covering the highlighted button or the full-screen editor. */
+.app-shell--tutorial .tutorial-lab-locked::after { display:none; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel.tutorial-portfolio-form-open::after { display:none; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel.tutorial-portfolio-form-open .portafogli-header { z-index:auto; }
