@@ -26,7 +26,7 @@ import { TrendStrategyService } from './core/services/trend-strategy.service';
 export class AppShellComponent implements OnDestroy, AfterViewInit {
   constructor() {
     // Services are in-memory: after a browser refresh rebuild the user-scoped data.
-    if (localStorage.getItem('investmentLabUsername')) {
+    if (localStorage.getItem('investmentLabUsername') && localStorage.getItem('investmentLabRole') !== 'TUTORIAL') {
       this.portfolioSelection.loadPortfolios();
       void this.refreshMarketUniverseGenerationStatus();
     }
@@ -129,6 +129,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
   get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
+  get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL' && sessionStorage.getItem('investmentLabTutorial') === 'true'; }
   get isAdmin(): boolean { return this.loggedUsername !== '' && localStorage.getItem('investmentLabRole') === 'ADMIN'; }
   get loggedUsername(): string { return localStorage.getItem('investmentLabUsername')?.trim() || ''; }
 
