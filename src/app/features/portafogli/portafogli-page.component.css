@@ -709,3 +709,9 @@ input.invalid,
 .modal-content.tutorial-form-save .tutorial-selected-etf-visible {position:relative;z-index:41;pointer-events:none;}
 .modal-content.tutorial-form-save .tutorial-selected-etf-visible .portfolio-table,.modal-content.tutorial-form-save .tutorial-selected-etf-visible .total-weight {opacity:1;filter:none;}
 .modal-content.tutorial-form-save .tutorial-selected-etf-visible .weight-input {pointer-events:none;opacity:1;}
+
+/* Keep the save instruction above the 100% composition table. */
+.modal-content.tutorial-form-save .modal-footer {position:relative;z-index:90;overflow:visible;}
+.modal-content.tutorial-form-save .tutorial-save-spotlight--active {z-index:110;}
+.modal-content.tutorial-form-save .tutorial-save-bubble {top:-74px;transform:none;z-index:115;}
+.modal-content.tutorial-form-save .tutorial-selected-etf-visible {z-index:41;}
