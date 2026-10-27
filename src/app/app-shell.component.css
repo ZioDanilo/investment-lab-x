@@ -669,7 +669,18 @@
 }
 .app-shell--tutorial .tutorial-lab-locked::after {
   content:"";position:absolute;inset:0;background:rgba(2,9,19,.65);
-  z-index:100;pointer-events:auto;
+  z-index:100;pointer-events:none;
 }
 .app-shell--tutorial .tutorial-lab-locked .route-page,
 .app-shell--tutorial .tutorial-lab-locked .app-feature-sidebar { filter:brightness(.65); }
+
+/* Only the new portfolio button is allowed through the tutorial veil. */
+.app-shell--tutorial .tutorial-lab-locked .route-page { filter:none;pointer-events:auto; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel { position:relative; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel::after {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.65);z-index:90;pointer-events:auto;
+}
+.app-shell--tutorial .tutorial-lab-locked .route-page .portafogli-header { position:relative;z-index:91;pointer-events:none; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .portafogli-header h2 { opacity:.35; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .tutorial-new-portfolio { pointer-events:auto; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .modal-overlay { z-index:5000;pointer-events:auto; }
