@@ -85,6 +85,9 @@ export class MontecarloPageComponent {
     intensities: Float64Array;
   } | null = null;
 
+  readonly isTutorial = localStorage.getItem('investmentLabRole') === 'TUTORIAL';
+  tutorialDrawdownStep: 'idle' | 'waiting' | 'target' | 'drag' | 'done' = 'idle';
+  private tutorialDrawdownTimeout: ReturnType<typeof setTimeout> | null = null;
   isRunning = false;
   simulationProgress = 0;
   completionHoldActive = false;
@@ -862,6 +865,7 @@ export class MontecarloPageComponent {
       return;
     }
 
+    if (this.isTutorial && this.tutorialDrawdownStep !== 'idle') return;
     this.kpiResultValues = {};
     this.isRunning = true;
     this.startProgressAnimation();
@@ -949,6 +953,13 @@ export class MontecarloPageComponent {
       this.kpis = this.mergeKpiValuesPreservingOrder(updatedKpis);
       this.advanceProgressStage(97);
       await this.completeProgressAnimation();
+      if (this.isTutorial) {
+        this.tutorialDrawdownStep = 'waiting';
+        this.tutorialDrawdownTimeout = setTimeout(() => {
+          this.kpis = [...this.kpis.filter(k => k.id !== 'averageMaxDrawdown'), ...this.kpis.filter(k => k.id === 'averageMaxDrawdown')];
+          this.tutorialDrawdownStep = 'target';
+        }, 5000);
+      }
     } catch (error) {
       console.error('[Monte Carlo fast path]', error);
       this.kpis = this.mergeKpiValuesPreservingOrder(this.defaultKpis);
@@ -986,6 +997,7 @@ export class MontecarloPageComponent {
   }
 
   onKpiDragStart(kpiId: string, event: DragEvent): void {
+    if (this.isTutorial && (this.tutorialDrawdownStep !== 'drag' || kpiId !== 'averageMaxDrawdown')) { event.preventDefault(); return; }
     this.draggedKpiId = kpiId;
     this.draggedKpiPreview = this.kpis.find((kpi) => kpi.id === kpiId) ?? null;
     this.swapTargetId = null;
@@ -1136,8 +1148,17 @@ export class MontecarloPageComponent {
     // upward moves animate the traversed rows back toward their old slots first.
     this.suppressKpiTransitions = true;
     if (kpiId) {
-      this.insertKpi(kpiId, insertIndex);
-      this.queueKpiConfigurationSave();
+      if (this.isTutorial) {
+        if (this.tutorialDrawdownStep === 'drag' && kpiId === 'averageMaxDrawdown' && insertIndex === 0) {
+          this.insertKpi(kpiId, 0);
+          this.tutorialDrawdownStep = 'done';
+        } else {
+          this.insertKpi('averageMaxDrawdown', this.kpis.length);
+        }
+      } else {
+        this.insertKpi(kpiId, insertIndex);
+        this.queueKpiConfigurationSave();
+      }
     }
     this.finishDragState();
 
@@ -1211,6 +1232,7 @@ export class MontecarloPageComponent {
   }
 
   toggleKpiTarget(kpiId: string, event: MouseEvent): void {
+    if (this.isTutorial && (this.tutorialDrawdownStep !== 'target' || kpiId !== 'averageMaxDrawdown')) return;
     this.openKpiTargetId = this.openKpiTargetId === kpiId ? null : kpiId;
   }
 
@@ -1223,11 +1245,13 @@ export class MontecarloPageComponent {
   }
 
   selectKpiTarget(kpiId: string, value: string, event: MouseEvent): void {
+    if (this.isTutorial && (this.tutorialDrawdownStep !== 'target' || kpiId !== 'averageMaxDrawdown')) return;
     if (this.kpiTargets[kpiId] !== value) {
       this.kpiTargets[kpiId] = value;
-      this.queueKpiConfigurationSave();
+      if (!this.isTutorial) this.queueKpiConfigurationSave();
     }
     this.openKpiTargetId = null;
+    if (this.isTutorial && value !== '–') this.tutorialDrawdownStep = 'drag';
   }
 
   private finishDragState(): void {
