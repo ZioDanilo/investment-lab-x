@@ -1,4 +1,4 @@
-<div class="app-shell">
+<div class="app-shell" [class.app-shell--tutorial]="isTutorial">
   <header class="global-navbar" aria-label="Navigazione principale">
     <div class="brand-group" aria-label="Razer brand">
       <div class="brand-copy">
@@ -62,7 +62,7 @@
       <a class="app-feature-menu-card app-feature-menu-card--cyan" routerLink="/market-universe" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">bar_chart</span><span>ETF & Mercati</span></a>
       <div class="mock-ad-slot mock-ad-slot--sidebar"><app-adsense-slot slot="2590507807" /></div>
     </aside>
-    <app-ad-rail *ngIf="!showFeatureSidebar && !isTutorial" class="mock-ad-home-stack" aria-label="Spazi pubblicitari" />
+    <app-ad-rail *ngIf="!showFeatureSidebar" class="mock-ad-home-stack" aria-label="Spazi pubblicitari" />
     <section class="route-page" [class.tutorial-locked]="isTutorial"><router-outlet (activate)="onFeatureActivate($event)"></router-outlet></section>
   </main>
 </div>
