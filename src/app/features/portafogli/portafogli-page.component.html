@@ -26,7 +26,7 @@
       <div class="modal-body">
         <div class="modal-fixed-fields">
           <!-- Portfolio Name -->
-          <div class="form-group" [class.tutorial-name-spotlight]="isTutorial && tutorialFormStep() === 'name'">
+          <div class="form-group" [class.tutorial-name-spotlight]="isTutorial && tutorialFormStep() !== 'done'">
             <label>Nome Portafoglio</label>
             <div *ngIf="isTutorial && tutorialFormStep() === 'name'" class="tutorial-field-bubble" role="status">Inserisci il nome del tuo portafoglio.</div>
             <input 
