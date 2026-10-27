@@ -715,3 +715,6 @@ input.invalid,
 .modal-content.tutorial-form-save .tutorial-save-spotlight--active {z-index:110;}
 .modal-content.tutorial-form-save .tutorial-save-bubble {top:-74px;transform:none;z-index:115;}
 .modal-content.tutorial-form-save .tutorial-selected-etf-visible {z-index:41;}
+
+/* Tutorial: Cancel stays visible but cannot be used. */
+.modal-content .btn-cancel.tutorial-cancel-disabled {opacity:.22;filter:brightness(.4);cursor:not-allowed;pointer-events:none;}
