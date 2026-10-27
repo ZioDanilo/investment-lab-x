@@ -844,8 +844,10 @@
 .asset-state{font-size:.72rem;color:#a9bbcf;padding:18px 0;text-align:center}
 
 /* Guided tutorial: dim the entire dashboard except the highlighted portfolio lab. */
-.home-shell--tutorial .tutorial-dim { position:fixed;inset:0;background:rgba(2,9,19,.66);z-index:110;pointer-events:none; }
-.home-shell--tutorial .shortcut-card.tutorial-target { position:relative;z-index:111;isolation:isolate;cursor:pointer;box-shadow:0 0 0 3px #5cbcff,0 0 28px rgba(53,157,255,.55); }
+.home-shell--tutorial .tutorial-dim { position:fixed;inset:0;background:rgba(2,9,19,.66);z-index:2;pointer-events:none; }
+.home-shell--tutorial .shortcut-row { position:relative;z-index:3;isolation:isolate; }
+.home-shell--tutorial .shortcut-card.tutorial-target { position:relative;z-index:4;isolation:isolate;cursor:pointer;pointer-events:auto;box-shadow:0 0 0 3px #5cbcff,0 0 28px rgba(53,157,255,.55); }
+.home-shell--tutorial .shortcut-card:not(.tutorial-target) { filter:brightness(.35);pointer-events:none; }
 .home-shell--tutorial .tutorial-bubble { position:absolute;z-index:112;left:calc(100% + 17px);top:50%;transform:translateY(-50%);width:290px;max-width:min(290px,60vw);padding:15px 17px;background:#f1f8ff;color:#12304a;border:2px solid #5cbcff;border-radius:13px;box-shadow:0 14px 35px #0009;font-size:14px;font-weight:700;line-height:1.5;pointer-events:none; }
 .home-shell--tutorial .tutorial-bubble::before { content:'';position:absolute;left:-10px;top:calc(50% - 9px);width:16px;height:16px;transform:rotate(45deg);background:#f1f8ff;border-left:2px solid #5cbcff;border-bottom:2px solid #5cbcff; }
 @media(max-width:1100px){.home-shell--tutorial .tutorial-bubble{left:0;top:calc(100% + 16px);transform:none}.home-shell--tutorial .tutorial-bubble::before{left:25px;top:-10px;transform:rotate(135deg)}}
