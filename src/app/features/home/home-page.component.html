@@ -1,4 +1,4 @@
-<div class="home-shell">
+<div class="home-shell" [class.home-shell--tutorial]="isTutorial">
   <header class="top-nav">
     <div class="brand-group" aria-label="Razer brand">
       <div class="brand-copy">
@@ -31,6 +31,7 @@
     </div>
   </header>
 
+  <div *ngIf="isTutorial" class="tutorial-dim" aria-hidden="true"></div>
   <main class="home-main">
     <section class="workspace-header" aria-label="Header workspace">
       <div class="workspace-copy">
@@ -44,12 +45,14 @@
       <article
         *ngFor="let item of shortcuts; let i = index"
         class="shortcut-card"
+        [class.tutorial-target]="isTutorial && item.title === 'Laboratorio Portafogli'"
         [ngClass]="'shortcut-card--' + item.accent"
-        [routerLink]="item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : item.title === 'I miei Portafogli' ? ['/portafogli'] : item.title === 'Monte Carlo' ? ['/monte-carlo'] : item.title === 'Ribilanciamento' ? ['/ribilanciamento'] : item.title === 'ETF & Mercati' ? ['/market-universe'] : item.title === 'Trend Following' ? ['/trend-following'] : null"
+        [routerLink]="isTutorial ? null : item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : item.title === 'I miei Portafogli' ? ['/portafogli'] : item.title === 'Monte Carlo' ? ['/monte-carlo'] : item.title === 'Ribilanciamento' ? ['/ribilanciamento'] : item.title === 'ETF & Mercati' ? ['/market-universe'] : item.title === 'Trend Following' ? ['/trend-following'] : null"
         [attr.aria-label]="item.title"
         tabindex="0"
         role="button"
       >
+        <div *ngIf="isTutorial && item.title === 'Laboratorio Portafogli'" class="tutorial-bubble" role="status">Clicca su Laboratorio Portafogli per creare il tuo primo portafoglio simulato.</div>
         <div class="shortcut-card__top">
           <span class="shortcut-icon material-symbols-rounded">{{ item.icon }}</span>
         </div>
