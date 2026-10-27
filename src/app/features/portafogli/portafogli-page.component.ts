@@ -32,6 +32,7 @@ interface PortfolioEtf {
   styleUrls: ['./portafogli-page.component.css']
 })
 export class PortafoliPageComponent implements OnInit {
+  get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
   private initialized = false;
   private apiService = inject(ApiService);
   private portfolioState = inject(PortfolioStateService);
