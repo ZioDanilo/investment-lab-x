@@ -859,3 +859,6 @@
   filter:none;opacity:1;
 }
 .home-shell--tutorial .shortcut-card.tutorial-target:hover { background:linear-gradient(180deg,rgba(20,42,66,.98),rgba(11,18,25,.96)); }
+
+.home-shell--tutorial .shortcut-row { isolation:auto; }
+.home-shell--tutorial .tutorial-target { z-index:120;filter:none!important;opacity:1!important; }
