@@ -110,7 +110,7 @@
               (drag)="onKpiDrag($event)"
               (dragend)="onKpiDragEnd()"
             >
-              <div *ngIf="isTutorial && kpi.id === 'averageMaxDrawdown' && (tutorialDrawdownStep === 'target' || tutorialDrawdownStep === 'drag')" class="tutorial-drawdown-bubble" role="status">{{ tutorialDrawdownStep === 'target' ? 'Seleziona un target per il tuo drawdown massimo.' : 'Trascina questo KPI in cima alla lista per averlo come prima priorità.' }}</div>
+              <div *ngIf="isTutorial && kpi.id === 'averageMaxDrawdown' && (tutorialDrawdownStep === 'target' || (tutorialDrawdownStep === 'drag' && !tutorialDrawdownDragging))" class="tutorial-drawdown-bubble" role="status">{{ tutorialDrawdownStep === 'target' ? 'Seleziona un target per il tuo drawdown massimo.' : 'Trascina questo KPI in cima alla lista per averlo come prima priorità.' }}</div>
               <div class="kpi-row__metric">
                 <span class="material-symbols-rounded kpi-metric-icon" [attr.data-kpi-icon]="kpi.id">{{ getKpiIcon(kpi.id) }}</span>
                 <span class="kpi-row__label">{{ kpi.title }}</span>
