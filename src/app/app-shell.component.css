@@ -721,3 +721,13 @@
   content:"";position:absolute;top:-9px;right:30px;width:14px;height:14px;
   background:#f1f8ff;border-top:2px solid #5cbcff;border-left:2px solid #5cbcff;transform:rotate(45deg);
 }
+
+/* Align the tutorial callout directly below the Monte Carlo Run button. */
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row > .app-feature-action:not(.app-feature-action--secondary) {anchor-name:--tutorial-run-button;}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble {
+  position:absolute;right:auto;left:auto;top:calc(100% + 12px);
+  position-anchor:--tutorial-run-button;
+  left:anchor(center);top:anchor(bottom);translate:-50% 12px;
+  width:max-content;max-width:280px;text-align:center;
+}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble::before {right:calc(50% - 7px);}
