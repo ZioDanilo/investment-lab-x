@@ -1,3 +1,4 @@
+import { TutorialPageComponent } from './features/tutorial/tutorial-page.component';
 import { Routes } from '@angular/router';
 import { PublicInfoComponent } from './features/public/public-info.component';
 import { PublicLegalComponent } from './features/public/public-legal.component';
@@ -14,6 +15,7 @@ import { authGuard } from './core/guards/auth.guard';
 
 export const appRoutes: Routes = [
   { path: 'login', component: LoginPageComponent },
+  { path: 'tutorial', component: TutorialPageComponent },
   { path: 'chi-siamo', component: PublicInfoComponent },
   { path: 'privacy', component: PublicLegalComponent },
   { path: 'cookies', component: PublicLegalComponent },
