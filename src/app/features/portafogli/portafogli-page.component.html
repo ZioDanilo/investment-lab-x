@@ -1,8 +1,10 @@
-<section class="page-panel">
+<section class="page-panel" [class.tutorial-portfolio-form-open]="isTutorial && showForm()">
 
   <!-- Header with "Nuovo Portafoglio" button -->
   <div class="portafogli-header">
     <h2>Laboratorio Portafogli</h2>
+    <div class="tutorial-new-portfolio" [class.tutorial-new-portfolio--active]="isTutorial">
+      <div *ngIf="isTutorial" class="tutorial-new-portfolio-bubble" role="status">Crea il tuo primo portafoglio simulato.</div>
     <app-tasto-conferma
       label="＋ Nuovo Portafoglio"
       loadingText="Apertura..."
@@ -10,6 +12,7 @@
       size="medium"
       [onConfirm]="openNewPortfolioForm.bind(this)"
     ></app-tasto-conferma>
+    </div>
   </div>
 
   <!-- New Portfolio Form Modal -->
