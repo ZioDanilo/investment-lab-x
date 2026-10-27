@@ -693,3 +693,6 @@
 /* Monte Carlo tutorial: only the simulation action remains interactive. */
 .app-shell--tutorial:has(.montecarlo-page) .app-feature-action-row {pointer-events:auto;}
 .app-shell--tutorial:has(.montecarlo-page) .app-feature-action-row button {pointer-events:auto;}
+
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row {pointer-events:auto;}
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row > *:not(button) {pointer-events:none;}
