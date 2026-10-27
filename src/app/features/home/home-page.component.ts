@@ -64,7 +64,8 @@ export class HomePageComponent implements OnInit {
   assetLoading = true;
   assetError = false;
   private readonly assetColors = ['#2D91FF','#31D48D','#FF526C','#FF9F43','#9B67ED','#21C7C7','#F9BE48','#E96BA8','#64A7FF','#86D957'];
-  ngOnInit(): void { this.loadAssetMix(); }
+  get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
+  ngOnInit(): void { if (!this.isTutorial) this.loadAssetMix(); else this.assetLoading = false; }
   private loadAssetMix(): void {
     this.assetLoading = true;
     this.assetError = false;
