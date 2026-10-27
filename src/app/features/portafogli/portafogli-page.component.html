@@ -117,7 +117,7 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-cancel" (click)="closeForm()">Annulla</button>
+        <button class="btn-cancel" [disabled]="isTutorial" [class.tutorial-cancel-disabled]="isTutorial" (click)="closeForm()">Annulla</button>
         <div class="tutorial-save-spotlight" [class.tutorial-save-spotlight--active]="isTutorial && tutorialFormStep() === 'save'">
           <div *ngIf="isTutorial && tutorialFormStep() === 'save'" class="tutorial-save-bubble" role="status">Crea il portafoglio simulato.</div>
         <app-tasto-conferma 
