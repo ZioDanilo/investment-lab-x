@@ -630,3 +630,9 @@
   font-size: 13px;
   font-weight: 700;
 }
+
+/* Tutorial is a read-only home preview: all interactions are locked except the profile menu and exit. */
+.app-shell:has(.tutorial-locked) .route-page,
+.app-shell:has(.tutorial-locked) .nav-links,
+.app-shell:has(.tutorial-locked) .app-feature-action-row { pointer-events:none; }
+.app-shell:has(.tutorial-locked) .route-page { user-select:none; }
