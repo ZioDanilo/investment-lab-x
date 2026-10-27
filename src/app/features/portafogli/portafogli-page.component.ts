@@ -68,6 +68,7 @@ export class PortafoliPageComponent implements OnInit {
   nomePortafoglio = signal('');
   searchQuery = signal('');
   searchResults = signal<Etf[]>([]);
+  private tutorialEtfCatalog: Etf[] | null = null;
   selectedEtfs = signal<PortfolioEtf[]>([]);
   searchLoading = signal(false);
   currentEditingPortfolioId = signal<string | null>(null);
@@ -201,7 +202,40 @@ export class PortafoliPageComponent implements OnInit {
   // Search ETF
   onSearchChange(query: string) {
     this.searchQuery.set(query);
-    if (this.isTutorial && this.tutorialFormStep() !== 'etf') return;
+    if (this.isTutorial) {
+      if (this.tutorialFormStep() !== 'etf') return;
+      if (query.trim().length < 3) {
+        this.searchResults.set([]);
+        this.searchLoading.set(false);
+        return;
+      }
+      const filterCatalog = (catalog: Etf[]) => {
+        if (this.tutorialFormStep() !== 'etf') return;
+        const term = this.searchQuery().trim().toLocaleLowerCase();
+        this.searchResults.set(catalog.filter(etf =>
+          [etf.isin, etf.name, etf.description, etf.ticker, (etf as any).nickname]
+            .some(value => String(value ?? '').toLocaleLowerCase().includes(term))
+        ).slice(0, 30));
+        this.searchLoading.set(false);
+      };
+      if (this.tutorialEtfCatalog) {
+        filterCatalog(this.tutorialEtfCatalog);
+      } else {
+        this.searchLoading.set(true);
+        this.apiService.getAllEtfs().subscribe({
+          next: (res: any) => {
+            this.tutorialEtfCatalog = Array.isArray(res.data) ? res.data : [];
+            filterCatalog(this.tutorialEtfCatalog!);
+          },
+          error: (error: any) => {
+            console.error('Errore caricamento catalogo ETF del tutorial:', error);
+            this.searchResults.set([]);
+            this.searchLoading.set(false);
+          }
+        });
+      }
+      return;
+    }
     if (query.length < 3) {
       this.searchResults.set([]);
       return;
