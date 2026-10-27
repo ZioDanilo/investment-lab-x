@@ -3205,3 +3205,20 @@ html, body {
 .montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .tutorial-drawdown-bubble {
   z-index:9999!important;filter:none!important;opacity:1!important;
 }
+
+/* The tutorial uses the same opaque floating KPI card as normal drag-and-drop. */
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus.is-dragging {
+  opacity:0!important;visibility:visible!important;box-shadow:none!important;
+  outline:none!important;border-color:transparent!important;background:transparent!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus.is-dragging > * {
+  visibility:hidden!important;
+}
+body .kpi-pointer-drag-preview,
+body .kpi-pointer-drag-preview * {
+  opacity:1!important;visibility:visible!important;filter:none!important;
+}
+body .kpi-pointer-drag-preview {
+  z-index:2147483647!important;background:#07121f!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.75)!important;
+}
