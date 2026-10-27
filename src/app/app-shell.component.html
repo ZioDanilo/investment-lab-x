@@ -9,7 +9,7 @@
 
     <nav class="nav-links" aria-label="Menu principale">
       <a routerLink="/home" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="goHome($event)">Home</a>
-      <app-portfolio-selector></app-portfolio-selector>
+      <app-portfolio-selector *ngIf="!isTutorial"></app-portfolio-selector>
     </nav>
 
     <div class="nav-actions" aria-label="Profilo">
@@ -29,7 +29,7 @@
           <div *ngIf="isAdmin" class="profile-dropdown__separator" aria-hidden="true"></div>
           <button type="button" class="profile-dropdown__item profile-dropdown__item--logout" role="menuitem" (click)="logout($event)">
             <span class="material-symbols-rounded">logout</span>
-            <span>Logout</span>
+            <span>{{ isTutorial ? 'Esci da tutorial' : 'Logout' }}</span>
           </button>
         </div>
       </div>
@@ -62,8 +62,8 @@
       <a class="app-feature-menu-card app-feature-menu-card--cyan" routerLink="/market-universe" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">bar_chart</span><span>ETF & Mercati</span></a>
       <div class="mock-ad-slot mock-ad-slot--sidebar"><app-adsense-slot slot="2590507807" /></div>
     </aside>
-    <app-ad-rail *ngIf="!showFeatureSidebar" class="mock-ad-home-stack" aria-label="Spazi pubblicitari" />
-    <section class="route-page"><router-outlet (activate)="onFeatureActivate($event)"></router-outlet></section>
+    <app-ad-rail *ngIf="!showFeatureSidebar && !isTutorial" class="mock-ad-home-stack" aria-label="Spazi pubblicitari" />
+    <section class="route-page" [class.tutorial-locked]="isTutorial"><router-outlet (activate)="onFeatureActivate($event)"></router-outlet></section>
   </main>
 </div>
 
