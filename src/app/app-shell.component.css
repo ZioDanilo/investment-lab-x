@@ -639,7 +639,22 @@
 /* Allow only the spotlight card (through the router outlet), profile exit and left ad rail. */
 .app-shell--tutorial .route-page { position:relative;pointer-events:none; }
 .app-shell--tutorial .route-page .tutorial-target { pointer-events:auto; }
-.app-shell--tutorial .mock-ad-home-stack { z-index:112;position:relative; }
+.app-shell--tutorial .mock-ad-home-stack { z-index:112; }
 .app-shell--tutorial .global-navbar { position:relative;z-index:113; }
 .app-shell--tutorial .global-navbar .nav-links { pointer-events:none; }
 .app-shell--tutorial .global-navbar .profile-menu { pointer-events:auto; }
+
+/* Preserve the original home grid geometry in tutorial: the ad rail must
+   remain absolutely positioned, never take a grid row or push the home down. */
+@media(min-width:1181px){
+  .app-shell--tutorial .mock-ad-home-stack {
+    position:absolute;left:18px;top:61px;width:150px;margin:0;
+  }
+}
+:host ::ng-deep .app-shell--tutorial app-home-page .home-shell {
+  height:100% !important;min-height:0;
+}
+:host ::ng-deep .app-shell--tutorial app-home-page .home-main {
+  align-content:start;grid-template-rows:auto auto auto auto;
+  height:100%;min-height:0;padding-top:8px;
+}
