@@ -1025,25 +1025,13 @@ export class MontecarloPageComponent {
         const preview = source.cloneNode(true) as HTMLElement;
         preview.classList.remove('is-dragging', 'shift-up', 'shift-down', 'tutorial-drawdown-focus');
         preview.classList.add('kpi-pointer-drag-preview');
-        // The floating clone is appended to document.body, outside .montecarlo-page.
-        // Copy the *computed* styles while the original is still fully visible:
-        // descendant selectors and the tutorial spotlight no longer apply there.
-        const originalNodes = [source, ...Array.from(source.querySelectorAll<HTMLElement>('*'))];
-        const clonedNodes = [preview, ...Array.from(preview.querySelectorAll<HTMLElement>('*'))];
-        originalNodes.forEach((original, index) => {
-          const clone = clonedNodes[index];
-          if (!clone) return;
-          const computed = getComputedStyle(original);
-          for (let propertyIndex = 0; propertyIndex < computed.length; propertyIndex++) {
-            const property = computed.item(propertyIndex);
-            clone.style.setProperty(property, computed.getPropertyValue(property), 'important');
-          }
-          clone.style.setProperty('opacity', '1', 'important');
-          clone.style.setProperty('visibility', 'visible', 'important');
-          clone.style.setProperty('filter', 'none', 'important');
+        // Keep the original lightweight clone: copying every computed CSS
+        // property synchronously during dragstart can block native DnD.
+        preview.querySelectorAll<HTMLElement>('*').forEach(el => {
+          el.style.setProperty('opacity', '1', 'important');
+          el.style.setProperty('visibility', 'visible', 'important');
         });
         preview.style.cssText += `;position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;box-sizing:border-box;opacity:1!important;visibility:visible!important;transform:none!important;background:#07121f!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:2147483647;pointer-events:none;`;
-        preview.querySelectorAll<HTMLElement>('*').forEach((el) => { el.style.setProperty('opacity', '1', 'important'); el.style.setProperty('visibility', 'visible', 'important'); });
         document.body.appendChild(preview);
         this.kpiDragPreviewElement = preview;
 
