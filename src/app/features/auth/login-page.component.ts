@@ -305,6 +305,15 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     this.onLogin();
   }
 
+  enterTutorial(): void {
+    // A local demo identity only: never authenticate against the backend or create a database user.
+    localStorage.removeItem('investmentLabUsername');
+    localStorage.removeItem('investmentLabRole');
+    sessionStorage.setItem('investmentLabTutorial', 'true');
+    this.portfolioSelection.resetForLogin();
+    void this.router.navigateByUrl('/tutorial');
+  }
+
   private onLogin(): void {
     const username = this.username;
     const password = this.password;
@@ -314,6 +323,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
 
     localStorage.removeItem('investmentLabUsername');
     localStorage.removeItem('investmentLabRole');
+    sessionStorage.removeItem('investmentLabTutorial');
     this.portfolioSelection.resetForLogin();
 
     this.apiService.login(username, password).subscribe({
