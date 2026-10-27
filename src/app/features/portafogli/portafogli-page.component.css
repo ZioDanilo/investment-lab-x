@@ -705,3 +705,7 @@ input.invalid,
   font-size:14px;font-weight:700;line-height:1.45;pointer-events:none;
 }
 @media(max-width:1100px){.modal-content .tutorial-etf-bubble {left:12px;top:calc(100% + 12px);transform:none;}}
+
+.modal-content.tutorial-form-save .tutorial-selected-etf-visible {position:relative;z-index:41;pointer-events:none;}
+.modal-content.tutorial-form-save .tutorial-selected-etf-visible .portfolio-table,.modal-content.tutorial-form-save .tutorial-selected-etf-visible .total-weight {opacity:1;filter:none;}
+.modal-content.tutorial-form-save .tutorial-selected-etf-visible .weight-input {pointer-events:none;opacity:1;}
