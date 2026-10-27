@@ -660,3 +660,16 @@
   align-content:start;grid-template-rows:auto auto auto auto;
   height:100%;min-height:0;padding-top:8px;
 }
+
+/* The real laboratory stays visible, darkened and fully read-only in tutorial. */
+.app-shell--tutorial .tutorial-lab-locked .route-page,
+.app-shell--tutorial .tutorial-lab-locked .app-feature-sidebar,
+.app-shell--tutorial .tutorial-lab-locked .app-feature-action-row {
+  pointer-events:none;
+}
+.app-shell--tutorial .tutorial-lab-locked::after {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.65);
+  z-index:100;pointer-events:auto;
+}
+.app-shell--tutorial .tutorial-lab-locked .route-page,
+.app-shell--tutorial .tutorial-lab-locked .app-feature-sidebar { filter:brightness(.65); }
