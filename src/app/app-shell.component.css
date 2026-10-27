@@ -637,8 +637,10 @@
 
 
 /* Allow only the spotlight card (through the router outlet), profile exit and left ad rail. */
-.app-shell--tutorial .route-page { position:relative;pointer-events:none; }
-.app-shell--tutorial .route-page .tutorial-target { pointer-events:auto; }
+.app-shell--tutorial .route-page { position:relative; }
+.app-shell--tutorial .route-page .home-shell--tutorial .shortcut-card:not(.tutorial-target),
+.app-shell--tutorial .route-page .home-shell--tutorial button { pointer-events:none; }
+.app-shell--tutorial .route-page .home-shell--tutorial .tutorial-target { pointer-events:auto; }
 .app-shell--tutorial .mock-ad-home-stack { z-index:112; }
 .app-shell--tutorial .global-navbar { position:relative;z-index:113; }
 .app-shell--tutorial .global-navbar .nav-links { pointer-events:none; }
