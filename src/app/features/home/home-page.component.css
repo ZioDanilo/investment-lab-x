@@ -849,3 +849,11 @@
 .home-shell--tutorial .tutorial-bubble { position:absolute;z-index:112;left:calc(100% + 17px);top:50%;transform:translateY(-50%);width:290px;max-width:min(290px,60vw);padding:15px 17px;background:#f1f8ff;color:#12304a;border:2px solid #5cbcff;border-radius:13px;box-shadow:0 14px 35px #0009;font-size:14px;font-weight:700;line-height:1.5;pointer-events:none; }
 .home-shell--tutorial .tutorial-bubble::before { content:'';position:absolute;left:-10px;top:calc(50% - 9px);width:16px;height:16px;transform:rotate(45deg);background:#f1f8ff;border-left:2px solid #5cbcff;border-bottom:2px solid #5cbcff; }
 @media(max-width:1100px){.home-shell--tutorial .tutorial-bubble{left:0;top:calc(100% + 16px);transform:none}.home-shell--tutorial .tutorial-bubble::before{left:25px;top:-10px;transform:rotate(135deg)}}
+
+/* The selected card retains its original blue gradient above the dark overlay. */
+.home-shell--tutorial .shortcut-card.tutorial-target {
+  background:linear-gradient(180deg,rgba(20,42,66,.98),rgba(11,18,25,.96));
+  border-color:rgba(100,180,255,.45);
+  filter:none;opacity:1;
+}
+.home-shell--tutorial .shortcut-card.tutorial-target:hover { background:linear-gradient(180deg,rgba(20,42,66,.98),rgba(11,18,25,.96)); }
