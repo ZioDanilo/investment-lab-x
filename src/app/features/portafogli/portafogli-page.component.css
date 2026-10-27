@@ -680,3 +680,8 @@ input.invalid,
 .modal-content.tutorial-form-save .tutorial-name-spotlight {z-index:41;pointer-events:none;}
 .modal-content .tutorial-save-spotlight--active {z-index:100;opacity:1;filter:none;}
 .modal-content .tutorial-save-bubble {top:calc(50% - 35px);}
+
+.modal-content .tutorial-field-bubble::after {left:24px;right:auto;top:-9px;transform:rotate(-45deg);border-right:0;border-left:2px solid #5cbcff;}
+.modal-content.tutorial-form-save .tutorial-name-spotlight .form-input {opacity:1;filter:none;pointer-events:none;}
+.modal-content .tutorial-save-spotlight--active app-tasto-conferma {display:block;pointer-events:auto;}
+@media(max-width:900px){.modal-content .tutorial-field-bubble{left:12px;right:auto;top:calc(100% + 12px);}}
