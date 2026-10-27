@@ -36,7 +36,7 @@ export class PortafoliPageComponent implements OnInit {
   tutorialFormStep = signal<'name' | 'save' | 'done'>('name');
   onTutorialNameFocus(): void {
     if (!this.isTutorial || this.tutorialFormStep() !== 'name') return;
-    this.nomePortafoglio.set('Portafoglio Titolo');
+    this.nomePortafoglio.set('Portafoglio Tutorial');
     this.tutorialFormStep.set('save');
   }
   private initialized = false;
