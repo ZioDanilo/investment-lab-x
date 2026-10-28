@@ -528,7 +528,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
       return;
     }
 
-    const details = await this.fetchEtfDetails(etf);
+    const details = this.isTutorial ? etf : await this.fetchEtfDetails(etf);
     const macroStatistics = details?.macroStatistics ?? details?.macro_statistics;
     const resolvedName = details?.name || etf.name;
     const resolvedNickname = details?.nickname || etf.nickname || details?.ticker || etf.ticker || etf.isin;
