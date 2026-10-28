@@ -87,6 +87,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   readonly createPortfolioNameDraft = signal('');
 
   private searchTimer: number | null = null;
+  private tutorialSearchTypingTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly totalWeight = computed(() =>
     this.items().reduce((sum, item) => sum + (Number.isFinite(item.weight) ? item.weight : 0), 0)
@@ -187,6 +188,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   }
 
   ngOnDestroy(): void {
+    if (this.tutorialSearchTypingTimer) clearInterval(this.tutorialSearchTypingTimer);
     if (this.searchTimer) {
       window.clearTimeout(this.searchTimer);
     }
@@ -443,16 +445,39 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   }
 
   onTutorialSearchFocus(): void {
-    if (!this.isTutorial || this.tutorialStep !== 'search' || this.searchLoading() || this.searchQuery() === 'XEON') return;
-    // Use the same database-backed search as the standard ETF editor.
-    this.searchQuery.set('XEON');
+    if (!this.isTutorial || this.tutorialStep !== 'search' || this.tutorialSearchTypingTimer || this.searchLoading() || this.searchQuery()) return;
+    const ticker = 'XEON';
+    let index = 0;
+    this.searchResults.set([]);
+    this.showSearchResults.set(false);
+    this.tutorialSearchTypingTimer = setInterval(() => {
+      if (this.tutorialStep !== 'search') {
+        if (this.tutorialSearchTypingTimer) clearInterval(this.tutorialSearchTypingTimer);
+        this.tutorialSearchTypingTimer = null;
+        return;
+      }
+      this.searchQuery.set(ticker.slice(0, ++index));
+      if (index === ticker.length) {
+        if (this.tutorialSearchTypingTimer) clearInterval(this.tutorialSearchTypingTimer);
+        this.tutorialSearchTypingTimer = null;
+        this.searchTutorialXeon();
+      }
+    }, 200);
+  }
+
+  private searchTutorialXeon(): void {
     this.searchLoading.set(true);
-    this.apiService.searchETF('XEON').subscribe({
+    // The portfolio/search-etf endpoint primarily matches ISIN/description;
+    // use the full ETF registry so ticker XEON is searchable as well.
+    this.apiService.getAllEtfs().subscribe({
       next: (response: any) => {
         if (this.tutorialStep !== 'search') return;
-        const added = new Set(this.items().map(item => item.etfId));
-        const matches: EtfSearchItem[] = (response?.data ?? []).filter((etf: EtfSearchItem) =>
-          !added.has(etf.id) &&
+        const catalogue: EtfSearchItem[] = Array.isArray(response)
+          ? response : Array.isArray(response?.data) ? response.data
+          : Array.isArray(response?.etfs) ? response.etfs : [];
+        const added = new Set(this.items().map(item => String(item.etfId)));
+        const matches = catalogue.filter(etf =>
+          !added.has(String(etf.id)) &&
           [etf.ticker, etf.nickname, etf.name, etf.isin].some(v => String(v || '').toUpperCase().includes('XEON'))
         );
         this.searchResults.set(matches);
@@ -461,9 +486,9 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
         this.searchLoading.set(false);
       },
       error: () => {
+        this.searchLoading.set(false);
         this.searchResults.set([]);
         this.showSearchResults.set(false);
-        this.searchLoading.set(false);
       }
     });
   }
