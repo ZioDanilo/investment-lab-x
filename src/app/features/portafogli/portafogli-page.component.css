@@ -759,3 +759,33 @@ input.invalid,
     height:calc(100dvh - 84px);
   }
 }
+
+/* The ETF guidance must remain inside the modal viewport (not clipped at
+   the right edge of the full-width portfolio creation form). */
+.modal-content.tutorial-form-etf .tutorial-etf-spotlight {
+  position:relative!important;
+  z-index:60!important;
+  isolation:isolate;
+}
+.modal-content.tutorial-form-etf .tutorial-etf-bubble {
+  position:absolute!important;
+  left:auto!important;
+  right:12px!important;
+  top:-53px!important;
+  transform:none!important;
+  width:max-content!important;
+  max-width:min(360px,calc(100vw - 42px))!important;
+  box-sizing:border-box;
+  z-index:100!important;
+  display:block!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+@media(max-width:600px) {
+  .modal-content.tutorial-form-etf .tutorial-etf-bubble {
+    top:-68px!important;
+    right:0!important;
+    max-width:calc(100vw - 40px)!important;
+    font-size:12px;
+  }
+}
