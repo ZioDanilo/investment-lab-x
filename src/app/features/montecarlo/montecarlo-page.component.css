@@ -3249,3 +3249,21 @@ body .kpi-pointer-drag-preview .kpi-row__label,
 body .kpi-pointer-drag-preview .kpi-row__value,
 body .kpi-pointer-drag-preview .kpi-target-trigger {color:#f1f7ff!important;font-weight:700!important;}
 body .kpi-pointer-drag-preview .tutorial-drawdown-bubble {display:none!important;}
+
+/* Fix tutorial drag hit testing: the dark veil must never intercept pointer
+   events, and the KPI list must accept dragover/drop across every row. */
+.montecarlo-page.tutorial-drawdown-active::before {pointer-events:none!important;}
+.montecarlo-page.tutorial-drawdown-active .kpi-panel,
+.montecarlo-page.tutorial-drawdown-active .kpi-compact-list {
+  pointer-events:auto!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row:not(.tutorial-drawdown-focus) {
+  pointer-events:auto!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row:not(.tutorial-drawdown-focus) > * {
+  pointer-events:none!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus {
+  pointer-events:auto!important;cursor:grab!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus:active {cursor:grabbing!important;}
