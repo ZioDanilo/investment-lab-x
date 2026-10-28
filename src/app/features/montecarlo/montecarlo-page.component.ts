@@ -999,7 +999,8 @@ export class MontecarloPageComponent {
 
   onKpiDragStart(kpiId: string, event: DragEvent): void {
     if (this.isTutorial && (this.tutorialDrawdownStep !== 'drag' || kpiId !== 'averageMaxDrawdown')) { event.preventDefault(); return; }
-    if (this.isTutorial) this.tutorialDrawdownDragging = true;
+    // Do not remove the tutorial bubble from the DOM during dragstart:
+    // changing the native drag source's children can cancel HTML5 DnD.
     this.draggedKpiId = kpiId;
     this.draggedKpiPreview = this.kpis.find((kpi) => kpi.id === kpiId) ?? null;
     this.swapTargetId = null;
