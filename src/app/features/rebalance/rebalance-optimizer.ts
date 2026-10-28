@@ -82,7 +82,7 @@ export function optimizeRebalance(
       taxRate: Math.max(0, item.price - item.averageCost) * 0.26 / item.price
     })).filter(x => start[x.i] > 0)
       .sort((a,b) => a.taxRate - b.taxRate || b.netPerUnit - a.netPerUnit);
-    let deficit = -initialValue;
+    let deficit = items.reduce((sum, item) => sum + item.price * item.quantity, 0) - initialValue;
     for (const entry of order) {
       if (deficit <= 0) break;
       const i = entry.i;
