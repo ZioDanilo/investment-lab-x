@@ -3283,3 +3283,13 @@ body .kpi-pointer-drag-preview .tutorial-drawdown-bubble {display:none!important
 .montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus:active .kpi-row__value {
   cursor:grabbing!important;
 }
+
+/* Tutorial uses pointer capture instead of native HTML drag; keep the card
+   interactive and ensure the preview remains completely opaque. */
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus {
+  touch-action:none!important;
+  user-select:none!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus.is-dragging {
+  opacity:1!important;visibility:visible!important;
+}
