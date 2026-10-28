@@ -1,4 +1,4 @@
-<section class="portfolio-editor" aria-label="Editor composizione portafoglio Monte Carlo">
+<section class="portfolio-editor" [class.tutorial-editor-active]="isTutorial && (tutorialStep === 'reduce' || tutorialStep === 'search')" aria-label="Editor composizione portafoglio Monte Carlo">
   <div class="editor-header">
     <strong>Composizione temporanea</strong>
     <span class="editor-status" [class.valid]="isValid()" [class.invalid]="!isValid()">{{ isValid() ? 'Totale valido' : 'Totale non valido' }}</span>
@@ -9,6 +9,7 @@
     <div class="summary-line" [class.positive]="totalWeight() - 100 >= 0" [class.negative]="totalWeight() - 100 < 0">{{ getWeightDelta() }}</div>
   </div>
 
+  <div *ngIf="isTutorial && tutorialStep === 'reduce'" class="tutorial-editor-bubble">Proviamo ad abbassare il drawdown. Riduci il tuo ETF del 50%.</div>
   <div class="items-list" *ngIf="items().length > 0; else emptyState">
     <div class="item-row" *ngFor="let item of items(); let i = index; trackBy: trackByEtfId">
       <div class="item-name" [title]="item.fullName + ' · ' + item.ticker + ' · ' + item.isin">
@@ -21,7 +22,7 @@
         <span class="slider-edge-highlight" *ngIf="item.weight > 0" [style.left.%]="item.weight" aria-hidden="true"></span>
         <input
           class="slider"
-          [disabled]="isTutorial"
+          [disabled]="isTutorial && (tutorialStep !== 'reduce' || i !== 0)"
           type="range"
           min="0"
           max="100"
@@ -52,10 +53,14 @@
 
   <div class="editor-footer">
   <div class="search-box">
+    <div *ngIf="isTutorial && tutorialStep === 'search'" class="tutorial-editor-bubble tutorial-search-bubble">Aggiungi nuovo ETF.</div>
     <input
       type="text"
       class="search-input"
-      [disabled]="isTutorial"
+      [disabled]="isTutorial && tutorialStep !== 'search'"
+      [readonly]="isTutorial"
+      (focus)="onTutorialSearchFocus()"
+      (click)="onTutorialSearchFocus()"
       [value]="searchQuery()"
       placeholder="Cerca ETF per nickname, nome, ISIN, ticker"
       (input)="onSearchInput($any($event.target).value)"
