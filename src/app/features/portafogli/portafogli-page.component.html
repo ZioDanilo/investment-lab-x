@@ -42,7 +42,7 @@
           <!-- Search ETF -->
           <div class="form-group" [class.tutorial-etf-spotlight]="isTutorial && tutorialFormStep() === 'etf'">
             <label>Aggiungi ETF</label>
-            <div *ngIf="isTutorial && tutorialFormStep() === 'etf'" class="tutorial-etf-bubble" role="status">Ricerca il tuo ETF.</div>
+            <div *ngIf="isTutorial && tutorialFormStep() === 'etf'" class="tutorial-etf-bubble" role="status">Scegli un ETF da aggiungere al tuo portafoglio.</div>
             <app-dropdown
               mode="autocomplete"
               [query]="searchQuery()"
