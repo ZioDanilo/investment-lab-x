@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-money-input',
   standalone: true,
   imports: [CommonModule],
-  template: `<div class="money-field"><input type="number" inputmode="decimal" min="0" step="0.01" [attr.aria-label]="label" [value]="value" (input)="valueChange.emit($any($event.target).value)" /><span>€</span></div>`,
+  template: `<div class="money-field"><input type="number" inputmode="decimal" step="0.01" [attr.aria-label]="label" [value]="value" (input)="valueChange.emit($any($event.target).value)" /><span>€</span></div>`,
   styles: [`
     :host{display:inline-flex;min-width:0}
     .money-field{display:flex;align-items:center;height:38px;width:100%;min-width:0;border:1px solid rgba(133,176,226,.24);border-radius:10px;background:rgba(12,18,26,.72);color:#edf6ff;box-sizing:border-box}
