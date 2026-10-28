@@ -653,13 +653,20 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     this.emitState();
   }
 
+  tutorialSliderPreview: number | null = null;
+
+  onTutorialSliderRelease(index: number): void {
+    if (!this.isTutorial || this.tutorialStep !== 'reduce' || index !== 0 || this.tutorialSliderPreview === null) return;
+    this.tutorialSliderPreview = null;
+    this.items.update(items => items.map((item, i) => i === 0 ? { ...item, weight: 50, displayValue: '50,00' } : item));
+    this.currentWeightValues.update(values => ({ ...values, [this.items()[0].etfId]: 50 }));
+    this.emitState();
+    this.tutorialStepChange.emit('search');
+  }
+
   onSliderChange(index: number, value: string): void {
     if (this.isTutorial) {
-      if (this.tutorialStep !== 'reduce' || index !== 0 || Number(value) === 100) return;
-      this.items.update(items => items.map((item, i) => i === 0 ? { ...item, weight: 50, displayValue: '50,00' } : item));
-      this.currentWeightValues.update(values => ({ ...values, [this.items()[0].etfId]: 50 }));
-      this.emitState();
-      this.tutorialStepChange.emit('search');
+      if (this.tutorialStep === 'reduce' && index === 0) this.tutorialSliderPreview = Number(value);
       return;
     }
     const nextInteger = Number.parseInt(String(value), 10);
