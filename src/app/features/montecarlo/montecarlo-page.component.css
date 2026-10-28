@@ -3293,3 +3293,21 @@ body .kpi-pointer-drag-preview .tutorial-drawdown-bubble {display:none!important
 .montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus.is-dragging {
   opacity:1!important;visibility:visible!important;
 }
+
+
+/* Tutorial composition spotlight: preserve the entire editor and its search
+   dropdown above the dimmed dashboard while the rest remains non-interactive. */
+.montecarlo-page.tutorial-composition-active {isolation:isolate;overflow:visible!important;}
+.montecarlo-page.tutorial-composition-active::before {
+  content:"";position:fixed;inset:0;background:rgba(2,9,19,.78);
+  z-index:100;pointer-events:none;
+}
+.montecarlo-page.tutorial-composition-active .main-grid {position:relative;z-index:101;overflow:visible!important;}
+.montecarlo-page.tutorial-composition-active .left-column {position:relative;z-index:2;overflow:visible!important;}
+.montecarlo-page.tutorial-composition-active .right-column,
+.montecarlo-page.tutorial-composition-active .left-column > :not(.portfolio-panel) {
+  filter:brightness(.22);pointer-events:none;
+}
+.montecarlo-page.tutorial-composition-active .portfolio-panel {
+  position:relative;z-index:105;overflow:visible!important;filter:none!important;
+}
