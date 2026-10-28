@@ -81,7 +81,7 @@ export class RebalanceComponent {
   refreshQuotation(isin: string): void {
     const key = isin.toUpperCase();
     if (!key || this.refreshingIsins().includes(key)) return;
-    this.actionConfirmation.ask('Aggiornare la quotazione dell’ETF ' + key + '?', 'Aggiorna', () => this.executeQuotationRefresh(key));
+    this.executeQuotationRefresh(key);
   }
 
   private executeQuotationRefresh(key: string): void {
