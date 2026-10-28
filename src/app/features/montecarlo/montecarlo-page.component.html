@@ -1,4 +1,5 @@
-<section class="montecarlo-page" [class.tutorial-drawdown-active]="isTutorial && (tutorialDrawdownStep === 'target' || tutorialDrawdownStep === 'drag')">
+<section class="montecarlo-page" [class.tutorial-drawdown-active]="isTutorial && (tutorialDrawdownStep === 'target' || tutorialDrawdownStep === 'drag')"
+  [class.tutorial-composition-active]="isTutorial && (tutorialCompositionStep === 'reduce' || tutorialCompositionStep === 'search')">
   <app-toast></app-toast>
 <div class="montecarlo-main-layout">
     <div class="main-grid">
@@ -6,6 +7,8 @@
         <article class="panel portfolio-panel">
           <app-montecarlo-portfolio-editor
             [portfolioId]="selectedPortfolio()?.id ?? null"
+            [tutorialStep]="tutorialCompositionStep"
+            (tutorialStepChange)="onTutorialCompositionStep($event)"
             (stateChange)="onEditorStateChange($event)"
           ></app-montecarlo-portfolio-editor>
         </article>
