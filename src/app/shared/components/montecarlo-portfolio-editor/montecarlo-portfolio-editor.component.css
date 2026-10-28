@@ -663,3 +663,14 @@
 .portfolio-editor.tutorial-editor-active .search-results {
   z-index:50!important;
 }
+
+/* Make the tutorial's initial ETF range genuinely interactive after KPI reorder. */
+.portfolio-editor.tutorial-editor-active .item-row:first-child .slider-shell,
+.portfolio-editor.tutorial-editor-active .item-row:first-child input.slider:not(:disabled) {
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  touch-action:pan-y;
+}
+.portfolio-editor.tutorial-editor-active .item-row:first-child input.slider:not(:disabled) {
+  z-index:5;
+}
