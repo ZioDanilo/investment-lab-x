@@ -748,3 +748,23 @@
 .app-shell--tutorial .tutorial-monte-carlo-before-run .route-page .montecarlo-page .portfolio-panel * {
   pointer-events:none!important;
 }
+
+/* The tutorial exit is a direct, always-available navbar action. */
+.app-shell--tutorial .global-navbar .tutorial-exit-navbar {
+  display:inline-flex;
+  width:auto;
+  align-items:center;
+  gap:9px;
+  color:#ff8092!important;
+  pointer-events:auto!important;
+  white-space:nowrap;
+}
+.app-shell--tutorial .global-navbar .tutorial-exit-navbar .material-symbols-rounded {
+  color:#ff657d!important;
+}
+/* Portfolio creation is a route-level dialog; keep the global navbar
+   above it and fully interactive in both standard and tutorial sessions. */
+.global-navbar {
+  z-index:6000;
+  flex-shrink:0;
+}
