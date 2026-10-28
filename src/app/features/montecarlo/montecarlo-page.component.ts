@@ -957,11 +957,8 @@ export class MontecarloPageComponent {
       this.advanceProgressStage(97);
       await this.completeProgressAnimation();
       if (this.isTutorial && this.tutorialCompositionStep !== 'ready') {
-        this.tutorialDrawdownStep = 'waiting';
-        this.tutorialDrawdownTimeout = setTimeout(() => {
-          this.kpis = [...this.kpis.filter(k => k.id !== 'averageMaxDrawdown'), ...this.kpis.filter(k => k.id === 'averageMaxDrawdown')];
-          this.tutorialDrawdownStep = 'target';
-        }, 5000);
+        this.kpis = [...this.kpis.filter(k => k.id !== 'averageMaxDrawdown'), ...this.kpis.filter(k => k.id === 'averageMaxDrawdown')];
+        this.tutorialDrawdownStep = 'target';
       }
     } catch (error) {
       console.error('[Monte Carlo fast path]', error);
