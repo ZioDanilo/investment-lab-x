@@ -46,6 +46,8 @@
             <app-dropdown
               mode="autocomplete"
               [query]="searchQuery()"
+              [readonly]="isTutorial"
+              (inputFocus)="onTutorialEtfSearchFocus()"
               [items]="searchDropdownOptions()"
               [loading]="searchLoading()"
               [disabled]="isTutorial && tutorialFormStep() !== 'etf'"
