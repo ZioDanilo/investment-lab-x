@@ -1,6 +1,7 @@
 <div class="card rebalance-summary">
   <h2>Ribilanciamento da {{totalValue() | currency:'EUR':'symbol':'1.2-2'}} a {{totalInvestable() | currency:'EUR':'symbol':'1.2-2'}}</h2>
   <p *ngIf="withdrawalExceedsPortfolio()" class="quote-unavailable rebalance-missing-warning" role="alert">Il prelievo supera il valore del portafoglio.</p>
+  <p *ngIf="selectedRealPortfolio() && !loadingHoldings() && !targetLoading() && !withdrawalExceedsPortfolio() && cashToAdd() < 0 && !optimization() && !missingPrices().length" class="quote-unavailable rebalance-missing-warning" role="alert">Non è possibile finanziare il prelievo richiesto rispettando commissioni, imposte e quantità disponibili. Riduci il prelievo.</p>
   <p *ngIf="optimization()" class="muted">Imposte stimate sulle plusvalenze (26%): {{estimatedTax() | currency:'EUR':'symbol':'1.2-2'}} · Costi operazioni: {{transactionCosts() | currency:'EUR':'symbol':'1.2-2'}} · Liquidità residua: {{remainingCash() | currency:'EUR':'symbol':'1.2-2'}}</p>
 </div>
 
