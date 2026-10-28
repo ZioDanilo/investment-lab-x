@@ -1057,7 +1057,7 @@ export class MontecarloPageComponent {
     if (within && this.insertTargetIndex === 0) {
       this.insertKpi('averageMaxDrawdown', 0);
       this.tutorialDrawdownStep = 'done';
-      this.tutorialCompositionStep = 'reduce';
+        this.tutorialCompositionStep = 'reduce';
     } else {
       this.insertKpi('averageMaxDrawdown', this.kpis.length);
     }
@@ -1151,6 +1151,7 @@ export class MontecarloPageComponent {
       if (this.tutorialDrawdownStep === 'drag' && kpiId === this.kpis[0]?.id) {
         this.insertKpi('averageMaxDrawdown', 0);
         this.tutorialDrawdownStep = 'done';
+        this.tutorialCompositionStep = 'reduce';
       } else this.insertKpi('averageMaxDrawdown', this.kpis.length);
     } else {
       this.swapKpis(this.draggedKpiId, kpiId);
@@ -1176,7 +1177,8 @@ export class MontecarloPageComponent {
     }
 
     if (this.isTutorial) {
-      if (index === 0) { this.insertKpi('averageMaxDrawdown', 0); this.tutorialDrawdownStep = 'done'; }
+      if (index === 0) { this.insertKpi('averageMaxDrawdown', 0); this.tutorialDrawdownStep = 'done';
+        this.tutorialCompositionStep = 'reduce'; }
       else this.insertKpi('averageMaxDrawdown', this.kpis.length);
     } else { this.insertKpi(this.draggedKpiId, index); this.queueKpiConfigurationSave(); }
     this.finishDragState();
@@ -1236,6 +1238,7 @@ export class MontecarloPageComponent {
         if (this.tutorialDrawdownStep === 'drag' && kpiId === 'averageMaxDrawdown' && insertIndex === 0) {
           this.insertKpi(kpiId, 0);
           this.tutorialDrawdownStep = 'done';
+        this.tutorialCompositionStep = 'reduce';
         } else {
           this.insertKpi('averageMaxDrawdown', this.kpis.length);
         }
