@@ -739,3 +739,23 @@ input.invalid,
     transform:none;
   }
 }
+
+/* Portfolio creation stays below the persistent 64px+padding navbar,
+   instead of opening a full-viewport layer over global navigation. */
+.modal-overlay {
+  top:84px;
+  bottom:0;
+  height:calc(100dvh - 84px);
+}
+.modal-content {
+  height:100%;
+  min-height:0;
+  max-height:100%;
+  width:100%;
+}
+@media(max-width:760px){
+  .modal-overlay {
+    top:84px;
+    height:calc(100dvh - 84px);
+  }
+}
