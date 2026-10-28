@@ -768,3 +768,16 @@
   z-index:6000;
   flex-shrink:0;
 }
+
+/* Once the first Monte Carlo run starts, unlock the guided KPI and
+   composition controls. The old route-wide pointer lock blocked XEON search. */
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page {
+  pointer-events:auto!important;
+}
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .portfolio-panel,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .portfolio-editor,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .search-box,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .search-input,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .search-results {
+  pointer-events:auto!important;
+}
