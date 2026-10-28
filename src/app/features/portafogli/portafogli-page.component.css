@@ -789,3 +789,16 @@ input.invalid,
     font-size:12px;
   }
 }
+
+/* Tutorial ETF instruction: keep its vertical position, align it at 15%
+   of the viewport from the left instead of the far right. */
+.modal-content.tutorial-form-etf .tutorial-etf-bubble {
+  left:calc(15vw - 1rem)!important;
+  right:auto!important;
+}
+@media(max-width:600px) {
+  .modal-content.tutorial-form-etf .tutorial-etf-bubble {
+    left:calc(15vw - 1rem)!important;
+    right:auto!important;
+  }
+}
