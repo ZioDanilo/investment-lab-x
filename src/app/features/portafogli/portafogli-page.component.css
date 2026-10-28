@@ -802,3 +802,26 @@ input.invalid,
     right:auto!important;
   }
 }
+
+/* Portfolio editor follows the standard feature-page body geometry:
+   sidebar column remains free and the 58px action row is reserved. */
+@media(min-width:1181px){
+  .modal-overlay {
+    left:calc(156px + 12px + 8px)!important;
+    right:8px!important;
+    top:calc(84px + 58px + 3px)!important;
+    bottom:0!important;
+    width:auto!important;
+    height:calc(100dvh - 145px)!important;
+  }
+}
+@media(max-width:1180px){
+  .modal-overlay {
+    left:8px!important;
+    right:8px!important;
+    top:calc(84px + 58px + 3px)!important;
+    bottom:0!important;
+    width:auto!important;
+    height:calc(100dvh - 145px)!important;
+  }
+}
