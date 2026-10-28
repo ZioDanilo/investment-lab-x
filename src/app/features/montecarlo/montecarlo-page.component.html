@@ -1,4 +1,5 @@
 <section class="montecarlo-page" [class.tutorial-drawdown-active]="isTutorial && (tutorialDrawdownStep === 'target' || tutorialDrawdownStep === 'drag')"
+  [class.tutorial-drawdown-target-only]="isTutorial && tutorialDrawdownStep === 'target'"
   [class.tutorial-composition-active]="isTutorial && (tutorialCompositionStep === 'reduce' || tutorialCompositionStep === 'search')">
   <app-toast></app-toast>
 <div class="montecarlo-main-layout">
