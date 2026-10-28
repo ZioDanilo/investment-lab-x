@@ -38,7 +38,7 @@ export class MoneyInputComponent implements OnChanges {
 
   onInput(raw: string): void {
     const normalized = raw.replace(',', '.');
-    if (!/^-?\\d*(?:\\.\\d*)?$/.test(normalized)) return;
+    if (!/^-?\d*(?:\.\d*)?$/.test(normalized)) return;
     this.draftValue = raw;
     this.valueChange.emit(normalized);
   }
