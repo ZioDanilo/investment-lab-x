@@ -1019,10 +1019,11 @@ export class MontecarloPageComponent {
     preview.style.cssText += `;position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;z-index:2147483647;pointer-events:none;opacity:1!important;visibility:visible!important;background:#07121f!important;transform:none!important;`;
     document.body.appendChild(preview);
     this.kpiDragPreviewElement = preview;
-    source.setPointerCapture(event.pointerId);
+    // Track globally: pointer capture on a dynamically styled KPI can lose moves.
     event.preventDefault();
   }
 
+  @HostListener('document:pointermove', ['$event'])
   onTutorialKpiPointerMove(event: PointerEvent): void {
     if (!this.tutorialPointerDragActive) return;
     const left = event.clientX - this.draggedKpiPointerOffset.x;
@@ -1031,7 +1032,7 @@ export class MontecarloPageComponent {
       this.kpiDragPreviewElement.style.left = `${left}px`;
       this.kpiDragPreviewElement.style.top = `${top}px`;
     }
-    const list = (event.currentTarget as HTMLElement).closest('.kpi-compact-list');
+    const list = document.querySelector<HTMLElement>('.montecarlo-page .kpi-compact-list');
     if (!list) return;
     const rows = Array.from(list.querySelectorAll<HTMLElement>('.kpi-row'));
     let index = rows.length;
@@ -1043,10 +1044,12 @@ export class MontecarloPageComponent {
     event.preventDefault();
   }
 
+  @HostListener('document:pointerup', ['$event'])
+  @HostListener('document:pointercancel', ['$event'])
   onTutorialKpiPointerUp(event: PointerEvent): void {
     if (!this.tutorialPointerDragActive) return;
     this.tutorialPointerDragActive = false;
-    const list = (event.currentTarget as HTMLElement).closest('.kpi-compact-list');
+    const list = document.querySelector<HTMLElement>('.montecarlo-page .kpi-compact-list');
     const rect = list?.getBoundingClientRect();
     const within = !!rect && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
     if (within && this.insertTargetIndex === 0) {
