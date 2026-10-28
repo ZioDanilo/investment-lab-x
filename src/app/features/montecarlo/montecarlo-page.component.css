@@ -3311,3 +3311,41 @@ body .kpi-pointer-drag-preview .tutorial-drawdown-bubble {display:none!important
 .montecarlo-page.tutorial-composition-active .portfolio-panel {
   position:relative;z-index:105;overflow:visible!important;filter:none!important;
 }
+
+/* Target-selection tutorial: the entire KPI section is readable, but only
+   Drawdown's existing target dropdown is interactive and highlighted. */
+.montecarlo-page.tutorial-drawdown-active.tutorial-drawdown-target-only .kpi-panel {
+  background:var(--panel-bg, #10243a)!important;
+  border-color:inherit!important;
+  box-shadow:inherit!important;
+  filter:none!important;
+  pointer-events:auto!important;
+}
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row,
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row:not(.tutorial-drawdown-focus) {
+  filter:none!important;
+  opacity:1!important;
+  pointer-events:none!important;
+}
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus {
+  outline:none!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+  background:transparent!important;
+  isolation:auto!important;
+  z-index:1100!important;
+  pointer-events:none!important;
+}
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus .kpi-row__target {
+  position:relative;
+  z-index:1101;
+  pointer-events:auto!important;
+  border:2px solid #57baff!important;
+  border-radius:9px!important;
+  box-shadow:0 0 0 3px rgba(34,145,255,.18),0 0 14px rgba(42,162,255,.42)!important;
+}
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus .kpi-target-dropdown,
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus .kpi-target-trigger,
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus .kpi-target-menu {
+  pointer-events:auto!important;
+}
