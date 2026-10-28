@@ -3349,3 +3349,26 @@ body .kpi-pointer-drag-preview .tutorial-drawdown-bubble {display:none!important
 .montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus .kpi-target-menu {
   pointer-events:auto!important;
 }
+
+/* Both KPI tutorial steps keep the full KPI panel readable. Only the active
+   Drawdown control/row is interactive; the rest of the page stays subdued. */
+.montecarlo-page.tutorial-drawdown-active .kpi-panel {
+  background:#10243a!important;
+  filter:none!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row:not(.tutorial-drawdown-focus) {
+  filter:none!important;
+  opacity:1!important;
+  pointer-events:none!important;
+}
+.montecarlo-page.tutorial-drawdown-active:not(.tutorial-drawdown-target-only) .kpi-row.tutorial-drawdown-focus {
+  pointer-events:auto!important;
+}
+.montecarlo-page.tutorial-drawdown-active:not(.tutorial-drawdown-target-only) .kpi-row.tutorial-drawdown-focus .kpi-row__target {
+  pointer-events:none!important;
+}
+.montecarlo-page.tutorial-drawdown-active:not(.tutorial-drawdown-target-only) .kpi-row.tutorial-drawdown-focus .kpi-target-trigger {
+  pointer-events:none!important;
+}
