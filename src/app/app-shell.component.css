@@ -732,8 +732,8 @@
 }
 .app-shell--tutorial .tutorial-monte-carlo-run-bubble::before {right:calc(50% - 7px);}
 
-/* Before the first tutorial simulation, keep the dashboard visible. Only
-   temporary composition is visually subdued and remains non-interactive. */
+/* Before the first tutorial simulation, keep the entire dashboard visible;
+   temporary composition remains visible but fully non-interactive. */
 .app-shell--tutorial .tutorial-monte-carlo-before-run::after {
   display:none!important;
 }
@@ -741,8 +741,8 @@
   display:none!important;
 }
 .app-shell--tutorial .tutorial-monte-carlo-before-run .route-page .montecarlo-page .portfolio-panel {
-  opacity:.28!important;
-  filter:grayscale(.75)!important;
+  opacity:1!important;
+  filter:none!important;
   pointer-events:none!important;
 }
 .app-shell--tutorial .tutorial-monte-carlo-before-run .route-page .montecarlo-page .portfolio-panel * {
