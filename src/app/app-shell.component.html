@@ -13,7 +13,11 @@
     </nav>
 
     <div class="nav-actions" aria-label="Profilo">
-      <div class="profile-menu">
+      <button *ngIf="isTutorial" type="button" class="tutorial-exit-navbar profile-dropdown__item profile-dropdown__item--logout" (click)="logout($event)" aria-label="Esci da tutorial">
+        <span class="material-symbols-rounded">logout</span>
+        <span>Esci da tutorial</span>
+      </button>
+      <div *ngIf="!isTutorial" class="profile-menu">
         <button type="button" class="avatar-button" aria-label="Profilo utente" aria-haspopup="menu" [attr.aria-expanded]="profileMenuOpen" (click)="toggleProfileMenu($event)">
           <span>{{ loggedUsername }}</span>
         </button>
