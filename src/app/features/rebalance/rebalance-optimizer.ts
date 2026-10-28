@@ -27,7 +27,7 @@ export interface RebalanceResult {
 export function optimizeRebalance(
   items: RebalanceInput[], extraCash: number, fee = 20
 ): RebalanceResult | null {
-  if (!items.length || !Number.isFinite(extraCash) || extraCash < 0) return null;
+  if (!items.length || !Number.isFinite(extraCash)) return null;
   if (items.some(x => !Number.isFinite(x.averageCost) || x.averageCost < 0 ||
     !Number.isFinite(x.price) || x.price <= 0 ||
     !Number.isSafeInteger(x.quantity) || x.quantity < 0 ||
@@ -71,7 +71,10 @@ export function optimizeRebalance(
     return a.operationCount<b.operationCount;
   };
   let best=evaluate(start);
-  if(!best)return null;
+  // For withdrawals the unchanged holdings are not feasible. Seed with a
+  // liquidation of every position so the optimizer can rebuild within budget.
+  if (!best) best = evaluate(items.map(() => 0));
+  if (!best) return null;
   // First produce a feasible seed by selling excess positions, then adding
   // underweights with the resulting liquidity.
   let q=start.slice();
