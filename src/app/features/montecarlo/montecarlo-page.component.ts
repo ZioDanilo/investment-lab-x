@@ -997,6 +997,67 @@ export class MontecarloPageComponent {
     this.insertTargetIndex = null;
   }
 
+  private tutorialPointerDragActive = false;
+
+  onTutorialKpiPointerDown(event: PointerEvent, kpiId: string): void {
+    if (!this.isTutorial || this.tutorialDrawdownStep !== 'drag' || kpiId !== 'averageMaxDrawdown' || event.button !== 0) return;
+    if ((event.target as HTMLElement).closest('button, .kpi-target-dropdown')) return;
+    const source = event.currentTarget as HTMLElement;
+    const rect = source.getBoundingClientRect();
+    this.tutorialPointerDragActive = true;
+    this.tutorialDrawdownDragging = true;
+    this.draggedKpiId = kpiId;
+    this.draggedKpiPreview = this.kpis.find(k => k.id === kpiId) ?? null;
+    this.draggedKpiPointerOffset = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    this.draggedKpiPreviewPosition = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    this.insertTargetIndex = this.kpis.length;
+    this.kpiDragPreviewElement?.remove();
+    const preview = source.cloneNode(true) as HTMLElement;
+    preview.classList.remove('is-dragging', 'tutorial-drawdown-focus');
+    preview.classList.add('kpi-pointer-drag-preview');
+    preview.querySelector('.tutorial-drawdown-bubble')?.remove();
+    preview.style.cssText += `;position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;z-index:2147483647;pointer-events:none;opacity:1!important;visibility:visible!important;background:#07121f!important;transform:none!important;`;
+    document.body.appendChild(preview);
+    this.kpiDragPreviewElement = preview;
+    source.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  onTutorialKpiPointerMove(event: PointerEvent): void {
+    if (!this.tutorialPointerDragActive) return;
+    const left = event.clientX - this.draggedKpiPointerOffset.x;
+    const top = event.clientY - this.draggedKpiPointerOffset.y;
+    if (this.kpiDragPreviewElement) {
+      this.kpiDragPreviewElement.style.left = `${left}px`;
+      this.kpiDragPreviewElement.style.top = `${top}px`;
+    }
+    const list = (event.currentTarget as HTMLElement).closest('.kpi-compact-list');
+    if (!list) return;
+    const rows = Array.from(list.querySelectorAll<HTMLElement>('.kpi-row'));
+    let index = rows.length;
+    for (let i = 0; i < rows.length; i++) {
+      const rect = rows[i].getBoundingClientRect();
+      if (event.clientY < rect.top + rect.height / 2) { index = i; break; }
+    }
+    this.insertTargetIndex = index;
+    event.preventDefault();
+  }
+
+  onTutorialKpiPointerUp(event: PointerEvent): void {
+    if (!this.tutorialPointerDragActive) return;
+    this.tutorialPointerDragActive = false;
+    const list = (event.currentTarget as HTMLElement).closest('.kpi-compact-list');
+    const rect = list?.getBoundingClientRect();
+    const within = !!rect && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+    if (within && this.insertTargetIndex === 0) {
+      this.insertKpi('averageMaxDrawdown', 0);
+      this.tutorialDrawdownStep = 'done';
+    } else {
+      this.insertKpi('averageMaxDrawdown', this.kpis.length);
+    }
+    this.finishDragState();
+  }
+
   onKpiDragStart(kpiId: string, event: DragEvent): void {
     if (this.isTutorial && (this.tutorialDrawdownStep !== 'drag' || kpiId !== 'averageMaxDrawdown')) { event.preventDefault(); return; }
     // Do not remove the tutorial bubble from the DOM during dragstart:
