@@ -89,6 +89,8 @@ export class MontecarloPageComponent {
   tutorialDrawdownStep: 'idle' | 'waiting' | 'target' | 'drag' | 'done' = 'idle';
   private tutorialDrawdownTimeout: ReturnType<typeof setTimeout> | null = null;
   tutorialDrawdownDragging = false;
+  tutorialCompositionStep: 'idle' | 'reduce' | 'search' | 'ready' = 'idle';
+  onTutorialCompositionStep(step: 'search' | 'ready'): void { this.tutorialCompositionStep = step; }
   isRunning = false;
   simulationProgress = 0;
   completionHoldActive = false;
@@ -866,7 +868,7 @@ export class MontecarloPageComponent {
       return;
     }
 
-    if (this.isTutorial && this.tutorialDrawdownStep !== 'idle') return;
+    if (this.isTutorial && this.tutorialDrawdownStep !== 'idle' && this.tutorialCompositionStep !== 'ready') return;
     this.kpiResultValues = {};
     this.isRunning = true;
     this.startProgressAnimation();
@@ -954,7 +956,7 @@ export class MontecarloPageComponent {
       this.kpis = this.mergeKpiValuesPreservingOrder(updatedKpis);
       this.advanceProgressStage(97);
       await this.completeProgressAnimation();
-      if (this.isTutorial) {
+      if (this.isTutorial && this.tutorialCompositionStep !== 'ready') {
         this.tutorialDrawdownStep = 'waiting';
         this.tutorialDrawdownTimeout = setTimeout(() => {
           this.kpis = [...this.kpis.filter(k => k.id !== 'averageMaxDrawdown'), ...this.kpis.filter(k => k.id === 'averageMaxDrawdown')];
@@ -1055,6 +1057,7 @@ export class MontecarloPageComponent {
     if (within && this.insertTargetIndex === 0) {
       this.insertKpi('averageMaxDrawdown', 0);
       this.tutorialDrawdownStep = 'done';
+      this.tutorialCompositionStep = 'reduce';
     } else {
       this.insertKpi('averageMaxDrawdown', this.kpis.length);
     }
