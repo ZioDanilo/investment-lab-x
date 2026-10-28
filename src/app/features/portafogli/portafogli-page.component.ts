@@ -35,6 +35,21 @@ export class PortafoliPageComponent implements OnInit {
   get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
   tutorialFormStep = signal<'name' | 'typing' | 'etf' | 'save' | 'done'>('name');
   private tutorialTypingTimer: ReturnType<typeof setInterval> | null = null;
+  private tutorialEtfTypingTimer: ReturnType<typeof setInterval> | null = null;
+  onTutorialEtfSearchFocus(): void {
+    if (!this.isTutorial || this.tutorialFormStep() !== 'etf' || this.tutorialEtfTypingTimer) return;
+    const value = 'EUNL';
+    let index = 0;
+    this.onSearchChange('');
+    this.tutorialEtfTypingTimer = setInterval(() => {
+      index++;
+      this.onSearchChange(value.slice(0, index));
+      if (index >= value.length) {
+        if (this.tutorialEtfTypingTimer) clearInterval(this.tutorialEtfTypingTimer);
+        this.tutorialEtfTypingTimer = null;
+      }
+    }, 180);
+  }
   onTutorialNameFocus(): void {
     if (!this.isTutorial || this.tutorialFormStep() !== 'name') return;
     this.tutorialFormStep.set('typing');
@@ -48,7 +63,7 @@ export class PortafoliPageComponent implements OnInit {
         this.tutorialTypingTimer = null;
         this.tutorialFormStep.set('etf');
       }
-    }, 3000 / value.length);
+    }, 1200 / value.length);
   }
   private initialized = false;
   private apiService = inject(ApiService);
@@ -165,6 +180,8 @@ export class PortafoliPageComponent implements OnInit {
   async openNewPortfolioForm(): Promise<void> {
     this.currentEditingPortfolioId.set(null);
     if (this.tutorialTypingTimer) clearInterval(this.tutorialTypingTimer);
+    if (this.tutorialEtfTypingTimer) clearInterval(this.tutorialEtfTypingTimer);
+    this.tutorialEtfTypingTimer = null;
     this.tutorialTypingTimer = null;
     if (this.isTutorial) this.tutorialFormStep.set('name');
     this.showForm.set(true);
@@ -201,6 +218,7 @@ export class PortafoliPageComponent implements OnInit {
 
   // Search ETF
   onSearchChange(query: string) {
+    if (this.isTutorial && query && !'EUNL'.startsWith(query.toUpperCase())) return;
     this.searchQuery.set(query);
     if (this.isTutorial) {
       if (this.tutorialFormStep() !== 'etf') return;
