@@ -3267,3 +3267,19 @@ body .kpi-pointer-drag-preview .tutorial-drawdown-bubble {display:none!important
   pointer-events:auto!important;cursor:grab!important;
 }
 .montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus:active {cursor:grabbing!important;}
+
+/* Native DnD must keep the drag source's DOM stable; hide only its callout
+   visually while dragging, never remove the child from Angular's DOM. */
+.montecarlo-page.tutorial-drawdown-active .kpi-row.is-dragging .tutorial-drawdown-bubble {
+  display:none!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .kpi-row__metric,
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .kpi-row__label,
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .kpi-row__value {
+  cursor:grab!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus:active .kpi-row__metric,
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus:active .kpi-row__label,
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus:active .kpi-row__value {
+  cursor:grabbing!important;
+}
