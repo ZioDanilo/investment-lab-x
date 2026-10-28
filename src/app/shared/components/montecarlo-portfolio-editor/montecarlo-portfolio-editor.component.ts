@@ -65,6 +65,8 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
 
   @Input() portfolioId: string | null = null;
+  @Input() tutorialStep: 'idle' | 'reduce' | 'search' | 'ready' = 'idle';
+  @Output() tutorialStepChange = new EventEmitter<'search' | 'ready'>();
   get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
   @Output() stateChange = new EventEmitter<MontecarloPortfolioEditorChange>();
   @Output() portfolioSaved = new EventEmitter<string>();
@@ -171,7 +173,10 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   );
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (this.isTutorial) { this.loadTutorialComposition(); return; }
+    if (this.isTutorial) {
+      if (changes['portfolioId']) this.loadTutorialComposition();
+      return;
+    }
     if (changes['portfolioId']?.currentValue !== undefined) {
       if (this.portfolioId) {
         this.loadPortfolioComposition(this.portfolioId);
@@ -437,7 +442,24 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     };
   }
 
+  onTutorialSearchFocus(): void {
+    if (!this.isTutorial || this.tutorialStep !== 'search') return;
+    this.searchQuery.set('XEON');
+    this.searchLoading.set(true);
+    this.apiService.getAllEtfs().subscribe({
+      next: (response: any) => {
+        const catalogue: EtfSearchItem[] = Array.isArray(response) ? response : (response?.data ?? []);
+        const matches = catalogue.filter(etf => [etf.ticker, etf.nickname, etf.name, etf.isin].some(v => String(v || '').toUpperCase().includes('XEON')) && !this.items().some(item => item.etfId === etf.id));
+        this.searchResults.set(matches);
+        this.showSearchResults.set(matches.length > 0);
+        this.searchLoading.set(false);
+      },
+      error: () => { this.searchResults.set([]); this.showSearchResults.set(false); this.searchLoading.set(false); }
+    });
+  }
+
   onSearchInput(value: string): void {
+    if (this.isTutorial) return;
     const query = value.trim();
     this.searchQuery.set(query);
 
@@ -501,6 +523,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   }
 
   async addEtfFromSearch(etf: EtfSearchItem): Promise<void> {
+    if (this.isTutorial && (this.tutorialStep !== 'search' || ![etf.ticker, etf.nickname, etf.name].some(v => String(v || '').toUpperCase().includes('XEON')))) return;
     if (this.items().some((item) => item.etfId === etf.id)) {
       return;
     }
@@ -529,19 +552,20 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
         liquidity: details?.liquidity ?? 5,
         recession: details?.recession ?? 0,
         stagflation: details?.stagflation ?? 0,
-        weight: 0,
+        weight: this.isTutorial ? 50 : 0,
         originalWeight: 0,
         isAddedTemporarily: true,
-        displayValue: '0,00'
+        displayValue: this.isTutorial ? '50,00' : '0,00'
       }
     ]);
-    this.currentWeightValues.update((current) => ({ ...current, [etf.id]: 0 }));
+    this.currentWeightValues.update((current) => ({ ...current, [etf.id]: this.isTutorial ? 50 : 0 }));
 
     this.searchQuery.set('');
     this.searchResults.set([]);
     this.showSearchResults.set(false);
     this.highlightedIndex.set(0);
     this.emitState();
+    if (this.isTutorial) this.tutorialStepChange.emit('ready');
   }
 
   private async fetchEtfDetails(etf: EtfSearchItem): Promise<any | null> {
@@ -630,6 +654,14 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   }
 
   onSliderChange(index: number, value: string): void {
+    if (this.isTutorial) {
+      if (this.tutorialStep !== 'reduce' || index !== 0 || Number(value) === 100) return;
+      this.items.update(items => items.map((item, i) => i === 0 ? { ...item, weight: 50, displayValue: '50,00' } : item));
+      this.currentWeightValues.update(values => ({ ...values, [this.items()[0].etfId]: 50 }));
+      this.emitState();
+      this.tutorialStepChange.emit('search');
+      return;
+    }
     const nextInteger = Number.parseInt(String(value), 10);
     if (Number.isNaN(nextInteger)) {
       return;
