@@ -443,18 +443,28 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   }
 
   onTutorialSearchFocus(): void {
-    if (!this.isTutorial || this.tutorialStep !== 'search') return;
+    if (!this.isTutorial || this.tutorialStep !== 'search' || this.searchLoading() || this.searchQuery() === 'XEON') return;
+    // Use the same database-backed search as the standard ETF editor.
     this.searchQuery.set('XEON');
     this.searchLoading.set(true);
-    this.apiService.getAllEtfs().subscribe({
+    this.apiService.searchETF('XEON').subscribe({
       next: (response: any) => {
-        const catalogue: EtfSearchItem[] = Array.isArray(response) ? response : (response?.data ?? []);
-        const matches = catalogue.filter(etf => [etf.ticker, etf.nickname, etf.name, etf.isin].some(v => String(v || '').toUpperCase().includes('XEON')) && !this.items().some(item => item.etfId === etf.id));
+        if (this.tutorialStep !== 'search') return;
+        const added = new Set(this.items().map(item => item.etfId));
+        const matches: EtfSearchItem[] = (response?.data ?? []).filter((etf: EtfSearchItem) =>
+          !added.has(etf.id) &&
+          [etf.ticker, etf.nickname, etf.name, etf.isin].some(v => String(v || '').toUpperCase().includes('XEON'))
+        );
         this.searchResults.set(matches);
         this.showSearchResults.set(matches.length > 0);
+        this.highlightedIndex.set(0);
         this.searchLoading.set(false);
       },
-      error: () => { this.searchResults.set([]); this.showSearchResults.set(false); this.searchLoading.set(false); }
+      error: () => {
+        this.searchResults.set([]);
+        this.showSearchResults.set(false);
+        this.searchLoading.set(false);
+      }
     });
   }
 
