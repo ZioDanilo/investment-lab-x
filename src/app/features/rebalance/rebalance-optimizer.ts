@@ -27,7 +27,7 @@ export interface RebalanceResult {
 export function optimizeRebalance(
   items: RebalanceInput[], extraCash: number, fee = 20
 ): RebalanceResult | null {
-  if (!items.length || !Number.isFinite(extraCash) || extraCash < 0) return null;
+  if (!items.length || !Number.isFinite(extraCash)) return null;
   if (items.some(x => !Number.isFinite(x.averageCost) || x.averageCost < 0 ||
     !Number.isFinite(x.price) || x.price <= 0 ||
     !Number.isSafeInteger(x.quantity) || x.quantity < 0 ||
@@ -71,7 +71,44 @@ export function optimizeRebalance(
     return a.operationCount<b.operationCount;
   };
   let best=evaluate(start);
-  if(!best)return null;
+  // A withdrawal can make the unchanged portfolio infeasible. Find a
+  // partially liquidated seed before considering full liquidation: selling
+  // everything may itself be infeasible after capital-gains taxes and fees.
+  if (!best && extraCash < 0) {
+    const seed = start.slice();
+    const order = items.map((item, i) => ({
+      i,
+      netPerUnit: item.price - 0.26 * Math.max(0, item.price - item.averageCost),
+      taxRate: Math.max(0, item.price - item.averageCost) * 0.26 / item.price
+    })).filter(x => start[x.i] > 0)
+      .sort((a,b) => a.taxRate - b.taxRate || b.netPerUnit - a.netPerUnit);
+    let deficit = items.reduce((sum, item) => sum + item.price * item.quantity, 0) - initialValue;
+    for (const entry of order) {
+      if (deficit <= 0) break;
+      const i = entry.i;
+      const netPerUnit = entry.netPerUnit;
+      const needed = Math.max(0, deficit + fee);
+      const sold = Math.min(seed[i], Math.ceil((needed + 0.02) / netPerUnit));
+      if (sold <= 0) continue;
+      seed[i] -= sold;
+      const taxPerUnit = Math.max(0, items[i].price - items[i].averageCost) * 0.26;
+      deficit -= sold * (items[i].price - taxPerUnit) - fee;
+    }
+    // Rounding can leave a small shortfall; sell additional shares until
+    // the same feasibility check used by the optimizer succeeds.
+    best = evaluate(seed);
+    if (!best) {
+      for (const entry of order) {
+        while (!best && seed[entry.i] > 0) {
+          seed[entry.i]--;
+          best = evaluate(seed);
+        }
+        if (best) break;
+      }
+    }
+  }
+  if (!best) best = evaluate(items.map(() => 0));
+  if (!best) return null;
   // First produce a feasible seed by selling excess positions, then adding
   // underweights with the resulting liquidity.
   let q=start.slice();

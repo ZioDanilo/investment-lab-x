@@ -81,7 +81,7 @@ export class RebalanceComponent {
   refreshQuotation(isin: string): void {
     const key = isin.toUpperCase();
     if (!key || this.refreshingIsins().includes(key)) return;
-    this.actionConfirmation.ask('Aggiornare la quotazione dell’ETF ' + key + '?', 'Aggiorna', () => this.executeQuotationRefresh(key));
+    this.executeQuotationRefresh(key);
   }
 
   private executeQuotationRefresh(key: string): void {
@@ -266,6 +266,7 @@ export class RebalanceComponent {
     if(!this.selectedRealPortfolio() || !this.selection.lastLaboratoryPortfolioId() ||
        this.loadingHoldings() || this.targetLoading() || this.holdingsError() || this.targetError()) return null;
     const rows=this.rows();
+    if (this.withdrawalExceedsPortfolio()) return null;
     if(!rows.length)return null;
     if (rows.some(r => !Number.isFinite(r.marketPrice) || r.marketPrice <= 0)) return null;
     // Never estimate sale taxes using an unknown or zero cost basis.
@@ -293,4 +294,5 @@ export class RebalanceComponent {
   readonly remainingCash = computed(() => this.optimization()?.cashRemaining ?? 0);
   readonly totalValue = computed(() => this.rows().reduce((sum, row) => sum + row.marketValue, 0));
   readonly totalInvestable = computed(() => this.totalValue() + this.cashToAdd());
+  readonly withdrawalExceedsPortfolio = computed(() => this.cashToAdd() < 0 && -this.cashToAdd() > this.totalValue());
 }

@@ -26,7 +26,7 @@ import { TrendStrategyService } from './core/services/trend-strategy.service';
 export class AppShellComponent implements OnDestroy, AfterViewInit {
   constructor() {
     // Services are in-memory: after a browser refresh rebuild the user-scoped data.
-    if (localStorage.getItem('investmentLabUsername')) {
+    if (localStorage.getItem('investmentLabUsername') && localStorage.getItem('investmentLabRole') !== 'TUTORIAL') {
       this.portfolioSelection.loadPortfolios();
       void this.refreshMarketUniverseGenerationStatus();
     }
@@ -129,6 +129,8 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   private readonly portfolioSelection = inject(PortfolioSelectionService);
 
   get showFeatureSidebar(): boolean { return this.featureRoutes.some(path => this.router.url.startsWith(path)); }
+  get isLaboratoryTutorial(): boolean { return this.router.url.split('?')[0] === '/laboratorio-portafogli'; }
+  get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL' && sessionStorage.getItem('investmentLabTutorial') === 'true'; }
   get isAdmin(): boolean { return this.loggedUsername !== '' && localStorage.getItem('investmentLabRole') === 'ADMIN'; }
   get loggedUsername(): string { return localStorage.getItem('investmentLabUsername')?.trim() || ''; }
 
@@ -159,8 +161,14 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
       : (this.activeFeaturePage?.headerActionProgress ?? 0);
   }
   get isRebalancePage(): boolean { return this.router.url.startsWith('/ribilanciamento'); }
+  get isMonteCarloTutorial(): boolean { return this.router.url.startsWith('/monte-carlo'); }
+  get isMonteCarloTutorialBeforeRun(): boolean { return this.isTutorial && this.isMonteCarloTutorial && sessionStorage.getItem('investmentLabTutorialMonteCarloStarted') !== 'true'; }
   private get isMonteCarloPage(): boolean { return this.router.url.startsWith('/monte-carlo'); }
-  runFeatureAction(): void { if (!this.isRegeneratingMarketUniverse) this.activeFeaturePage?.runHeaderAction?.(); }
+  runFeatureAction(): void {
+    if (this.isRegeneratingMarketUniverse) return;
+    if (this.isTutorial && this.isMonteCarloTutorial) sessionStorage.setItem('investmentLabTutorialMonteCarloStarted', 'true');
+    this.activeFeaturePage?.runHeaderAction?.();
+  }
   get secondaryFeatureActionLabel(): string { return this.activeFeaturePage?.secondaryHeaderActionLabel ?? ''; }
   get secondaryFeatureActionIcon(): string { return this.activeFeaturePage?.secondaryHeaderActionIcon ?? ''; }
   get secondaryFeatureActionDisabled(): boolean { return this.activeFeaturePage?.secondaryHeaderActionDisabled ?? false; }

@@ -648,3 +648,29 @@
   }
   .item-ticker { font-size: .65rem; }
 }
+
+
+/* Tutorial callouts are positioned within the illuminated composition card. */
+.portfolio-editor.tutorial-editor-active {position:relative;overflow:visible!important;}
+.tutorial-editor-bubble {
+  position:relative;z-index:20;margin:8px 0 12px;padding:12px 16px;
+  width:max-content;max-width:95%;background:#f8fbff;color:#10243a;
+  border:2px solid #5cbcff;border-radius:12px;font-size:14px;
+  font-weight:700;line-height:1.4;box-shadow:0 10px 28px rgba(0,0,0,.5);
+}
+.search-box {position:relative;}
+.tutorial-search-bubble {margin:0 0 10px;}
+.portfolio-editor.tutorial-editor-active .search-results {
+  z-index:50!important;
+}
+
+/* Make the tutorial's initial ETF range genuinely interactive after KPI reorder. */
+.portfolio-editor.tutorial-editor-active .item-row:first-child .slider-shell,
+.portfolio-editor.tutorial-editor-active .item-row:first-child input.slider:not(:disabled) {
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  touch-action:pan-y;
+}
+.portfolio-editor.tutorial-editor-active .item-row:first-child input.slider:not(:disabled) {
+  z-index:5;
+}

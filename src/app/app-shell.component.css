@@ -630,3 +630,154 @@
   font-size: 13px;
   font-weight: 700;
 }
+
+/* Tutorial is a read-only home preview: all interactions are locked except the profile menu and exit. */
+.app-shell:has(.tutorial-locked) .nav-links,
+.app-shell:has(.tutorial-locked) .app-feature-action-row { pointer-events:none; }
+
+
+/* Allow only the spotlight card (through the router outlet), profile exit and left ad rail. */
+.app-shell--tutorial .route-page { position:relative; }
+.app-shell--tutorial .route-page .home-shell--tutorial .shortcut-card:not(.tutorial-target),
+.app-shell--tutorial .route-page .home-shell--tutorial button { pointer-events:none; }
+.app-shell--tutorial .route-page .home-shell--tutorial .tutorial-target { pointer-events:auto; }
+.app-shell--tutorial .mock-ad-home-stack { z-index:112; }
+.app-shell--tutorial .global-navbar { position:relative;z-index:113; }
+.app-shell--tutorial .global-navbar .nav-links { pointer-events:none; }
+.app-shell--tutorial .global-navbar .profile-menu { pointer-events:auto; }
+
+/* Preserve the original home grid geometry in tutorial: the ad rail must
+   remain absolutely positioned, never take a grid row or push the home down. */
+@media(min-width:1181px){
+  .app-shell--tutorial .mock-ad-home-stack {
+    position:absolute;left:18px;top:61px;width:150px;margin:0;
+  }
+}
+:host ::ng-deep .app-shell--tutorial app-home-page .home-shell {
+  height:100% !important;min-height:0;
+}
+:host ::ng-deep .app-shell--tutorial app-home-page .home-main {
+  align-content:start;grid-template-rows:auto auto auto auto;
+  height:100%;min-height:0;padding-top:8px;
+}
+
+/* The real laboratory stays visible, darkened and fully read-only in tutorial. */
+.app-shell--tutorial .tutorial-lab-locked .route-page,
+.app-shell--tutorial .tutorial-lab-locked .app-feature-sidebar,
+.app-shell--tutorial .tutorial-lab-locked .app-feature-action-row {
+  pointer-events:none;
+}
+.app-shell--tutorial .tutorial-lab-locked::after {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.65);
+  z-index:100;pointer-events:none;
+}
+.app-shell--tutorial .tutorial-lab-locked .route-page,
+.app-shell--tutorial .tutorial-lab-locked .app-feature-sidebar { filter:brightness(.65); }
+
+/* Only the new portfolio button is allowed through the tutorial veil. */
+.app-shell--tutorial .tutorial-lab-locked .route-page { filter:none;pointer-events:auto; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel { position:relative; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel::after {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.65);z-index:90;pointer-events:auto;
+}
+.app-shell--tutorial .tutorial-lab-locked .route-page .portafogli-header { position:relative;z-index:91;pointer-events:none; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .portafogli-header h2 { opacity:.35; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .tutorial-new-portfolio { pointer-events:auto; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .modal-overlay { z-index:5000;pointer-events:auto; }
+
+/* Avoid a second overlay covering the highlighted button or the full-screen editor. */
+.app-shell--tutorial .tutorial-lab-locked::after { display:none; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel.tutorial-portfolio-form-open::after { display:none; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel.tutorial-portfolio-form-open .portafogli-header { z-index:auto; }
+
+/* Monte Carlo tutorial: only the simulation action remains interactive. */
+.app-shell--tutorial:has(.montecarlo-page) .app-feature-action-row {pointer-events:auto;}
+.app-shell--tutorial:has(.montecarlo-page) .app-feature-action-row button {pointer-events:auto;}
+
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row {pointer-events:auto;}
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row > *:not(button) {pointer-events:none;}
+
+/* Monte Carlo guided step: all controls locked, first Run remains bright and clickable. */
+.app-shell--tutorial .tutorial-monte-carlo .route-page,
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-sidebar,
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-menu-card,
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action--secondary {pointer-events:none!important;}
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row {position:relative;z-index:1;}
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row .app-feature-action:not(.app-feature-action--secondary) {position:relative;z-index:202;pointer-events:auto!important;}
+.app-shell--tutorial .tutorial-monte-carlo-before-run::after {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.73);z-index:190;pointer-events:auto;
+}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row {z-index:201;}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row::before {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.73);z-index:200;pointer-events:none;
+}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble {
+  position:absolute;right:10px;top:calc(100% + 12px);z-index:203;
+  max-width:280px;padding:14px 18px;border:2px solid #5cbcff;border-radius:12px;
+  background:#f1f8ff;color:#12304a;font-size:14px;font-weight:700;line-height:1.4;
+  box-shadow:0 12px 30px #0009;pointer-events:none;
+}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble::before {
+  content:"";position:absolute;top:-9px;right:30px;width:14px;height:14px;
+  background:#f1f8ff;border-top:2px solid #5cbcff;border-left:2px solid #5cbcff;transform:rotate(45deg);
+}
+
+/* Align the tutorial callout directly below the Monte Carlo Run button. */
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row > .app-feature-action:not(.app-feature-action--secondary) {anchor-name:--tutorial-run-button;}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble {
+  position:absolute;right:auto;left:auto;top:calc(100% + 12px);
+  position-anchor:--tutorial-run-button;
+  left:anchor(center);top:anchor(bottom);translate:-50% 12px;
+  width:max-content;max-width:280px;text-align:center;
+}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble::before {right:calc(50% - 7px);}
+
+/* Before the first tutorial simulation, keep the entire dashboard visible;
+   temporary composition remains visible but fully non-interactive. */
+.app-shell--tutorial .tutorial-monte-carlo-before-run::after {
+  display:none!important;
+}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row::before {
+  display:none!important;
+}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .route-page .montecarlo-page .portfolio-panel {
+  opacity:1!important;
+  filter:none!important;
+  pointer-events:none!important;
+}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .route-page .montecarlo-page .portfolio-panel * {
+  pointer-events:none!important;
+}
+
+/* The tutorial exit is a direct, always-available navbar action. */
+.app-shell--tutorial .global-navbar .tutorial-exit-navbar {
+  display:inline-flex;
+  width:auto;
+  align-items:center;
+  gap:9px;
+  color:#ff8092!important;
+  pointer-events:auto!important;
+  white-space:nowrap;
+}
+.app-shell--tutorial .global-navbar .tutorial-exit-navbar .material-symbols-rounded {
+  color:#ff657d!important;
+}
+/* Portfolio creation is a route-level dialog; keep the global navbar
+   above it and fully interactive in both standard and tutorial sessions. */
+.global-navbar {
+  z-index:6000;
+  flex-shrink:0;
+}
+
+/* Once the first Monte Carlo run starts, unlock the guided KPI and
+   composition controls. The old route-wide pointer lock blocked XEON search. */
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page {
+  pointer-events:auto!important;
+}
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .portfolio-panel,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .portfolio-editor,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .search-box,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .search-input,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .search-results {
+  pointer-events:auto!important;
+}

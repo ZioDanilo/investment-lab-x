@@ -43,7 +43,7 @@ export class RealPortfoliosPageComponent implements OnInit {
   runHeaderAction():void {
     const portfolio=this.portfolios[this.selected];
     if(!portfolio || this.quotationRefreshRunning)return;
-    this.actionConfirmation.ask(`Aggiornare le quotazioni del portafoglio ${portfolio.name}?`, 'Aggiorna', () => this.executeQuotationRefresh(portfolio.id));
+    this.executeQuotationRefresh(portfolio.id);
   }
 
   private executeQuotationRefresh(portfolioId:string):void {

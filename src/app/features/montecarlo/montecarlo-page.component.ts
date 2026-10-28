@@ -85,6 +85,12 @@ export class MontecarloPageComponent {
     intensities: Float64Array;
   } | null = null;
 
+  readonly isTutorial = localStorage.getItem('investmentLabRole') === 'TUTORIAL';
+  tutorialDrawdownStep: 'idle' | 'waiting' | 'target' | 'drag' | 'done' = 'idle';
+  private tutorialDrawdownTimeout: ReturnType<typeof setTimeout> | null = null;
+  tutorialDrawdownDragging = false;
+  tutorialCompositionStep: 'idle' | 'reduce' | 'search' | 'ready' = 'idle';
+  onTutorialCompositionStep(step: 'search' | 'ready'): void { this.tutorialCompositionStep = step; }
   isRunning = false;
   simulationProgress = 0;
   completionHoldActive = false;
@@ -862,6 +868,7 @@ export class MontecarloPageComponent {
       return;
     }
 
+    if (this.isTutorial && this.tutorialDrawdownStep !== 'idle' && this.tutorialCompositionStep !== 'ready') return;
     this.kpiResultValues = {};
     this.isRunning = true;
     this.startProgressAnimation();
@@ -949,6 +956,10 @@ export class MontecarloPageComponent {
       this.kpis = this.mergeKpiValuesPreservingOrder(updatedKpis);
       this.advanceProgressStage(97);
       await this.completeProgressAnimation();
+      if (this.isTutorial && this.tutorialCompositionStep !== 'ready') {
+        this.kpis = [...this.kpis.filter(k => k.id !== 'averageMaxDrawdown'), ...this.kpis.filter(k => k.id === 'averageMaxDrawdown')];
+        this.tutorialDrawdownStep = 'target';
+      }
     } catch (error) {
       console.error('[Monte Carlo fast path]', error);
       this.kpis = this.mergeKpiValuesPreservingOrder(this.defaultKpis);
@@ -985,7 +996,75 @@ export class MontecarloPageComponent {
     this.insertTargetIndex = null;
   }
 
+  private tutorialPointerDragActive = false;
+
+  onTutorialKpiPointerDown(event: PointerEvent, kpiId: string): void {
+    if (!this.isTutorial || this.tutorialDrawdownStep !== 'drag' || kpiId !== 'averageMaxDrawdown' || event.button !== 0) return;
+    if ((event.target as HTMLElement).closest('button, .kpi-target-dropdown')) return;
+    const source = event.currentTarget as HTMLElement;
+    const rect = source.getBoundingClientRect();
+    this.tutorialPointerDragActive = true;
+    this.tutorialDrawdownDragging = true;
+    this.draggedKpiId = kpiId;
+    this.draggedKpiPreview = this.kpis.find(k => k.id === kpiId) ?? null;
+    this.draggedKpiPointerOffset = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    this.draggedKpiPreviewPosition = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    this.insertTargetIndex = this.kpis.length;
+    this.kpiDragPreviewElement?.remove();
+    const preview = source.cloneNode(true) as HTMLElement;
+    preview.classList.remove('is-dragging', 'tutorial-drawdown-focus');
+    preview.classList.add('kpi-pointer-drag-preview');
+    preview.querySelector('.tutorial-drawdown-bubble')?.remove();
+    preview.style.cssText += `;position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;z-index:2147483647;pointer-events:none;opacity:1!important;visibility:visible!important;background:#07121f!important;transform:none!important;`;
+    document.body.appendChild(preview);
+    this.kpiDragPreviewElement = preview;
+    // Track globally: pointer capture on a dynamically styled KPI can lose moves.
+    event.preventDefault();
+  }
+
+  @HostListener('document:pointermove', ['$event'])
+  onTutorialKpiPointerMove(event: PointerEvent): void {
+    if (!this.tutorialPointerDragActive) return;
+    const left = event.clientX - this.draggedKpiPointerOffset.x;
+    const top = event.clientY - this.draggedKpiPointerOffset.y;
+    if (this.kpiDragPreviewElement) {
+      this.kpiDragPreviewElement.style.left = `${left}px`;
+      this.kpiDragPreviewElement.style.top = `${top}px`;
+    }
+    const list = document.querySelector<HTMLElement>('.montecarlo-page .kpi-compact-list');
+    if (!list) return;
+    const rows = Array.from(list.querySelectorAll<HTMLElement>('.kpi-row'));
+    let index = rows.length;
+    for (let i = 0; i < rows.length; i++) {
+      const rect = rows[i].getBoundingClientRect();
+      if (event.clientY < rect.top + rect.height / 2) { index = i; break; }
+    }
+    this.insertTargetIndex = index;
+    event.preventDefault();
+  }
+
+  @HostListener('document:pointerup', ['$event'])
+  @HostListener('document:pointercancel', ['$event'])
+  onTutorialKpiPointerUp(event: PointerEvent): void {
+    if (!this.tutorialPointerDragActive) return;
+    this.tutorialPointerDragActive = false;
+    const list = document.querySelector<HTMLElement>('.montecarlo-page .kpi-compact-list');
+    const rect = list?.getBoundingClientRect();
+    const within = !!rect && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+    if (within && this.insertTargetIndex === 0) {
+      this.insertKpi('averageMaxDrawdown', 0);
+      this.tutorialDrawdownStep = 'done';
+        this.tutorialCompositionStep = 'reduce';
+    } else {
+      this.insertKpi('averageMaxDrawdown', this.kpis.length);
+    }
+    this.finishDragState();
+  }
+
   onKpiDragStart(kpiId: string, event: DragEvent): void {
+    if (this.isTutorial && (this.tutorialDrawdownStep !== 'drag' || kpiId !== 'averageMaxDrawdown')) { event.preventDefault(); return; }
+    // Do not remove the tutorial bubble from the DOM during dragstart:
+    // changing the native drag source's children can cancel HTML5 DnD.
     this.draggedKpiId = kpiId;
     this.draggedKpiPreview = this.kpis.find((kpi) => kpi.id === kpiId) ?? null;
     this.swapTargetId = null;
@@ -1009,10 +1088,15 @@ export class MontecarloPageComponent {
         const rect = source.getBoundingClientRect();
         this.kpiDragPreviewElement?.remove();
         const preview = source.cloneNode(true) as HTMLElement;
-        preview.classList.remove('is-dragging', 'shift-up', 'shift-down');
+        preview.classList.remove('is-dragging', 'shift-up', 'shift-down', 'tutorial-drawdown-focus');
         preview.classList.add('kpi-pointer-drag-preview');
+        // Keep the original lightweight clone: copying every computed CSS
+        // property synchronously during dragstart can block native DnD.
+        preview.querySelectorAll<HTMLElement>('*').forEach(el => {
+          el.style.setProperty('opacity', '1', 'important');
+          el.style.setProperty('visibility', 'visible', 'important');
+        });
         preview.style.cssText += `;position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;box-sizing:border-box;opacity:1!important;visibility:visible!important;transform:none!important;background:#07121f!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:2147483647;pointer-events:none;`;
-        preview.querySelectorAll<HTMLElement>('*').forEach((el) => { el.style.opacity = '1'; el.style.visibility = 'visible'; });
         document.body.appendChild(preview);
         this.kpiDragPreviewElement = preview;
 
@@ -1060,8 +1144,16 @@ export class MontecarloPageComponent {
       return;
     }
 
-    this.swapKpis(this.draggedKpiId, kpiId);
-    this.queueKpiConfigurationSave();
+    if (this.isTutorial) {
+      if (this.tutorialDrawdownStep === 'drag' && kpiId === this.kpis[0]?.id) {
+        this.insertKpi('averageMaxDrawdown', 0);
+        this.tutorialDrawdownStep = 'done';
+        this.tutorialCompositionStep = 'reduce';
+      } else this.insertKpi('averageMaxDrawdown', this.kpis.length);
+    } else {
+      this.swapKpis(this.draggedKpiId, kpiId);
+      this.queueKpiConfigurationSave();
+    }
     this.finishDragState();
   }
 
@@ -1081,8 +1173,11 @@ export class MontecarloPageComponent {
       return;
     }
 
-    this.insertKpi(this.draggedKpiId, index);
-    this.queueKpiConfigurationSave();
+    if (this.isTutorial) {
+      if (index === 0) { this.insertKpi('averageMaxDrawdown', 0); this.tutorialDrawdownStep = 'done';
+        this.tutorialCompositionStep = 'reduce'; }
+      else this.insertKpi('averageMaxDrawdown', this.kpis.length);
+    } else { this.insertKpi(this.draggedKpiId, index); this.queueKpiConfigurationSave(); }
     this.finishDragState();
   }
 
@@ -1136,8 +1231,18 @@ export class MontecarloPageComponent {
     // upward moves animate the traversed rows back toward their old slots first.
     this.suppressKpiTransitions = true;
     if (kpiId) {
-      this.insertKpi(kpiId, insertIndex);
-      this.queueKpiConfigurationSave();
+      if (this.isTutorial) {
+        if (this.tutorialDrawdownStep === 'drag' && kpiId === 'averageMaxDrawdown' && insertIndex === 0) {
+          this.insertKpi(kpiId, 0);
+          this.tutorialDrawdownStep = 'done';
+        this.tutorialCompositionStep = 'reduce';
+        } else {
+          this.insertKpi('averageMaxDrawdown', this.kpis.length);
+        }
+      } else {
+        this.insertKpi(kpiId, insertIndex);
+        this.queueKpiConfigurationSave();
+      }
     }
     this.finishDragState();
 
@@ -1211,6 +1316,7 @@ export class MontecarloPageComponent {
   }
 
   toggleKpiTarget(kpiId: string, event: MouseEvent): void {
+    if (this.isTutorial && (this.tutorialDrawdownStep !== 'target' || kpiId !== 'averageMaxDrawdown')) return;
     this.openKpiTargetId = this.openKpiTargetId === kpiId ? null : kpiId;
   }
 
@@ -1223,14 +1329,17 @@ export class MontecarloPageComponent {
   }
 
   selectKpiTarget(kpiId: string, value: string, event: MouseEvent): void {
+    if (this.isTutorial && (this.tutorialDrawdownStep !== 'target' || kpiId !== 'averageMaxDrawdown')) return;
     if (this.kpiTargets[kpiId] !== value) {
       this.kpiTargets[kpiId] = value;
-      this.queueKpiConfigurationSave();
+      if (!this.isTutorial) this.queueKpiConfigurationSave();
     }
     this.openKpiTargetId = null;
+    if (this.isTutorial && value !== '–') this.tutorialDrawdownStep = 'drag';
   }
 
   private finishDragState(): void {
+    this.tutorialDrawdownDragging = false;
     this.kpiDragPreviewElement?.remove();
     this.kpiDragPreviewElement = null;
     this.draggedKpiId = null;

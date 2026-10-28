@@ -309,9 +309,12 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     // A local demo identity only: never authenticate against the backend or create a database user.
     localStorage.removeItem('investmentLabUsername');
     localStorage.removeItem('investmentLabRole');
-    sessionStorage.setItem('investmentLabTutorial', 'true');
     this.portfolioSelection.resetForLogin();
-    void this.router.navigateByUrl('/tutorial');
+    sessionStorage.setItem('investmentLabTutorial', 'true');
+    sessionStorage.setItem('investmentLabTutorialPassword', '0000');
+    localStorage.setItem('investmentLabUsername', 'tutorial');
+    localStorage.setItem('investmentLabRole', 'TUTORIAL');
+    void this.router.navigateByUrl('/home');
   }
 
   private onLogin(): void {

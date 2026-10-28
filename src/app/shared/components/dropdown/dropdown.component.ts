@@ -26,6 +26,8 @@ export class DropdownComponent {
   @Input() emptyText = 'Nessun risultato';
   @Input() loadingText = 'Caricamento...';
   @Input() disabled = false;
+  @Input() readonly = false;
+  @Output() inputFocus = new EventEmitter<void>();
   @Input() loading = false;
   @Input() minQueryLength = 0;
 
@@ -76,6 +78,8 @@ export class DropdownComponent {
   }
 
   onInputFocus(): void {
+    this.inputFocus.emit();
+    if (this.readonly) { this.isOpen.set(true); return; }
     if (this.query.trim().length >= this.minQueryLength || this.items.length > 0 || this.loading) {
       this.open();
     }

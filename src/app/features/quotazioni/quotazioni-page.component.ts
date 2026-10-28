@@ -150,7 +150,7 @@ export class QuotazioniPageComponent implements OnInit {
   }
 
   refreshSingleQuotation(isin: string): void {
-    this.actionConfirmation.ask(`Aggiornare la quotazione di ${isin}?`, 'Aggiorna', () => this.executeSingleQuotationRefresh(isin));
+    this.executeSingleQuotationRefresh(isin);
   }
 
   private executeSingleQuotationRefresh(isin: string): void {
@@ -201,7 +201,7 @@ export class QuotazioniPageComponent implements OnInit {
   }
 
   async forceRefreshQuotations(): Promise<void> {
-    this.actionConfirmation.ask('Aggiornare tutte le quotazioni?', 'Aggiorna', () => this.executeForceRefreshQuotations());
+    this.executeForceRefreshQuotations();
   }
 
   private async executeForceRefreshQuotations(): Promise<void> {

@@ -1,4 +1,6 @@
-<section class="montecarlo-page">
+<section class="montecarlo-page" [class.tutorial-drawdown-active]="isTutorial && (tutorialDrawdownStep === 'target' || tutorialDrawdownStep === 'drag')"
+  [class.tutorial-drawdown-target-only]="isTutorial && tutorialDrawdownStep === 'target'"
+  [class.tutorial-composition-active]="isTutorial && (tutorialCompositionStep === 'reduce' || tutorialCompositionStep === 'search')">
   <app-toast></app-toast>
 <div class="montecarlo-main-layout">
     <div class="main-grid">
@@ -6,6 +8,8 @@
         <article class="panel portfolio-panel">
           <app-montecarlo-portfolio-editor
             [portfolioId]="selectedPortfolio()?.id ?? null"
+            [tutorialStep]="tutorialCompositionStep"
+            (tutorialStepChange)="onTutorialCompositionStep($event)"
             (stateChange)="onEditorStateChange($event)"
           ></app-montecarlo-portfolio-editor>
         </article>
@@ -96,8 +100,9 @@
           >
             <div
               class="kpi-row"
+              [class.tutorial-drawdown-focus]="isTutorial && kpi.id === 'averageMaxDrawdown' && (tutorialDrawdownStep === 'target' || tutorialDrawdownStep === 'drag')"
               *ngFor="let kpi of kpis; let i = index; trackBy: trackKpiById"
-              draggable="true"
+              [draggable]="!isTutorial"
               [attr.data-kpi-index]="i"
               [attr.data-kpi-id]="kpi.id"
               [class.is-dragging]="draggedKpiId === kpi.id"
@@ -105,10 +110,12 @@
               [class.shift-down]="getKpiDragShift(i) === 'down'"
               [class.target-success]="getKpiTargetStatus(kpi.id) === 'success'"
               [class.target-failure]="getKpiTargetStatus(kpi.id) === 'failure'"
+              (pointerdown)="onTutorialKpiPointerDown($event, kpi.id)"
               (dragstart)="onKpiDragStart(kpi.id, $event)"
               (drag)="onKpiDrag($event)"
               (dragend)="onKpiDragEnd()"
             >
+              <div *ngIf="isTutorial && kpi.id === 'averageMaxDrawdown' && (tutorialDrawdownStep === 'target' || tutorialDrawdownStep === 'drag')" class="tutorial-drawdown-bubble" role="status">{{ tutorialDrawdownStep === 'target' ? 'Seleziona un target per il tuo drawdown massimo.' : 'Trascina questo KPI in cima alla lista per averlo come prima priorità.' }}</div>
               <div class="kpi-row__metric">
                 <span class="material-symbols-rounded kpi-metric-icon" [attr.data-kpi-icon]="kpi.id">{{ getKpiIcon(kpi.id) }}</span>
                 <span class="kpi-row__label">{{ kpi.title }}</span>
@@ -119,6 +126,7 @@
                   <button
                     type="button"
                     class="kpi-target-trigger"
+                    [disabled]="isTutorial && (tutorialDrawdownStep !== 'target' || kpi.id !== 'averageMaxDrawdown')"
                     (mousedown)="$event.stopPropagation()"
                     (click)="toggleKpiTarget(kpi.id, $event)"
                     (dragstart)="$event.preventDefault(); $event.stopPropagation()"

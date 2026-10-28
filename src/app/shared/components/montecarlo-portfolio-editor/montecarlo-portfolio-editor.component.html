@@ -1,4 +1,4 @@
-<section class="portfolio-editor" aria-label="Editor composizione portafoglio Monte Carlo">
+<section class="portfolio-editor" [class.tutorial-editor-active]="isTutorial && (tutorialStep === 'reduce' || tutorialStep === 'search')" aria-label="Editor composizione portafoglio Monte Carlo">
   <div class="editor-header">
     <strong>Composizione temporanea</strong>
     <span class="editor-status" [class.valid]="isValid()" [class.invalid]="!isValid()">{{ isValid() ? 'Totale valido' : 'Totale non valido' }}</span>
@@ -9,6 +9,7 @@
     <div class="summary-line" [class.positive]="totalWeight() - 100 >= 0" [class.negative]="totalWeight() - 100 < 0">{{ getWeightDelta() }}</div>
   </div>
 
+  <div *ngIf="isTutorial && tutorialStep === 'reduce'" class="tutorial-editor-bubble">Proviamo ad abbassare il drawdown. Riduci il tuo ETF del 50%.</div>
   <div class="items-list" *ngIf="items().length > 0; else emptyState">
     <div class="item-row" *ngFor="let item of items(); let i = index; trackBy: trackByEtfId">
       <div class="item-name" [title]="item.fullName + ' · ' + item.ticker + ' · ' + item.isin">
@@ -16,22 +17,26 @@
         <span class="item-name__text">{{ item.nickname || item.ticker || item.isin }}</span>
       </div>
       <span class="item-ticker" [title]="item.ticker || 'Ticker non disponibile'">{{ item.ticker || '—' }}</span>
-      <div class="slider-shell" [style.--slider-value.%]="item.weight" [style.--etf-accent]="getEtfAccentColor(item, i)">
+      <div class="slider-shell" [style.--slider-value.%]="isTutorial && tutorialStep === 'reduce' && i === 0 && tutorialSliderPreview !== null ? tutorialSliderPreview : item.weight" [style.--etf-accent]="getEtfAccentColor(item, i)">
         <div class="slider-segments" aria-hidden="true"></div>
-        <span class="slider-edge-highlight" *ngIf="item.weight > 0" [style.left.%]="item.weight" aria-hidden="true"></span>
+        <span class="slider-edge-highlight" *ngIf="item.weight > 0" [style.left.%]="isTutorial && tutorialStep === 'reduce' && i === 0 && tutorialSliderPreview !== null ? tutorialSliderPreview : item.weight" aria-hidden="true"></span>
         <input
           class="slider"
+          [disabled]="isTutorial && (tutorialStep !== 'reduce' || i !== 0)"
           type="range"
           min="0"
           max="100"
           step="1"
-          [value]="item.weight"
+          [value]="isTutorial && tutorialStep === 'reduce' && i === 0 && tutorialSliderPreview !== null ? tutorialSliderPreview : item.weight"
           (input)="onSliderChange(i, $any($event.target).value)"
+          (pointerup)="onTutorialSliderRelease(i)"
+          (change)="onTutorialSliderRelease(i)"
           [attr.aria-label]="'Peso ' + (item.nickname || item.ticker || item.isin)"
         />
       </div>
       <input
         class="weight-input"
+        [readonly]="isTutorial"
         type="text"
         [value]="item.displayValue || formatWeight(item.weight)"
         inputmode="decimal"
@@ -40,7 +45,7 @@
         [attr.aria-label]="'Percentuale ' + (item.nickname || item.ticker || item.isin)"
       />
       <span class="percent-sign">%</span>
-      <button type="button" class="remove-btn" (click)="removeItem(i)" [attr.aria-label]="'Rimuovi ' + (item.nickname || item.ticker || item.isin)">×</button>
+      <button type="button" class="remove-btn" [disabled]="isTutorial" (click)="removeItem(i)" [attr.aria-label]="'Rimuovi ' + (item.nickname || item.ticker || item.isin)">×</button>
     </div>
   </div>
 
@@ -50,9 +55,14 @@
 
   <div class="editor-footer">
   <div class="search-box">
+    <div *ngIf="isTutorial && tutorialStep === 'search'" class="tutorial-editor-bubble tutorial-search-bubble">Aggiungi nuovo ETF.</div>
     <input
       type="text"
       class="search-input"
+      [disabled]="isTutorial && tutorialStep !== 'search'"
+      [readonly]="isTutorial"
+      (focus)="onTutorialSearchFocus()"
+      (click)="onTutorialSearchFocus()"
       [value]="searchQuery()"
       placeholder="Cerca ETF per nickname, nome, ISIN, ticker"
       (input)="onSearchInput($any($event.target).value)"
@@ -74,13 +84,13 @@
   </div>
 
   <div class="editor-actions">
-    <button type="button" class="action-btn" (click)="restorePortfolio()" [disabled]="!canRestorePortfolio()">
+    <button type="button" class="action-btn" (click)="restorePortfolio()" [disabled]="isTutorial || !canRestorePortfolio()">
       Ripristina portafoglio
     </button>
-    <button type="button" class="action-btn" (click)="updatePortfolio()" [disabled]="!canUpdatePortfolio()">
+    <button type="button" class="action-btn" (click)="updatePortfolio()" [disabled]="isTutorial || !canUpdatePortfolio()">
       Aggiorna portafoglio
     </button>
-    <button type="button" class="action-btn" (click)="openCreatePortfolioDialog()" [disabled]="!canCreatePortfolio()">
+    <button type="button" class="action-btn" (click)="openCreatePortfolioDialog()" [disabled]="isTutorial || !canCreatePortfolio()">
       {{ createPortfolioActionLabel() }}
     </button>
   </div>
