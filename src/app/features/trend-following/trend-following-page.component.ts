@@ -87,7 +87,7 @@ const STRATEGIES = [
             </div>
           </ng-container></div>
           </div>
-          <label *ngIf="isThresholdStrategy(draft.strategyKey)" class="threshold-field">Soglia % <input type="text" inputmode="numeric" [value]="draftThresholdText" (input)="onDraftThresholdInput($event)" (blur)="onDraftThresholdBlur()" aria-label="Soglia percentuale" /></label>
+          <label *ngIf="isThresholdStrategy(draft.strategyKey)" class="threshold-field"><input type="text" inputmode="decimal" placeholder="Soglia %" [value]="draftThresholdText" (input)="onDraftThresholdInput($event)" (blur)="onDraftThresholdBlur()" aria-label="Soglia percentuale" /></label>
           <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin || (draft.strategyKey === 'momentum-world-xeon' && !draft.benchmarkIsin)" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+'nuova'"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
         </article>
@@ -280,7 +280,8 @@ const STRATEGIES = [
     .criterion:not(.criterion--draft) .saved-strategy-text{width:calc(100% - 8px);margin-right:8px}
     .draft-list .etf-slots--threshold{flex:1 1 0;min-width:0;grid-template-columns:minmax(0,1fr)}
     .draft-list .etf-slots--threshold + .threshold-field{flex:1 1 0;min-width:0;width:auto}
-    .draft-list .threshold-field input{width:100%;flex:1;min-width:0;height:39px;box-sizing:border-box}
+    .draft-list .threshold-field{display:flex;flex:1 1 0;min-width:0;padding:0;border:0;background:transparent}
+    .draft-list .threshold-field input{width:100%;flex:1;min-width:0;height:39px;box-sizing:border-box;background:var(--surface-elevated);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:0 9px;font:inherit}
     .criterion:not(.criterion--draft) .saved-etf-slots.etf-slots--threshold{grid-template-columns:repeat(2,minmax(0,1fr))}
     .saved-threshold-text{display:flex;align-items:center;box-sizing:border-box;width:100%;height:39px;padding:0 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text-secondary)}
     .draft-list .primary-search{width:100%;flex:1 1 0;min-width:0}
@@ -363,10 +364,10 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
 
   draft:Criterion|null=null;
-  draftThresholdText='0';
-  resetDraftThreshold():void{if(this.draft){this.draft.thresholdPercent=0;this.draftThresholdText='0'}}
-  onDraftThresholdInput(event:Event):void{if(!this.draft)return;const input=event.target as HTMLInputElement;const raw=input.value;if(!/^-?\d*$/.test(raw)||(this.draft.signal==='buy'&&raw.startsWith('-'))||(this.draft.signal==='sell'&&raw!==''&&raw!=='-'&&Number(raw)>0)){input.value=this.draftThresholdText;return}this.draftThresholdText=raw;if(raw!==''&&raw!=='-')this.draft.thresholdPercent=Number(raw)}
-  onDraftThresholdBlur():void{if(this.draft){this.draft.thresholdPercent=this.normalizeThreshold(this.draftThresholdText,this.draft.signal);this.draftThresholdText=String(this.draft.thresholdPercent)}}
+  draftThresholdText='';
+  resetDraftThreshold():void{if(this.draft){this.draft.thresholdPercent=0;this.draftThresholdText=''}}
+  onDraftThresholdInput(event:Event):void{if(!this.draft)return;const input=event.target as HTMLInputElement;const raw=input.value;if(!/^-?\d*(?:[,.]\d*)?$/.test(raw)||(this.draft.signal==='buy'&&raw.startsWith('-'))||(this.draft.signal==='sell'&&raw!==''&&raw!=='-'&&Number(raw.replace(',','.'))>0)){input.value=this.draftThresholdText;return}this.draftThresholdText=raw;if(raw!==''&&raw!=='-')this.draft.thresholdPercent=Number(raw.replace(',','.'))}
+  onDraftThresholdBlur():void{if(this.draft){this.draft.thresholdPercent=this.normalizeThreshold(this.draftThresholdText,this.draft.signal);this.draftThresholdText=this.draftThresholdText.trim()===''?'':String(this.draft.thresholdPercent).replace('.',',')}}
   primarySearch='';primarySearchOpen=false;
   secondSearch='';secondSearchOpen=false;
   thirdSearch='';thirdSearchOpen=false;
@@ -514,7 +515,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     return [{isin:row.isin,label:found?.label||row.isin,search:found?.search||row.isin.toLowerCase()},...this.etfs];
   }
   isThresholdStrategy(key:string):boolean{return key==='sma-200'||key==='dual-sma-50-200'}
-  normalizeThreshold(value:unknown,signal:'buy'|'sell'):number{const n=Number(value);return Number.isFinite(n)?Math.max(-100,Math.min(100,Math.trunc(signal==='sell'?Math.min(0,n):Math.max(0,n)))):0}
+  normalizeThreshold(value:unknown,signal:'buy'|'sell'):number{const n=Number(String(value??'').replace(',','.'));return Number.isFinite(n)?Math.max(-100,Math.min(100,signal==='sell'?Math.min(0,n):Math.max(0,n))):0}
   private createRow(strategyKey='',isin='',benchmarkIsin='',signal:'buy'|'sell'='sell'):Criterion{
     return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,thresholdPercent:0,price:null,average:null,benchmarkReturn:null,continuityCount:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
