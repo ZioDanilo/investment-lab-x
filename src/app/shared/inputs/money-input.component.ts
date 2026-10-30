@@ -1,11 +1,11 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-money-input',
   standalone: true,
   imports: [CommonModule],
-  template: `<div class="money-field"><input type="number" inputmode="decimal" min="0" step="0.01" [attr.aria-label]="label" [value]="value" (input)="valueChange.emit($any($event.target).value)" /><span>€</span></div>`,
+  template: `<div class="money-field"><input type="text" inputmode="decimal" [attr.aria-label]="label" [value]="draftValue" (keydown)="onKeydown($event)" (input)="onInput($any($event.target).value)" (blur)="onBlur()" /><span>€</span></div>`,
   styles: [`
     :host{display:inline-flex;min-width:0}
     .money-field{display:flex;align-items:center;height:38px;width:100%;min-width:0;border:1px solid rgba(133,176,226,.24);border-radius:10px;background:rgba(12,18,26,.72);color:#edf6ff;box-sizing:border-box}
@@ -14,8 +14,36 @@ import { CommonModule } from '@angular/common';
     .money-field span{padding:0 12px 0 4px;color:rgba(191,214,235,.8);font-size:.82rem}
   `]
 })
-export class MoneyInputComponent {
+export class MoneyInputComponent implements OnChanges {
   @Input() label = 'Importo';
   @Input() value = 0;
   @Output() valueChange = new EventEmitter<string>();
+  draftValue = '0';
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['value'] && this.draftValue !== '-' && this.draftValue !== '') {
+      this.draftValue = String(this.value);
+    }
+  }
+
+  onKeydown(event: KeyboardEvent): void {
+    const input = event.target as HTMLInputElement;
+    if (event.key === '-' && (input.value === '0' || input.value === '')) {
+      event.preventDefault();
+      this.draftValue = '-';
+      input.value = '-';
+      this.valueChange.emit('-');
+    }
+  }
+
+  onInput(raw: string): void {
+    const normalized = raw.replace(',', '.');
+    if (!/^-?\d*(?:\.\d*)?$/.test(normalized)) return;
+    this.draftValue = raw;
+    this.valueChange.emit(normalized);
+  }
+
+  onBlur(): void {
+    if (this.draftValue === '-' || this.draftValue === '') this.draftValue = String(this.value);
+  }
 }

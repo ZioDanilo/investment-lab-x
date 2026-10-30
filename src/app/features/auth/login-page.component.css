@@ -17,7 +17,7 @@
 }
 
 .message-navbar {
-  height: 48px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -29,7 +29,7 @@
 .message-rotator {
   position: relative;
   width: min(92vw, 1050px);
-  height: 48px;
+  height: 64px;
   overflow: hidden;
   text-align: center;
 }
@@ -45,23 +45,27 @@
   transform: translateY(100%);
   color: rgba(225, 238, 249, 0.88);
   font-size: 0.82rem;
-  animation: rotate-message 40s infinite;
+  animation: rotate-message-entry 650ms ease-in-out both;
 }
 
-.message-rotator span:nth-child(1) { animation-delay: 0s; }
-.message-rotator span:nth-child(2) { animation-delay: 10s; }
-.message-rotator span:nth-child(3) { animation-delay: 20s; }
-.message-rotator span:nth-child(4) { animation-delay: 30s; }
-
-@keyframes rotate-message {
-  0% { opacity: 0; transform: translateY(100%); }
-  2.5%, 23.5% { opacity: 1; transform: translateY(0); }
-  25%, 100% { opacity: 0; transform: translateY(-100%); }
+.message-rotator span.message-outgoing {
+  animation: rotate-message-exit 650ms ease-in-out both;
 }
+
+@keyframes rotate-message-entry {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rotate-message-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-100%); }
+}
+
 
 .landing-shell {
   width: min(100%, 1600px);
-  height: calc(100% - 48px);
+  height: calc(100% - 64px);
   margin: 0 auto;
   padding: clamp(12px, 1.5vh, 20px) clamp(18px, 2vw, 32px);
   box-sizing: border-box;
@@ -350,8 +354,8 @@
 }
 
 @media (max-height: 760px) and (min-width: 901px) {
-  .message-navbar, .message-rotator { height: 40px; }
-  .landing-shell { height: calc(100% - 40px); gap: 10px; padding-top: 10px; padding-bottom: 10px; }
+  .message-navbar, .message-rotator { height: 64px; }
+  .landing-shell { height: calc(100% - 64px); gap: 10px; padding-top: 10px; padding-bottom: 10px; }
   .hero-panel { padding-top: 24px; padding-bottom: 24px; }
   .pillars-panel article { min-height: 64px; }
 }
@@ -362,7 +366,7 @@
 }
 
 @media (max-width: 560px) {
-  .message-navbar, .message-rotator { height: 42px; }
+  .message-navbar, .message-rotator { height: 64px; }
   .message-rotator span { font-size: 0.72rem; }
   .pillars-panel { grid-template-columns: 1fr; padding: 0 16px 16px; }
 }
@@ -467,3 +471,181 @@
 .prelogin-brand-name{font-size:clamp(.96rem,.85vw,1.3rem);font-weight:800;letter-spacing:.04em;line-height:1;color:#edf6ff}
 .prelogin-brand-tag{margin-top:4px;font-size:.5rem;letter-spacing:.12em;color:#84a9d2;white-space:nowrap}
 @media(max-width:760px){.message-navbar{justify-content:flex-end}.message-rotator{width:calc(100% - 200px)}.message-rotator span{font-size:.66rem}}
+
+/* Public informational navigation, visible without login. */
+.public-footer{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px;font-size:12px;line-height:1.4}
+.public-footer a{color:#a8dfff;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:900px){.public-footer{margin:18px 0}}
+
+/* Keep the landing's three rows (hero, public links, statistics) inside the viewport. */
+@media(min-width:901px){.landing-shell{grid-template-rows:minmax(0,1fr) auto auto}}
+
+/* Registration-only birth date selectors, matching the existing auth fields. */
+.birth-date-selects{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.5fr) minmax(0,1fr);gap:8px;width:100%}
+.birth-date-selects select{width:100%;min-width:0;box-sizing:border-box;border:1px solid rgba(145,176,211,.32);border-radius:9px;background:#111c2b;color:#f1f7ff;padding:10px 7px;font:inherit}
+.birth-date-selects select:focus{outline:2px solid #39a9ff;outline-offset:1px}
+@media(max-width:420px){.birth-date-selects{gap:5px}.birth-date-selects select{padding:9px 3px;font-size:.78rem}}
+
+
+/* Login rail uses the same shared component and 61px content-area offset
+   as Home. Navbar's 64px content box + 1px border are accounted for here;
+   the ad grid geometry lives only in AdRailComponent. */
+@media (min-width: 1181px) {
+  .login-page { position: relative; }
+  .prelogin-ad-stack {
+    position: absolute;
+    top: calc(64px + 1px + 61px);
+    left: 18px;
+    z-index: 2;
+  }
+  .landing-shell {
+    width: auto;
+    max-width: none;
+    margin-left: 180px;
+    margin-right: 0;
+  }
+}
+@media (max-width: 1180px) {
+  .prelogin-ad-stack { display: none; }
+}
+
+/* Desktop: headline uses a viewport-based anchor, independent of the
+   registration form's intrinsic height. Never clip the form or its tabs. */
+@media (min-width: 901px) {
+  .login-page {
+    overflow-y: auto;
+  }
+  .landing-shell {
+    min-height: calc(100vh - 65px);
+    height: auto;
+  }
+  .hero-panel {
+    min-height: min(660px, calc(100vh - 195px));
+    height: auto;
+    align-items: center;
+    overflow: visible;
+  }
+  .hero-copy-wrap {
+    position: static;
+    align-self: stretch;
+    min-height: 0;
+  }
+  .hero-copy {
+    position: absolute;
+    top: clamp(180px, 34vh, 360px);
+    left: clamp(28px, 4vw, 64px);
+    width: calc((100% - 2 * clamp(28px, 4vw, 64px) - clamp(28px, 4vw, 72px)) * 0.574468);
+    max-width: 780px;
+    margin: 0;
+    transform: translateY(-50%);
+  }
+  .login-card {
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
+    align-self: start;
+    margin-top: 0;
+  }
+}
+
+/* Decouple the photograph from the form-driven hero height.
+   The fixed-size image layer never rescales/repositions when registration
+   fields or validation messages increase the hero's content height. */
+@media (min-width: 901px) {
+  .hero-panel {
+    isolation: isolate;
+    background: linear-gradient(180deg, #10222b, #091a22);
+  }
+  .hero-panel::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0 0 auto 0;
+    height: max(660px, calc(100vh - 195px));
+    border-radius: inherit;
+    background:
+      linear-gradient(90deg, rgba(2,10,20,.82) 0%, rgba(7,16,26,.55) 42%, rgba(7,16,26,.22) 100%),
+      url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1800&q=80') center top / cover no-repeat;
+    pointer-events: none;
+  }
+}
+
+/* Anchor the promotional quote to the bottom-left of the fixed photograph,
+   not to the variable-height hero/form. Match the ::before image height. */
+@media (min-width: 901px) {
+  .hero-panel .quote-block {
+    position: absolute;
+    left: clamp(28px, 4vw, 64px);
+    top: calc(max(660px, 100vh - 195px) - 24px);
+    bottom: auto;
+    transform: translateY(-100%);
+    z-index: 1;
+  }
+}
+
+/* Restore the translucent glass appearance of the original auth card and tabs.
+   Keep the photograph visible behind the form, without altering geometry. */
+.login-card {
+  background: rgba(9, 17, 24, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.auth-tabs button {
+  background: rgba(8, 16, 24, 0.72);
+}
+.auth-tabs button.active {
+  background: rgba(9, 17, 24, 0.92);
+}
+
+/* Keep the public navigation and statistics visible below the hero.
+   Size the photograph from the available grid row rather than forcing a
+   660px minimum that pushes the footer below the viewport. */
+@media (min-width: 901px) {
+  .landing-shell {
+    height: calc(100vh - 65px);
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+  }
+  .hero-panel {
+    height: 100%;
+    min-height: 0;
+  }
+  .hero-panel::before {
+    height: 100%;
+  }
+  .hero-panel .quote-block {
+    top: auto;
+    bottom: 24px;
+    transform: none;
+  }
+}
+
+/* Move the auth card left by exactly half its own rendered width.
+   This affects only the card, not the hero text or image. */
+@media (min-width: 901px) {
+  .hero-panel > .login-card {
+    transform: translateX(-50%);
+  }
+}
+
+/* Backend cold-start: same footprint as the login/registration primary action. */
+.backend-ready-progress {
+  position:relative; flex:1 1 auto; min-width:0; height:46px;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  border-radius:10px; border:1px solid rgba(99,174,239,.42);
+  background:rgba(17,40,68,.82); color:#e9f5ff;
+  box-sizing:border-box;
+}
+.backend-ready-progress__fill {
+  position:absolute; inset:0 auto 0 0; width:0;
+  background:linear-gradient(90deg,#1758a8,#278fd7);
+  transition:width .1s linear;
+}
+.backend-ready-progress__label {
+  position:relative; z-index:1; font-size:13px; font-weight:700;
+  text-align:center; padding:0 8px; text-shadow:0 1px 3px rgba(0,0,0,.55);
+}
+
+/* Public tutorial entry, available independently of backend cold start. */
+.tutorial-entry{display:block;width:100%;margin:12px 0 4px;padding:12px 16px;border:1px solid #69b7ec;border-radius:9px;background:rgba(22,83,132,.22);color:#e9f6ff;font-weight:700;cursor:pointer}
+.tutorial-entry:hover{background:rgba(35,124,190,.4)}

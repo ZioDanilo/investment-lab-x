@@ -32,6 +32,39 @@ interface PortfolioEtf {
   styleUrls: ['./portafogli-page.component.css']
 })
 export class PortafoliPageComponent implements OnInit {
+  get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
+  tutorialFormStep = signal<'name' | 'typing' | 'etf' | 'save' | 'done'>('name');
+  private tutorialTypingTimer: ReturnType<typeof setInterval> | null = null;
+  private tutorialEtfTypingTimer: ReturnType<typeof setInterval> | null = null;
+  onTutorialEtfSearchFocus(): void {
+    if (!this.isTutorial || this.tutorialFormStep() !== 'etf' || this.tutorialEtfTypingTimer) return;
+    const value = 'EUNL';
+    let index = 0;
+    this.onSearchChange('');
+    this.tutorialEtfTypingTimer = setInterval(() => {
+      index++;
+      this.onSearchChange(value.slice(0, index));
+      if (index >= value.length) {
+        if (this.tutorialEtfTypingTimer) clearInterval(this.tutorialEtfTypingTimer);
+        this.tutorialEtfTypingTimer = null;
+      }
+    }, 180);
+  }
+  onTutorialNameFocus(): void {
+    if (!this.isTutorial || this.tutorialFormStep() !== 'name') return;
+    this.tutorialFormStep.set('typing');
+    const value = 'Portafoglio Tutorial';
+    let index = 0;
+    this.tutorialTypingTimer = setInterval(() => {
+      index++;
+      this.nomePortafoglio.set(value.slice(0, index));
+      if (index >= value.length) {
+        if (this.tutorialTypingTimer) clearInterval(this.tutorialTypingTimer);
+        this.tutorialTypingTimer = null;
+        this.tutorialFormStep.set('etf');
+      }
+    }, 1200 / value.length);
+  }
   private initialized = false;
   private apiService = inject(ApiService);
   private portfolioState = inject(PortfolioStateService);
@@ -50,6 +83,7 @@ export class PortafoliPageComponent implements OnInit {
   nomePortafoglio = signal('');
   searchQuery = signal('');
   searchResults = signal<Etf[]>([]);
+  private tutorialEtfCatalog: Etf[] | null = null;
   selectedEtfs = signal<PortfolioEtf[]>([]);
   searchLoading = signal(false);
   currentEditingPortfolioId = signal<string | null>(null);
@@ -81,7 +115,7 @@ export class PortafoliPageComponent implements OnInit {
   constructor() {
     effect(() => {
       this.portfolioSelection.refreshVersion();
-      if (this.initialized) this.loadPortafogli();
+      if (this.initialized && localStorage.getItem('investmentLabRole') !== 'TUTORIAL') this.loadPortafogli();
     });
   }
 
@@ -94,6 +128,12 @@ export class PortafoliPageComponent implements OnInit {
   });
 
   ngOnInit() {
+    if (localStorage.getItem('investmentLabRole') === 'TUTORIAL') {
+      this.initialized = true;
+      this.portafogli.set([]);
+      this.loading.set(false);
+      return;
+    }
     this.initialized = true;
     const remembered = this.portfolioSelection.lastLaboratoryPortfolioId();
     const current = this.portfolioSelection.selectedPortfolio();
@@ -105,6 +145,7 @@ export class PortafoliPageComponent implements OnInit {
 
   // Load all portfolios
   loadPortafogli() {
+    if (localStorage.getItem('investmentLabRole') === 'TUTORIAL') { this.portafogli.set([]); this.loading.set(false); return; }
     this.loading.set(true);
     this.apiService.getPortfolios('laboratorio').subscribe({
       next: (res: any) => {
@@ -138,6 +179,11 @@ export class PortafoliPageComponent implements OnInit {
   // Open new portfolio form
   async openNewPortfolioForm(): Promise<void> {
     this.currentEditingPortfolioId.set(null);
+    if (this.tutorialTypingTimer) clearInterval(this.tutorialTypingTimer);
+    if (this.tutorialEtfTypingTimer) clearInterval(this.tutorialEtfTypingTimer);
+    this.tutorialEtfTypingTimer = null;
+    this.tutorialTypingTimer = null;
+    if (this.isTutorial) this.tutorialFormStep.set('name');
     this.showForm.set(true);
     this.nomePortafoglio.set('');
     this.searchQuery.set('');
@@ -164,14 +210,50 @@ export class PortafoliPageComponent implements OnInit {
 
   // Close form
   closeForm() {
+    if (this.tutorialTypingTimer) clearInterval(this.tutorialTypingTimer);
+    this.tutorialTypingTimer = null;
     this.showForm.set(false);
     this.clearForm();
   }
 
   // Search ETF
   onSearchChange(query: string) {
+    if (this.isTutorial && query && !'EUNL'.startsWith(query.toUpperCase())) return;
     this.searchQuery.set(query);
-    
+    if (this.isTutorial) {
+      if (this.tutorialFormStep() !== 'etf') return;
+      if (query.trim().length < 3) {
+        this.searchResults.set([]);
+        this.searchLoading.set(false);
+        return;
+      }
+      const filterCatalog = (catalog: Etf[]) => {
+        if (this.tutorialFormStep() !== 'etf') return;
+        const term = this.searchQuery().trim().toLocaleLowerCase();
+        this.searchResults.set(catalog.filter(etf =>
+          [etf.isin, etf.name, etf.description, etf.ticker, (etf as any).nickname]
+            .some(value => String(value ?? '').toLocaleLowerCase().includes(term))
+        ).slice(0, 30));
+        this.searchLoading.set(false);
+      };
+      if (this.tutorialEtfCatalog) {
+        filterCatalog(this.tutorialEtfCatalog);
+      } else {
+        this.searchLoading.set(true);
+        this.apiService.getAllEtfs().subscribe({
+          next: (res: any) => {
+            this.tutorialEtfCatalog = Array.isArray(res.data) ? res.data : [];
+            filterCatalog(this.tutorialEtfCatalog!);
+          },
+          error: (error: any) => {
+            console.error('Errore caricamento catalogo ETF del tutorial:', error);
+            this.searchResults.set([]);
+            this.searchLoading.set(false);
+          }
+        });
+      }
+      return;
+    }
     if (query.length < 3) {
       this.searchResults.set([]);
       return;
@@ -204,13 +286,14 @@ export class PortafoliPageComponent implements OnInit {
 
     const newEtf: PortfolioEtf = {
       etfId: etf.id,
-      peso: null,
+      peso: this.isTutorial ? 100 : null,
       etf: etf
     };
 
-    this.selectedEtfs.update(etfs => [...etfs, newEtf]);
+    this.selectedEtfs.update(etfs => this.isTutorial ? [newEtf] : [...etfs, newEtf]);
     this.searchResults.set([]);
     this.searchQuery.set('');
+    if (this.isTutorial && this.tutorialFormStep() === 'etf') this.tutorialFormStep.set('save');
   }
 
   onSearchResultSelected(etfId: string): void {
@@ -240,6 +323,7 @@ export class PortafoliPageComponent implements OnInit {
   }
 
   onWeightInput(index: number, event: Event) {
+    if (this.isTutorial) return;
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
     this.updateEtfWeight(index, value);
   }
@@ -255,6 +339,7 @@ export class PortafoliPageComponent implements OnInit {
 
   // Remove ETF from selection
   removeEtf(index: number) {
+    if (this.isTutorial) return;
     this.selectedEtfs.update(etfs => {
       etfs.splice(index, 1);
       return [...etfs];
@@ -268,6 +353,21 @@ export class PortafoliPageComponent implements OnInit {
 
   // Save portfolio
   async savePortafoglio(): Promise<void> {
+    if (this.isTutorial) {
+      if (this.tutorialFormStep() !== 'save') return;
+      const etf = this.selectedEtfs()[0]?.etf;
+      if (!etf) return;
+      sessionStorage.removeItem('investmentLabTutorialMonteCarloStarted');
+      sessionStorage.setItem('investmentLabTutorialEtf', JSON.stringify({
+        id: etf.id, isin: etf.isin, name: etf.name,
+        nickname: (etf as any).nickname || etf.name,
+        ticker: etf.ticker || ''
+      }));
+      this.tutorialFormStep.set('done');
+      this.showForm.set(false);
+      window.location.assign('/monte-carlo');
+      return;
+    }
     if (!this.nomePortafoglio().trim()) {
       throw new Error('Inserisci il nome del portafoglio');
     }

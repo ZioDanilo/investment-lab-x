@@ -4,13 +4,29 @@
       <span class="prelogin-brand-name">Razer</span>
       <span class="prelogin-brand-tag">COSTRUISCI • ANALIZZA • MIGLIORA</span>
     </div>
-    <div class="message-rotator">
-      <span>Perché portfolio.com era già occupato</span>
-      <span>“Benvenuto su Razer.” — <em>Accetta tutti i cookie per scoprire che VWCE esiste.</em></span>
-      <span>Portfolio… ma con meno lettere e più TER</span>
-      <span>Abbiamo costruito scenari macroeconomici, matrici di correlazione, Market Universe, Monte Carlo… per poi chiamarlo <strong>Razer</strong></span>
+    <div class="message-rotator" (mouseenter)="pauseRotation()" (mouseleave)="resumeRotation()">
+      <ng-container *ngIf="currentMessageIndex === 0 || outgoingMessageIndex === 0"><span [class.message-outgoing]="outgoingMessageIndex === 0">Perché perdere soldi senza statistiche era troppo facile.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 1 || outgoingMessageIndex === 1"><span [class.message-outgoing]="outgoingMessageIndex === 1">Il mercato è imprevedibile. Noi almeno lo siamo con metodo.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 2 || outgoingMessageIndex === 2"><span [class.message-outgoing]="outgoingMessageIndex === 2">Dove il tuo portafoglio viene giudicato prima del mercato.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 3 || outgoingMessageIndex === 3"><span [class.message-outgoing]="outgoingMessageIndex === 3">Abbiamo 1.000 simulazioni. Il mercato non ne ha letta neanche una.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 4 || outgoingMessageIndex === 4"><span [class.message-outgoing]="outgoingMessageIndex === 4">Trasformiamo le tue pessime idee in grafici bellissimi.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 5 || outgoingMessageIndex === 5"><span [class.message-outgoing]="outgoingMessageIndex === 5">Più Monte Carlo, meno casinò. Almeno sulla carta.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 6 || outgoingMessageIndex === 6"><span [class.message-outgoing]="outgoingMessageIndex === 6">Diversificare è ammettere di non avere la minima idea.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 7 || outgoingMessageIndex === 7"><span [class.message-outgoing]="outgoingMessageIndex === 7">Il posto dove anche le perdite hanno una dashboard.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 8 || outgoingMessageIndex === 8"><span [class.message-outgoing]="outgoingMessageIndex === 8">Non prevediamo il futuro. Ma possiamo sbagliare con precisione.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 9 || outgoingMessageIndex === 9"><span [class.message-outgoing]="outgoingMessageIndex === 9">Ottimizziamo tutto. Tranne le tue decisioni impulsive.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 10 || outgoingMessageIndex === 10"><span [class.message-outgoing]="outgoingMessageIndex === 10">Perché un ETF non basta a sentirsi un investitore.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 11 || outgoingMessageIndex === 11"><span [class.message-outgoing]="outgoingMessageIndex === 11">Il tuo portafoglio non rende? <strong>Ora puoi dimostrarlo scientificamente.</strong></span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 12 || outgoingMessageIndex === 12"><span [class.message-outgoing]="outgoingMessageIndex === 12">I mercati sono efficienti. Tu ancora no.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 13 || outgoingMessageIndex === 13"><span [class.message-outgoing]="outgoingMessageIndex === 13">Il drawdown passa. Il trauma resta.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 14 || outgoingMessageIndex === 14"><span [class.message-outgoing]="outgoingMessageIndex === 14">Dove lo Sharpe è alto e l'autostima è bassa.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 15 || outgoingMessageIndex === 15"><span [class.message-outgoing]="outgoingMessageIndex === 15">Nessuna sfera di cristallo. Solo formule più complicate.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 16 || outgoingMessageIndex === 16"><span [class.message-outgoing]="outgoingMessageIndex === 16">Il backtest è fantastico. Peccato che sia già successo.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 17 || outgoingMessageIndex === 17"><span [class.message-outgoing]="outgoingMessageIndex === 17">Investire è semplice. Complicarlo è il nostro lavoro.</span></ng-container>
+      <ng-container *ngIf="currentMessageIndex === 18 || outgoingMessageIndex === 18"><span [class.message-outgoing]="outgoingMessageIndex === 18">“Benvenuto su Razer.” — <em>Accetta tutti i cookie per scoprire che SWDA esiste.</em></span></ng-container>
     </div>
   </div>
+  <app-ad-rail class="prelogin-ad-stack" aria-label="Spazi pubblicitari" />
   <main class="landing-shell">
     <section class="hero-panel" aria-label="Razer">
       <div class="hero-copy-wrap">
@@ -24,7 +40,7 @@
 
         <div class="quote-block" aria-label="Frase promozionale">
           <span class="quote-bar"></span>
-          <p>“Better portfolios<br />for a more certain tomorrow.”</p>
+          <p>“Portafogli migliori<br />per un domani più sicuro.”</p>
         </div>
       </div>
 
@@ -50,6 +66,7 @@
           />
         </label>
         <p class="field-error" *ngIf="registerMode && usernameTaken">Username già esistente. Scegline un altro.</p>
+        <p class="field-error" *ngIf="registerMode && usernameCheckError">Verifica username non disponibile. Riprova.</p>
 
         <label class="field">
           <span>Password</span>
@@ -63,26 +80,64 @@
           />
         </label>
 
+        <ng-container *ngIf="registerMode">
+          <label class="field">
+            <span>Email</span>
+            <input type="email" name="email" [(ngModel)]="email" (ngModelChange)="onEmailChange($event)" (blur)="checkEmailAvailability()" autocomplete="email"
+              aria-label="Indirizzo email" placeholder="nome@esempio.it" required />
+          </label>
+          <p class="field-error" *ngIf="emailFormatInvalid">Inserisci un indirizzo email valido.</p>
+          <p class="field-error" *ngIf="emailTaken">Questa email è già registrata. Usane un'altra.</p>
+          <p class="field-error" *ngIf="emailCheckError && !emailFormatInvalid">{{emailCheckErrorMessage || 'Verifica email non disponibile. Riprova.'}}</p>
+          <div class="field">
+            <span>Data di nascita</span>
+            <div class="birth-date-selects">
+              <select name="birthDay" [(ngModel)]="birthDay" aria-label="Giorno di nascita" required>
+                <option value="" disabled>Giorno</option>
+                <option *ngFor="let day of birthDays" [value]="day">{{day}}</option>
+              </select>
+              <select name="birthMonth" [(ngModel)]="birthMonth" aria-label="Mese di nascita" required>
+                <option value="" disabled>Mese</option>
+                <option *ngFor="let month of birthMonths; let i=index" [value]="i+1">{{month}}</option>
+              </select>
+              <select name="birthYear" [(ngModel)]="birthYear" aria-label="Anno di nascita" required>
+                <option value="" disabled>Anno</option>
+                <option *ngFor="let year of birthYears" [value]="year">{{year}}</option>
+              </select>
+            </div>
+          </div>
+          <p class="field-error" *ngIf="birthDateError">{{birthDateError}}</p>
+        </ng-container>
         <div class="login-action-row">
-          <button type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && usernameTaken)">
+          <div *ngIf="backendLoading" class="backend-ready-progress" role="progressbar"
+               [attr.aria-valuenow]="backendProgress" aria-valuemin="0" aria-valuemax="100"
+               aria-label="Avvio Market Universe">
+            <span class="backend-ready-progress__fill" [style.width.%]="backendProgress"></span>
+            <span class="backend-ready-progress__label">Generazione Market Universe · {{ backendProgress | number:'1.0-0' }}%</span>
+          </div>
+          <button *ngIf="!backendLoading" type="submit" class="primary-login" [disabled]="submitting || !username || !password || (registerMode && (usernameTaken || usernameChecking || usernameCheckError || usernameVerified !== username.trim().toLowerCase() || emailTaken || emailChecking || emailCheckError || emailVerified !== email.trim().toLowerCase() || !registrationValid))">
             {{ submitting ? (registerMode ? 'Registrazione...' : 'Accesso...') : (registerMode ? 'Accedi alla versione gratuita' : 'Entra') }}
           </button>
         </div>
 
+        <button type="button" class="tutorial-entry" (click)="enterTutorial()">▶ Prova il tutorial interattivo</button>
+
         <p class="helper-text helper-text--error" *ngIf="authError">{{ authError }}</p>
         <p class="helper-text helper-text--success" *ngIf="authSuccess">{{ authSuccess }}</p>
         <p class="helper-text">
-          {{ registerMode ? 'Scegli username e password per creare il tuo profilo.' : 'Accedi al tuo laboratorio di investimento.' }}
+          {{ registerMode ? 'Inserisci username, password, email e data di nascita per creare il tuo profilo.' : 'Accedi al tuo laboratorio di investimento.' }}
         </p>
       </form>
     </section>
 
-    <p *ngIf="landingStatsError" role="status" style="margin:8px 0;color:#f4b5b5;font-size:12px;text-align:center">{{ landingStatsError }}</p>
     <section class="pillars-panel" aria-label="I quattro pilastri di Razer">
       <article><strong>{{ landingStats.users ?? '—' }}</strong><span>Utenti</span></article>
       <article><strong>{{ landingStats.portfolios ?? '—' }}</strong><span>Portafogli</span></article>
       <article><strong>{{ landingStats.etfs ?? '—' }}</strong><span>ETF</span></article>
       <article><strong>{{ landingStats.operations ?? '—' }}</strong><span>Operazioni</span></article>
     </section>
+    <nav class="public-footer" aria-label="Informazioni e pagine legali"><a routerLink="/chi-siamo">Scopri Razer</a><a routerLink="/privacy">Privacy</a><a routerLink="/cookies">Cookie</a><a routerLink="/contatti">Contatti</a></nav>
+    <p *ngIf="landingStatsError" role="status" style="margin:8px 0;color:#f4b5b5;font-size:12px;text-align:center">{{ landingStatsError }}</p>
+    
   </main>
 </div>

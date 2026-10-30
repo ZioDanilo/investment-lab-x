@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { ApiService } from '../../core/api/api.service';
+import { AssetDonutComponent, AssetDonutItem } from '../../shared/components/asset-donut/asset-donut.component';
 import { RouterLink } from '@angular/router';
 
 interface NavItem {
@@ -31,11 +33,6 @@ interface SummaryMetric {
   tone: string;
 }
 
-interface AssetLegend {
-  label: string;
-  value: string;
-  color: string;
-}
 
 interface ScenarioCard {
   name: string;
@@ -56,11 +53,41 @@ interface ActivityItem {
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AssetDonutComponent],
   templateUrl: './home-page.component.html',
   styleUrls: ['./home-page.component.css']
 })
-export class HomePageComponent {
+export class HomePageComponent implements OnInit {
+  constructor(private readonly api: ApiService) {}
+  assetMix: AssetDonutItem[] = [];
+  totalEtfs = 0;
+  assetLoading = true;
+  assetError = false;
+  private readonly assetColors = ['#2D91FF','#31D48D','#FF526C','#FF9F43','#9B67ED','#21C7C7','#F9BE48','#E96BA8','#64A7FF','#86D957'];
+  get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
+  ngOnInit(): void { if (!this.isTutorial) this.loadAssetMix(); else this.assetLoading = false; }
+  private loadAssetMix(): void {
+    this.assetLoading = true;
+    this.assetError = false;
+    this.api.getETFs().subscribe({
+      next: (response: any) => {
+        const etfs: any[] = Array.isArray(response) ? response : Array.isArray(response?.data) ? response.data : Array.isArray(response?.etfs) ? response.etfs : [];
+        this.totalEtfs = etfs.length;
+        const counts = new Map<string, number>();
+        for (const etf of etfs) {
+          const assetClass = String(etf.assetClass ?? etf.asset_class ?? '').trim() || 'Non classificato';
+          counts.set(assetClass, (counts.get(assetClass) ?? 0) + 1);
+        }
+        this.assetMix = [...counts.entries()].map(([label, value], index) => ({
+          label, value, weight: this.totalEtfs ? value / this.totalEtfs * 100 : 0,
+          color: this.assetColors[index % this.assetColors.length]
+        }));
+        this.assetLoading = false;
+      },
+      error: () => { this.assetLoading = false; this.assetError = true; this.assetMix = []; this.totalEtfs = 0; }
+    });
+  }
+
   get loggedUsername(): string { return localStorage.getItem('investmentLabUsername')?.trim() || ''; }
 
 
@@ -96,15 +123,6 @@ export class HomePageComponent {
     { value: '8,6%', label: 'Rendimento medio atteso', icon: 'show_chart', tone: 'cyan' },
     { value: '10,2%', label: 'Volatilità media', icon: 'signal_cellular_alt', tone: 'purple' },
     { value: '-18,4%', label: 'Drawdown medio', icon: 'trending_down', tone: 'red' }
-  ];
-
-  readonly assetMix: AssetLegend[] = [
-    { label: 'Azioni', value: '42%', color: '#66d9ff' },
-    { label: 'Obbligazioni', value: '28%', color: '#3f8efc' },
-    { label: 'Materie prime', value: '12%', color: '#f9c74f' },
-    { label: 'Real Estate', value: '8%', color: '#8c7ae6' },
-    { label: 'Alternativi', value: '6%', color: '#8fe3d4' },
-    { label: 'Valute', value: '4%', color: '#e2718c' }
   ];
 
   readonly scenarios: ScenarioCard[] = [

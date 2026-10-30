@@ -3132,3 +3132,243 @@ html, body {
   box-shadow:none!important;
 }
 .kpi-row.is-dragging>*{visibility:hidden!important}
+
+/* Tutorial: isolate drawdown KPI above the full-page dimmer. */
+.montecarlo-page.tutorial-drawdown-active::before {
+  content:"";position:fixed;inset:0;background:rgba(2,9,19,.76);z-index:1000;pointer-events:auto;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-panel,
+.montecarlo-page.tutorial-drawdown-active .kpi-compact-list {position:relative;z-index:1001;}
+.montecarlo-page.tutorial-drawdown-active .kpi-panel {background:transparent;box-shadow:none;border-color:transparent;pointer-events:none;}
+.montecarlo-page.tutorial-drawdown-active .kpi-row:not(.tutorial-drawdown-focus) {filter:brightness(.22);pointer-events:none;}
+.montecarlo-page.tutorial-drawdown-active .tutorial-drawdown-focus {
+  position:relative;z-index:1002;filter:none;pointer-events:auto;background:#10243a;
+  box-shadow:0 0 0 2px #5cbcff,0 12px 35px #0008;
+}
+.montecarlo-page .tutorial-drawdown-bubble {
+  position:absolute;right:calc(100% + 18px);top:50%;transform:translateY(-50%);
+  width:260px;max-width:38vw;padding:14px 17px;background:#f1f8ff;color:#12304a;
+  border:2px solid #5cbcff;border-radius:12px;font-size:14px;font-weight:700;line-height:1.45;
+  box-shadow:0 12px 30px #0009;pointer-events:none;z-index:1004;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-target-menu {z-index:1005;pointer-events:auto;}
+
+/* Drawdown tutorial polish: continuous cyan frame and readable foreground callout. */
+.montecarlo-page.tutorial-drawdown-active .kpi-panel,
+.montecarlo-page.tutorial-drawdown-active .kpi-compact-list {
+  overflow:visible!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus {
+  position:relative!important;
+  z-index:1100!important;
+  isolation:isolate;
+  outline:2px solid #57baff!important;
+  outline-offset:2px;
+  border:1px solid #69c7ff!important;
+  border-radius:9px;
+  box-shadow:0 0 0 4px rgba(34,145,255,.16),0 0 16px rgba(42,162,255,.6)!important;
+  overflow:visible!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .tutorial-drawdown-bubble {
+  position:absolute!important;
+  z-index:1200!important;
+  opacity:1!important;
+  visibility:visible!important;
+  filter:none!important;
+  background:#f8fbff!important;
+  color:#10243a!important;
+  border:2px solid #5cbcff!important;
+  box-shadow:0 0 0 2px rgba(92,188,255,.22),0 12px 32px rgba(0,0,0,.65)!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .tutorial-drawdown-bubble::after {
+  content:"";position:absolute;right:-9px;top:calc(50% - 8px);
+  width:14px;height:14px;transform:rotate(45deg);
+  background:#f8fbff;border-top:2px solid #5cbcff;border-right:2px solid #5cbcff;
+}
+
+/* Fix stacking-context issue: the full-page veil must sit behind the complete
+   KPI column, otherwise the instruction bubble remains dimmed beneath it. */
+.montecarlo-page.tutorial-drawdown-active {
+  overflow:visible!important;
+  isolation:isolate;
+}
+.montecarlo-page.tutorial-drawdown-active::before {z-index:100!important;}
+.montecarlo-page.tutorial-drawdown-active .montecarlo-main-layout,
+.montecarlo-page.tutorial-drawdown-active .main-grid {
+  overflow:visible!important;
+}
+.montecarlo-page.tutorial-drawdown-active .main-grid {position:relative;z-index:101;}
+.montecarlo-page.tutorial-drawdown-active .left-column {position:relative;z-index:0;filter:brightness(.24);pointer-events:none;}
+.montecarlo-page.tutorial-drawdown-active .right-column {position:relative;z-index:1;overflow:visible!important;}
+.montecarlo-page.tutorial-drawdown-active .right-column > :not(.kpi-panel) {filter:brightness(.24);pointer-events:none;}
+.montecarlo-page.tutorial-drawdown-active .kpi-panel {z-index:102!important;overflow:visible!important;}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .tutorial-drawdown-bubble {
+  z-index:9999!important;filter:none!important;opacity:1!important;
+}
+
+/* The tutorial uses the same opaque floating KPI card as normal drag-and-drop. */
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus.is-dragging {
+  opacity:0!important;visibility:visible!important;box-shadow:none!important;
+  outline:none!important;border-color:transparent!important;background:transparent!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus.is-dragging > * {
+  visibility:hidden!important;
+}
+body .kpi-pointer-drag-preview,
+body .kpi-pointer-drag-preview * {
+  opacity:1!important;visibility:visible!important;filter:none!important;
+}
+body .kpi-pointer-drag-preview {
+  z-index:2147483647!important;background:#07121f!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.75)!important;
+}
+
+/* Floating tutorial KPI: replicate the real two-column card without expensive
+   per-node computed-style copying during the browser's dragstart event. */
+body .kpi-pointer-drag-preview {
+  display:grid!important;
+  grid-template-columns:minmax(0,4fr) minmax(0,1fr)!important;
+  gap:8px!important;
+  align-items:stretch!important;
+  border:2px solid #57baff!important;
+  border-radius:9px!important;
+  opacity:1!important;
+  background:#0b192a!important;
+}
+body .kpi-pointer-drag-preview .kpi-row__metric,
+body .kpi-pointer-drag-preview .kpi-row__target {
+  display:flex!important;align-items:center!important;
+  background:#0d1b2d!important;
+  border:1px solid #25415e!important;
+  border-radius:8px!important;
+  opacity:1!important;
+}
+body .kpi-pointer-drag-preview .kpi-row__metric {gap:10px!important;padding:10px 14px!important;}
+body .kpi-pointer-drag-preview .kpi-row__target {justify-content:center!important;padding:8px!important;}
+body .kpi-pointer-drag-preview .kpi-row__label,
+body .kpi-pointer-drag-preview .kpi-row__value,
+body .kpi-pointer-drag-preview .kpi-target-trigger {color:#f1f7ff!important;font-weight:700!important;}
+body .kpi-pointer-drag-preview .tutorial-drawdown-bubble {display:none!important;}
+
+/* Fix tutorial drag hit testing: the dark veil must never intercept pointer
+   events, and the KPI list must accept dragover/drop across every row. */
+.montecarlo-page.tutorial-drawdown-active::before {pointer-events:none!important;}
+.montecarlo-page.tutorial-drawdown-active .kpi-panel,
+.montecarlo-page.tutorial-drawdown-active .kpi-compact-list {
+  pointer-events:auto!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row:not(.tutorial-drawdown-focus) {
+  pointer-events:auto!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row:not(.tutorial-drawdown-focus) > * {
+  pointer-events:none!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus {
+  pointer-events:auto!important;cursor:grab!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus:active {cursor:grabbing!important;}
+
+/* Native DnD must keep the drag source's DOM stable; hide only its callout
+   visually while dragging, never remove the child from Angular's DOM. */
+.montecarlo-page.tutorial-drawdown-active .kpi-row.is-dragging .tutorial-drawdown-bubble {
+  display:none!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .kpi-row__metric,
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .kpi-row__label,
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus .kpi-row__value {
+  cursor:grab!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus:active .kpi-row__metric,
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus:active .kpi-row__label,
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus:active .kpi-row__value {
+  cursor:grabbing!important;
+}
+
+/* Tutorial uses pointer capture instead of native HTML drag; keep the card
+   interactive and ensure the preview remains completely opaque. */
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus {
+  touch-action:none!important;
+  user-select:none!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row.tutorial-drawdown-focus.is-dragging {
+  opacity:1!important;visibility:visible!important;
+}
+
+
+/* Tutorial composition spotlight: preserve the entire editor and its search
+   dropdown above the dimmed dashboard while the rest remains non-interactive. */
+.montecarlo-page.tutorial-composition-active {isolation:isolate;overflow:visible!important;}
+.montecarlo-page.tutorial-composition-active::before {
+  content:"";position:fixed;inset:0;background:rgba(2,9,19,.78);
+  z-index:100;pointer-events:none;
+}
+.montecarlo-page.tutorial-composition-active .main-grid {position:relative;z-index:101;overflow:visible!important;}
+.montecarlo-page.tutorial-composition-active .left-column {position:relative;z-index:2;overflow:visible!important;}
+.montecarlo-page.tutorial-composition-active .right-column,
+.montecarlo-page.tutorial-composition-active .left-column > :not(.portfolio-panel) {
+  filter:brightness(.22);pointer-events:none;
+}
+.montecarlo-page.tutorial-composition-active .portfolio-panel {
+  position:relative;z-index:105;overflow:visible!important;filter:none!important;
+}
+
+/* Target-selection tutorial: the entire KPI section is readable, but only
+   Drawdown's existing target dropdown is interactive and highlighted. */
+.montecarlo-page.tutorial-drawdown-active.tutorial-drawdown-target-only .kpi-panel {
+  background:var(--panel-bg, #10243a)!important;
+  border-color:inherit!important;
+  box-shadow:inherit!important;
+  filter:none!important;
+  pointer-events:auto!important;
+}
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row,
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row:not(.tutorial-drawdown-focus) {
+  filter:none!important;
+  opacity:1!important;
+  pointer-events:none!important;
+}
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus {
+  outline:none!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+  background:transparent!important;
+  isolation:auto!important;
+  z-index:1100!important;
+  pointer-events:none!important;
+}
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus .kpi-row__target {
+  position:relative;
+  z-index:1101;
+  pointer-events:auto!important;
+  border:2px solid #57baff!important;
+  border-radius:9px!important;
+  box-shadow:0 0 0 3px rgba(34,145,255,.18),0 0 14px rgba(42,162,255,.42)!important;
+}
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus .kpi-target-dropdown,
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus .kpi-target-trigger,
+.montecarlo-page.tutorial-drawdown-target-only .kpi-row.tutorial-drawdown-focus .kpi-target-menu {
+  pointer-events:auto!important;
+}
+
+/* Both KPI tutorial steps keep the full KPI panel readable. Only the active
+   Drawdown control/row is interactive; the rest of the page stays subdued. */
+.montecarlo-page.tutorial-drawdown-active .kpi-panel {
+  background:#10243a!important;
+  filter:none!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+.montecarlo-page.tutorial-drawdown-active .kpi-row:not(.tutorial-drawdown-focus) {
+  filter:none!important;
+  opacity:1!important;
+  pointer-events:none!important;
+}
+.montecarlo-page.tutorial-drawdown-active:not(.tutorial-drawdown-target-only) .kpi-row.tutorial-drawdown-focus {
+  pointer-events:auto!important;
+}
+.montecarlo-page.tutorial-drawdown-active:not(.tutorial-drawdown-target-only) .kpi-row.tutorial-drawdown-focus .kpi-row__target {
+  pointer-events:none!important;
+}
+.montecarlo-page.tutorial-drawdown-active:not(.tutorial-drawdown-target-only) .kpi-row.tutorial-drawdown-focus .kpi-target-trigger {
+  pointer-events:none!important;
+}

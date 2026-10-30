@@ -19,12 +19,16 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/auth/login`, { username, password });
   }
 
-  register(username: string, password: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/auth/register`, { username, password });
+  register(username: string, password: string, email: string, birthDate: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auth/register`, { username, password, email, birthDate });
   }
 
   checkUsernameAvailability(username: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/auth/username-availability?username=${encodeURIComponent(username)}`);
+  }
+
+  checkEmailAvailability(email: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/auth/email-availability?email=${encodeURIComponent(email)}`);
   }
 
   getLandingStats(): Observable<any> {

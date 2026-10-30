@@ -536,3 +536,248 @@
 .app-feature-action-row:has(.trend-draft-header-slot .benchmark-options){z-index:3000;isolation:isolate}
 .app-feature-action-row .trend-draft-header-slot{position:relative;z-index:1;overflow:visible}
 .app-feature-action-row .trend-draft-header-slot .draft-list{position:relative;overflow:visible}
+
+/* Mock advertising inventory: sidebar on feature pages, same left rail on Home. */
+.mock-ad-slot{box-sizing:border-box;width:100%;min-height:180px;margin-top:12px;padding:13px 8px;border:1px dashed rgba(125,166,210,.45);border-radius:12px;background:linear-gradient(145deg,rgba(24,45,68,.65),rgba(9,17,29,.86));color:#b9cde1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;pointer-events:none}
+.mock-ad-slot__label{font-size:9px;letter-spacing:.15em;color:#8a9fb4;font-weight:700}
+.mock-ad-slot__icon{font-size:27px;color:#73b9ef}
+.mock-ad-slot__text{font-size:12px;font-weight:700;color:#dbe9f8}
+.mock-ad-slot__note{font-size:10px;color:#8a9fb4}
+.mock-ad-slot--home{position:absolute;left:12px;top:73px;width:144px;z-index:2}
+@media(max-width:1180px){.app-feature-sidebar .mock-ad-slot{display:none}.mock-ad-slot--home{position:relative;left:auto;top:auto;width:min(320px,calc(100% - 24px));min-height:90px;margin:12px auto}}
+@media(min-width:1181px){.app-feature-sidebar .mock-ad-slot{margin-top:12px}}
+
+/* Home advertising rail: the first two slots occupy the future menu area.
+   The third slot begins at exactly the same vertical position as the
+   feature sidebar advertisement (58px header + 3px gap + six 54px
+   menu items + six 6px gaps + 12px ad margin). Route changes remove
+   the two Home-only slots from the DOM instead of covering them. */
+@media(min-width:1181px){
+  .mock-ad-home-stack{
+    position:absolute;left:18px;top:61px;width:150px;z-index:2;
+    display:grid;
+  }
+  .mock-ad-home-stack .mock-ad-slot{min-height:0;height:100%;margin:0}
+  .app-feature-sidebar .mock-ad-slot{min-height:180px}
+}
+@media(max-width:1180px){
+  .mock-ad-home-stack{position:relative;display:flex;flex-direction:column;gap:12px;width:min(320px,calc(100% - 24px));margin:12px auto}
+  .mock-ad-home-stack .mock-ad-slot{min-height:90px;margin:0}
+}
+
+/* Real sidebar AdSense uses the exact historical mock-ad-slot grid item geometry.
+   The wrapper, not the ad iframe, controls placement below the six links. */
+.app-feature-sidebar > .mock-ad-slot--sidebar {
+  display: block;
+  position: relative;
+  padding: 0;
+  height: 180px;
+  min-height: 180px;
+  overflow: hidden;
+  pointer-events: auto;
+}
+.app-feature-sidebar > .mock-ad-slot--sidebar > app-adsense-slot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+@media (max-width: 1180px) {
+  .app-feature-sidebar > .mock-ad-slot--sidebar { display: none; }
+}
+
+/* AdSense visual frame shared with the historical sidebar mock slot.
+   Purely decorative: does not alter slot position or size. */
+.mock-ad-home-stack > app-adsense-slot {
+  box-sizing: border-box;
+  border: 1px dashed rgba(125,166,210,.45);
+  border-radius: 12px;
+  background: linear-gradient(145deg,rgba(24,45,68,.65),rgba(9,17,29,.86));
+  overflow: hidden;
+}
+
+/* Home retains its existing coordinates; AdRail owns internal dimensions. */
+
+/* Global quotation progress stays visible after the profile menu closes. */
+.global-quotation-progress {
+  position: fixed;
+  z-index: 1200;
+  top: 85px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 32px));
+  height: 40px;
+  border: 1px solid rgba(125, 166, 210, .65);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #101f31;
+  box-shadow: 0 10px 26px rgba(0,0,0,.4);
+}
+.global-quotation-progress__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #1765a2, #43b2e9);
+  transition: width .1s linear;
+}
+.global-quotation-progress__label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Tutorial is a read-only home preview: all interactions are locked except the profile menu and exit. */
+.app-shell:has(.tutorial-locked) .nav-links,
+.app-shell:has(.tutorial-locked) .app-feature-action-row { pointer-events:none; }
+
+
+/* Allow only the spotlight card (through the router outlet), profile exit and left ad rail. */
+.app-shell--tutorial .route-page { position:relative; }
+.app-shell--tutorial .route-page .home-shell--tutorial .shortcut-card:not(.tutorial-target),
+.app-shell--tutorial .route-page .home-shell--tutorial button { pointer-events:none; }
+.app-shell--tutorial .route-page .home-shell--tutorial .tutorial-target { pointer-events:auto; }
+.app-shell--tutorial .mock-ad-home-stack { z-index:112; }
+.app-shell--tutorial .global-navbar { position:relative;z-index:113; }
+.app-shell--tutorial .global-navbar .nav-links { pointer-events:none; }
+.app-shell--tutorial .global-navbar .profile-menu { pointer-events:auto; }
+
+/* Preserve the original home grid geometry in tutorial: the ad rail must
+   remain absolutely positioned, never take a grid row or push the home down. */
+@media(min-width:1181px){
+  .app-shell--tutorial .mock-ad-home-stack {
+    position:absolute;left:18px;top:61px;width:150px;margin:0;
+  }
+}
+:host ::ng-deep .app-shell--tutorial app-home-page .home-shell {
+  height:100% !important;min-height:0;
+}
+:host ::ng-deep .app-shell--tutorial app-home-page .home-main {
+  align-content:start;grid-template-rows:auto auto auto auto;
+  height:100%;min-height:0;padding-top:8px;
+}
+
+/* The real laboratory stays visible, darkened and fully read-only in tutorial. */
+.app-shell--tutorial .tutorial-lab-locked .route-page,
+.app-shell--tutorial .tutorial-lab-locked .app-feature-sidebar,
+.app-shell--tutorial .tutorial-lab-locked .app-feature-action-row {
+  pointer-events:none;
+}
+.app-shell--tutorial .tutorial-lab-locked::after {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.65);
+  z-index:100;pointer-events:none;
+}
+.app-shell--tutorial .tutorial-lab-locked .route-page,
+.app-shell--tutorial .tutorial-lab-locked .app-feature-sidebar { filter:brightness(.65); }
+
+/* Only the new portfolio button is allowed through the tutorial veil. */
+.app-shell--tutorial .tutorial-lab-locked .route-page { filter:none;pointer-events:auto; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel { position:relative; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel::after {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.65);z-index:90;pointer-events:auto;
+}
+.app-shell--tutorial .tutorial-lab-locked .route-page .portafogli-header { position:relative;z-index:91;pointer-events:none; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .portafogli-header h2 { opacity:.35; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .tutorial-new-portfolio { pointer-events:auto; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .modal-overlay { z-index:5000;pointer-events:auto; }
+
+/* Avoid a second overlay covering the highlighted button or the full-screen editor. */
+.app-shell--tutorial .tutorial-lab-locked::after { display:none; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel.tutorial-portfolio-form-open::after { display:none; }
+.app-shell--tutorial .tutorial-lab-locked .route-page .page-panel.tutorial-portfolio-form-open .portafogli-header { z-index:auto; }
+
+/* Monte Carlo tutorial: only the simulation action remains interactive. */
+.app-shell--tutorial:has(.montecarlo-page) .app-feature-action-row {pointer-events:auto;}
+.app-shell--tutorial:has(.montecarlo-page) .app-feature-action-row button {pointer-events:auto;}
+
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row {pointer-events:auto;}
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row > *:not(button) {pointer-events:none;}
+
+/* Monte Carlo guided step: all controls locked, first Run remains bright and clickable. */
+.app-shell--tutorial .tutorial-monte-carlo .route-page,
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-sidebar,
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-menu-card,
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action--secondary {pointer-events:none!important;}
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row {position:relative;z-index:1;}
+.app-shell--tutorial .tutorial-monte-carlo .app-feature-action-row .app-feature-action:not(.app-feature-action--secondary) {position:relative;z-index:202;pointer-events:auto!important;}
+.app-shell--tutorial .tutorial-monte-carlo-before-run::after {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.73);z-index:190;pointer-events:auto;
+}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row {z-index:201;}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row::before {
+  content:"";position:absolute;inset:0;background:rgba(2,9,19,.73);z-index:200;pointer-events:none;
+}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble {
+  position:absolute;right:10px;top:calc(100% + 12px);z-index:203;
+  max-width:280px;padding:14px 18px;border:2px solid #5cbcff;border-radius:12px;
+  background:#f1f8ff;color:#12304a;font-size:14px;font-weight:700;line-height:1.4;
+  box-shadow:0 12px 30px #0009;pointer-events:none;
+}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble::before {
+  content:"";position:absolute;top:-9px;right:30px;width:14px;height:14px;
+  background:#f1f8ff;border-top:2px solid #5cbcff;border-left:2px solid #5cbcff;transform:rotate(45deg);
+}
+
+/* Align the tutorial callout directly below the Monte Carlo Run button. */
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row > .app-feature-action:not(.app-feature-action--secondary) {anchor-name:--tutorial-run-button;}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble {
+  position:absolute;right:auto;left:auto;top:calc(100% + 12px);
+  position-anchor:--tutorial-run-button;
+  left:anchor(center);top:anchor(bottom);translate:-50% 12px;
+  width:max-content;max-width:280px;text-align:center;
+}
+.app-shell--tutorial .tutorial-monte-carlo-run-bubble::before {right:calc(50% - 7px);}
+
+/* Before the first tutorial simulation, keep the entire dashboard visible;
+   temporary composition remains visible but fully non-interactive. */
+.app-shell--tutorial .tutorial-monte-carlo-before-run::after {
+  display:none!important;
+}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .app-feature-action-row::before {
+  display:none!important;
+}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .route-page .montecarlo-page .portfolio-panel {
+  opacity:1!important;
+  filter:none!important;
+  pointer-events:none!important;
+}
+.app-shell--tutorial .tutorial-monte-carlo-before-run .route-page .montecarlo-page .portfolio-panel * {
+  pointer-events:none!important;
+}
+
+/* The tutorial exit is a direct, always-available navbar action. */
+.app-shell--tutorial .global-navbar .tutorial-exit-navbar {
+  display:inline-flex;
+  width:auto;
+  align-items:center;
+  gap:9px;
+  color:#ff8092!important;
+  pointer-events:auto!important;
+  white-space:nowrap;
+}
+.app-shell--tutorial .global-navbar .tutorial-exit-navbar .material-symbols-rounded {
+  color:#ff657d!important;
+}
+/* Portfolio creation is a route-level dialog; keep the global navbar
+   above it and fully interactive in both standard and tutorial sessions. */
+.global-navbar {
+  z-index:6000;
+  flex-shrink:0;
+}
+
+/* Once the first Monte Carlo run starts, unlock the guided KPI and
+   composition controls. The old route-wide pointer lock blocked XEON search. */
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page {
+  pointer-events:auto!important;
+}
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .portfolio-panel,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .portfolio-editor,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .search-box,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .search-input,
+.app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .search-results {
+  pointer-events:auto!important;
+}

@@ -65,6 +65,9 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   private readonly portfolioSelectionService = inject(PortfolioSelectionService);
 
   @Input() portfolioId: string | null = null;
+  @Input() tutorialStep: 'idle' | 'reduce' | 'search' | 'ready' = 'idle';
+  @Output() tutorialStepChange = new EventEmitter<'search' | 'ready'>();
+  get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
   @Output() stateChange = new EventEmitter<MontecarloPortfolioEditorChange>();
   @Output() portfolioSaved = new EventEmitter<string>();
 
@@ -84,6 +87,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   readonly createPortfolioNameDraft = signal('');
 
   private searchTimer: number | null = null;
+  private tutorialSearchTypingTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly totalWeight = computed(() =>
     this.items().reduce((sum, item) => sum + (Number.isFinite(item.weight) ? item.weight : 0), 0)
@@ -170,6 +174,10 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   );
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (this.isTutorial) {
+      if (changes['portfolioId']) this.loadTutorialComposition();
+      return;
+    }
     if (changes['portfolioId']?.currentValue !== undefined) {
       if (this.portfolioId) {
         this.loadPortfolioComposition(this.portfolioId);
@@ -180,6 +188,7 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   }
 
   ngOnDestroy(): void {
+    if (this.tutorialSearchTypingTimer) clearInterval(this.tutorialSearchTypingTimer);
     if (this.searchTimer) {
       window.clearTimeout(this.searchTimer);
     }
@@ -435,7 +444,57 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     };
   }
 
+  onTutorialSearchFocus(): void {
+    if (!this.isTutorial || this.tutorialStep !== 'search' || this.tutorialSearchTypingTimer || this.searchLoading() || this.searchQuery()) return;
+    const ticker = 'XEON';
+    let index = 0;
+    this.searchResults.set([]);
+    this.showSearchResults.set(false);
+    this.tutorialSearchTypingTimer = setInterval(() => {
+      if (this.tutorialStep !== 'search') {
+        if (this.tutorialSearchTypingTimer) clearInterval(this.tutorialSearchTypingTimer);
+        this.tutorialSearchTypingTimer = null;
+        return;
+      }
+      this.searchQuery.set(ticker.slice(0, ++index));
+      if (index === ticker.length) {
+        if (this.tutorialSearchTypingTimer) clearInterval(this.tutorialSearchTypingTimer);
+        this.tutorialSearchTypingTimer = null;
+        this.searchTutorialXeon();
+      }
+    }, 200);
+  }
+
+  private searchTutorialXeon(): void {
+    this.searchLoading.set(true);
+    // The portfolio/search-etf endpoint primarily matches ISIN/description;
+    // use the full ETF registry so ticker XEON is searchable as well.
+    this.apiService.getAllEtfs().subscribe({
+      next: (response: any) => {
+        if (this.tutorialStep !== 'search') return;
+        const catalogue: EtfSearchItem[] = Array.isArray(response)
+          ? response : Array.isArray(response?.data) ? response.data
+          : Array.isArray(response?.etfs) ? response.etfs : [];
+        const added = new Set(this.items().map(item => String(item.etfId)));
+        const matches = catalogue.filter(etf =>
+          !added.has(String(etf.id)) &&
+          [etf.ticker, etf.nickname, etf.name, etf.isin].some(v => String(v || '').toUpperCase().includes('XEON'))
+        );
+        this.searchResults.set(matches);
+        this.showSearchResults.set(matches.length > 0);
+        this.highlightedIndex.set(0);
+        this.searchLoading.set(false);
+      },
+      error: () => {
+        this.searchLoading.set(false);
+        this.searchResults.set([]);
+        this.showSearchResults.set(false);
+      }
+    });
+  }
+
   onSearchInput(value: string): void {
+    if (this.isTutorial) return;
     const query = value.trim();
     this.searchQuery.set(query);
 
@@ -499,11 +558,12 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
   }
 
   async addEtfFromSearch(etf: EtfSearchItem): Promise<void> {
+    if (this.isTutorial && (this.tutorialStep !== 'search' || ![etf.ticker, etf.nickname, etf.name].some(v => String(v || '').toUpperCase().includes('XEON')))) return;
     if (this.items().some((item) => item.etfId === etf.id)) {
       return;
     }
 
-    const details = await this.fetchEtfDetails(etf);
+    const details = this.isTutorial ? etf : await this.fetchEtfDetails(etf);
     const macroStatistics = details?.macroStatistics ?? details?.macro_statistics;
     const resolvedName = details?.name || etf.name;
     const resolvedNickname = details?.nickname || etf.nickname || details?.ticker || etf.ticker || etf.isin;
@@ -527,19 +587,20 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
         liquidity: details?.liquidity ?? 5,
         recession: details?.recession ?? 0,
         stagflation: details?.stagflation ?? 0,
-        weight: 0,
+        weight: this.isTutorial ? 50 : 0,
         originalWeight: 0,
         isAddedTemporarily: true,
-        displayValue: '0,00'
+        displayValue: this.isTutorial ? '50,00' : '0,00'
       }
     ]);
-    this.currentWeightValues.update((current) => ({ ...current, [etf.id]: 0 }));
+    this.currentWeightValues.update((current) => ({ ...current, [etf.id]: this.isTutorial ? 50 : 0 }));
 
     this.searchQuery.set('');
     this.searchResults.set([]);
     this.showSearchResults.set(false);
     this.highlightedIndex.set(0);
     this.emitState();
+    if (this.isTutorial) this.tutorialStepChange.emit('ready');
   }
 
   private async fetchEtfDetails(etf: EtfSearchItem): Promise<any | null> {
@@ -627,7 +688,22 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     this.emitState();
   }
 
+  tutorialSliderPreview: number | null = null;
+
+  onTutorialSliderRelease(index: number): void {
+    if (!this.isTutorial || this.tutorialStep !== 'reduce' || index !== 0 || this.tutorialSliderPreview === null) return;
+    this.tutorialSliderPreview = null;
+    this.items.update(items => items.map((item, i) => i === 0 ? { ...item, weight: 50, displayValue: '50,00' } : item));
+    this.currentWeightValues.update(values => ({ ...values, [this.items()[0].etfId]: 50 }));
+    this.emitState();
+    this.tutorialStepChange.emit('search');
+  }
+
   onSliderChange(index: number, value: string): void {
+    if (this.isTutorial) {
+      if (this.tutorialStep === 'reduce' && index === 0) this.tutorialSliderPreview = Number(value);
+      return;
+    }
     const nextInteger = Number.parseInt(String(value), 10);
     if (Number.isNaN(nextInteger)) {
       return;
@@ -829,6 +905,26 @@ export class MontecarloPortfolioEditorComponent implements OnChanges, OnDestroy 
     };
 
     this.portfolioSelectionService.preserveWorkingPortfolio(this.portfolioId, snapshot);
+  }
+
+  private loadTutorialComposition(): void {
+    const raw = sessionStorage.getItem('investmentLabTutorialEtf');
+    if (!raw) { this.resetEditor(); return; }
+    try {
+      const etf = JSON.parse(raw);
+      if (!etf?.isin || !etf?.id) return;
+      const item: MontecarloPortfolioItem = {
+        etfId: String(etf.id), isin: String(etf.isin),
+        ticker: String(etf.ticker || ''), nickname: String(etf.nickname || etf.name || etf.isin),
+        fullName: String(etf.name || etf.isin), weight: 100, originalWeight: 100,
+        displayValue: '100,00'
+      };
+      this.items.set([item]);
+      this.originalItems.set([item]);
+      this.currentWeightValues.set({ [item.etfId]: 100 });
+      this.selectedPortfolioName.set('Portafoglio Tutorial');
+      this.emitState();
+    } catch { this.resetEditor(); }
   }
 
   private resetEditor(): void {

@@ -6,9 +6,10 @@ import { UiCardComponent } from '../../shared/components/ui-card/ui-card.compone
 import { UiButtonComponent } from '../../shared/components/ui-button/ui-button.component';
 import { LineChartComponent, LineChartSeries, LineChartTick } from '../../shared/components/line-chart/line-chart.component';
 import { ChartLegendComponent, ChartLegendItem } from '../../shared/components/chart-legend/chart-legend.component';
-import { ChartTooltipComponent } from '../../shared/components/chart-tooltip/chart-tooltip.component';
+import { AssetDonutComponent } from '../../shared/components/asset-donut/asset-donut.component';
 import { ApiService } from '../../core/api/api.service';
 import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
+import { QuotationsUpdatedService } from '../../core/services/quotations-updated.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
@@ -18,7 +19,7 @@ interface Operation { date:string; type:'Acquisto'|'Vendita'|'Ritenuta'; isin:st
 @Component({
   selector:'app-real-portfolios-page',
   standalone:true,
-  imports:[CommonModule,FormsModule,RouterLink,UiCardComponent,UiButtonComponent,LineChartComponent,ChartLegendComponent,ChartTooltipComponent],
+  imports:[CommonModule,FormsModule,RouterLink,UiCardComponent,UiButtonComponent,LineChartComponent,ChartLegendComponent,AssetDonutComponent],
   templateUrl:'./real-portfolios-page.component.html',
   styleUrls:['./real-portfolios-page.component.css']
 })
@@ -32,10 +33,17 @@ export class RealPortfoliosPageComponent implements OnInit {
   get headerActionDisabled():boolean { return this.loadingPortfolios || this.portfolios.length===0 || !this.hasSelectedPortfolio || this.quotationRefreshRunning; }
   get headerActionRunning():boolean { return this.quotationRefreshRunning; }
   private readonly actionConfirmation = inject(ActionConfirmationService);
+  private readonly quotationsUpdated = inject(QuotationsUpdatedService);
+  private readonly quotationChangeEffect = effect(() => {
+    if (this.quotationsUpdated.version() === 0) return;
+    this.loadMarketValues();
+    this.loadHoldings();
+    this.loadHistory();
+  });
   runHeaderAction():void {
     const portfolio=this.portfolios[this.selected];
     if(!portfolio || this.quotationRefreshRunning)return;
-    this.actionConfirmation.ask(`Aggiornare le quotazioni del portafoglio ${portfolio.name}?`, 'Aggiorna', () => this.executeQuotationRefresh(portfolio.id));
+    this.executeQuotationRefresh(portfolio.id);
   }
 
   private executeQuotationRefresh(portfolioId:string):void {
@@ -55,10 +63,7 @@ export class RealPortfoliosPageComponent implements OnInit {
           this.actionConfirmation.notify('Aggiornamento quotazioni portafoglio non riuscito: ' + (response.error || 'errore sconosciuto'), true);
           return;
         }
-        this.actionConfirmation.notify('Quotazioni del portafoglio aggiornate correttamente.');
-        this.loadMarketValues();
-        this.loadHoldings();
-        this.loadHistory();
+        this.quotationsUpdated.publish();
         this.finishQuotationProgress();
       },
       error:(error)=>{
@@ -351,15 +356,10 @@ export class RealPortfoliosPageComponent implements OnInit {
   historyMode:'value'|'performance'='performance';
   historyLoading=false;
   get visibleHistory(){
-    if(this.historyPeriod==='MAX')return this.history;
-    const cutoff=new Date();
-    if(this.historyPeriod==='1W')cutoff.setUTCDate(cutoff.getUTCDate()-7);
-    else if(this.historyPeriod==='1M')cutoff.setUTCMonth(cutoff.getUTCMonth()-1);
-    else if(this.historyPeriod==='3M')cutoff.setUTCMonth(cutoff.getUTCMonth()-3);
-    else if(this.historyPeriod==='6M')cutoff.setUTCMonth(cutoff.getUTCMonth()-6);
-    else if(this.historyPeriod==='1Y')cutoff.setUTCFullYear(cutoff.getUTCFullYear()-1);
-    else if(this.historyPeriod==='3Y')cutoff.setUTCFullYear(cutoff.getUTCFullYear()-3);
-    else cutoff.setUTCFullYear(cutoff.getUTCFullYear()-5);
+    const days: Record<string, number> = { '1W': 7, '1M': 30, '3M': 91, '6M': 183, '1Y': 365, '3Y': 1095, '5Y': 1826, 'MAX': Infinity };
+    const selectedDays = days[this.historyPeriod];
+    if(selectedDays===Infinity)return this.history;
+    const cutoff=new Date();cutoff.setUTCDate(cutoff.getUTCDate()-selectedDays);
     const min=cutoff.toISOString().slice(0,10);
     return this.history.filter(row=>row.date>=min);
   }

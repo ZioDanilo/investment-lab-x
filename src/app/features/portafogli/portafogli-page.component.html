@@ -1,8 +1,10 @@
-<section class="page-panel">
+<section class="page-panel" [class.tutorial-portfolio-form-open]="isTutorial && showForm()">
 
   <!-- Header with "Nuovo Portafoglio" button -->
   <div class="portafogli-header">
     <h2>Laboratorio Portafogli</h2>
+    <div class="tutorial-new-portfolio" [class.tutorial-new-portfolio--active]="isTutorial">
+      <div *ngIf="isTutorial" class="tutorial-new-portfolio-bubble" role="status">Crea il tuo primo portafoglio simulato.</div>
     <app-tasto-conferma
       label="＋ Nuovo Portafoglio"
       loadingText="Apertura..."
@@ -10,11 +12,12 @@
       size="medium"
       [onConfirm]="openNewPortfolioForm.bind(this)"
     ></app-tasto-conferma>
+    </div>
   </div>
 
   <!-- New Portfolio Form Modal -->
   <div *ngIf="showForm()" class="modal-overlay">
-    <div class="modal-content">
+    <div class="modal-content" [class.tutorial-form-name]="isTutorial && tutorialFormStep() === 'name'" [class.tutorial-form-save]="isTutorial && tutorialFormStep() === 'save'" [class.tutorial-form-etf]="isTutorial && tutorialFormStep() === 'etf'" [class.tutorial-form-typing]="isTutorial && tutorialFormStep() === 'typing'">
       <div class="modal-header">
         <h3>{{ currentEditingPortfolioId() ? 'Modifica Portafoglio' : 'Crea Nuovo Portafoglio' }}</h3>
         <button class="btn-close" (click)="closeForm()">✕</button>
@@ -23,24 +26,31 @@
       <div class="modal-body">
         <div class="modal-fixed-fields">
           <!-- Portfolio Name -->
-          <div class="form-group">
+          <div class="form-group" [class.tutorial-name-spotlight]="isTutorial && tutorialFormStep() !== 'done'">
             <label>Nome Portafoglio</label>
+            <div *ngIf="isTutorial && tutorialFormStep() === 'name'" class="tutorial-field-bubble" role="status">Inserisci il nome del tuo portafoglio.</div>
             <input 
               type="text" 
-              [(ngModel)]="nomePortafoglio" 
+              [(ngModel)]="nomePortafoglio"
+              (focus)="onTutorialNameFocus()"
+              [readonly]="isTutorial && tutorialFormStep() !== 'name'" 
               placeholder="es. Portafoglio Conservativo"
               class="form-input"
             />
           </div>
 
           <!-- Search ETF -->
-          <div class="form-group">
+          <div class="form-group" [class.tutorial-etf-spotlight]="isTutorial && tutorialFormStep() === 'etf'">
             <label>Aggiungi ETF</label>
+            <div *ngIf="isTutorial && tutorialFormStep() === 'etf'" class="tutorial-etf-bubble" role="status">Scegli un ETF da aggiungere al tuo portafoglio.</div>
             <app-dropdown
               mode="autocomplete"
               [query]="searchQuery()"
+              [readonly]="isTutorial"
+              (inputFocus)="onTutorialEtfSearchFocus()"
               [items]="searchDropdownOptions()"
               [loading]="searchLoading()"
+              [disabled]="isTutorial && tutorialFormStep() !== 'etf'"
               placeholder="Cerca per ISIN o nome (min. 3 caratteri)"
               emptyText="Nessun ETF trovato"
               loadingText="Ricerca in corso..."
@@ -51,7 +61,7 @@
           </div>
         </div>
 
-        <div class="modal-list-zone">
+        <div class="modal-list-zone" [class.tutorial-selected-etf-visible]="isTutorial && tutorialFormStep() === 'save'">
           <!-- Selected ETFs Table -->
           <div *ngIf="selectedEtfs().length > 0" class="table-shell">
             <div class="etf-list-scroll">
@@ -81,10 +91,11 @@
                         step="1"
                         min="0"
                         [max]="getMaxWeight(i)"
+                        [readonly]="isTutorial"
                       />
                     </td>
                     <td>
-                      <button class="icon-action-button icon-action-button--danger" (click)="removeEtf(i)" title="Rimuovi ETF">
+                      <button class="icon-action-button icon-action-button--danger" [disabled]="isTutorial" (click)="removeEtf(i)" title="Rimuovi ETF">
                         <span class="icon-action-button__glyph">✕</span>
                       </button>
                     </td>
@@ -108,14 +119,17 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-cancel" (click)="closeForm()">Annulla</button>
+        <button class="btn-cancel" [disabled]="isTutorial" [class.tutorial-cancel-disabled]="isTutorial" (click)="closeForm()">Annulla</button>
+        <div class="tutorial-save-spotlight" [class.tutorial-save-spotlight--active]="isTutorial && tutorialFormStep() === 'save'">
+          <div *ngIf="isTutorial && tutorialFormStep() === 'save'" class="tutorial-save-bubble" role="status">Crea il portafoglio simulato.</div>
         <app-tasto-conferma 
           label="Salva Portafoglio"
           loadingText="Salvataggio..."
           variant="primary"
-          [disabled]="!isTotalValid() || selectedEtfs().length === 0 || !nomePortafoglio().trim() || isPortfolioNameUnavailable()"
+          [disabled]="isTutorial ? tutorialFormStep() !== 'save' : (!isTotalValid() || selectedEtfs().length === 0 || !nomePortafoglio().trim() || isPortfolioNameUnavailable())"
           [onConfirm]="savePortafoglio.bind(this)"
         ></app-tasto-conferma>
+        </div>
       </div>
     </div>
   </div>

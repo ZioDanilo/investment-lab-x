@@ -629,3 +629,199 @@ input.invalid,
 .form-input.invalid {
   border-color: #ff6b6b;
 }
+
+/* Tutorial step: highlight only the existing New Portfolio control. */
+.tutorial-new-portfolio { position:relative; }
+.tutorial-new-portfolio--active { z-index:95;pointer-events:auto;filter:none;opacity:1; }
+.tutorial-new-portfolio-bubble {
+  position:absolute;right:calc(100% + 18px);top:50%;transform:translateY(-50%);
+  width:235px;padding:14px 16px;border:2px solid #5cbcff;border-radius:12px;
+  background:#f1f8ff;color:#12304a;box-shadow:0 12px 30px #0009;
+  font-size:14px;font-weight:700;line-height:1.45;pointer-events:none;
+}
+.tutorial-new-portfolio-bubble::after {
+  content:"";position:absolute;right:-9px;top:calc(50% - 8px);
+  width:14px;height:14px;transform:rotate(45deg);background:#f1f8ff;
+  border-top:2px solid #5cbcff;border-right:2px solid #5cbcff;
+}
+@media(max-width:760px){.tutorial-new-portfolio-bubble{right:0;top:calc(100% + 15px);transform:none;}}
+
+/* Two-step tutorial editor: darken the real form and expose exactly one control. */
+.modal-content.tutorial-form-name,
+.modal-content.tutorial-form-save { position:relative;isolation:isolate; }
+.modal-content.tutorial-form-name::after,
+.modal-content.tutorial-form-save::after {
+  content:"";position:absolute;inset:0;z-index:40;
+  background:rgba(2,9,19,.72);pointer-events:auto;
+}
+.modal-content .tutorial-name-spotlight { position:relative;z-index:41; }
+.modal-content .tutorial-name-spotlight .form-input { position:relative;z-index:42;pointer-events:auto; }
+.modal-content .tutorial-name-spotlight label { color:#edf6ff; }
+.modal-content .tutorial-save-spotlight--active { position:relative;z-index:41;pointer-events:auto; }
+.modal-content.tutorial-form-save .tutorial-name-spotlight { z-index:auto; }
+.modal-content.tutorial-form-save .form-input { pointer-events:none; }
+.tutorial-field-bubble,.tutorial-save-bubble {
+  position:absolute;z-index:43;right:calc(100% + 16px);top:50%;
+  transform:translateY(-50%);width:235px;padding:13px 16px;
+  border:2px solid #5cbcff;border-radius:12px;background:#f1f8ff;
+  color:#12304a;box-shadow:0 12px 30px #0009;font-size:14px;
+  font-weight:700;line-height:1.45;pointer-events:none;
+}
+.tutorial-field-bubble::after,.tutorial-save-bubble::after {
+  content:"";position:absolute;right:-9px;top:calc(50% - 8px);
+  width:14px;height:14px;transform:rotate(45deg);background:#f1f8ff;
+  border-top:2px solid #5cbcff;border-right:2px solid #5cbcff;
+}
+@media(max-width:900px){
+  .tutorial-field-bubble,.tutorial-save-bubble {right:auto;left:0;top:calc(100% + 14px);transform:none;}
+}
+
+.modal-content .tutorial-field-bubble {left:55%;right:auto;top:calc(100% + 12px);transform:none;}
+.modal-content.tutorial-form-save .tutorial-name-spotlight {z-index:41;pointer-events:none;}
+.modal-content .tutorial-save-spotlight--active {z-index:100;opacity:1;filter:none;}
+.modal-content .tutorial-save-bubble {top:calc(50% - 35px);}
+
+.modal-content .tutorial-field-bubble::after {left:24px;right:auto;top:-9px;transform:rotate(-45deg);border-right:0;border-left:2px solid #5cbcff;}
+.modal-content.tutorial-form-save .tutorial-name-spotlight .form-input {opacity:1;filter:none;pointer-events:none;}
+.modal-content .tutorial-save-spotlight--active app-tasto-conferma {display:block;pointer-events:auto;}
+@media(max-width:900px){.modal-content .tutorial-field-bubble{left:12px;right:auto;top:calc(100% + 12px);}}
+
+/* Typing and ETF-search steps share the same dimmed editor. */
+.modal-content.tutorial-form-typing,.modal-content.tutorial-form-etf {position:relative;isolation:isolate;}
+.modal-content.tutorial-form-typing::after,.modal-content.tutorial-form-etf::after {
+  content:"";position:absolute;inset:0;z-index:40;background:rgba(2,9,19,.72);pointer-events:auto;
+}
+.modal-content.tutorial-form-etf .tutorial-name-spotlight,
+.modal-content.tutorial-form-typing .tutorial-name-spotlight {z-index:41;pointer-events:none;}
+.modal-content.tutorial-form-etf .tutorial-name-spotlight .form-input,
+.modal-content.tutorial-form-typing .tutorial-name-spotlight .form-input {pointer-events:none;opacity:1;filter:none;}
+.modal-content .tutorial-etf-spotlight {position:relative;z-index:42;pointer-events:auto;}
+.modal-content .tutorial-etf-spotlight app-dropdown {position:relative;z-index:43;pointer-events:auto;}
+.modal-content .tutorial-etf-spotlight label {color:#edf6ff;}
+.modal-content .tutorial-etf-bubble {
+  position:absolute;left:calc(100% + 15px);top:50%;transform:translateY(-50%);
+  width:190px;padding:13px 16px;border:2px solid #5cbcff;border-radius:12px;
+  background:#f1f8ff;color:#12304a;box-shadow:0 12px 30px #0009;
+  font-size:14px;font-weight:700;line-height:1.45;pointer-events:none;
+}
+@media(max-width:1100px){.modal-content .tutorial-etf-bubble {left:12px;top:calc(100% + 12px);transform:none;}}
+
+.modal-content.tutorial-form-save .tutorial-selected-etf-visible {position:relative;z-index:41;pointer-events:none;}
+.modal-content.tutorial-form-save .tutorial-selected-etf-visible .portfolio-table,.modal-content.tutorial-form-save .tutorial-selected-etf-visible .total-weight {opacity:1;filter:none;}
+.modal-content.tutorial-form-save .tutorial-selected-etf-visible .weight-input {pointer-events:none;opacity:1;}
+
+/* Keep the save instruction above the 100% composition table. */
+.modal-content.tutorial-form-save .modal-footer {position:relative;z-index:90;overflow:visible;}
+.modal-content.tutorial-form-save .tutorial-save-spotlight--active {z-index:110;}
+.modal-content.tutorial-form-save .tutorial-save-bubble {top:-74px;transform:none;z-index:115;}
+.modal-content.tutorial-form-save .tutorial-selected-etf-visible {z-index:41;}
+
+/* Tutorial: Cancel stays visible but cannot be used. */
+.modal-content .btn-cancel.tutorial-cancel-disabled {opacity:.22;filter:brightness(.4);cursor:not-allowed;pointer-events:none;}
+
+/* Keep the ETF instruction above the dimmer and next to the actual search. */
+.modal-content.tutorial-form-etf .tutorial-etf-spotlight {
+  isolation:isolate;
+  z-index:60!important;
+  overflow:visible!important;
+}
+.modal-content.tutorial-form-etf .tutorial-etf-bubble {
+  z-index:65!important;
+  visibility:visible!important;
+  opacity:1!important;
+  left:calc(100% + 15px);
+  top:50%;
+}
+@media(max-width:1100px){
+  .modal-content.tutorial-form-etf .tutorial-etf-bubble {
+    left:12px;
+    top:calc(100% + 12px);
+    transform:none;
+  }
+}
+
+/* Portfolio creation stays below the persistent 64px+padding navbar,
+   instead of opening a full-viewport layer over global navigation. */
+.modal-overlay {
+  top:84px;
+  bottom:0;
+  height:calc(100dvh - 84px);
+}
+.modal-content {
+  height:100%;
+  min-height:0;
+  max-height:100%;
+  width:100%;
+}
+@media(max-width:760px){
+  .modal-overlay {
+    top:84px;
+    height:calc(100dvh - 84px);
+  }
+}
+
+/* The ETF guidance must remain inside the modal viewport (not clipped at
+   the right edge of the full-width portfolio creation form). */
+.modal-content.tutorial-form-etf .tutorial-etf-spotlight {
+  position:relative!important;
+  z-index:60!important;
+  isolation:isolate;
+}
+.modal-content.tutorial-form-etf .tutorial-etf-bubble {
+  position:absolute!important;
+  left:auto!important;
+  right:12px!important;
+  top:-53px!important;
+  transform:none!important;
+  width:max-content!important;
+  max-width:min(360px,calc(100vw - 42px))!important;
+  box-sizing:border-box;
+  z-index:100!important;
+  display:block!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+@media(max-width:600px) {
+  .modal-content.tutorial-form-etf .tutorial-etf-bubble {
+    top:-68px!important;
+    right:0!important;
+    max-width:calc(100vw - 40px)!important;
+    font-size:12px;
+  }
+}
+
+/* Tutorial ETF instruction: keep its vertical position, align it at 15%
+   of the viewport from the left instead of the far right. */
+.modal-content.tutorial-form-etf .tutorial-etf-bubble {
+  left:calc(15vw - 1rem)!important;
+  right:auto!important;
+}
+@media(max-width:600px) {
+  .modal-content.tutorial-form-etf .tutorial-etf-bubble {
+    left:calc(15vw - 1rem)!important;
+    right:auto!important;
+  }
+}
+
+/* Portfolio editor follows the standard feature-page body geometry:
+   sidebar column remains free and the 58px action row is reserved. */
+@media(min-width:1181px){
+  .modal-overlay {
+    left:calc(156px + 12px + 8px)!important;
+    right:8px!important;
+    top:calc(84px + 58px + 3px)!important;
+    bottom:0!important;
+    width:auto!important;
+    height:calc(100dvh - 145px)!important;
+  }
+}
+@media(max-width:1180px){
+  .modal-overlay {
+    left:8px!important;
+    right:8px!important;
+    top:calc(84px + 58px + 3px)!important;
+    bottom:0!important;
+    width:auto!important;
+    height:calc(100dvh - 145px)!important;
+  }
+}

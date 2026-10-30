@@ -1,4 +1,4 @@
-<div class="home-shell">
+<div class="home-shell" [class.home-shell--tutorial]="isTutorial">
   <header class="top-nav">
     <div class="brand-group" aria-label="Razer brand">
       <div class="brand-copy">
@@ -31,10 +31,11 @@
     </div>
   </header>
 
+  <div *ngIf="isTutorial" class="tutorial-dim" aria-hidden="true"></div>
   <main class="home-main">
     <section class="workspace-header" aria-label="Header workspace">
       <div class="workspace-copy">
-        <p class="welcome-label">Bentornato, {{ loggedUsername }}</p>
+        <p class="welcome-label">{{ isTutorial ? 'Tutorial' : 'Bentornato, ' + loggedUsername }}</p>
         <h1>Cosa vuoi costruire oggi?</h1>
         <p class="workspace-subtitle">Costruisci, confronta e testa i tuoi portafogli.</p>
       </div>
@@ -44,12 +45,14 @@
       <article
         *ngFor="let item of shortcuts; let i = index"
         class="shortcut-card"
+        [class.tutorial-target]="isTutorial && item.title === 'Laboratorio Portafogli'"
         [ngClass]="'shortcut-card--' + item.accent"
-        [routerLink]="item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : item.title === 'I miei Portafogli' ? ['/portafogli'] : item.title === 'Monte Carlo' ? ['/monte-carlo'] : item.title === 'Ribilanciamento' ? ['/ribilanciamento'] : item.title === 'ETF & Mercati' ? ['/market-universe'] : item.title === 'Trend Following' ? ['/trend-following'] : null"
+        [routerLink]="isTutorial ? (item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : null) : item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : item.title === 'I miei Portafogli' ? ['/portafogli'] : item.title === 'Monte Carlo' ? ['/monte-carlo'] : item.title === 'Ribilanciamento' ? ['/ribilanciamento'] : item.title === 'ETF & Mercati' ? ['/market-universe'] : item.title === 'Trend Following' ? ['/trend-following'] : null"
         [attr.aria-label]="item.title"
         tabindex="0"
         role="button"
       >
+        <div *ngIf="isTutorial && item.title === 'Laboratorio Portafogli'" class="tutorial-bubble" role="status">Clicca su Laboratorio Portafogli per creare il tuo primo portafoglio simulato.</div>
         <div class="shortcut-card__top">
           <span class="shortcut-icon material-symbols-rounded">{{ item.icon }}</span>
         </div>
@@ -109,22 +112,10 @@
           </div>
         </div>
 
-        <div class="asset-layout">
-          <div class="asset-donut" aria-label="Distribuzione asset class">
-            <div class="asset-donut__center">
-              <strong>312</strong>
-              <span>ETF disponibili</span>
-            </div>
-          </div>
-
-          <ul class="asset-legend">
-            <li *ngFor="let item of assetMix">
-              <span class="legend-dot" [style.background]="item.color"></span>
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </li>
-          </ul>
-        </div>
+        <div class="asset-state" *ngIf="assetLoading">Caricamento ETF...</div>
+        <div class="asset-state" *ngIf="assetError">Impossibile caricare la distribuzione ETF.</div>
+        <app-asset-donut *ngIf="!assetLoading && !assetError" [items]="assetMix" [showCounts]="true"
+          [centerText]="totalEtfs.toString()" centerCaption="ETF disponibili"></app-asset-donut>
       </article>
     </section>
 
@@ -177,7 +168,7 @@
         <div class="panel-header compact">
           <div>
             <p class="panel-kicker">Laboratorio</p>
-            <h3>ETFolio</h3>
+            <h3>Razer</h3>
           </div>
         </div>
 

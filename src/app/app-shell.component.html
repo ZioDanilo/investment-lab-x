@@ -1,4 +1,4 @@
-<div class="app-shell">
+<div class="app-shell" [class.app-shell--tutorial]="isTutorial">
   <header class="global-navbar" aria-label="Navigazione principale">
     <div class="brand-group" aria-label="Razer brand">
       <div class="brand-copy">
@@ -9,11 +9,15 @@
 
     <nav class="nav-links" aria-label="Menu principale">
       <a routerLink="/home" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="goHome($event)">Home</a>
-      <app-portfolio-selector></app-portfolio-selector>
+      <app-portfolio-selector *ngIf="!isTutorial"></app-portfolio-selector>
     </nav>
 
     <div class="nav-actions" aria-label="Profilo">
-      <div class="profile-menu">
+      <button *ngIf="isTutorial" type="button" class="tutorial-exit-navbar profile-dropdown__item profile-dropdown__item--logout" (click)="logout($event)" aria-label="Esci da tutorial">
+        <span class="material-symbols-rounded">logout</span>
+        <span>Esci da tutorial</span>
+      </button>
+      <div *ngIf="!isTutorial" class="profile-menu">
         <button type="button" class="avatar-button" aria-label="Profilo utente" aria-haspopup="menu" [attr.aria-expanded]="profileMenuOpen" (click)="toggleProfileMenu($event)">
           <span>{{ loggedUsername }}</span>
         </button>
@@ -29,17 +33,23 @@
           <div *ngIf="isAdmin" class="profile-dropdown__separator" aria-hidden="true"></div>
           <button type="button" class="profile-dropdown__item profile-dropdown__item--logout" role="menuitem" (click)="logout($event)">
             <span class="material-symbols-rounded">logout</span>
-            <span>Logout</span>
+            <span>{{ isTutorial ? 'Esci da tutorial' : 'Logout' }}</span>
           </button>
         </div>
       </div>
     </div>
   </header>
 
-  <main class="route-content" [class.route-content--feature]="showFeatureSidebar">
+  <div *ngIf="isImportingYahooPrices" class="global-quotation-progress" role="progressbar" aria-label="Aggiornamento di tutte le quotazioni" [attr.aria-valuenow]="yahooPricesProgress" aria-valuemin="0" aria-valuemax="100">
+    <span class="global-quotation-progress__fill" [style.width.%]="yahooPricesProgress"></span>
+    <span class="global-quotation-progress__label">Aggiornamento quotazioni · {{ yahooPricesProgress | number:'1.0-0' }}%</span>
+  </div>
+
+  <main class="route-content" [class.route-content--feature]="showFeatureSidebar" [class.tutorial-lab-locked]="isTutorial && isLaboratoryTutorial" [class.tutorial-monte-carlo]="isTutorial && isMonteCarloTutorial" [class.tutorial-monte-carlo-before-run]="isMonteCarloTutorialBeforeRun">
     <div *ngIf="showFeatureSidebar || isRegeneratingMarketUniverse" class="app-feature-action-row" [class.app-feature-action-row--home]="!showFeatureSidebar">
-      <div *ngIf="isRebalancePage" class="rebalance-target-selector" [style.left.px]="rebalanceTargetLeft" [style.width.px]="rebalanceTargetWidth"><span>Portafoglio target</span><app-portfolio-selector mode="laboratorio" [showLabel]="false"></app-portfolio-selector><label class="rebalance-cash-selector"><span>Liquidità da aggiungere</span><app-money-input label="Liquidità da aggiungere" [value]="rebalanceInputs.cashToAdd()" (valueChange)="rebalanceInputs.setCash($event)"></app-money-input></label></div>
+      <div *ngIf="isRebalancePage && !isRegeneratingMarketUniverse" class="rebalance-target-selector" [style.left.px]="rebalanceTargetLeft" [style.width.px]="rebalanceTargetWidth"><span>Portafoglio target</span><app-portfolio-selector mode="laboratorio" [showLabel]="false"></app-portfolio-selector><label class="rebalance-cash-selector"><span>Liquidità da aggiungere</span><app-money-input label="Liquidità da aggiungere" [value]="rebalanceInputs.cashToAdd()" (valueChange)="rebalanceInputs.setCash($event)"></app-money-input></label></div>
       <div *ngIf="!isRegeneratingMarketUniverse && activeFeaturePage?.draft && activeFeaturePage?.draftEditorTemplate" class="trend-draft-header-slot"><ng-container *ngTemplateOutlet="activeFeaturePage.draftEditorTemplate"></ng-container></div>
+      <div *ngIf="isMonteCarloTutorialBeforeRun" class="tutorial-monte-carlo-run-bubble" role="status">Fai partire la tua prima simulazione Monte Carlo.</div>
       <button *ngIf="featureActionLabel" type="button" class="app-feature-action" [class.is-running]="featureActionRunning" [disabled]="featureActionDisabled" (click)="runFeatureAction()">
         <span class="app-feature-action__fill" [style.width.%]="featureActionProgress"></span>
         <span class="app-feature-action__content"><span class="material-symbols-rounded">{{ featureActionIcon }}</span><span>{{ featureActionLabel }}</span></span>
@@ -48,15 +58,17 @@
         <span class="app-feature-action__content"><span class="material-symbols-rounded">{{ secondaryFeatureActionIcon }}</span><span>{{ secondaryFeatureActionLabel }}</span></span>
       </button>
     </div>
-    <aside *ngIf="showFeatureSidebar" class="app-feature-sidebar" aria-label="Navigazione ETFolio">
+    <aside *ngIf="showFeatureSidebar" class="app-feature-sidebar" aria-label="Navigazione Razer">
       <a class="app-feature-menu-card app-feature-menu-card--blue" routerLink="/laboratorio-portafogli" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">science</span><span>Laboratorio Portafogli</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--purple" routerLink="/portafogli" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">folder</span><span>I miei Portafogli</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--green" routerLink="/monte-carlo" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">trending_up</span><span>Monte Carlo</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--amber" routerLink="/ribilanciamento" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">sync</span><span>Ribilanciamento</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--blue" routerLink="/trend-following" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">show_chart</span><span>Trend Following</span></a>
       <a class="app-feature-menu-card app-feature-menu-card--cyan" routerLink="/market-universe" routerLinkActive="is-active"><span class="app-feature-menu-icon material-symbols-rounded">bar_chart</span><span>ETF & Mercati</span></a>
+      <div class="mock-ad-slot mock-ad-slot--sidebar"><app-adsense-slot slot="2590507807" /></div>
     </aside>
-    <section class="route-page"><router-outlet (activate)="onFeatureActivate($event)"></router-outlet></section>
+    <app-ad-rail *ngIf="!showFeatureSidebar" class="mock-ad-home-stack" aria-label="Spazi pubblicitari" />
+    <section class="route-page" [class.tutorial-locked]="isTutorial"><router-outlet (activate)="onFeatureActivate($event)"></router-outlet></section>
   </main>
 </div>
 

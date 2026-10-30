@@ -5,6 +5,7 @@ import { catchError, finalize, map } from 'rxjs/operators';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import { ApiService } from '../../core/api/api.service';
 import { ActionConfirmationService } from '../../core/services/action-confirmation.service';
+import { QuotationsUpdatedService } from '../../core/services/quotations-updated.service';
 import { RebalanceInputService } from '../../core/services/rebalance-input.service';
 import { RebalanceRow } from '../../core/models/rebalance.model';
 import { optimizeRebalance } from './rebalance-optimizer';
@@ -31,6 +32,7 @@ export class RebalanceComponent {
   private readonly selection = inject(PortfolioSelectionService);
   private readonly api = inject(ApiService);
   private readonly actionConfirmation = inject(ActionConfirmationService);
+  private readonly quotationsUpdated = inject(QuotationsUpdatedService);
   readonly rebalanceInputs = inject(RebalanceInputService);
   readonly cashToAdd = this.rebalanceInputs.cashToAdd;
   readonly selectedRealPortfolio = computed(() => {
@@ -79,6 +81,11 @@ export class RebalanceComponent {
   refreshQuotation(isin: string): void {
     const key = isin.toUpperCase();
     if (!key || this.refreshingIsins().includes(key)) return;
+    this.executeQuotationRefresh(key);
+  }
+
+  private executeQuotationRefresh(key: string): void {
+    if (this.refreshingIsins().includes(key)) return;
     this.refreshingIsins.update(keys => [...keys, key]);
     this.quotationErrors.update(errors => { const next = {...errors}; delete next[key]; return next; });
     this.api.refreshSingleEodhdQuotation(key).pipe(finalize(() => this.refreshingIsins.update(keys => keys.filter(value => value !== key)))).subscribe({
@@ -95,7 +102,7 @@ export class RebalanceComponent {
         this.pricesByIsin.update(prices => ({...prices, [key]: price}));
         this.holdings.update(items => items.map(h => h.isin.toUpperCase() === key ? {...h, currentPrice:price, marketValue:Number(h.quantity)*price} : h));
         if (date !== this.todayRome) this.quotationErrors.update(errors => ({...errors, [key]: `Ultima chiusura disponibile: ${date}`}));
-        this.actionConfirmation.notify('Quotazione ' + key + ' aggiornata: ' + price + ' (' + date + ').');
+        this.quotationsUpdated.publish();
       },
       error: (error: any) => {
         const message = error?.error?.error || 'Aggiornamento non riuscito';
@@ -109,6 +116,7 @@ export class RebalanceComponent {
     // A single quotation request per ISIN supplies both price and date,
     // including ETFs present only in the simulated target portfolio.
     effect((onCleanup) => {
+      this.quotationsUpdated.version();
       const isins = [...new Set([
         ...this.holdings().map(h => h.isin.toUpperCase()),
         ...this.targetHoldings().map(t => t.isin.toUpperCase())
@@ -173,6 +181,7 @@ export class RebalanceComponent {
     effect((onCleanup) => {
       const portfolio = this.selectedRealPortfolio();
       const refresh = this.selection.refreshVersion();
+      this.quotationsUpdated.version();
       void refresh;
       const version = ++this.requestVersion;
       this.holdings.set([]);
@@ -257,6 +266,7 @@ export class RebalanceComponent {
     if(!this.selectedRealPortfolio() || !this.selection.lastLaboratoryPortfolioId() ||
        this.loadingHoldings() || this.targetLoading() || this.holdingsError() || this.targetError()) return null;
     const rows=this.rows();
+    if (this.withdrawalExceedsPortfolio()) return null;
     if(!rows.length)return null;
     if (rows.some(r => !Number.isFinite(r.marketPrice) || r.marketPrice <= 0)) return null;
     // Never estimate sale taxes using an unknown or zero cost basis.
@@ -284,4 +294,5 @@ export class RebalanceComponent {
   readonly remainingCash = computed(() => this.optimization()?.cashRemaining ?? 0);
   readonly totalValue = computed(() => this.rows().reduce((sum, row) => sum + row.marketValue, 0));
   readonly totalInvestable = computed(() => this.totalValue() + this.cashToAdd());
+  readonly withdrawalExceedsPortfolio = computed(() => this.cashToAdd() < 0 && -this.cashToAdd() > this.totalValue());
 }
