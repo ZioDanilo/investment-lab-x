@@ -87,7 +87,7 @@ const STRATEGIES = [
             </div>
           </ng-container></div>
           </div>
-          <label *ngIf="isThresholdStrategy(draft.strategyKey)" class="threshold-field"><input type="text" inputmode="decimal" placeholder="Soglia %" [value]="draftThresholdText" (input)="onDraftThresholdInput($event)" (blur)="onDraftThresholdBlur()" aria-label="Soglia percentuale" /></label>
+          <label *ngIf="isThresholdStrategy(draft.strategyKey)" class="threshold-field"><input type="text" inputmode="decimal" placeholder="0" [value]="draftThresholdText" (input)="onDraftThresholdInput($event)" (blur)="onDraftThresholdBlur()" aria-label="Soglia percentuale" /></label>
           <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin || (draft.strategyKey === 'momentum-world-xeon' && !draft.benchmarkIsin)" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+'nuova'"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
         </article>
@@ -281,7 +281,9 @@ const STRATEGIES = [
     .draft-list .etf-slots--threshold{flex:1 1 0;min-width:0;grid-template-columns:minmax(0,1fr)}
     .draft-list .etf-slots--threshold + .threshold-field{flex:1 1 0;min-width:0;width:auto}
     .draft-list .threshold-field{display:flex;flex:1 1 0;min-width:0;padding:0;border:0;background:transparent}
-    .draft-list .threshold-field input{width:100%;flex:1;min-width:0;height:39px;box-sizing:border-box;background:var(--surface-elevated);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:0 9px;font:inherit}
+    .draft-list .threshold-field input{width:100%;flex:1;min-width:0;height:39px;box-sizing:border-box;background:transparent;color:var(--text);border:1px solid rgba(24,217,246,.30);border-radius:7px;padding:0 9px;font:inherit;outline:none}
+    .draft-list .threshold-field input:focus{border-color:#18d9f6;outline:none}
+    .draft-list .threshold-field input:focus::placeholder{color:transparent}
     .criterion:not(.criterion--draft) .saved-etf-slots.etf-slots--threshold{grid-template-columns:repeat(2,minmax(0,1fr))}
     .saved-threshold-text{display:flex;align-items:center;box-sizing:border-box;width:100%;height:39px;padding:0 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text-secondary)}
     .draft-list .primary-search{width:100%;flex:1 1 0;min-width:0}
@@ -519,7 +521,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private createRow(strategyKey='',isin='',benchmarkIsin='',signal:'buy'|'sell'='sell'):Criterion{
     return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,thresholdPercent:0,price:null,average:null,benchmarkReturn:null,continuityCount:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
-  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.resetDraftFilters();this.draft=this.createRow();this.draftThresholdText='0'}
+  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.resetDraftFilters();this.draft=this.createRow();this.draftThresholdText=''}
   pendingRemoveRow:Criterion|null=null;
   requestRemoveCriterion(row:Criterion):void{this.pendingRemoveRow=row}
   cancelRemoveCriterion():void{this.pendingRemoveRow=null}
