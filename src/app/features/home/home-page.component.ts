@@ -167,6 +167,54 @@ export class HomePageComponent implements OnInit, OnDestroy {
     return value === null || !Number.isFinite(value) ? '—' : (value * 100).toFixed(1).replace('.', ',') + '%';
   }
 
+  // Market Universe V2 binary projection (MU64): 1000 simulated paths x 360 months.
+  // KPI calculated from the projected monthly portfolio returns, not legacy snapshots.
+  private calculateMarketUniverseV2Kpis(buffer: ArrayBuffer): { cagr: number; drawdown: number; volatility: number } {
+    const view = new DataView(buffer);
+    if (buffer.byteLength < 32 || String.fromCharCode(...new Uint8Array(buffer, 0, 4)) !== 'MU64') {
+      throw new Error('Risposta Market Universe V2 non valida');
+    }
+    const version = view.getUint16(4, true);
+    const pathCount = view.getUint32(12, true);
+    const monthCount = view.getUint32(16, true);
+    const runIdBytes = view.getUint32(8, true);
+    if (version !== 1 || !pathCount || !monthCount) throw new Error('Geometria Market Universe V2 non valida');
+    const offset = 32 + runIdBytes;
+    const required = pathCount * monthCount;
+    if (buffer.byteLength < offset + required * 8) throw new Error('Risposta Market Universe V2 incompleta');
+    const annualReturns: number[] = [];
+    const maxDrawdowns: number[] = [];
+    let monthlySum = 0;
+    let monthlySumSquares = 0;
+    for (let path = 0; path < pathCount; path++) {
+      let capital = 1;
+      let peak = 1;
+      let worst = 0;
+      for (let month = 0; month < monthCount; month++) {
+        const ret = view.getFloat64(offset + (path * monthCount + month) * 8, true);
+        if (!Number.isFinite(ret) || ret <= -1) throw new Error('Rendimento mensile V2 non valido');
+        monthlySum += ret;
+        monthlySumSquares += ret * ret;
+        capital *= 1 + ret;
+        peak = Math.max(peak, capital);
+        worst = Math.min(worst, capital / peak - 1);
+      }
+      annualReturns.push(Math.pow(capital, 12 / monthCount) - 1);
+      maxDrawdowns.push(worst);
+    }
+    // Robust CAGR: 5%-trimmed mean across Monte Carlo paths.
+    annualReturns.sort((a, b) => a - b);
+    const trim = Math.floor(pathCount * .05);
+    const central = annualReturns.slice(trim, pathCount - trim);
+    const cagr = central.reduce((sum, x) => sum + x, 0) / central.length;
+    maxDrawdowns.sort((a, b) => a - b);
+    const drawdown = maxDrawdowns[Math.floor(pathCount / 2)];
+    const n = required;
+    const mean = monthlySum / n;
+    const volatility = Math.sqrt(Math.max(0, monthlySumSquares / n - mean * mean) * 12);
+    return { cagr, drawdown, volatility };
+  }
+
   private async loadHomeSimulations(): Promise<void> {
     this.simulationsLoading = true;
     this.simulationsError = false;
@@ -193,21 +241,14 @@ export class HomePageComponent implements OnInit, OnDestroy {
             .map(h => ({ isin: String(h.isin || h.etf?.isin || '').toUpperCase(), weight: Math.max(0, Number(h.marketValue) || 0) / total }))
             .filter(p => p.isin && p.weight > 0);
           if (!positions.length) throw new Error('Composizione non disponibile');
-          const snapshotResponse = await firstValueFrom(this.api.getMonteCarloSnapshot(buildMonteCarloSnapshotRequest(positions)));
+          const binary = await firstValueFrom(this.api.buildBinaryPortfolioProjectionV2({
+            holdings: positions.map(p => ({ isin: p.isin, weight: p.weight }))
+          }));
           if (this.destroyed) return;
-          const snapshot = snapshotResponse?.data;
-          if (!snapshot) throw new Error('Snapshot non disponibile');
-          const input = buildMonteCarloUserInput(positions, 100_000, 30);
-          validateMonteCarloRunContract(input, snapshot);
-          const coordinator = new MonteCarloCoordinator({ input, snapshot, mode: 'COMPLETE', advancedStatistics: false });
-          this.activeSimulation = coordinator;
-          const outcome = await coordinator.run();
-          this.activeSimulation = null;
-          if (this.destroyed) return;
-          if (outcome.status !== 'success' || !outcome.result) throw new Error(outcome.error?.message || 'Simulazione fallita');
-          item.cagr = outcome.result.mainKpis.robustCagr;
-          item.drawdown = outcome.result.mainKpis.robustMaxDrawdown;
-          item.volatility = outcome.result.mainKpis.volatility;
+          const stats = this.calculateMarketUniverseV2Kpis(binary);
+          item.cagr = stats.cagr;
+          item.drawdown = stats.drawdown;
+          item.volatility = stats.volatility;
           item.status = 'ready';
           item.error = undefined;
         } catch (error) {
