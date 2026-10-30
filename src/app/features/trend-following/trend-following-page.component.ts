@@ -278,6 +278,11 @@ const STRATEGIES = [
     .criterion:not(.criterion--draft) .saved-etf-slots .third-slot .saved-etf-text{flex:1 1 0;min-width:0}
     .criterion:not(.criterion--draft) .saved-metrics .metric.outcome--signal{border:3px solid #ffd447}
     .criterion:not(.criterion--draft) .saved-strategy-text{width:calc(100% - 8px);margin-right:8px}
+    .draft-list .etf-slots--threshold{flex:1 1 0;min-width:0;grid-template-columns:minmax(0,1fr)}
+    .draft-list .etf-slots--threshold + .threshold-field{flex:1 1 0;min-width:0;width:auto}
+    .draft-list .threshold-field input{width:100%;flex:1;min-width:0;height:39px;box-sizing:border-box}
+    .criterion:not(.criterion--draft) .saved-etf-slots.etf-slots--threshold{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .saved-threshold-text{display:flex;align-items:center;box-sizing:border-box;width:100%;height:39px;padding:0 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text-secondary)}
     .draft-list .primary-search{width:100%;flex:1 1 0;min-width:0}
     .filter-empty{display:block;padding:9px;color:var(--text-secondary);font-size:12px}
     .trend-metric-tooltip{position:fixed;z-index:6000;pointer-events:none;max-width:300px;white-space:normal;padding:5px 8px;border-radius:6px;background:rgba(7,14,23,.96);border:1px solid rgba(93,167,255,.65);color:#f2f8ff;font-size:11px;font-weight:700;line-height:1.2;box-shadow:0 10px 28px rgba(0,0,0,.34)}
