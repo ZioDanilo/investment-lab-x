@@ -1,12 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ApiService } from '../../core/api/api.service';
 import { AssetDonutComponent, AssetDonutItem } from '../../shared/components/asset-donut/asset-donut.component';
 import { Router, RouterLink } from '@angular/router';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import { QuotationService } from '../../core/services/quotation.service';
-import { forkJoin, of } from 'rxjs';
+import { firstValueFrom, forkJoin, of } from 'rxjs';
+import { buildMonteCarloSnapshotRequest, buildMonteCarloUserInput } from '../../core/monte-carlo-ui-flow';
+import { MonteCarloCoordinator } from '../../core/engines/monte-carlo-coordinator';
+import { validateMonteCarloRunContract } from '../../core/validation/monte-carlo-contract.validator';
 import { catchError, map, switchMap } from 'rxjs/operators';
+
+interface HomeSimulation { id: string; name: string; status: 'loading' | 'ready' | 'error'; cagr: number | null; drawdown: number | null; volatility: number | null; }
 
 interface TrendAlert { portfolioId: string; portfolio: string; strategy: string; signal: 'Acquisto' | 'Vendita'; etf: string; }
 
@@ -63,8 +68,13 @@ interface ActivityItem {
   templateUrl: './home-page.component.html',
   styleUrls: ['./home-page.component.css']
 })
-export class HomePageComponent implements OnInit {
+export class HomePageComponent implements OnInit, OnDestroy {
   constructor(private readonly api: ApiService, private readonly quotations: QuotationService, private readonly portfolioSelection: PortfolioSelectionService, private readonly router: Router) {}
+  simulations: HomeSimulation[] = [];
+  simulationsLoading = false;
+  simulationsError = false;
+  private destroyed = false;
+  private activeSimulation: MonteCarloCoordinator | null = null;
   trendAlerts: TrendAlert[] = [];
   alertsLoading = false;
   alertsError = false;
@@ -74,7 +84,7 @@ export class HomePageComponent implements OnInit {
   assetError = false;
   private readonly assetColors = ['#2D91FF','#31D48D','#FF526C','#FF9F43','#9B67ED','#21C7C7','#F9BE48','#E96BA8','#64A7FF','#86D957'];
   get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
-  ngOnInit(): void { if (!this.isTutorial) { this.loadAssetMix(); this.loadPortfolioSummary(); this.loadTrendAlerts(); } else this.assetLoading = false; }
+  ngOnInit(): void { if (!this.isTutorial) { this.loadAssetMix(); this.loadPortfolioSummary(); this.loadTrendAlerts(); this.loadHomeSimulations(); } else this.assetLoading = false; }
   private loadAssetMix(): void {
     this.assetLoading = true;
     this.assetError = false;
@@ -146,6 +156,69 @@ export class HomePageComponent implements OnInit {
   openTrendAlert(alert: TrendAlert): void {
     this.portfolioSelection.setSelectedPortfolio(alert.portfolioId);
     void this.router.navigate(['/trend-following']);
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    this.activeSimulation?.cancel();
+  }
+
+  formatSimulationPercent(value: number | null): string {
+    return value === null || !Number.isFinite(value) ? '—' : (value * 100).toFixed(1).replace('.', ',') + '%';
+  }
+
+  private async loadHomeSimulations(): Promise<void> {
+    this.simulationsLoading = true;
+    this.simulationsError = false;
+    try {
+      const response: any = await firstValueFrom(this.api.getPortfolios());
+      if (this.destroyed) return;
+      const portfolios: any[] = (Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [])
+        .filter((p: any) => p.tipo === 'reale');
+      this.simulations = portfolios.map((p: any) => ({
+        id: String(p.id), name: String(p.name || p.nome || p.id),
+        status: 'loading' as const, cagr: null, drawdown: null, volatility: null
+      }));
+      // Run sequentially to avoid saturating the browser with concurrent Monte Carlo workers.
+      for (const item of this.simulations) {
+        if (this.destroyed) return;
+        try {
+          const holdingsResponse: any = await firstValueFrom(this.api.getRealPortfolioHoldings(item.id));
+          if (this.destroyed) return;
+          const holdings: any[] = Array.isArray(holdingsResponse?.data) ? holdingsResponse.data : [];
+          const total = holdings.reduce((sum, h) => sum + Math.max(0, Number(h.marketValue) || 0), 0);
+          if (total <= 0) throw new Error('Portafoglio senza valore di mercato');
+          const positions = holdings
+            .map(h => ({ isin: String(h.isin || h.etf?.isin || '').toUpperCase(), weight: Math.max(0, Number(h.marketValue) || 0) / total }))
+            .filter(p => p.isin && p.weight > 0);
+          if (!positions.length) throw new Error('Composizione non disponibile');
+          const snapshotResponse = await firstValueFrom(this.api.getMonteCarloSnapshot(buildMonteCarloSnapshotRequest(positions)));
+          if (this.destroyed) return;
+          const snapshot = snapshotResponse?.data;
+          if (!snapshot) throw new Error('Snapshot non disponibile');
+          const input = buildMonteCarloUserInput(positions, 100_000, 30);
+          validateMonteCarloRunContract(input, snapshot);
+          const coordinator = new MonteCarloCoordinator({ input, snapshot, mode: 'COMPLETE', advancedStatistics: false });
+          this.activeSimulation = coordinator;
+          const outcome = await coordinator.run();
+          this.activeSimulation = null;
+          if (this.destroyed) return;
+          if (outcome.status !== 'success' || !outcome.result) throw new Error(outcome.error?.message || 'Simulazione fallita');
+          item.cagr = outcome.result.mainKpis.robustCagr;
+          item.drawdown = outcome.result.mainKpis.robustMaxDrawdown;
+          item.volatility = outcome.result.mainKpis.volatility;
+          item.status = 'ready';
+        } catch (error) {
+          if (this.destroyed) return;
+          console.warn('Monte Carlo Home:', item.name, error);
+          item.status = 'error';
+        }
+      }
+    } catch (error) {
+      if (!this.destroyed) { this.simulationsError = true; console.warn('Monte Carlo Home: elenco portafogli', error); }
+    } finally {
+      if (!this.destroyed) this.simulationsLoading = false;
+    }
   }
 
   private loadTrendAlerts(): void {
