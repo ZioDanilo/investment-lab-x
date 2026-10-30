@@ -9,6 +9,7 @@ import { PortfolioSelectionService } from '../../core/services/portfolio-selecti
 
 interface Etf { isin: string; label: string; search: string }
 interface Criterion {
+  enabled: boolean;
   strategyKey: string; isin: string; benchmarkIsin: string; thirdIsin: string; sixValues: (number|null)[]; signal: 'buy' | 'sell';
   price: number | null; average: number | null; benchmarkReturn: number | null;
   thresholdPercent: number;
@@ -87,22 +88,22 @@ const STRATEGIES = [
             </div>
           </ng-container></div>
           </div>
-          <label *ngIf="isThresholdStrategy(draft.strategyKey)" class="threshold-field">Soglia % <input type="text" inputmode="numeric" [value]="draftThresholdText" (input)="onDraftThresholdInput($event)" (blur)="onDraftThresholdBlur()" aria-label="Soglia percentuale" /></label>
+          <label *ngIf="isThresholdStrategy(draft.strategyKey)" class="threshold-field"><input type="text" inputmode="decimal" placeholder="0" [value]="draftThresholdText" (input)="onDraftThresholdInput($event)" (blur)="onDraftThresholdBlur()" aria-label="Soglia percentuale" /></label>
           <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin || (draft.strategyKey === 'momentum-world-xeon' && !draft.benchmarkIsin)" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+'nuova'"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
         </article>
       </div>
     </ng-template>
     <section class="trend-page">
-      <div class="signal-group" *ngFor="let signal of signalGroups" [class.signal-group--disabled]="!signalEnabled[signal]"><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)"><div class="signal-card-header"><h3 class="criteria-list-heading">{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3><div *ngIf="currentPortfolioId" class="signal-activation">{{signalEnabled[signal] ? 'Attivato' : 'Disattivato'}} <app-pill-toggle [checked]="signalEnabled[signal]" [disabled]="loadingSettings || signalSaving[signal]" [ariaLabel]="signal === 'sell' ? 'Attiva segnali di vendita' : 'Attiva segnali di acquisto'" (checkedChange)="toggleSignal(signal, $event)"></app-pill-toggle></div></div>
-        <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion" draggable="true" [class.is-dragging]="draggedRow===row" [class.shift-up]="dragShiftFor(row,signal)==='up'" [class.shift-down]="dragShiftFor(row,signal)==='down'" (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
-          <span class="criterion-action-label" [class.criterion-action-label--active]="signalEnabled[signal] && ((signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row)))"><svg *ngIf="signalEnabled[signal] && ((signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row)))" class="signal-warning-icon" viewBox="0 0 32 30" role="img" [attr.aria-label]="signal === 'sell' ? 'Segnale di vendita' : 'Segnale di acquisto'"><path d="M16 2.5 L30 27.5 H2 Z" fill="#ffd447" stroke="#ffd447" stroke-width="2" stroke-linejoin="round"/><path d="M16 10 V19" stroke="#141414" stroke-width="3.4" stroke-linecap="round"/><circle cx="16" cy="24" r="1.9" fill="#141414"/></svg></span>
+      <div class="signal-group" *ngFor="let signal of signalGroups"><div class="criteria-list" [class.criteria-list--settling]="settlingDrag" (dragover)="onListDragOver($event,signal)" (drop)="onListDrop($event,signal)"><div class="signal-card-header"><h3 class="criteria-list-heading">{{signal === 'sell' ? 'Segnali di vendita' : 'Segnali di acquisto'}}</h3></div>
+        <article *ngFor="let row of rowsForSignal(signal); trackBy:trackRow" class="criterion" [class.criterion--disabled]="!row.enabled" draggable="true" [class.is-dragging]="draggedRow===row" [class.shift-up]="dragShiftFor(row,signal)==='up'" [class.shift-down]="dragShiftFor(row,signal)==='down'" (dragstart)="onRowDragStart(row,$event)" (drag)="onRowDrag($event)" (dragend)="onRowDragEnd()">
+          <span class="criterion-toggle"><app-pill-toggle [checked]="row.enabled" [disabled]="loadingSettings" [ariaLabel]="'Attiva strategia '+strategyLabel(row.strategyKey)" (checkedChange)="toggleCriterion(row,$event)"></app-pill-toggle></span><span class="criterion-action-label" [class.criterion-action-label--active]="row.enabled && ((signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row)))"><svg *ngIf="row.enabled && ((signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row)))" class="signal-warning-icon" viewBox="0 0 32 30" role="img" [attr.aria-label]="signal === 'sell' ? 'Segnale di vendita' : 'Segnale di acquisto'"><path d="M16 2.5 L30 27.5 H2 Z" fill="#ffd447" stroke="#ffd447" stroke-width="2" stroke-linejoin="round"/><path d="M16 10 V19" stroke="#141414" stroke-width="3.4" stroke-linecap="round"/><circle cx="16" cy="24" r="1.9" fill="#141414"/></svg></span>
           <span class="saved-strategy-text" [title]="strategyLabel(row.strategyKey)">{{strategyLabel(row.strategyKey)}}</span>
           <div class="etf-slots saved-etf-slots" [class.etf-slots--threshold]="isThresholdStrategy(row.strategyKey)" [class.etf-slots--three]="row.strategyKey === 'momentum-world-xeon'">
             <div class="primary-slot">
               <span class="saved-etf-text" [title]="etfLabel(row.isin)">{{etfLabel(row.isin)}}</span>
             </div>
-            <div class="secondary-slot" *ngIf="isThresholdStrategy(row.strategyKey)"><span class="saved-threshold-text">Soglia: {{row.thresholdPercent > 0 ? '+' : ''}}{{row.thresholdPercent}}%</span></div>
+            <div class="secondary-slot" *ngIf="isThresholdStrategy(row.strategyKey)"><span class="saved-etf-text saved-threshold-text">Soglia: {{row.thresholdPercent > 0 ? '+' : ''}}{{row.thresholdPercent}}%</span></div>
             <div class="secondary-slot" *ngIf="row.strategyKey === 'momentum-world-xeon'"><span class="compare-sign">&gt;</span><span class="saved-etf-text" [title]="etfLabel(row.benchmarkIsin)">{{etfLabel(row.benchmarkIsin)}}</span></div>
           
           <div class="secondary-slot" *ngIf="row.strategyKey === 'ts-momentum-12m'">
@@ -112,14 +113,14 @@ const STRATEGIES = [
           </div>
           <div class="saved-metrics">
           <div *ngIf="row.strategyKey === 'momentum-xeon-fast-reentry'" class="metric outcome"
-            [class.outcome--signal]="signalEnabled[signal] && ((signal==='sell' && isNegative(row)) || (signal==='buy' && isPositive(row)))"
+            [class.outcome--signal]="row.enabled && ((signal==='sell' && isNegative(row)) || (signal==='buy' && isPositive(row)))"
             [attr.aria-label]="'Variazioni consecutive di segno coerente negli ultimi 30 intervalli'"
             (mouseenter)="showMetricTooltip($event,'Giorni '+(signal==='sell'?'in calo':'in rialzo')+' su 30; warning con almeno 26 variazioni su 30')"
             (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.loading || row.continuityCount===null ? '—' : formatPercent(row.continuityCount/30*100)}}
           </div>
           <ng-container *ngIf="row.strategyKey === 'momentum-world-xeon'">
-            <div class="metric metric--six" *ngFor="let i of [0,1,4]" [class.outcome--signal]="signalEnabled[signal] && i===4 && ((signal==='sell' && row.sixValues[4]!==null && row.sixValues[4]!<0) || (signal==='buy' && row.sixValues[4]!==null && row.sixValues[4]!>0))" [attr.aria-label]="threeStateTitles[i]" (mouseenter)="showMetricTooltip($event,threeStateTitles[i])" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">{{row.loading ? '—' : i===4 ? formatPercent(row.sixValues[i]===null ? null : row.sixValues[i]!*100) : formatRatio(row.sixValues[i])}}</div>
+            <div class="metric metric--six" *ngFor="let i of [0,1,4]" [class.outcome--signal]="row.enabled && i===4 && ((signal==='sell' && row.sixValues[4]!==null && row.sixValues[4]!<0) || (signal==='buy' && row.sixValues[4]!==null && row.sixValues[4]!>0))" [attr.aria-label]="threeStateTitles[i]" (mouseenter)="showMetricTooltip($event,threeStateTitles[i])" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">{{row.loading ? '—' : i===4 ? formatPercent(row.sixValues[i]===null ? null : row.sixValues[i]!*100) : formatRatio(row.sixValues[i])}}</div>
           </ng-container>
           <div *ngIf="row.strategyKey !== 'momentum-world-xeon' && row.strategyKey !== 'momentum-xeon-fast-reentry'" class="metric" [attr.aria-label]="row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo'" (mouseenter)="showMetricTooltip($event,row.strategyKey === 'dual-sma-50-200' ? 'Media mobile 50 giorni' : row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi ETF' : 'Prezzo')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.loading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(annualReturn(row)) : formatPrice(row.price)}}
@@ -127,7 +128,7 @@ const STRATEGIES = [
           <div *ngIf="row.strategyKey !== 'momentum-world-xeon' && row.strategyKey !== 'momentum-xeon-fast-reentry'" class="metric" [attr.aria-label]="row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni'" (mouseenter)="showMetricTooltip($event,row.strategyKey === 'ts-momentum-12m' ? 'Rendimento 12 mesi confronto' : 'Media mobile 200 giorni')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.loading || row.benchmarkLoading ? '—' : row.strategyKey === 'ts-momentum-12m' ? formatPercent(row.benchmarkIsin ? row.benchmarkReturn : 0) : formatPrice(row.average)}}
           </div>
-          <div *ngIf="row.strategyKey !== 'momentum-world-xeon' && row.strategyKey !== 'momentum-xeon-fast-reentry'" class="metric outcome" [class.outcome--signal]="signalEnabled[signal] && ((signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row)))" [attr.aria-label]="row.error || 'Differenza'" (mouseenter)="showMetricTooltip($event,row.error || 'Differenza')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
+          <div *ngIf="row.strategyKey !== 'momentum-world-xeon' && row.strategyKey !== 'momentum-xeon-fast-reentry'" class="metric outcome" [class.outcome--signal]="row.enabled && ((signal === 'sell' && isNegative(row)) || (signal === 'buy' && isPositive(row)))" [attr.aria-label]="row.error || 'Differenza'" (mouseenter)="showMetricTooltip($event,row.error || 'Differenza')" (mousemove)="moveMetricTooltip($event)" (mouseleave)="hideMetricTooltip()">
             {{row.strategyKey === 'ts-momentum-12m' ? comparisonText(row) : differenceText(row)}}
           </div>
           </div>
@@ -231,7 +232,10 @@ const STRATEGIES = [
     .remove{flex:0 0 32px;width:32px;height:32px;padding:0}
     /* Saved strategies: fixed row geometry independent of the number of ETFs or metrics. */
     .criterion:not(.criterion--draft){display:grid;grid-template-columns:5% 15% 40% 40%;column-gap:0;align-items:center;position:relative;padding:9px 12px}
-    .criterion:not(.criterion--draft) .criterion-action-label{grid-column:1;min-width:0;width:100%;justify-content:center}
+    .criterion:not(.criterion--draft) .criterion-toggle{grid-column:1;grid-row:1;justify-self:start;z-index:2}
+    .criterion:not(.criterion--draft) .criterion-action-label{grid-column:1;grid-row:1;min-width:0;width:100%;justify-content:center;padding-left:33px;padding-right:3px;box-sizing:border-box;pointer-events:none}
+    .criterion--disabled > :not(.criterion-toggle){opacity:.38;filter:grayscale(1)}
+    .criterion--disabled .criterion-toggle{opacity:1;filter:none}
     .criterion:not(.criterion--draft) .saved-strategy-text,
     .criterion:has(.metric--six) .saved-strategy-text{grid-column:2;min-width:0;max-width:none;width:100%;padding-right:8px;box-sizing:border-box;flex:none}
     .criterion:not(.criterion--draft) .saved-etf-slots,
@@ -280,9 +284,12 @@ const STRATEGIES = [
     .criterion:not(.criterion--draft) .saved-strategy-text{width:calc(100% - 8px);margin-right:8px}
     .draft-list .etf-slots--threshold{flex:1 1 0;min-width:0;grid-template-columns:minmax(0,1fr)}
     .draft-list .etf-slots--threshold + .threshold-field{flex:1 1 0;min-width:0;width:auto}
-    .draft-list .threshold-field input{width:100%;flex:1;min-width:0;height:39px;box-sizing:border-box}
+    .draft-list .threshold-field{display:flex;flex:1 1 0;min-width:0;padding:0;border:0;background:transparent}
+    .draft-list .threshold-field input{width:100%;flex:1;min-width:0;height:39px;box-sizing:border-box;background:transparent;color:var(--text);border:1px solid rgba(24,217,246,.30);border-radius:7px;padding:0 9px;font:inherit;outline:none}
+    .draft-list .threshold-field input:focus{border-color:#18d9f6;outline:none}
+    .draft-list .threshold-field input:focus::placeholder{color:transparent}
     .criterion:not(.criterion--draft) .saved-etf-slots.etf-slots--threshold{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .saved-threshold-text{display:flex;align-items:center;box-sizing:border-box;width:100%;height:39px;padding:0 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text-secondary)}
+    .criterion:not(.criterion--draft) .saved-etf-slots .saved-threshold-text{width:100%;font-size:13px}
     .draft-list .primary-search{width:100%;flex:1 1 0;min-width:0}
     .filter-empty{display:block;padding:9px;color:var(--text-secondary);font-size:12px}
     .trend-metric-tooltip{position:fixed;z-index:6000;pointer-events:none;max-width:300px;white-space:normal;padding:5px 8px;border-radius:6px;background:rgba(7,14,23,.96);border:1px solid rgba(93,167,255,.65);color:#f2f8ff;font-size:11px;font-weight:700;line-height:1.2;box-shadow:0 10px 28px rgba(0,0,0,.34)}
@@ -362,11 +369,17 @@ export class TrendFollowingPageComponent implements OnDestroy {
     });
   }
 
+  toggleCriterion(row: Criterion, enabled: boolean): void {
+    if (!this.currentPortfolioId || this.loadingSettings) return;
+    row.enabled = enabled;
+    this.queueSave();
+  }
+
   draft:Criterion|null=null;
-  draftThresholdText='0';
-  resetDraftThreshold():void{if(this.draft){this.draft.thresholdPercent=0;this.draftThresholdText='0'}}
-  onDraftThresholdInput(event:Event):void{if(!this.draft)return;const input=event.target as HTMLInputElement;const raw=input.value;if(!/^-?\d*$/.test(raw)||(this.draft.signal==='buy'&&raw.startsWith('-'))||(this.draft.signal==='sell'&&raw!==''&&raw!=='-'&&Number(raw)>0)){input.value=this.draftThresholdText;return}this.draftThresholdText=raw;if(raw!==''&&raw!=='-')this.draft.thresholdPercent=Number(raw)}
-  onDraftThresholdBlur():void{if(this.draft){this.draft.thresholdPercent=this.normalizeThreshold(this.draftThresholdText,this.draft.signal);this.draftThresholdText=String(this.draft.thresholdPercent)}}
+  draftThresholdText='';
+  resetDraftThreshold():void{if(this.draft){this.draft.thresholdPercent=0;this.draftThresholdText=''}}
+  onDraftThresholdInput(event:Event):void{if(!this.draft)return;const input=event.target as HTMLInputElement;const raw=input.value;if(!/^-?\d*(?:[,.]\d*)?$/.test(raw)||(this.draft.signal==='buy'&&raw.startsWith('-'))||(this.draft.signal==='sell'&&raw!==''&&raw!=='-'&&Number(raw.replace(',','.'))>0)){input.value=this.draftThresholdText;return}this.draftThresholdText=raw;if(raw!==''&&raw!=='-')this.draft.thresholdPercent=Number(raw.replace(',','.'))}
+  onDraftThresholdBlur():void{if(this.draft){this.draft.thresholdPercent=this.normalizeThreshold(this.draftThresholdText,this.draft.signal);this.draftThresholdText=this.draftThresholdText.trim()===''?'':String(this.draft.thresholdPercent).replace('.',',')}}
   primarySearch='';primarySearchOpen=false;
   secondSearch='';secondSearchOpen=false;
   thirdSearch='';thirdSearchOpen=false;
@@ -514,11 +527,11 @@ export class TrendFollowingPageComponent implements OnDestroy {
     return [{isin:row.isin,label:found?.label||row.isin,search:found?.search||row.isin.toLowerCase()},...this.etfs];
   }
   isThresholdStrategy(key:string):boolean{return key==='sma-200'||key==='dual-sma-50-200'}
-  normalizeThreshold(value:unknown,signal:'buy'|'sell'):number{const n=Number(value);return Number.isFinite(n)?Math.max(-100,Math.min(100,Math.trunc(signal==='sell'?Math.min(0,n):Math.max(0,n)))):0}
+  normalizeThreshold(value:unknown,signal:'buy'|'sell'):number{const n=Number(String(value??'').replace(',','.'));return Number.isFinite(n)?Math.max(-100,Math.min(100,signal==='sell'?Math.min(0,n):Math.max(0,n))):0}
   private createRow(strategyKey='',isin='',benchmarkIsin='',signal:'buy'|'sell'='sell'):Criterion{
-    return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,thresholdPercent:0,price:null,average:null,benchmarkReturn:null,continuityCount:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
+    return {enabled:true,strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,thresholdPercent:0,price:null,average:null,benchmarkReturn:null,continuityCount:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
-  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.resetDraftFilters();this.draft=this.createRow();this.draftThresholdText='0'}
+  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.resetDraftFilters();this.draft=this.createRow();this.draftThresholdText=''}
   pendingRemoveRow:Criterion|null=null;
   requestRemoveCriterion(row:Criterion):void{this.pendingRemoveRow=row}
   cancelRemoveCriterion():void{this.pendingRemoveRow=null}
@@ -725,7 +738,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
         for(const item of saved){
           if(!item.strategyKey || !STRATEGIES.some(s=>s.key===item.strategyKey))continue;
           const isin=String(item.isin||'').toUpperCase();
-          const row=this.createRow(item.strategyKey,isin,String(item.benchmarkIsin||'').toUpperCase(),item.signal==='buy'?'buy':'sell');row.thirdIsin=String(item.thirdIsin||'').toUpperCase();row.thresholdPercent=this.normalizeThreshold(item.thresholdPercent??0,row.signal);
+          const row=this.createRow(item.strategyKey,isin,String(item.benchmarkIsin||'').toUpperCase(),item.signal==='buy'?'buy':'sell');row.thirdIsin=String(item.thirdIsin||'').toUpperCase();row.thresholdPercent=this.normalizeThreshold(item.thresholdPercent??0,row.signal);row.enabled=typeof item.enabled==='boolean' ? item.enabled : res?.data?.signalEnabled?.[row.signal]!==false;
           this.criteria.push(row);if(row.strategyKey==='momentum-world-xeon'&&row.isin&&row.benchmarkIsin)this.loadThreeStates(row);else if(row.strategyKey==='momentum-xeon-fast-reentry'&&row.isin)this.loadContinuity(row);else{if(row.isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.selectBenchmarkRestored(row)}
         }
         this.loadingSettings=false;
@@ -757,7 +770,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
     if(!this.saveQueued){this.saving=false;return}
     const portfolioId=this.currentPortfolioId;if(!portfolioId){this.saving=false;return}
     this.saving=true;this.saveQueued=false;
-    const payload=this.criteria.filter(row=>!!row.strategyKey).map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin,thirdIsin:row.strategyKey==='momentum-world-xeon'?'':row.thirdIsin,signal:row.signal,thresholdPercent:this.isThresholdStrategy(row.strategyKey)?row.thresholdPercent:0}));
+    const payload=this.criteria.filter(row=>!!row.strategyKey).map(row=>({strategyKey:row.strategyKey,isin:row.isin,benchmarkIsin:row.benchmarkIsin,thirdIsin:row.strategyKey==='momentum-world-xeon'?'':row.thirdIsin,signal:row.signal,enabled:row.enabled,thresholdPercent:this.isThresholdStrategy(row.strategyKey)?row.thresholdPercent:0}));
     this.saveSub=this.api.saveTrendCriteria(portfolioId,payload).subscribe({
       next:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='';this.flushSave()},
       error:()=>{if(portfolioId===this.currentPortfolioId)this.saveError='Impossibile salvare i criteri.';this.saving=false}
