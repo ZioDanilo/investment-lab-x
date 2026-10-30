@@ -96,10 +96,9 @@
         <div class="alert-state" *ngIf="alertsError">Impossibile caricare le segnalazioni.</div>
         <div class="alert-state" *ngIf="!alertsLoading && !alertsError && !trendAlerts.length">Nessuna segnalazione attiva.</div>
         <div class="alert-list" *ngIf="!alertsLoading && !alertsError && trendAlerts.length">
-          <div class="alert-item" *ngFor="let alert of trendAlerts">
-            <strong>{{ alert.portfolio }}</strong>
-            <span>{{ alert.strategy }}</span>
+          <div class="alert-item" *ngFor="let alert of trendAlerts" [class.alert-item--buy]="alert.signal === 'Acquisto'" [class.alert-item--sell]="alert.signal === 'Vendita'">
             <b [class.alert-buy]="alert.signal === 'Acquisto'" [class.alert-sell]="alert.signal === 'Vendita'">{{ alert.signal }}</b>
+            <strong>{{ alert.portfolio }}</strong>
             <span>{{ alert.etf }}</span>
           </div>
         </div>
