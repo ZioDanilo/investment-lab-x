@@ -92,6 +92,17 @@
           <p class="panel-kicker">Segnalazioni</p>
           <h3>Segnalazioni</h3>
         </div></div>
+        <div class="alert-state" *ngIf="alertsLoading">Verifica segnali in corso...</div>
+        <div class="alert-state" *ngIf="alertsError">Impossibile caricare le segnalazioni.</div>
+        <div class="alert-state" *ngIf="!alertsLoading && !alertsError && !trendAlerts.length">Nessuna segnalazione attiva.</div>
+        <div class="alert-list" *ngIf="!alertsLoading && !alertsError && trendAlerts.length">
+          <div class="alert-item" *ngFor="let alert of trendAlerts">
+            <strong>{{ alert.portfolio }}</strong>
+            <span>{{ alert.strategy }}</span>
+            <b [class.alert-buy]="alert.signal === 'Acquisto'" [class.alert-sell]="alert.signal === 'Vendita'">{{ alert.signal }}</b>
+            <span>{{ alert.etf }}</span>
+          </div>
+        </div>
       </article>
     </section>
 
