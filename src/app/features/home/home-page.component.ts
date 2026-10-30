@@ -145,9 +145,9 @@ export class HomePageComponent implements OnInit {
   private loadTrendAlerts(): void {
     this.alertsLoading = true;
     this.alertsError = false;
-    forkJoin({ portfolios: this.api.getRealPortfolios(), etfs: this.api.getETFs() }).pipe(
+    forkJoin({ portfolios: this.api.getPortfolios(), etfs: this.api.getETFs() }).pipe(
       switchMap(({ portfolios, etfs }: any) => {
-        const list: any[] = Array.isArray(portfolios?.data) ? portfolios.data : [];
+        // Trend Following belongs to the real portfolios from /portfolio (navbar), not /real-portfolios.\n        const list: any[] = (Array.isArray(portfolios?.data) ? portfolios.data : Array.isArray(portfolios) ? portfolios : []).filter((p: any) => p.tipo === 'reale');
         const catalog: any[] = Array.isArray(etfs?.data) ? etfs.data : Array.isArray(etfs) ? etfs : [];
         const nicknames = new Map(catalog.map((e: any) => [String(e.isin || '').toUpperCase(), String(e.nickname || e.isin)]));
         if (!list.length) return of([] as TrendAlert[]);
@@ -157,11 +157,10 @@ export class HomePageComponent implements OnInit {
               const settings = response?.data || {};
               const criteria: any[] = Array.isArray(settings.criteria) ? settings.criteria : [];
               const active = criteria.filter(row => row.enabled !== false &&
-                settings.signalEnabled?.[row.signal === 'buy' ? 'buy' : 'sell'] !== false &&
                 !!row.isin && !!this.trendLabels[row.strategyKey]);
               if (!active.length) return of([] as TrendAlert[]);
               const isins = [...new Set(active.flatMap(row => [row.isin, row.benchmarkIsin].filter(Boolean)))];
-              return forkJoin(isins.map(isin => this.quotations.getQuotationHistory(isin, 5000).pipe(
+              return forkJoin(isins.map(isin => this.quotations.getQuotationHistory(isin, active.some(row => row.strategyKey === 'ts-momentum-12m' && (row.isin === isin || row.benchmarkIsin === isin)) ? 5000 : 400).pipe(
                 map((history: any) => ({ isin: String(isin).toUpperCase(), rows: history?.data || [] })),
                 catchError(() => of({ isin: String(isin).toUpperCase(), rows: [] }))
               ))).pipe(map(histories => {
@@ -174,7 +173,7 @@ export class HomePageComponent implements OnInit {
                 }));
               }));
             }),
-            catchError(() => of([] as TrendAlert[]))
+            catchError((error) => { console.warn('Home Trend Following: errore portafoglio', portfolio.id, error); return of([] as TrendAlert[]); })
           )
         )).pipe(map(groups => groups.flat()));
       })
