@@ -3,6 +3,11 @@ import { Component, OnInit } from '@angular/core';
 import { ApiService } from '../../core/api/api.service';
 import { AssetDonutComponent, AssetDonutItem } from '../../shared/components/asset-donut/asset-donut.component';
 import { RouterLink } from '@angular/router';
+import { QuotationService } from '../../core/services/quotation.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
+
+interface TrendAlert { portfolio: string; strategy: string; signal: 'Acquisto' | 'Vendita'; etf: string; }
 
 interface NavItem {
   label: string;
@@ -58,14 +63,17 @@ interface ActivityItem {
   styleUrls: ['./home-page.component.css']
 })
 export class HomePageComponent implements OnInit {
-  constructor(private readonly api: ApiService) {}
+  constructor(private readonly api: ApiService, private readonly quotations: QuotationService) {}
+  trendAlerts: TrendAlert[] = [];
+  alertsLoading = false;
+  alertsError = false;
   assetMix: AssetDonutItem[] = [];
   totalEtfs = 0;
   assetLoading = true;
   assetError = false;
   private readonly assetColors = ['#2D91FF','#31D48D','#FF526C','#FF9F43','#9B67ED','#21C7C7','#F9BE48','#E96BA8','#64A7FF','#86D957'];
   get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
-  ngOnInit(): void { if (!this.isTutorial) { this.loadAssetMix(); this.loadPortfolioSummary(); } else this.assetLoading = false; }
+  ngOnInit(): void { if (!this.isTutorial) { this.loadAssetMix(); this.loadPortfolioSummary(); this.loadTrendAlerts(); } else this.assetLoading = false; }
   private loadAssetMix(): void {
     this.assetLoading = true;
     this.assetError = false;
@@ -124,6 +132,115 @@ export class HomePageComponent implements OnInit {
     { value: '—', label: 'Volatilità media', icon: 'signal_cellular_alt', tone: 'purple' },
     { value: '—', label: 'Drawdown medio', icon: 'trending_down', tone: 'red' }
   ];
+
+
+  private readonly trendLabels: Record<string, string> = {
+    'sma-200': 'Media mobile 200 giorni',
+    'dual-sma-50-200': 'Doppia media mobile 50/200',
+    'ts-momentum-12m': 'Time Series 12 mesi',
+    'momentum-world-xeon': 'Media mobile rapporto 100 giorni',
+    'momentum-xeon-fast-reentry': 'Segno continuo 30 giorni'
+  };
+
+  private loadTrendAlerts(): void {
+    this.alertsLoading = true;
+    this.alertsError = false;
+    forkJoin({ portfolios: this.api.getRealPortfolios(), etfs: this.api.getETFs() }).pipe(
+      switchMap(({ portfolios, etfs }: any) => {
+        const list: any[] = Array.isArray(portfolios?.data) ? portfolios.data : [];
+        const catalog: any[] = Array.isArray(etfs?.data) ? etfs.data : Array.isArray(etfs) ? etfs : [];
+        const nicknames = new Map(catalog.map((e: any) => [String(e.isin || '').toUpperCase(), String(e.nickname || e.isin)]));
+        if (!list.length) return of([] as TrendAlert[]);
+        return forkJoin(list.map((portfolio: any) =>
+          this.api.getTrendCriteria(portfolio.id).pipe(
+            switchMap((response: any) => {
+              const settings = response?.data || {};
+              const criteria: any[] = Array.isArray(settings.criteria) ? settings.criteria : [];
+              const active = criteria.filter(row => row.enabled !== false &&
+                settings.signalEnabled?.[row.signal === 'buy' ? 'buy' : 'sell'] !== false &&
+                !!row.isin && !!this.trendLabels[row.strategyKey]);
+              if (!active.length) return of([] as TrendAlert[]);
+              const isins = [...new Set(active.flatMap(row => [row.isin, row.benchmarkIsin].filter(Boolean)))];
+              return forkJoin(isins.map(isin => this.quotations.getQuotationHistory(isin, 5000).pipe(
+                map((history: any) => ({ isin: String(isin).toUpperCase(), rows: history?.data || [] })),
+                catchError(() => of({ isin: String(isin).toUpperCase(), rows: [] }))
+              ))).pipe(map(histories => {
+                const prices = new Map(histories.map(h => [h.isin, this.trendPrices(h.rows)]));
+                return active.filter(row => this.isTriggered(row, prices)).map(row => ({
+                  portfolio: String(portfolio.name || portfolio.nome || portfolio.id),
+                  strategy: this.trendLabels[row.strategyKey],
+                  signal: row.signal === 'buy' ? 'Acquisto' as const : 'Vendita' as const,
+                  etf: nicknames.get(String(row.isin).toUpperCase()) || String(row.isin)
+                }));
+              }));
+            }),
+            catchError(() => of([] as TrendAlert[]))
+          )
+        )).pipe(map(groups => groups.flat()));
+      })
+    ).subscribe({
+      next: alerts => { this.trendAlerts = alerts; this.alertsLoading = false; },
+      error: () => { this.alertsError = true; this.alertsLoading = false; }
+    });
+  }
+
+  private trendPrices(raw: any[]): { date: string; price: number }[] {
+    const unique = new Map<string, number>();
+    for (const row of Array.isArray(raw) ? raw : []) {
+      const date = String(row?.date || '').slice(0, 10);
+      const price = Number(row?.quotation);
+      if (date && Number.isFinite(price) && price > 0 && !unique.has(date)) unique.set(date, price);
+    }
+    return [...unique].sort((a, b) => b[0].localeCompare(a[0])).map(([date, price]) => ({ date, price }));
+  }
+
+  private isTriggered(row: any, histories: Map<string, { date: string; price: number }[]>): boolean {
+    const primary = histories.get(String(row.isin).toUpperCase()) || [];
+    const buy = row.signal === 'buy';
+    const key = row.strategyKey;
+    if (key === 'momentum-xeon-fast-reentry') {
+      if (primary.length < 31) return false;
+      const count = primary.slice(0, 30).filter((entry, i) =>
+        buy ? entry.price > primary[i + 1].price : entry.price < primary[i + 1].price).length;
+      return buy ? count / 30 > 0.85 : count > 25;
+    }
+    if (key === 'momentum-world-xeon') {
+      const other = histories.get(String(row.benchmarkIsin || '').toUpperCase()) || [];
+      const second = new Map(other.map(q => [q.date, q.price]));
+      const common = primary.filter(q => second.has(q.date)).slice(0, 100);
+      if (common.length < 100) return false;
+      const ratios = common.map(q => q.price / second.get(q.date)!);
+      const delta = ratios[0] - ratios.reduce((sum, v) => sum + v, 0) / 100;
+      return buy ? delta > 0 : delta < 0;
+    }
+    if (key === 'ts-momentum-12m') {
+      if (!primary.length) return false;
+      const target = new Date(primary[0].date + 'T12:00:00Z');
+      target.setUTCFullYear(target.getUTCFullYear() - 1);
+      const past = primary.find(q => q.date <= target.toISOString().slice(0, 10));
+      if (!past) return false;
+      const currentReturn = (primary[0].price / past.price - 1) * 100;
+      let benchmarkReturn = 0;
+      if (row.benchmarkIsin) {
+        const benchmark = histories.get(String(row.benchmarkIsin).toUpperCase()) || [];
+        if (!benchmark.length) return false;
+        const benchmarkDate = new Date(benchmark[0].date + 'T12:00:00Z');
+        benchmarkDate.setUTCFullYear(benchmarkDate.getUTCFullYear() - 1);
+        const benchmarkPast = benchmark.find(q => q.date <= benchmarkDate.toISOString().slice(0, 10));
+        if (!benchmarkPast) return false;
+        benchmarkReturn = (benchmark[0].price / benchmarkPast.price - 1) * 100;
+      }
+      return buy ? currentReturn > benchmarkReturn : currentReturn < benchmarkReturn;
+    }
+    if (primary.length < 200) return false;
+    const average = primary.slice(0, 200).reduce((sum, q) => sum + q.price, 0) / 200;
+    const current = key === 'dual-sma-50-200'
+      ? primary.slice(0, 50).reduce((sum, q) => sum + q.price, 0) / 50
+      : primary[0].price;
+    const difference = (current / average - 1) * 100;
+    const threshold = Number(row.thresholdPercent || 0);
+    return buy ? difference > threshold : difference < threshold;
+  }
 
   private loadPortfolioSummary(): void {
     this.api.getRealPortfolios().subscribe({
