@@ -233,7 +233,7 @@ const STRATEGIES = [
     /* Saved strategies: fixed row geometry independent of the number of ETFs or metrics. */
     .criterion:not(.criterion--draft){display:grid;grid-template-columns:5% 15% 40% 40%;column-gap:0;align-items:center;position:relative;padding:9px 12px}
     .criterion:not(.criterion--draft) .criterion-toggle{grid-column:1;grid-row:1;justify-self:start;z-index:2}
-    .criterion:not(.criterion--draft) .criterion-action-label{grid-column:1;grid-row:1;min-width:0;width:100%;justify-content:center;padding-left:22px;padding-right:6px;box-sizing:border-box;pointer-events:none}
+    .criterion:not(.criterion--draft) .criterion-action-label{grid-column:1;grid-row:1;min-width:0;width:100%;justify-content:center;padding-left:33px;padding-right:3px;box-sizing:border-box;pointer-events:none}
     .criterion--disabled > :not(.criterion-toggle){opacity:.38;filter:grayscale(1)}
     .criterion--disabled .criterion-toggle{opacity:1;filter:none}
     .criterion:not(.criterion--draft) .saved-strategy-text,
