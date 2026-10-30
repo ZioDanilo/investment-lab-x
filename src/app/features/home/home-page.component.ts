@@ -11,7 +11,7 @@ import { MonteCarloCoordinator } from '../../core/engines/monte-carlo-coordinato
 import { validateMonteCarloRunContract } from '../../core/validation/monte-carlo-contract.validator';
 import { catchError, map, switchMap } from 'rxjs/operators';
 
-interface HomeSimulation { id: string; name: string; status: 'loading' | 'ready' | 'error'; cagr: number | null; drawdown: number | null; volatility: number | null; }
+interface HomeSimulation { id: string; name: string; status: 'loading' | 'ready' | 'error'; error?: string; cagr: number | null; drawdown: number | null; volatility: number | null; }
 
 interface TrendAlert { portfolioId: string; portfolio: string; strategy: string; signal: 'Acquisto' | 'Vendita'; etf: string; }
 
@@ -186,6 +186,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
           const holdingsResponse: any = await firstValueFrom(this.api.getRealPortfolioHoldings(item.id));
           if (this.destroyed) return;
           const holdings: any[] = Array.isArray(holdingsResponse?.data) ? holdingsResponse.data : [];
+          // Use the same current-market-value weighting as the Monte Carlo portfolio editor.
           const total = holdings.reduce((sum, h) => sum + Math.max(0, Number(h.marketValue) || 0), 0);
           if (total <= 0) throw new Error('Portafoglio senza valore di mercato');
           const positions = holdings
@@ -208,9 +209,11 @@ export class HomePageComponent implements OnInit, OnDestroy {
           item.drawdown = outcome.result.mainKpis.robustMaxDrawdown;
           item.volatility = outcome.result.mainKpis.volatility;
           item.status = 'ready';
+          item.error = undefined;
         } catch (error) {
           if (this.destroyed) return;
           console.warn('Monte Carlo Home:', item.name, error);
+          item.error = String((error as any)?.error?.error?.message || (error as any)?.error?.message || (error as any)?.message || 'Simulazione non disponibile');
           item.status = 'error';
         }
       }
