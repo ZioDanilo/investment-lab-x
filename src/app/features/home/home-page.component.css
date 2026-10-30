@@ -883,3 +883,11 @@
 @media (max-width: 1040px) {
   .dashboard-grid--overview { grid-template-columns: minmax(0, 1fr); }
 }
+
+.notifications-panel { overflow: hidden; }
+.alert-list { display: flex; flex-direction: column; gap: 7px; overflow-y: auto; min-height: 0; }
+.alert-item { display: flex; flex-direction: column; gap: 3px; padding: 9px; border: 1px solid rgba(139,177,222,.18); border-radius: 9px; background: rgba(12,18,26,.7); overflow-wrap: anywhere; font-size: .65rem; color: #c3d8eb; }
+.alert-item strong { color: #edf6ff; font-size: .75rem; }
+.alert-item b.alert-buy { color: #7fe7ab; }
+.alert-item b.alert-sell { color: #ff8d7c; }
+.alert-state { color: #a9bbcf; font-size: .72rem; padding: 12px 0; }
