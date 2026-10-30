@@ -65,7 +65,7 @@ export class HomePageComponent implements OnInit {
   assetError = false;
   private readonly assetColors = ['#2D91FF','#31D48D','#FF526C','#FF9F43','#9B67ED','#21C7C7','#F9BE48','#E96BA8','#64A7FF','#86D957'];
   get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
-  ngOnInit(): void { if (!this.isTutorial) this.loadAssetMix(); else this.assetLoading = false; }
+  ngOnInit(): void { if (!this.isTutorial) { this.loadAssetMix(); this.loadPortfolioSummary(); } else this.assetLoading = false; }
   private loadAssetMix(): void {
     this.assetLoading = true;
     this.assetError = false;
@@ -118,12 +118,71 @@ export class HomePageComponent implements OnInit {
     { name: 'Innovazione 2030', modified: '02/12/2024', etfCount: 9, expectedReturn: '10,8%', volatility: '16,5%', positive: true }
   ];
 
-  readonly summaryMetrics: SummaryMetric[] = [
-    { value: '5', label: 'Portafogli salvati', icon: 'folder', tone: 'blue' },
-    { value: '8,6%', label: 'Rendimento medio atteso', icon: 'show_chart', tone: 'cyan' },
-    { value: '10,2%', label: 'Volatilità media', icon: 'signal_cellular_alt', tone: 'purple' },
-    { value: '-18,4%', label: 'Drawdown medio', icon: 'trending_down', tone: 'red' }
+  summaryMetrics: SummaryMetric[] = [
+    { value: '—', label: 'Portafogli salvati', icon: 'folder', tone: 'blue' },
+    { value: '—', label: 'Rendimento medio', icon: 'show_chart', tone: 'cyan' },
+    { value: '—', label: 'Volatilità media', icon: 'signal_cellular_alt', tone: 'purple' },
+    { value: '—', label: 'Drawdown medio', icon: 'trending_down', tone: 'red' }
   ];
+
+  private loadPortfolioSummary(): void {
+    this.api.getRealPortfolios().subscribe({
+      next: (response: any) => {
+        const portfolios: any[] = Array.isArray(response?.data) ? response.data : [];
+        this.summaryMetrics[0].value = String(portfolios.length);
+        const results: Array<{ annualReturn: number | null; volatility: number | null; drawdown: number | null }> = [];
+        for (const portfolio of portfolios) {
+          this.api.getRealPortfolioHistory(portfolio.id).subscribe({
+            next: (res: any) => {
+              results.push(this.calculateStatistics(Array.isArray(res?.data) ? res.data : []));
+              this.updateAverages(results);
+            },
+            error: () => { results.push({ annualReturn: null, volatility: null, drawdown: null }); this.updateAverages(results); }
+          });
+        }
+      },
+      error: () => { this.summaryMetrics[0].value = '—'; }
+    });
+  }
+
+  private calculateStatistics(history: any[]): { annualReturn: number | null; volatility: number | null; drawdown: number | null } {
+    // Match the TWR statistics of the real-portfolios page.
+    const rows = history.filter(row => row.valuation !== 'incomplete' && Number.isFinite(row.performancePercent))
+      .slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    const empty = { annualReturn: null, volatility: null, drawdown: null };
+    if (rows.length < 2) return empty;
+    const index = (row: any) => 1 + Number(row.performancePercent) / 100;
+    const start = index(rows[0]), end = index(rows[rows.length - 1]);
+    if (!(start > 0 && end > 0)) return empty;
+    const days = (Date.parse(rows[rows.length - 1].date + 'T00:00:00Z') - Date.parse(rows[0].date + 'T00:00:00Z')) / 86400000;
+    const annualReturn = days >= 30 ? (Math.pow(end / start, 365.25 / days) - 1) * 100 : null;
+    const returns: number[] = [];
+    let peak = start, drawdown = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const current = index(rows[i]);
+      if (!(current > 0)) continue;
+      peak = Math.max(peak, current);
+      drawdown = Math.min(drawdown, (current / peak - 1) * 100);
+      if (i > 0) {
+        const previous = index(rows[i - 1]);
+        if (previous > 0 && rows[i].date !== rows[i - 1].date) returns.push(current / previous - 1);
+      }
+    }
+    const mean = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+    const variance = returns.length > 1 ? returns.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (returns.length - 1) : 0;
+    const volatility = returns.length >= 20 ? Math.sqrt(variance) * Math.sqrt(252) * 100 : null;
+    return { annualReturn, volatility, drawdown };
+  }
+
+  private updateAverages(rows: Array<{ annualReturn: number | null; volatility: number | null; drawdown: number | null }>): void {
+    const average = (key: 'annualReturn' | 'volatility' | 'drawdown'): string => {
+      const values = rows.map(row => row[key]).filter((value): value is number => value !== null && Number.isFinite(value));
+      return values.length ? new Intl.NumberFormat('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(values.reduce((a, b) => a + b, 0) / values.length) + '%' : '—';
+    };
+    this.summaryMetrics[1].value = average('annualReturn');
+    this.summaryMetrics[2].value = average('volatility');
+    this.summaryMetrics[3].value = average('drawdown');
+  }
 
   readonly scenarios: ScenarioCard[] = [
     { name: 'Espansione', returnValue: '+7,2%', drawdown: '-12,4%', tone: 'green', returnClass: 'positive', drawdownClass: 'negative' },
