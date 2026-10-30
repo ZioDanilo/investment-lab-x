@@ -888,6 +888,8 @@
 .alert-list { display: flex; flex-direction: column; gap: 7px; overflow-y: auto; min-height: 0; }
 .alert-item { display: flex; flex-direction: column; gap: 3px; padding: 9px; border: 1px solid rgba(139,177,222,.18); border-radius: 9px; background: rgba(12,18,26,.7); overflow-wrap: anywhere; font-size: .65rem; color: #c3d8eb; }
 .alert-item strong { color: #edf6ff; font-size: .75rem; }
-.alert-item b.alert-buy { color: #7fe7ab; }
-.alert-item b.alert-sell { color: #ff8d7c; }
+.alert-item--buy { border-color: rgba(96, 231, 216, .48); }
+.alert-item--sell { border-color: rgba(255, 138, 123, .48); }
+.alert-item b.alert-buy { color: #60e7d8; }
+.alert-item b.alert-sell { color: #ff8a7b; }
 .alert-state { color: #a9bbcf; font-size: .72rem; padding: 12px 0; }
