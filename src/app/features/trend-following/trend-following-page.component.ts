@@ -5,6 +5,7 @@ import { PillToggleComponent } from '../../shared/components/pill-toggle/pill-to
 import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 import { QuotationService } from '../../core/services/quotation.service';
+import { QuotationsUpdatedService } from '../../core/services/quotations-updated.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Etf { isin: string; label: string; search: string }
@@ -337,6 +338,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   readonly portfolioSelection=inject(PortfolioSelectionService);
   private readonly api=inject(ApiService);
   private readonly quotations=inject(QuotationService);
+  private readonly quotationsUpdated=inject(QuotationsUpdatedService);
   readonly strategies=STRATEGIES;
   readonly threeStateTitles=['Rapporto ETF 1 / ETF 2','Media mobile 100 giorni rapporto 1/2','Prezzo ETF 2','Media mobile 100 giorni prezzo ETF 2','Differenza rapporto 1/2','Differenza prezzo ETF 2'];
   get headerActionLabel():string{return this.draft ? '' : 'AGGIUNGI STRATEGIA'}
@@ -425,6 +427,27 @@ export class TrendFollowingPageComponent implements OnDestroy {
         untracked(()=>this.loadPortfolio());
       }
     });
+    effect(() => {
+      const version = this.quotationsUpdated.version();
+      if (version === this.lastQuotationVersion) return;
+      this.lastQuotationVersion = version;
+      untracked(() => { if (this.currentPortfolioId && !this.loadingSettings) this.refreshCalculatedValues(); });
+    });
+  }
+
+  // Recompute visible indicators whenever a quotation update has completed.
+  private lastQuotationVersion = this.quotationsUpdated.version();
+  private refreshCalculatedValues(): void {
+    for (const row of this.criteria) {
+      this.clearRequests(row);
+      if (!row.isin) continue;
+      if (row.strategyKey === 'momentum-world-xeon' && row.benchmarkIsin) this.loadThreeStates(row);
+      else if (row.strategyKey === 'momentum-xeon-fast-reentry') this.loadContinuity(row);
+      else {
+        if (this.isImplemented(row.strategyKey)) this.loadQuote(row);
+        if (row.benchmarkIsin) this.loadRestoredBenchmark(row);
+      }
+    }
   }
 
   draggedRow:Criterion|null=null;
