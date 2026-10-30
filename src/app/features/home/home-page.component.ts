@@ -2,12 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ApiService } from '../../core/api/api.service';
 import { AssetDonutComponent, AssetDonutItem } from '../../shared/components/asset-donut/asset-donut.component';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import { QuotationService } from '../../core/services/quotation.service';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 
-interface TrendAlert { portfolio: string; strategy: string; signal: 'Acquisto' | 'Vendita'; etf: string; }
+interface TrendAlert { portfolioId: string; portfolio: string; strategy: string; signal: 'Acquisto' | 'Vendita'; etf: string; }
 
 interface NavItem {
   label: string;
@@ -63,7 +64,7 @@ interface ActivityItem {
   styleUrls: ['./home-page.component.css']
 })
 export class HomePageComponent implements OnInit {
-  constructor(private readonly api: ApiService, private readonly quotations: QuotationService) {}
+  constructor(private readonly api: ApiService, private readonly quotations: QuotationService, private readonly portfolioSelection: PortfolioSelectionService, private readonly router: Router) {}
   trendAlerts: TrendAlert[] = [];
   alertsLoading = false;
   alertsError = false;
@@ -142,6 +143,11 @@ export class HomePageComponent implements OnInit {
     'momentum-xeon-fast-reentry': 'Segno continuo 30 giorni'
   };
 
+  openTrendAlert(alert: TrendAlert): void {
+    this.portfolioSelection.setSelectedPortfolio(alert.portfolioId);
+    void this.router.navigate(['/trend-following']);
+  }
+
   private loadTrendAlerts(): void {
     this.alertsLoading = true;
     this.alertsError = false;
@@ -167,6 +173,7 @@ export class HomePageComponent implements OnInit {
               ))).pipe(map(histories => {
                 const prices = new Map(histories.map(h => [h.isin, this.trendPrices(h.rows)]));
                 return active.filter(row => this.isTriggered(row, prices)).map(row => ({
+                  portfolioId: String(portfolio.id),
                   portfolio: String(portfolio.name || portfolio.nome || portfolio.id),
                   strategy: this.trendLabels[row.strategyKey],
                   signal: row.signal === 'buy' ? 'Acquisto' as const : 'Vendita' as const,
