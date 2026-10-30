@@ -873,3 +873,13 @@
   border-color:rgba(100,180,255,.3);
   filter:none!important;opacity:1!important;
 }
+
+/* First dashboard row: 30 / 50 / 20 proportions with consistent gutters. */
+.dashboard-grid--overview {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 5fr) minmax(0, 2fr);
+  gap: 12px;
+}
+.dashboard-grid--overview > .panel { min-width: 0; }
+@media (max-width: 1040px) {
+  .dashboard-grid--overview { grid-template-columns: minmax(0, 1fr); }
+}
