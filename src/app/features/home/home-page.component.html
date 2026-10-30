@@ -92,12 +92,13 @@
           <div class="simulation-row simulation-row--header">
             <span>Portafoglio</span><span>Rend.</span><span>Max DD</span><span>Vol.</span>
           </div>
-          <div class="simulation-row" *ngFor="let item of simulations">
-            <strong [title]="item.name">{{ item.name }}</strong>
-            <span>{{ item.status === 'loading' ? '…' : formatSimulationPercent(item.cagr) }}</span>
+          <div class="simulation-row" *ngFor="let item of simulations" [title]="item.error || item.name">
+            <strong>{{ item.name }}</strong>
+            <span>{{ item.status === 'loading' ? '…' : item.status === 'error' ? 'Errore' : formatSimulationPercent(item.cagr) }}</span>
             <span>{{ item.status === 'loading' ? '…' : formatSimulationPercent(item.drawdown) }}</span>
             <span>{{ item.status === 'loading' ? '…' : formatSimulationPercent(item.volatility) }}</span>
           </div>
+          <div class="simulation-state simulation-state--error" *ngFor="let item of simulations" [hidden]="item.status !== 'error'">{{ item.name }}: {{ item.error }}</div>
         </div>
       </article>
 
