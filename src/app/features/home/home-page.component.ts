@@ -147,7 +147,8 @@ export class HomePageComponent implements OnInit {
     this.alertsError = false;
     forkJoin({ portfolios: this.api.getPortfolios(), etfs: this.api.getETFs() }).pipe(
       switchMap(({ portfolios, etfs }: any) => {
-        // Trend Following belongs to the real portfolios from /portfolio (navbar), not /real-portfolios.\n        const list: any[] = (Array.isArray(portfolios?.data) ? portfolios.data : Array.isArray(portfolios) ? portfolios : []).filter((p: any) => p.tipo === 'reale');
+        // Trend Following belongs to the real portfolios from /portfolio (navbar), not /real-portfolios.
+        const list: any[] = (Array.isArray(portfolios?.data) ? portfolios.data : Array.isArray(portfolios) ? portfolios : []).filter((p: any) => p.tipo === 'reale');
         const catalog: any[] = Array.isArray(etfs?.data) ? etfs.data : Array.isArray(etfs) ? etfs : [];
         const nicknames = new Map(catalog.map((e: any) => [String(e.isin || '').toUpperCase(), String(e.nickname || e.isin)]));
         if (!list.length) return of([] as TrendAlert[]);
