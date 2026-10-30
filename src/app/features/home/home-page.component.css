@@ -897,3 +897,11 @@
 .alert-item { width: 100%; text-align: left; font-family: inherit; cursor: pointer; }
 .alert-item:hover { background: rgba(26, 43, 60, .85); }
 .alert-item:focus-visible { outline: 2px solid #7dcfff; outline-offset: 2px; }
+
+/* Compact Monte Carlo overview: portfolio / robust CAGR / max drawdown / volatility. */
+.simulation-table { display: flex; flex-direction: column; min-width: 0; overflow-y: auto; gap: 5px; }
+.simulation-row { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, minmax(0, .58fr)); gap: 5px; align-items: center; padding: 8px 6px; border: 1px solid rgba(139,177,222,.15); border-radius: 7px; font-size: .69rem; color: #c3d8eb; }
+.simulation-row > :not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.simulation-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .72rem; color: #edf6ff; }
+.simulation-row--header { border: 0; padding-top: 2px; padding-bottom: 2px; font-size: .63rem; color: #9fb9d1; }
+.simulation-state { padding: 10px 0; font-size: .72rem; color: #a9bbcf; }
