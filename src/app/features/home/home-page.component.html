@@ -63,31 +63,7 @@
       </article>
     </section>
 
-    <section class="dashboard-grid" aria-label="Portafogli recenti e sintesi">
-      <article class="panel recent-panel">
-        <div class="panel-header">
-          <div>
-            <p class="panel-kicker">Portafogli recenti</p>
-            <h3>Portafogli recenti</h3>
-          </div>
-          <button type="button" class="panel-link">Vedi tutti <span class="material-symbols-rounded">arrow_forward</span></button>
-        </div>
-
-        <div class="recent-list">
-          <div *ngFor="let row of portfolios.slice(0, 5)" class="recent-item">
-            <div class="recent-item__meta">
-              <strong>{{ row.name }}</strong>
-              <small>{{ row.modified }}</small>
-            </div>
-            <div class="recent-item__stats">
-              <span>{{ row.etfCount }} ETF</span>
-              <strong>{{ row.expectedReturn }}</strong>
-              <span>{{ row.volatility }}</span>
-            </div>
-          </div>
-        </div>
-      </article>
-
+    <section class="dashboard-grid dashboard-grid--overview" aria-label="Sintesi, simulazioni e segnalazioni">
       <article class="panel summary-panel">
         <div class="panel-header compact">
           <div>
@@ -104,18 +80,18 @@
         </div>
       </article>
 
-      <article class="panel asset-panel">
-        <div class="panel-header compact">
-          <div>
-            <p class="panel-kicker">Asset class</p>
-            <h3>Distribuzione asset class</h3>
-          </div>
-        </div>
+      <article class="panel simulations-panel">
+        <div class="panel-header compact"><div>
+          <p class="panel-kicker">Simulazioni</p>
+          <h3>Simulazioni Portafogli</h3>
+        </div></div>
+      </article>
 
-        <div class="asset-state" *ngIf="assetLoading">Caricamento ETF...</div>
-        <div class="asset-state" *ngIf="assetError">Impossibile caricare la distribuzione ETF.</div>
-        <app-asset-donut *ngIf="!assetLoading && !assetError" [items]="assetMix" [showCounts]="true"
-          [centerText]="totalEtfs.toString()" centerCaption="ETF disponibili"></app-asset-donut>
+      <article class="panel notifications-panel">
+        <div class="panel-header compact"><div>
+          <p class="panel-kicker">Segnalazioni</p>
+          <h3>Segnalazioni</h3>
+        </div></div>
       </article>
     </section>
 
