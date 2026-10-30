@@ -85,6 +85,20 @@
           <p class="panel-kicker">Simulazioni</p>
           <h3>Simulazioni Portafogli</h3>
         </div></div>
+        <div class="simulation-state" *ngIf="simulationsError">Impossibile caricare i portafogli.</div>
+        <div class="simulation-state" *ngIf="simulationsLoading && !simulations.length">Caricamento portafogli...</div>
+        <div class="simulation-state" *ngIf="!simulationsLoading && !simulationsError && !simulations.length">Nessun portafoglio reale.</div>
+        <div class="simulation-table" *ngIf="simulations.length">
+          <div class="simulation-row simulation-row--header">
+            <span>Portafoglio</span><span>Rend.</span><span>Max DD</span><span>Vol.</span>
+          </div>
+          <div class="simulation-row" *ngFor="let item of simulations">
+            <strong [title]="item.name">{{ item.name }}</strong>
+            <span>{{ item.status === 'loading' ? '…' : formatSimulationPercent(item.cagr) }}</span>
+            <span>{{ item.status === 'loading' ? '…' : formatSimulationPercent(item.drawdown) }}</span>
+            <span>{{ item.status === 'loading' ? '…' : formatSimulationPercent(item.volatility) }}</span>
+          </div>
+        </div>
       </article>
 
       <article class="panel notifications-panel">
