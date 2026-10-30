@@ -36,8 +36,8 @@ const STRATEGIES = [
           <div class="dark-select signal-select">
             <button type="button" class="dark-select-trigger" (click)="toggleDraftMenu('signal')" [attr.aria-expanded]="draftMenu==='signal'" aria-label="Tipo di segnale">{{draft.signal==='sell'?'Segnale di vendita':'Segnale di acquisto'}}<span class="dark-select-chevron">▾</span></button>
             <div *ngIf="draftMenu==='signal'" class="dark-select-options">
-              <button type="button" (click)="draft.signal='sell';draftMenu=null">Segnale di vendita</button>
-              <button type="button" (click)="draft.signal='buy';draftMenu=null">Segnale di acquisto</button>
+              <button type="button" (click)="draft.signal='sell';resetDraftThreshold();draftMenu=null">Segnale di vendita</button>
+              <button type="button" (click)="draft.signal='buy';resetDraftThreshold();draftMenu=null">Segnale di acquisto</button>
             </div>
           </div>
           <div class="dark-select strategy-select">
@@ -46,7 +46,7 @@ const STRATEGIES = [
               <button *ngFor="let strategy of strategies" type="button" (click)="changeStrategy(-1,strategy.key);draftMenu=null">{{strategy.label}}</button>
             </div>
           </div>
-          <div class="etf-slots" [class.etf-slots--compare]="draft.strategyKey === 'ts-momentum-12m'" [class.etf-slots--three]="draft.strategyKey === 'momentum-world-xeon'">
+          <div class="etf-slots" [class.etf-slots--threshold]="isThresholdStrategy(draft.strategyKey)" [class.etf-slots--compare]="draft.strategyKey === 'ts-momentum-12m'" [class.etf-slots--three]="draft.strategyKey === 'momentum-world-xeon'">
             <div class="primary-slot">
           <div class="benchmark-search primary-search etf-search-with-icon">
               <input type="text" [value]="primarySearch" (input)="filterPrimary($any($event.target).value)"
@@ -87,7 +87,7 @@ const STRATEGIES = [
             </div>
           </ng-container></div>
           </div>
-          <label *ngIf="draft.strategyKey === 'sma-200' || draft.strategyKey === 'dual-sma-50-200'" class="threshold-field" [title]="draft.signal === 'sell' ? 'Scostamento negativo dalla MM200 per vendere' : 'Scostamento positivo dalla MM200 per acquistare'">Soglia % <input type="number" step="1" [max]="draft.signal === 'sell' ? 0 : null" [min]="draft.signal === 'buy' ? 0 : null" [ngModel]="draft.thresholdPercent" (ngModelChange)="draft.thresholdPercent = normalizeThreshold($event,draft.signal)" [attr.aria-label]="'Soglia percentuale ' + (draft.signal === 'sell' ? 'vendita' : 'acquisto')" /></label>
+          <label *ngIf="isThresholdStrategy(draft.strategyKey)" class="threshold-field">Soglia % <input type="text" inputmode="numeric" [value]="draftThresholdText" (input)="onDraftThresholdInput($event)" (blur)="onDraftThresholdBlur()" aria-label="Soglia percentuale" /></label>
           <button type="button" class="draft-confirm" (click)="confirmDraft()" [disabled]="!draft.strategyKey || !draft.isin || (draft.strategyKey === 'momentum-world-xeon' && !draft.benchmarkIsin)" title="Conferma strategia" aria-label="Conferma strategia">✓</button><button type="button" class="remove icon-action-button icon-action-button--danger" (click)="cancelDraft()" title="Elimina strategia" [attr.aria-label]="'Elimina strategia '+'nuova'"><span class="icon-action-button__glyph">✕</span></button>
           <span *ngIf="draft.error" class="row-error">{{draft.error}}</span>
         </article>
@@ -357,6 +357,10 @@ export class TrendFollowingPageComponent implements OnDestroy {
   }
 
   draft:Criterion|null=null;
+  draftThresholdText='0';
+  resetDraftThreshold():void{if(this.draft){this.draft.thresholdPercent=0;this.draftThresholdText='0'}}
+  onDraftThresholdInput(event:Event):void{if(!this.draft)return;const input=event.target as HTMLInputElement;const raw=input.value;if(!/^-?\d*$/.test(raw)||(this.draft.signal==='buy'&&raw.startsWith('-'))||(this.draft.signal==='sell'&&raw!==''&&raw!=='-'&&Number(raw)>0)){input.value=this.draftThresholdText;return}this.draftThresholdText=raw;if(raw!==''&&raw!=='-')this.draft.thresholdPercent=Number(raw)}
+  onDraftThresholdBlur():void{if(this.draft){this.draft.thresholdPercent=this.normalizeThreshold(this.draftThresholdText,this.draft.signal);this.draftThresholdText=String(this.draft.thresholdPercent)}}
   primarySearch='';primarySearchOpen=false;
   secondSearch='';secondSearchOpen=false;
   thirdSearch='';thirdSearchOpen=false;
@@ -386,7 +390,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   rowsForSignal(signal:'sell'|'buy'):Criterion[]{return this.criteria.filter(row=>row.signal===signal)}
   private rowAt(i:number):Criterion|null{return i===-1?this.draft:(this.criteria[i]??null)}
   cancelDraft():void{if(this.draft)this.clearRequests(this.draft);this.draft=null;this.resetDraftFilters()}
-  confirmDraft():void{const row=this.draft;if(!row||!row.strategyKey||!row.isin)return;row.thresholdPercent=this.normalizeThreshold(row.thresholdPercent,row.signal);this.draft=null;row.searchOpen=false;this.criteria.push(row);if(row.strategyKey==='momentum-world-xeon')this.loadThreeStates(row);else if(row.strategyKey==='momentum-xeon-fast-reentry')this.loadContinuity(row);else{if(this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.loadRestoredBenchmark(row)}this.queueSave()}
+  confirmDraft():void{const row=this.draft;if(!row||!row.strategyKey||!row.isin)return;row.thresholdPercent=this.normalizeThreshold(this.draftThresholdText,row.signal);this.draft=null;row.searchOpen=false;this.criteria.push(row);if(row.strategyKey==='momentum-world-xeon')this.loadThreeStates(row);else if(row.strategyKey==='momentum-xeon-fast-reentry')this.loadContinuity(row);else{if(this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.loadRestoredBenchmark(row)}this.queueSave()}
   etfs:Etf[]=[];allEtfs:Etf[]=[];
   loadingPortfolio=false;loadingSettings=false;saveError='';portfolioMessage='';
   private currentPortfolioId:string|null=null;
@@ -508,7 +512,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
   private createRow(strategyKey='',isin='',benchmarkIsin='',signal:'buy'|'sell'='sell'):Criterion{
     return {strategyKey,isin,benchmarkIsin,thirdIsin:'',sixValues:[null,null,null,null,null,null],signal,thresholdPercent:0,price:null,average:null,benchmarkReturn:null,continuityCount:null,loading:false,benchmarkLoading:false,error:'',benchmarkSearch:'',searchOpen:false,version:0};
   }
-  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.resetDraftFilters();this.draft=this.createRow()}
+  addCriterion():void{if(!this.currentPortfolioId||this.loadingSettings||this.draft)return;this.resetDraftFilters();this.draft=this.createRow();this.draftThresholdText='0'}
   pendingRemoveRow:Criterion|null=null;
   requestRemoveCriterion(row:Criterion):void{this.pendingRemoveRow=row}
   cancelRemoveCriterion():void{this.pendingRemoveRow=null}
