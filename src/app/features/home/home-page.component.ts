@@ -6,9 +6,6 @@ import { Router, RouterLink } from '@angular/router';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 import { QuotationService } from '../../core/services/quotation.service';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
-import { buildMonteCarloSnapshotRequest, buildMonteCarloUserInput } from '../../core/monte-carlo-ui-flow';
-import { MonteCarloCoordinator } from '../../core/engines/monte-carlo-coordinator';
-import { validateMonteCarloRunContract } from '../../core/validation/monte-carlo-contract.validator';
 import { catchError, map, switchMap } from 'rxjs/operators';
 
 interface HomeSimulation { id: string; name: string; status: 'loading' | 'ready' | 'error'; error?: string; cagr: number | null; drawdown: number | null; volatility: number | null; }
@@ -74,7 +71,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
   simulationsLoading = false;
   simulationsError = false;
   private destroyed = false;
-  private activeSimulation: MonteCarloCoordinator | null = null;
   trendAlerts: TrendAlert[] = [];
   alertsLoading = false;
   alertsError = false;
@@ -160,7 +156,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
-    this.activeSimulation?.cancel();
   }
 
   formatSimulationPercent(value: number | null): string {
