@@ -738,7 +738,7 @@ export class TrendFollowingPageComponent implements OnDestroy {
         for(const item of saved){
           if(!item.strategyKey || !STRATEGIES.some(s=>s.key===item.strategyKey))continue;
           const isin=String(item.isin||'').toUpperCase();
-          const row=this.createRow(item.strategyKey,isin,String(item.benchmarkIsin||'').toUpperCase(),item.signal==='buy'?'buy':'sell');row.thirdIsin=String(item.thirdIsin||'').toUpperCase();row.thresholdPercent=this.normalizeThreshold(item.thresholdPercent??0,row.signal);row.enabled=item.enabled!==false && res?.data?.signalEnabled?.[row.signal]!==false;
+          const row=this.createRow(item.strategyKey,isin,String(item.benchmarkIsin||'').toUpperCase(),item.signal==='buy'?'buy':'sell');row.thirdIsin=String(item.thirdIsin||'').toUpperCase();row.thresholdPercent=this.normalizeThreshold(item.thresholdPercent??0,row.signal);row.enabled=typeof item.enabled==='boolean' ? item.enabled : res?.data?.signalEnabled?.[row.signal]!==false;
           this.criteria.push(row);if(row.strategyKey==='momentum-world-xeon'&&row.isin&&row.benchmarkIsin)this.loadThreeStates(row);else if(row.strategyKey==='momentum-xeon-fast-reentry'&&row.isin)this.loadContinuity(row);else{if(row.isin&&this.isImplemented(row.strategyKey))this.loadQuote(row);if(row.benchmarkIsin)this.selectBenchmarkRestored(row)}
         }
         this.loadingSettings=false;
