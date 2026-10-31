@@ -47,7 +47,7 @@ for (const [route, [title, description]] of Object.entries(routes)) {
   if (route === 'cookies') {
     // The static snapshot is intentionally readable without JS. The interactive
     // cookie preference controls are provided by Angular after navigation.
-    body = body.replace(/<div class="actions">[\s\S]*?<\/div>/, '<p><a href="/cookies?gestisci=1">Gestisci le preferenze nell’applicazione</a></p>');
+    body = body.replace(/<div class="actions">[\s\S]*?<\/div>/, '<p>Per modificare le preferenze, apri la <a href="/login">pagina di accesso</a> e usa il comando Preferenze privacy.</p>');
   }
   const css = styles(route === 'chi-siamo' ? info : legal);
   const head = shell.slice(0, shell.indexOf('</head>'))
@@ -55,7 +55,7 @@ for (const [route, [title, description]] of Object.entries(routes)) {
     .replace(/<meta name="description"[^>]*>/, '<meta name="description" content="' + description + '">')
     .replace(/<link rel="canonical"[^>]*>/, '<link rel="canonical" href="https://razeretf.com/' + route + '">');
   // Static pages do not display ads and should not load advertising scripts.
-  const staticHead = head.replace(/<script async src="https:\/\/pagead2\\.googlesyndication\\.com[^>]*><\\/script>/, '');
+  const staticHead = head.replace(/<script async src="https:[^"]*googlesyndication[^>]*><\/script>/, '');
   const html = staticHead + '<meta name="robots" content="index,follow"><style>' + css + '</style></head><body>' + body + '</body></html>';
   const dir = join(out, route);
   mkdirSync(dir, {recursive:true});
