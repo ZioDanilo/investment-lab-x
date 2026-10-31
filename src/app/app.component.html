@@ -1,5 +1,5 @@
-<div class="desktop-app"><router-outlet></router-outlet></div>
-<section class="desktop-only-notice" aria-labelledby="desktop-only-title">
+<div class="desktop-app" [class.desktop-app--public]="publicPage"><router-outlet></router-outlet></div>
+<section class="desktop-only-notice" [class.desktop-only-notice--public]="publicPage" aria-labelledby="desktop-only-title">
   <div class="desktop-only-panel">
     <div class="desktop-only-brand">RAZER</div>
     <h1 id="desktop-only-title">Razer è disponibile solo in versione desktop</h1>
