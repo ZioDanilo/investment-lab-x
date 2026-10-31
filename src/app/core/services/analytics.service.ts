@@ -43,8 +43,8 @@ export class AnalyticsService {
     if (this.initialized || !/^G-[A-Z0-9]+$/.test(this.measurementId)) return;
     this.initialized = true;
     window.dataLayer = window.dataLayer || [];
-    window.gtag = (...args: unknown[]) => { window.dataLayer?.push(args); };
-    window.gtag('consent', 'default', { analytics_storage: 'granted' });
+    window.gtag ??= (...args: unknown[]) => { window.dataLayer?.push(args); };
+    window.gtag('consent', 'update', { analytics_storage: 'granted' });
     window.gtag('js', new Date());
     window.gtag('config', this.measurementId, { send_page_view: false });
     const script = document.createElement('script');
