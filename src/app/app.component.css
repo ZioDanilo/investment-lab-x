@@ -38,3 +38,9 @@ router-outlet {
   .desktop-only-panel nav{display:flex;justify-content:center;gap:16px;margin-top:14px}
   .desktop-only-panel a{color:#8bd1ff;font-size:12px}
 }
+
+/* Public editorial and legal content stays readable on phones and short screens. */
+@media (max-width:1100px), (max-height:499px){
+  .desktop-app.desktop-app--public{display:block;min-height:100dvh}
+  .desktop-only-notice.desktop-only-notice--public{display:none}
+}
