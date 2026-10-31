@@ -650,12 +650,21 @@
 .tutorial-entry{display:block;width:100%;margin:12px 0 4px;padding:12px 16px;border:1px solid #69b7ec;border-radius:9px;background:rgba(22,83,132,.22);color:#e9f6ff;font-weight:700;cursor:pointer}
 .tutorial-entry:hover{background:rgba(35,124,190,.4)}
 
-/* Medium desktop: keep the login card fully inside the photo instead of
-   translating it outside the hero grid column. Large desktops retain their layout. */
+/* Medium desktop: use one responsive hero column instead of a shifted card.
+   Hide the advertising rail before it squeezes the photo and form. */
 @media (min-width:1101px) and (max-width:1550px) {
-  .hero-panel { grid-template-columns:minmax(0,1fr) minmax(320px,420px); gap:clamp(16px,2vw,32px); padding:clamp(20px,2.5vw,36px); }
-  .hero-panel > .login-card { transform:none; width:100%; min-width:0; max-width:420px; justify-self:end; }
-  .hero-panel .hero-copy { left:clamp(20px,2.5vw,36px); width:calc(100% - 420px - 2 * clamp(20px,2.5vw,36px) - clamp(16px,2vw,32px)); }
-  .hero-copy h1 { font-size:clamp(2.2rem,3.2vw,4rem); }
-  .hero-panel .quote-block { left:clamp(20px,2.5vw,36px); }
+  .prelogin-ad-stack { display:none; }
+  .landing-shell { width:100%; max-width:1200px; margin:0 auto; padding:14px clamp(16px,3vw,36px); box-sizing:border-box; }
+  .hero-panel {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-width:0; width:100%; padding:clamp(20px,3vw,36px);
+    overflow:hidden; box-sizing:border-box;
+  }
+  .hero-panel > .hero-copy-wrap { display:none; }
+  .hero-panel > .login-card {
+    transform:none; position:relative; align-self:center; justify-self:center;
+    width:min(100%,420px); max-width:420px; min-width:0; margin:0;
+    box-sizing:border-box;
+  }
+  .hero-panel .quote-block { display:none; }
 }
