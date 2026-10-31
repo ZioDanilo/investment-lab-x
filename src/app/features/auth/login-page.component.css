@@ -683,13 +683,30 @@
   .hero-panel > .login-card {max-width:380px;}
 }
 
-/* Short desktop viewports: allow vertical scrolling instead of clipping the
-   login form and preserve the hero photo, headline and promotional quote. */
-@media (min-width:1101px) and (max-height:760px){
-  .login-page{height:auto;min-height:100dvh;overflow-x:hidden;overflow-y:auto;}
-  .landing-shell{height:auto;min-height:calc(100dvh - 65px);grid-template-rows:auto auto auto;}
-  .hero-panel{height:auto;min-height:570px;overflow:hidden;padding-top:clamp(22px,3vh,36px);padding-bottom:80px;}
+/* Compact desktop by HEIGHT: preserve the statistics and legal footer within
+   the viewport, shrinking the hero and login rather than introducing scrolling. */
+@media (min-width:1101px) and (min-height:500px) and (max-height:765px) {
+  .login-page{height:100dvh;min-height:0;overflow:hidden;}
+  .message-navbar,.message-rotator{height:clamp(42px,7vh,54px);}
+  .landing-shell{height:calc(100dvh - clamp(42px,7vh,54px));min-height:0;grid-template-rows:minmax(0,1fr) auto auto;gap:clamp(4px,1vh,8px);padding-top:6px;padding-bottom:6px;}
+  .hero-panel{height:100%;min-height:0;overflow:hidden;padding-top:clamp(12px,2vh,22px);padding-bottom:clamp(12px,2vh,22px);}
   .hero-panel::before{height:100%;}
-  .hero-panel > .login-card{align-self:center;}
-  .hero-panel .quote-block{display:flex;top:auto;bottom:20px;transform:none;}
+  .hero-panel > .login-card{align-self:center;margin-top:28px;padding:clamp(10px,2vh,18px) 20px;gap:clamp(5px,1vh,10px);}
+  .auth-tabs{top:-29px;height:29px;}
+  .auth-tabs button{height:29px;}
+  .login-card h2{font-size:clamp(1.1rem,2.6vh,1.45rem);margin:0;}
+  .field{gap:3px;font-size:11px;}
+  .field input{height:clamp(28px,5vh,37px);}
+  .login-action-row .primary-login,.backend-ready-progress{height:clamp(30px,5vh,39px);}
+  .tutorial-entry{margin:3px 0;padding:clamp(5px,1vh,9px) 10px;}
+  .hero-copy h1{font-size:clamp(1.55rem,5.5vh,3.5rem);line-height:1.02;}
+  .hero-copy .subtitle{margin-top:8px;font-size:clamp(.72rem,1.7vh,.95rem);}
+  .hero-panel .quote-block{display:flex;bottom:10px;}
+  .hero-panel .quote-block p{font-size:clamp(.7rem,1.7vh,.9rem);}
+  .hero-panel .quote-bar{height:34px;}
+  .pillars-panel{gap:8px;}
+  .pillars-panel article{min-height:clamp(38px,7vh,54px);padding:5px 10px;gap:2px;}
+  .pillars-panel strong{font-size:clamp(.85rem,2vh,1.1rem);}
+  .pillars-panel span{font-size:10px;}
+  .public-footer{font-size:11px;line-height:1.2;gap:6px 14px;}
 }
