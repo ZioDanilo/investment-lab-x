@@ -54,7 +54,9 @@ for (const [route, [title, description]] of Object.entries(routes)) {
     .replace(/<title>[\s\S]*?<\/title>/, '<title>' + title + '</title>')
     .replace(/<meta name="description"[^>]*>/, '<meta name="description" content="' + description + '">')
     .replace(/<link rel="canonical"[^>]*>/, '<link rel="canonical" href="https://razeretf.com/' + route + '">');
-  const html = head + '<meta name="robots" content="index,follow"><style>' + css + '</style></head><body>' + body + '</body></html>';
+  // Static pages do not display ads and should not load advertising scripts.
+  const staticHead = head.replace(/<script async src="https:\/\/pagead2\\.googlesyndication\\.com[^>]*><\\/script>/, '');
+  const html = staticHead + '<meta name="robots" content="index,follow"><style>' + css + '</style></head><body>' + body + '</body></html>';
   const dir = join(out, route);
   mkdirSync(dir, {recursive:true});
   writeFileSync(join(dir, 'index.html'), html, 'utf8');
