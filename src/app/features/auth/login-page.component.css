@@ -710,3 +710,7 @@
   .pillars-panel span{font-size:10px;}
   .public-footer{font-size:11px;line-height:1.2;gap:6px 14px;}
 }
+
+/* Tighten the gap between the auth tabs and the login/registration heading. */
+.login-card{padding-top:14px;}
+.login-card h2{margin-top:0;}
