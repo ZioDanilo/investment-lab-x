@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build && node scripts/prerender-public.mjs",
     "test": "ng test"
   },
   "dependencies": {
