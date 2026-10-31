@@ -27,7 +27,10 @@ export class AnalyticsService {
 
   setConsent(accepted: boolean): void {
     localStorage.setItem(this.consentKey, accepted ? 'accepted' : 'rejected');
-    if (accepted) this.enable();
+    if (accepted) {
+      window.gtag?.('consent', 'update', { analytics_storage: 'granted' });
+      this.enable();
+    }
     else {
       // Stop further events; previously loaded Google scripts cannot be fully unloaded.
       this.initialized = false;
@@ -41,7 +44,7 @@ export class AnalyticsService {
     this.initialized = true;
     window.dataLayer = window.dataLayer || [];
     window.gtag = (...args: unknown[]) => { window.dataLayer?.push(args); };
-    window.gtag('consent', 'default', { analytics_storage: 'granted', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+    window.gtag('consent', 'default', { analytics_storage: 'granted' });
     window.gtag('js', new Date());
     window.gtag('config', this.measurementId, { send_page_view: false });
     const script = document.createElement('script');
