@@ -40,6 +40,11 @@ import { AnalyticsService } from '../../core/services/analytics.service';
 export class PublicLegalComponent {
  private readonly router=inject(Router);
  readonly analytics=inject(AnalyticsService);
+ openAdChoices(): void {
+   const googleWindow = window as Window & { googlefc?: { showRevocationMessage?: () => void } };
+   if (typeof googleWindow.googlefc?.showRevocationMessage === 'function') googleWindow.googlefc.showRevocationMessage();
+   else window.alert('Il gestore delle preferenze pubblicitarie Google non è disponibile in questo momento. Riprova dopo aver ricaricato la pagina o verifica che non sia bloccato dal browser.');
+ }
  get page():string {return this.router.url.split('?')[0].replace('/','');}
  get title():string {return ({privacy:'Informativa sulla privacy',cookies:'Cookie e preferenze',contatti:'Contatti e titolare'} as Record<string,string>)[this.page] || 'Informazioni';}
 }
