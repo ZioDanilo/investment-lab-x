@@ -1,11 +1,12 @@
 import { Component, inject, OnInit } from '@angular/core';
+import { NgIf } from '@angular/common';
 import { AnalyticsService } from './core/services/analytics.service';
 import { Router, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, NgIf],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
