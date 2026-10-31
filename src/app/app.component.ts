@@ -31,8 +31,10 @@ export class AppComponent implements OnInit {
       };
       const data=pages[path] ?? ['Razer | Analisi portafogli ETF','Piattaforma Razer per analisi ETF, simulazioni e gestione del rischio.'];
       this.titleService.setTitle(data[0]);
+      const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+      if (canonical) canonical.href = 'https://razeretf.com' + (path === '/login' ? '/' : path);
       this.meta.updateTag({name:'description',content:data[1]});
-      this.meta.updateTag({name:'robots',content:pages[path] ? 'index,follow' : 'noindex,follow'});
+      this.meta.updateTag({name:'robots',content:this.publicPage ? 'index,follow' : 'noindex,follow'});
       this.meta.updateTag({property:'og:title',content:data[0]});
       this.meta.updateTag({property:'og:description',content:data[1]});
     });
