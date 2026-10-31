@@ -26,3 +26,15 @@ router-outlet {
   .desktop-only-panel a{color:#8bd1ff;font-size:13px}
   .analytics-preferences{z-index:10002}
 }
+
+/* Extremely short browser windows cannot fit the desktop login and footer. */
+@media (max-height:499px) {
+  .desktop-app{display:none}
+  .desktop-only-notice{display:flex;min-height:100dvh;box-sizing:border-box;align-items:center;justify-content:center;padding:14px;background:radial-gradient(900px 450px at 15% 0%,rgba(23,200,255,.12),transparent 60%),linear-gradient(180deg,#071018,#0a1420);color:#edf6ff;font-family:Manrope,"Segoe UI",sans-serif}
+  .desktop-only-panel{width:min(100%,540px);padding:18px;border:1px solid rgba(136,175,220,.25);border-radius:18px;background:rgba(9,17,24,.7);text-align:center;box-sizing:border-box}
+  .desktop-only-brand{font-size:24px;font-weight:800;letter-spacing:.18em;color:#6ecbff}
+  .desktop-only-panel h1{font-size:22px;line-height:1.2;margin:12px 0}
+  .desktop-only-panel p{font-size:13px;line-height:1.4;color:#c1d3e5;margin:0}
+  .desktop-only-panel nav{display:flex;justify-content:center;gap:16px;margin-top:14px}
+  .desktop-only-panel a{color:#8bd1ff;font-size:12px}
+}
