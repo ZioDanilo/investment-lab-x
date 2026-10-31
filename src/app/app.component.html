@@ -1,2 +1,7 @@
 <router-outlet></router-outlet>
 <button class="analytics-preferences" type="button" (click)="openPrivacyChoices()">Preferenze privacy</button>
+
+<div class="analytics-consent" *ngIf="analytics.consent === null" role="dialog" aria-label="Preferenze statistiche">
+  <div class="consent-copy"><strong>Statistiche facoltative</strong><p>Razer utilizza Google Analytics solo con il tuo consenso. Puoi rifiutare senza limitazioni e modificare la scelta dalla pagina <a href="/cookies">Cookie e preferenze</a>. La pubblicità ha preferenze separate gestite da Google.</p></div>
+  <div class="consent-actions"><button type="button" (click)="analytics.setConsent(false)">Rifiuta statistiche</button><button type="button" (click)="analytics.setConsent(true)">Accetta statistiche</button></div>
+</div>
