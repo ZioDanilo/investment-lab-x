@@ -873,3 +873,35 @@
   border-color:rgba(100,180,255,.3);
   filter:none!important;opacity:1!important;
 }
+
+/* First dashboard row: 30 / 50 / 20 proportions with consistent gutters. */
+.dashboard-grid--overview {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 5fr) minmax(0, 2fr);
+  gap: 12px;
+}
+.dashboard-grid--overview > .panel { min-width: 0; }
+@media (max-width: 1040px) {
+  .dashboard-grid--overview { grid-template-columns: minmax(0, 1fr); }
+}
+
+.notifications-panel { overflow: hidden; }
+.alert-list { display: flex; flex-direction: column; gap: 7px; overflow-y: auto; min-height: 0; }
+.alert-item { display: flex; flex-direction: column; gap: 3px; padding: 9px; border: 1px solid rgba(139,177,222,.18); border-radius: 9px; background: rgba(12,18,26,.7); overflow-wrap: anywhere; font-size: .65rem; color: #c3d8eb; }
+.alert-item strong { color: #edf6ff; font-size: .75rem; }
+.alert-item--buy { border-color: rgba(96, 231, 216, .48); }
+.alert-item--sell { border-color: rgba(255, 138, 123, .48); }
+.alert-item b.alert-buy { color: #60e7d8; }
+.alert-item b.alert-sell { color: #ff8a7b; }
+.alert-state { color: #a9bbcf; font-size: .72rem; padding: 12px 0; }
+
+.alert-item { width: 100%; text-align: left; font-family: inherit; cursor: pointer; }
+.alert-item:hover { background: rgba(26, 43, 60, .85); }
+.alert-item:focus-visible { outline: 2px solid #7dcfff; outline-offset: 2px; }
+
+/* Compact Monte Carlo overview: portfolio / robust CAGR / max drawdown / volatility. */
+.simulation-table { display: flex; flex-direction: column; min-width: 0; overflow-y: auto; gap: 5px; }
+.simulation-row { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, minmax(0, .58fr)); gap: 5px; align-items: center; padding: 8px 6px; border: 1px solid rgba(139,177,222,.15); border-radius: 7px; font-size: .69rem; color: #c3d8eb; }
+.simulation-row > :not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.simulation-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .72rem; color: #edf6ff; }
+.simulation-row--header { border: 0; padding-top: 2px; padding-bottom: 2px; font-size: .63rem; color: #9fb9d1; }
+.simulation-state { padding: 10px 0; font-size: .72rem; color: #a9bbcf; }

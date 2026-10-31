@@ -649,3 +649,68 @@
 /* Public tutorial entry, available independently of backend cold start. */
 .tutorial-entry{display:block;width:100%;margin:12px 0 4px;padding:12px 16px;border:1px solid #69b7ec;border-radius:9px;background:rgba(22,83,132,.22);color:#e9f6ff;font-weight:700;cursor:pointer}
 .tutorial-entry:hover{background:rgba(35,124,190,.4)}
+
+/* Responsive desktop: keep the marketing headline visible beside the form.
+   At narrow widths the two columns share the available hero space rather
+   than translating the login card outside the image. */
+@media (min-width:1101px) and (max-width:1550px) {
+  .prelogin-ad-stack { display:none; }
+  .landing-shell { width:100%;max-width:none;margin:0;padding:14px clamp(14px,2.4vw,32px);box-sizing:border-box; }
+  .hero-panel {
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,420px);
+    align-items:center;gap:clamp(16px,2vw,30px);
+    width:100%;min-width:0;padding:clamp(18px,2.4vw,36px);
+    box-sizing:border-box;overflow:hidden;
+  }
+  .hero-panel > .hero-copy-wrap { display:flex;min-width:0;align-self:stretch; }
+  .hero-panel .hero-copy {
+    position:relative;left:auto;top:auto;transform:none;
+    width:100%;max-width:100%;margin:0;
+  }
+  .hero-copy h1 {font-size:clamp(1.65rem,3.7vw,3.8rem);line-height:1.02;overflow-wrap:normal;}
+  .hero-copy .subtitle {font-size:clamp(.75rem,1.1vw,1rem);}
+  .hero-panel > .login-card {
+    transform:none;position:relative;align-self:center;justify-self:end;
+    width:100%;max-width:420px;min-width:0;margin:0;box-sizing:border-box;
+  }
+  .hero-panel .quote-block {display:flex;left:clamp(18px,2.4vw,36px);bottom:clamp(12px,2vw,24px);top:auto;transform:none;max-width:calc(100% - 460px);font-size:clamp(.75rem,1vw,1rem);}
+  .hero-panel .quote-block p{font-size:inherit;}
+}
+@media (min-width:1101px) and (max-width:1250px) {
+  .hero-panel {grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:14px;padding:20px;}
+  .hero-copy h1 {font-size:clamp(1.55rem,3vw,2.25rem);}
+  .hero-panel .quote-block{max-width:calc(100% - 410px)}
+  .hero-panel > .login-card {max-width:380px;}
+}
+
+/* Compact desktop by HEIGHT: preserve the statistics and legal footer within
+   the viewport, shrinking the hero and login rather than introducing scrolling. */
+@media (min-width:1101px) and (min-height:500px) and (max-height:765px) {
+  .login-page{height:100dvh;min-height:0;overflow:hidden;}
+  .message-navbar,.message-rotator{height:clamp(42px,7vh,54px);}
+  .landing-shell{height:calc(100dvh - clamp(42px,7vh,54px));min-height:0;grid-template-rows:minmax(0,1fr) auto auto;gap:clamp(4px,1vh,8px);padding-top:6px;padding-bottom:6px;}
+  .hero-panel{height:100%;min-height:0;overflow:hidden;padding-top:clamp(12px,2vh,22px);padding-bottom:clamp(12px,2vh,22px);}
+  .hero-panel::before{height:100%;}
+  .hero-panel > .login-card{align-self:center;margin-top:28px;padding:clamp(10px,2vh,18px) 20px;gap:clamp(5px,1vh,10px);}
+  .auth-tabs{top:-29px;height:29px;}
+  .auth-tabs button{height:29px;}
+  .login-card h2{font-size:clamp(1.1rem,2.6vh,1.45rem);margin:0;}
+  .field{gap:3px;font-size:11px;}
+  .field input{height:clamp(28px,5vh,37px);}
+  .login-action-row .primary-login,.backend-ready-progress{height:clamp(30px,5vh,39px);}
+  .tutorial-entry{margin:3px 0;padding:clamp(5px,1vh,9px) 10px;}
+  .hero-copy h1{font-size:clamp(1.55rem,5.5vh,3.5rem);line-height:1.02;}
+  .hero-copy .subtitle{margin-top:8px;font-size:clamp(.72rem,1.7vh,.95rem);}
+  .hero-panel .quote-block{display:flex;bottom:10px;}
+  .hero-panel .quote-block p{font-size:clamp(.7rem,1.7vh,.9rem);}
+  .hero-panel .quote-bar{height:34px;}
+  .pillars-panel{gap:8px;}
+  .pillars-panel article{min-height:clamp(38px,7vh,54px);padding:5px 10px;gap:2px;}
+  .pillars-panel strong{font-size:clamp(.85rem,2vh,1.1rem);}
+  .pillars-panel span{font-size:10px;}
+  .public-footer{font-size:11px;line-height:1.2;gap:6px 14px;}
+}
+
+/* Tighten the gap between the auth tabs and the login/registration heading. */
+.login-card{padding-top:14px;}
+.login-card h2{margin-top:0;}
