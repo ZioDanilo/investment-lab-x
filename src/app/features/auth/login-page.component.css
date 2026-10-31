@@ -673,10 +673,23 @@
     transform:none;position:relative;align-self:center;justify-self:end;
     width:100%;max-width:420px;min-width:0;margin:0;box-sizing:border-box;
   }
-  .hero-panel .quote-block {display:none;}
+  .hero-panel .quote-block {display:flex;left:clamp(18px,2.4vw,36px);bottom:clamp(12px,2vw,24px);top:auto;transform:none;max-width:calc(100% - 460px);font-size:clamp(.75rem,1vw,1rem);}
+  .hero-panel .quote-block p{font-size:inherit;}
 }
 @media (min-width:1101px) and (max-width:1250px) {
   .hero-panel {grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:14px;padding:20px;}
   .hero-copy h1 {font-size:clamp(1.55rem,3vw,2.25rem);}
+  .hero-panel .quote-block{max-width:calc(100% - 410px)}
   .hero-panel > .login-card {max-width:380px;}
+}
+
+/* Short desktop viewports: allow vertical scrolling instead of clipping the
+   login form and preserve the hero photo, headline and promotional quote. */
+@media (min-width:1101px) and (max-height:760px){
+  .login-page{height:auto;min-height:100dvh;overflow-x:hidden;overflow-y:auto;}
+  .landing-shell{height:auto;min-height:calc(100dvh - 65px);grid-template-rows:auto auto auto;}
+  .hero-panel{height:auto;min-height:570px;overflow:hidden;padding-top:clamp(22px,3vh,36px);padding-bottom:80px;}
+  .hero-panel::before{height:100%;}
+  .hero-panel > .login-card{align-self:center;}
+  .hero-panel .quote-block{display:flex;top:auto;bottom:20px;transform:none;}
 }
