@@ -95,6 +95,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (new URLSearchParams(window.location.search).get('tour') === '1') { this.enterTutorial(); return; }
     this.currentMessageIndex = Math.floor(Math.random() * 18);
     this.resumeRotation();
     this.startBackendProgress();
