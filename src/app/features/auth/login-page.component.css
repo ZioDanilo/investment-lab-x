@@ -650,21 +650,33 @@
 .tutorial-entry{display:block;width:100%;margin:12px 0 4px;padding:12px 16px;border:1px solid #69b7ec;border-radius:9px;background:rgba(22,83,132,.22);color:#e9f6ff;font-weight:700;cursor:pointer}
 .tutorial-entry:hover{background:rgba(35,124,190,.4)}
 
-/* Medium desktop: use one responsive hero column instead of a shifted card.
-   Hide the advertising rail before it squeezes the photo and form. */
+/* Responsive desktop: keep the marketing headline visible beside the form.
+   At narrow widths the two columns share the available hero space rather
+   than translating the login card outside the image. */
 @media (min-width:1101px) and (max-width:1550px) {
   .prelogin-ad-stack { display:none; }
-  .landing-shell { width:100%; max-width:1200px; margin:0 auto; padding:14px clamp(16px,3vw,36px); box-sizing:border-box; }
+  .landing-shell { width:100%;max-width:none;margin:0;padding:14px clamp(14px,2.4vw,32px);box-sizing:border-box; }
   .hero-panel {
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    min-width:0; width:100%; padding:clamp(20px,3vw,36px);
-    overflow:hidden; box-sizing:border-box;
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,420px);
+    align-items:center;gap:clamp(16px,2vw,30px);
+    width:100%;min-width:0;padding:clamp(18px,2.4vw,36px);
+    box-sizing:border-box;overflow:hidden;
   }
-  .hero-panel > .hero-copy-wrap { display:none; }
+  .hero-panel > .hero-copy-wrap { display:flex;min-width:0;align-self:stretch; }
+  .hero-panel .hero-copy {
+    position:relative;left:auto;top:auto;transform:none;
+    width:100%;max-width:100%;margin:0;
+  }
+  .hero-copy h1 {font-size:clamp(1.65rem,3.7vw,3.8rem);line-height:1.02;overflow-wrap:normal;}
+  .hero-copy .subtitle {font-size:clamp(.75rem,1.1vw,1rem);}
   .hero-panel > .login-card {
-    transform:none; position:relative; align-self:center; justify-self:center;
-    width:min(100%,420px); max-width:420px; min-width:0; margin:0;
-    box-sizing:border-box;
+    transform:none;position:relative;align-self:center;justify-self:end;
+    width:100%;max-width:420px;min-width:0;margin:0;box-sizing:border-box;
   }
-  .hero-panel .quote-block { display:none; }
+  .hero-panel .quote-block {display:none;}
+}
+@media (min-width:1101px) and (max-width:1250px) {
+  .hero-panel {grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:14px;padding:20px;}
+  .hero-copy h1 {font-size:clamp(1.55rem,3vw,2.25rem);}
+  .hero-panel > .login-card {max-width:380px;}
 }
