@@ -1079,3 +1079,12 @@
 
 /* Unified Trend Following muted-red accent; Laboratory retains blue. */
 .dashboard-grid--overview .notifications-panel .dashboard-card-link { color: rgb(204,105,113); border-color: rgba(204,105,113,.45); background: rgba(204,105,113,.12); }
+
+/* Trend Following: keep its muted-red accent while restoring the same hover illumination as the other navigation tabs. */
+.dashboard-grid--overview .notifications-panel .dashboard-card-link:hover,
+.dashboard-grid--overview .notifications-panel .dashboard-card-link:focus-visible {
+  color: #f4b7bc;
+  border-color: rgba(204,105,113,.95);
+  background: rgba(204,105,113,.34);
+  box-shadow: 0 0 0 1px rgba(204,105,113,.22), 0 4px 16px rgba(204,105,113,.24);
+}
