@@ -1006,3 +1006,29 @@
 .dashboard-grid--overview .notifications-panel .dashboard-card-link { color: #7dcfff; border-color: rgba(125,207,255,.45); }
 .dashboard-grid--overview .lab-dashboard-panel .dashboard-card-link { color: #7dcfff; border-color: rgba(125,207,255,.45); }
 .dashboard-grid--overview .markets-panel .dashboard-card-link { color: #60e7d8; border-color: rgba(96,231,216,.45); }
+
+/* Fixed-height two-row dashboard: content scrolls inside each card, never stretches a row. */
+@media (min-width: 1041px) {
+  .home-main { grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+  .dashboard-grid--overview {
+    min-height: 0;
+    height: 100%;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+  .dashboard-grid--overview > .home-dashboard-card {
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139,177,222,.4) transparent;
+  }
+  .dashboard-grid--overview > .home-dashboard-card .dashboard-card-link {
+    position: sticky;
+    top: 10px;
+    float: right;
+    margin: 0 0 -51px 0;
+  }
+  .dashboard-grid--overview > .home-dashboard-card .panel-header { min-height: 51px; }
+}
