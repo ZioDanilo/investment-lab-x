@@ -68,6 +68,9 @@ interface ActivityItem {
 export class HomePageComponent implements OnInit, OnDestroy {
   constructor(private readonly api: ApiService, private readonly quotations: QuotationService, private readonly portfolioSelection: PortfolioSelectionService, private readonly router: Router) {}
   simulations: HomeSimulation[] = [];
+  laboratorySimulations: HomeSimulation[] = [];
+  laboratorySimulationsLoading = false;
+  laboratorySimulationsError = false;
   simulationsLoading = false;
   simulationsError = false;
   private destroyed = false;
@@ -80,7 +83,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
   assetError = false;
   private readonly assetColors = ['#2D91FF','#31D48D','#FF526C','#FF9F43','#9B67ED','#21C7C7','#F9BE48','#E96BA8','#64A7FF','#86D957'];
   get isTutorial(): boolean { return localStorage.getItem('investmentLabRole') === 'TUTORIAL'; }
-  ngOnInit(): void { if (!this.isTutorial) { this.loadAssetMix(); this.loadPortfolioSummary(); this.loadTrendAlerts(); this.loadHomeSimulations(); } else this.assetLoading = false; }
+  ngOnInit(): void { if (!this.isTutorial) { this.loadAssetMix(); this.loadPortfolioSummary(); this.loadTrendAlerts(); this.loadHomeSimulations(); this.loadLaboratorySimulations(); } else this.assetLoading = false; }
   private loadAssetMix(): void {
     this.assetLoading = true;
     this.assetError = false;
@@ -137,7 +140,9 @@ export class HomePageComponent implements OnInit, OnDestroy {
     { value: '—', label: 'Portafogli salvati', icon: 'folder', tone: 'blue' },
     { value: '—', label: 'Rendimento medio', icon: 'show_chart', tone: 'cyan' },
     { value: '—', label: 'Volatilità media', icon: 'signal_cellular_alt', tone: 'purple' },
-    { value: '—', label: 'Drawdown medio', icon: 'trending_down', tone: 'red' }
+    { value: '—', label: 'Drawdown medio', icon: 'trending_down', tone: 'red' },
+    { value: '—', label: 'Valore portafogli', icon: 'account_balance_wallet', tone: 'blue' },
+    { value: '—', label: 'Resa portafogli', icon: 'payments', tone: 'cyan' }
   ];
 
 
@@ -260,6 +265,55 @@ export class HomePageComponent implements OnInit, OnDestroy {
     }
   }
 
+  private async loadLaboratorySimulations(): Promise<void> {
+    this.laboratorySimulationsLoading = true;
+    this.laboratorySimulationsError = false;
+    try {
+      const response: any = await firstValueFrom(this.api.getPortfolios('laboratorio'));
+      if (this.destroyed) return;
+      const portfolios: any[] = (Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [])
+        .filter((p: any) => p.tipo === 'laboratorio');
+      this.laboratorySimulations = portfolios.map((p: any) => ({
+        id: String(p.id), name: String(p.name || p.nome || p.id),
+        status: 'loading' as const, cagr: null, drawdown: null, volatility: null
+      }));
+      for (const item of this.laboratorySimulations) {
+        if (this.destroyed) return;
+        try {
+          const detail: any = await firstValueFrom(this.api.getPortfolioById(item.id));
+          if (this.destroyed) return;
+          const holdings: any[] = Array.isArray(detail?.data?.holdings) ? detail.data.holdings : [];
+          // Laboratory holdings store fractional weights, as used by the Monte Carlo portfolio editor.
+          const positions = holdings.map(h => ({
+            isin: String(h.isin || h.etf?.isin || '').trim().toUpperCase(),
+            weight: Number(h.weight ?? h.weightPercentage ?? h.percentage ?? h.targetWeight ?? h.allocation ?? 0)
+          })).filter(p => p.isin && Number.isFinite(p.weight) && p.weight > 0);
+          const total = positions.reduce((sum, p) => sum + p.weight, 0);
+          if (total <= 0) throw new Error('Portafoglio simulato senza composizione');
+          const binary = await firstValueFrom(this.api.buildBinaryPortfolioProjectionV2({
+            holdings: positions.map(p => ({ isin: p.isin, weight: p.weight / total }))
+          }));
+          if (this.destroyed) return;
+          const stats = this.calculateMarketUniverseV2Kpis(binary);
+          item.cagr = stats.cagr;
+          item.drawdown = stats.drawdown;
+          item.volatility = stats.volatility;
+          item.status = 'ready';
+          item.error = undefined;
+        } catch (error) {
+          if (this.destroyed) return;
+          console.warn('Monte Carlo Home laboratorio:', item.name, error);
+          item.error = String((error as any)?.error?.error?.message || (error as any)?.error?.message || (error as any)?.message || 'Simulazione non disponibile');
+          item.status = 'error';
+        }
+      }
+    } catch (error) {
+      if (!this.destroyed) { this.laboratorySimulationsError = true; console.warn('Monte Carlo Home laboratorio:', error); }
+    } finally {
+      if (!this.destroyed) this.laboratorySimulationsLoading = false;
+    }
+  }
+
   private loadTrendAlerts(): void {
     this.alertsLoading = true;
     this.alertsError = false;
@@ -366,6 +420,22 @@ export class HomePageComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         const portfolios: any[] = Array.isArray(response?.data) ? response.data : [];
         this.summaryMetrics[0].value = String(portfolios.length);
+        // The market-values endpoint is scoped to the authenticated user, like the real portfolio page.
+        this.api.getRealPortfolioMarketValues().subscribe({
+          next: (valuesResponse: any) => {
+            const rows: any[] = Array.isArray(valuesResponse?.data) ? valuesResponse.data : Array.isArray(valuesResponse) ? valuesResponse : [];
+            const portfolioIds = new Set(portfolios.map(p => String(p.id)));
+            const ownRows = rows.filter(row => portfolioIds.has(String(row.portfolioId ?? row.portfolio_id ?? row.id)));
+            const valid = ownRows.filter(row => row.marketValue != null && Number.isFinite(Number(row.marketValue)));
+            const currency = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
+            this.summaryMetrics[4].value = valid.length ? currency.format(valid.reduce((sum, row) => sum + Number(row.marketValue), 0)) : '—';
+            const gains = ownRows.filter(row => row.gainLoss != null && Number.isFinite(Number(row.gainLoss)));
+            const gain = gains.reduce((sum, row) => sum + Number(row.gainLoss), 0);
+            this.summaryMetrics[5].value = gains.length ? (gain > 0 ? '+' : '') + currency.format(gain) : '—';
+            this.summaryMetrics[5].tone = gain < 0 ? 'red' : 'cyan';
+          },
+          error: () => { this.summaryMetrics[4].value = '—'; this.summaryMetrics[5].value = '—'; }
+        });
         const results: Array<{ annualReturn: number | null; volatility: number | null; drawdown: number | null }> = [];
         for (const portfolio of portfolios) {
           this.api.getRealPortfolioHistory(portfolio.id).subscribe({
