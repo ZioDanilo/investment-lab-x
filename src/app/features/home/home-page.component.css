@@ -905,3 +905,11 @@
 .simulation-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .72rem; color: #edf6ff; }
 .simulation-row--header { border: 0; padding-top: 2px; padding-bottom: 2px; font-size: .63rem; color: #9fb9d1; }
 .simulation-state { padding: 10px 0; font-size: .72rem; color: #a9bbcf; }
+
+/* Signals sit directly below the summary, matching its exact column width. */
+@media (min-width: 1041px) {
+  .dashboard-grid--overview { grid-template-columns: minmax(0, 3fr) minmax(0, 7fr); align-items: start; }
+  .dashboard-grid--overview > .summary-panel { grid-column: 1; grid-row: 1; }
+  .dashboard-grid--overview > .simulations-panel { grid-column: 2; grid-row: 1; }
+  .dashboard-grid--overview > .notifications-panel { grid-column: 1; grid-row: 2; }
+}
