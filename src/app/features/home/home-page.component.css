@@ -972,3 +972,37 @@
 @media (max-width: 650px) {
   .dashboard-grid--overview { grid-template-columns: minmax(0,1fr); }
 }
+
+/* Summary content starts at the top, alongside the navigation icon. */
+.dashboard-grid--overview > .summary-panel {
+  justify-content: flex-start;
+  align-self: stretch;
+}
+.dashboard-grid--overview > .summary-panel .panel-header {
+  margin-top: 0;
+  padding-top: 0;
+}
+.dashboard-grid--overview > .summary-panel .summary-grid {
+  align-content: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, auto);
+}
+.dashboard-grid--overview > .summary-panel .summary-metric {
+  min-height: 0;
+  padding: 9px 10px;
+}
+/* Larger, side-menu-colored navigation icons. */
+.dashboard-grid--overview .dashboard-card-link {
+  width: 51px;
+  height: 51px;
+  font-size: 30px;
+  top: 10px;
+  right: 10px;
+}
+.dashboard-grid--overview .home-dashboard-card .panel-header { padding-right: 58px; }
+.dashboard-grid--overview .summary-panel .dashboard-card-link { color: #b991ff; border-color: rgba(185,145,255,.45); }
+.dashboard-grid--overview .simulations-panel .dashboard-card-link { color: #31d48d; border-color: rgba(49,212,141,.45); }
+.dashboard-grid--overview .rebalance-panel .dashboard-card-link { color: #ffbf69; border-color: rgba(255,191,105,.45); }
+.dashboard-grid--overview .notifications-panel .dashboard-card-link { color: #7dcfff; border-color: rgba(125,207,255,.45); }
+.dashboard-grid--overview .lab-dashboard-panel .dashboard-card-link { color: #7dcfff; border-color: rgba(125,207,255,.45); }
+.dashboard-grid--overview .markets-panel .dashboard-card-link { color: #60e7d8; border-color: rgba(96,231,216,.45); }
