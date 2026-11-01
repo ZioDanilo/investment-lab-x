@@ -1032,3 +1032,47 @@
   }
   .dashboard-grid--overview > .home-dashboard-card .panel-header { min-height: 51px; }
 }
+
+/* Navigation tabs anchored to the upper-right edge of each dashboard card. */
+.dashboard-grid--overview > .home-dashboard-card { position: relative; }
+@media (min-width: 1041px) {
+  .dashboard-grid--overview > .home-dashboard-card .dashboard-card-link {
+    position: absolute;
+    float: none;
+    margin: 0;
+    top: 0;
+    right: 0;
+  }
+}
+
+.dashboard-grid--overview > .home-dashboard-card .dashboard-card-link {
+  position: absolute;
+  float: none;
+  margin: 0;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  flex-direction: row;
+  gap: 9px;
+  width: auto;
+  max-width: 75%;
+  height: 51px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border-radius: 0 12px 0 12px;
+  white-space: nowrap;
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  font-size: .75rem;
+  font-weight: 700;
+  z-index: 4;
+}
+.dashboard-grid--overview .dashboard-card-link .material-symbols-rounded {
+  font-size: 29px;
+  flex-shrink: 0;
+}
+.dashboard-grid--overview .dashboard-card-link__label { overflow: hidden; text-overflow: ellipsis; }
+.dashboard-grid--overview > .home-dashboard-card .panel-header {
+  padding-right: 0;
+  padding-top: 53px;
+  min-height: 0;
+}
