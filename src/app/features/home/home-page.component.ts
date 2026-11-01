@@ -137,7 +137,9 @@ export class HomePageComponent implements OnInit, OnDestroy {
     { value: '—', label: 'Portafogli salvati', icon: 'folder', tone: 'blue' },
     { value: '—', label: 'Rendimento medio', icon: 'show_chart', tone: 'cyan' },
     { value: '—', label: 'Volatilità media', icon: 'signal_cellular_alt', tone: 'purple' },
-    { value: '—', label: 'Drawdown medio', icon: 'trending_down', tone: 'red' }
+    { value: '—', label: 'Drawdown medio', icon: 'trending_down', tone: 'red' },
+    { value: '—', label: 'Valore portafogli', icon: 'account_balance_wallet', tone: 'blue' },
+    { value: '—', label: 'Resa portafogli', icon: 'payments', tone: 'cyan' }
   ];
 
 
@@ -366,6 +368,22 @@ export class HomePageComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         const portfolios: any[] = Array.isArray(response?.data) ? response.data : [];
         this.summaryMetrics[0].value = String(portfolios.length);
+        // The market-values endpoint is scoped to the authenticated user, like the real portfolio page.
+        this.api.getRealPortfolioMarketValues().subscribe({
+          next: (valuesResponse: any) => {
+            const rows: any[] = Array.isArray(valuesResponse?.data) ? valuesResponse.data : Array.isArray(valuesResponse) ? valuesResponse : [];
+            const portfolioIds = new Set(portfolios.map(p => String(p.id)));
+            const ownRows = rows.filter(row => portfolioIds.has(String(row.portfolioId ?? row.portfolio_id ?? row.id)));
+            const valid = ownRows.filter(row => row.marketValue != null && Number.isFinite(Number(row.marketValue)));
+            const currency = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
+            this.summaryMetrics[4].value = valid.length ? currency.format(valid.reduce((sum, row) => sum + Number(row.marketValue), 0)) : '—';
+            const gains = ownRows.filter(row => row.gainLoss != null && Number.isFinite(Number(row.gainLoss)));
+            const gain = gains.reduce((sum, row) => sum + Number(row.gainLoss), 0);
+            this.summaryMetrics[5].value = gains.length ? (gain > 0 ? '+' : '') + currency.format(gain) : '—';
+            this.summaryMetrics[5].tone = gain < 0 ? 'red' : 'cyan';
+          },
+          error: () => { this.summaryMetrics[4].value = '—'; this.summaryMetrics[5].value = '—'; }
+        });
         const results: Array<{ annualReturn: number | null; volatility: number | null; drawdown: number | null }> = [];
         for (const portfolio of portfolios) {
           this.api.getRealPortfolioHistory(portfolio.id).subscribe({
