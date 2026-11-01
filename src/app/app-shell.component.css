@@ -781,3 +781,21 @@
 .app-shell--tutorial .tutorial-monte-carlo:not(.tutorial-monte-carlo-before-run) .route-page .montecarlo-page .search-results {
   pointer-events:auto!important;
 }
+
+/* Hover affordance shared by every feature sidebar: subtle lift and accent glow. */
+.app-feature-menu-card {
+  transition: transform 170ms ease, border-color 170ms ease, background 170ms ease, box-shadow 170ms ease;
+}
+.app-feature-menu-card:not(.is-active):hover,
+.app-feature-menu-card:not(.is-active):focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(var(--menu-accent-rgb), .7);
+  background: linear-gradient(180deg, rgba(var(--menu-accent-rgb), .18), rgba(9,15,22,.86));
+  box-shadow: 0 7px 16px rgba(0,0,0,.23), inset 0 0 0 1px rgba(var(--menu-accent-rgb),.1);
+  color: #fff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-feature-menu-card { transition: none; }
+  .app-feature-menu-card:not(.is-active):hover,
+  .app-feature-menu-card:not(.is-active):focus-visible { transform: none; }
+}
