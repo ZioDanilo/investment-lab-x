@@ -1076,3 +1076,6 @@
   padding-top: 53px;
   min-height: 0;
 }
+
+/* Unified Trend Following muted-red accent; Laboratory retains blue. */
+.dashboard-grid--overview .notifications-panel .dashboard-card-link { color: rgb(204,105,113); border-color: rgba(204,105,113,.45); background: rgba(204,105,113,.12); }
