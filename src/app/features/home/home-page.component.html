@@ -41,30 +41,8 @@
       </div>
     </section>
 
-    <section class="shortcut-row" aria-label="Azioni principali">
-      <article
-        *ngFor="let item of shortcuts; let i = index"
-        class="shortcut-card"
-        [class.tutorial-target]="isTutorial && item.title === 'Laboratorio Portafogli'"
-        [ngClass]="'shortcut-card--' + item.accent"
-        [routerLink]="isTutorial ? (item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : null) : item.title === 'Laboratorio Portafogli' ? ['/laboratorio-portafogli'] : item.title === 'I miei Portafogli' ? ['/portafogli'] : item.title === 'Monte Carlo' ? ['/monte-carlo'] : item.title === 'Ribilanciamento' ? ['/ribilanciamento'] : item.title === 'ETF & Mercati' ? ['/market-universe'] : item.title === 'Trend Following' ? ['/trend-following'] : null"
-        [attr.aria-label]="item.title"
-        tabindex="0"
-        role="button"
-      >
-        <div *ngIf="isTutorial && item.title === 'Laboratorio Portafogli'" class="tutorial-bubble" role="status">Clicca su Laboratorio Portafogli per creare il tuo primo portafoglio simulato.</div>
-        <div class="shortcut-card__top">
-          <span class="shortcut-icon material-symbols-rounded">{{ item.icon }}</span>
-        </div>
-        <div class="shortcut-card__body">
-          <h2>{{ item.title }}</h2>
-          <p>{{ item.description }}</p>
-        </div>
-      </article>
-    </section>
-
-    <section class="dashboard-grid dashboard-grid--overview" aria-label="Sintesi, simulazioni e segnalazioni">
-      <article class="panel summary-panel">
+    <section class="dashboard-grid dashboard-grid--overview" aria-label="Dashboard portafogli e strumenti">
+      <article class="panel summary-panel home-dashboard-card">
         <div class="panel-header compact">
           <div>
             <p class="panel-kicker">Sintesi</p>
@@ -72,6 +50,7 @@
           </div>
         </div>
 
+        <a class="dashboard-card-link material-symbols-rounded" routerLink="/portafogli" aria-label="Apri I miei Portafogli" title="I miei Portafogli">folder</a>
         <div class="summary-grid">
           <div *ngFor="let metric of summaryMetrics" class="summary-metric summary-metric--{{ metric.tone }}">
             <strong>{{ metric.value }}</strong>
@@ -80,11 +59,12 @@
         </div>
       </article>
 
-      <article class="panel simulations-panel">
+      <article class="panel simulations-panel home-dashboard-card">
         <div class="panel-header compact"><div>
           <p class="panel-kicker">Simulazioni</p>
           <h3>Simulazioni Portafogli</h3>
         </div></div>
+        <a class="dashboard-card-link material-symbols-rounded" routerLink="/monte-carlo" aria-label="Apri Monte Carlo" title="Monte Carlo">trending_up</a>
         <div class="simulation-state" *ngIf="simulationsError">Impossibile caricare i portafogli.</div>
         <div class="simulation-state" *ngIf="simulationsLoading && !simulations.length">Caricamento portafogli...</div>
         <div class="simulation-state" *ngIf="!simulationsLoading && !simulationsError && !simulations.length">Nessun portafoglio reale.</div>
@@ -102,11 +82,17 @@
         </div>
       </article>
 
-      <article class="panel notifications-panel">
+      <article class="panel home-dashboard-card placeholder-panel rebalance-panel">
+        <div class="panel-header compact"><div><p class="panel-kicker">Ribilanciamento</p><h3>In preparazione</h3></div></div>
+        <a class="dashboard-card-link material-symbols-rounded" routerLink="/ribilanciamento" aria-label="Apri Ribilanciamento" title="Ribilanciamento">sync</a>
+      </article>
+
+      <article class="panel notifications-panel home-dashboard-card">
         <div class="panel-header compact"><div>
           <p class="panel-kicker">Segnalazioni</p>
           <h3>Segnalazioni</h3>
         </div></div>
+        <a class="dashboard-card-link material-symbols-rounded" routerLink="/trend-following" aria-label="Apri Trend Following" title="Trend Following">show_chart</a>
         <div class="alert-state" *ngIf="alertsLoading">Verifica segnali in corso...</div>
         <div class="alert-state" *ngIf="alertsError">Impossibile caricare le segnalazioni.</div>
         <div class="alert-state" *ngIf="!alertsLoading && !alertsError && !trendAlerts.length">Nessuna segnalazione attiva.</div>
@@ -118,8 +104,16 @@
           </button>
         </div>
       </article>
+      <article class="panel home-dashboard-card lab-dashboard-panel" [class.tutorial-target]="isTutorial">
+        <div *ngIf="isTutorial" class="tutorial-bubble" role="status">Clicca su Laboratorio Portafogli per creare il tuo primo portafoglio simulato.</div>
+        <div class="panel-header compact"><div><p class="panel-kicker">Laboratorio</p><h3>Laboratorio Portafogli</h3></div></div>
+        <a class="dashboard-card-link material-symbols-rounded" routerLink="/laboratorio-portafogli" aria-label="Apri Laboratorio Portafogli" title="Laboratorio Portafogli">science</a>
+      </article>
+
+      <article class="panel home-dashboard-card placeholder-panel markets-panel">
+        <div class="panel-header compact"><div><p class="panel-kicker">ETF & Mercati</p><h3>In preparazione</h3></div></div>
+        <a class="dashboard-card-link material-symbols-rounded" routerLink="/market-universe" aria-label="Apri ETF e Mercati" title="ETF e Mercati">bar_chart</a>
+      </article>
     </section>
-
-
   </main>
 </div>
