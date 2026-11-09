@@ -3,15 +3,129 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-public-landing',
   standalone: true,
-  template: `<main class="landing">
-    <nav class="nav"><a class="brand" href="/">RAZER</a><div><a href="/chi-siamo">Guida ETF</a><a href="/login">Accedi</a></div></nav>
-    <header><p class="eyebrow">RAZER · LABORATORIO ETF</p><h1>Costruisci, confronta e simula portafogli ETF</h1><p class="lead">Un laboratorio per studiare diversificazione, rendimento atteso e rischio. Esplora scenari ipotetici, confronta le allocazioni e scopri come interpretare le simulazioni senza confonderle con previsioni.</p><div class="actions"><a class="primary" href="/login?tour=1">Fai un giro! — Tutorial gratuito</a><a class="secondary" href="/login">Accedi alla piattaforma</a></div><p class="note">Il tutorial è gratuito e non richiede registrazione né dati finanziari personali.</p></header>
-    <section><h2>Cosa puoi fare con Razer</h2><div class="features"><article><h3>Laboratorio portafogli</h3><p>Seleziona ETF e modifica i pesi percentuali per osservare come la composizione influenza il profilo del portafoglio. Più strumenti non significano automaticamente maggiore diversificazione: contano le esposizioni e le correlazioni.</p></article><article><h3>Simulazioni Monte Carlo</h3><p>Esplora molti percorsi ipotetici basati su assunzioni statistiche. Confronta intervalli di risultato, volatilità e drawdown, ricordando che gli scenari simulati non rappresentano certezze sul futuro.</p></article><article><h3>Ribilanciamento</h3><p>Confronta pesi attuali e obiettivo e valuta gli aggiustamenti necessari. Costi, imposte, liquidità e quantità negoziabili possono influenzare le operazioni reali.</p></article><article><h3>Trend following</h3><p>Studia strategie basate sull'andamento dei prezzi e sulle medie mobili. Le regole possono limitare alcune perdite, ma generare falsi segnali e ritardi nei mercati laterali.</p></article></div></section>
-    <section><h2>Come interpretare rendimento e rischio</h2><p>Il rendimento atteso è una stima, non una promessa. La volatilità misura la variabilità dei rendimenti, mentre il massimo drawdown descrive la maggiore perdita dal picco al minimo nel periodo osservato. Un portafoglio può presentare un rendimento medio interessante e subire comunque perdite rilevanti.</p><p>Le simulazioni dipendono dalle ipotesi su rendimenti, correlazioni e orizzonte temporale. Per un'analisi consapevole è utile confrontare scenari sfavorevoli, considerare costi e verificare quanto cambiano i risultati modificando le assunzioni.</p><a href="/chi-siamo">Approfondisci nella guida ETF, rischio e Monte Carlo →</a></section>
-    <section class="demo"><h2>Prova le nostre funzionalità</h2><p>Nel percorso guidato puoi costruire un portafoglio dimostrativo, variare l'allocazione e arrivare a una simulazione Monte Carlo. Non occorre creare un account.</p><a class="primary" href="/login?tour=1">Fai un giro!</a></section>
-    <aside><strong>Uno strumento informativo, non una consulenza</strong><p>Razer è dedicato allo studio e all'analisi. Non offre raccomandazioni personalizzate, né garantisce risultati o rendimenti futuri. Il capitale investito può diminuire.</p></aside>
-    <footer><a href="/chi-siamo">Guida ETF</a><a href="/privacy">Privacy</a><a href="/cookies">Cookie</a><a href="/contatti">Contatti</a><a href="/login">Accedi</a></footer>
-  </main>`,
-  styles: [`:host{display:block;min-height:100vh;background:#08131f;color:#e4edf8}.landing{max-width:1050px;margin:auto;padding:26px 26px 80px;font:16px/1.7 system-ui,sans-serif}.nav,.nav>div,.actions,footer{display:flex;align-items:center;gap:22px;flex-wrap:wrap}.nav{justify-content:space-between}.brand{font-size:23px;font-weight:900;letter-spacing:.12em;text-decoration:none}.landing a{color:#8dd4ff}.landing header{padding:78px 0 65px}.eyebrow{color:#91bad6;font-size:13px;letter-spacing:.16em;font-weight:700}.landing h1{font-size:clamp(34px,5vw,62px);line-height:1.13;letter-spacing:-.035em;max-width:850px}.lead{font-size:20px;max-width:790px;color:#c1d6e8}.actions{margin:30px 0 12px}.primary,.secondary{display:inline-block;padding:12px 22px;border-radius:10px;font-weight:750;text-decoration:none}.landing .primary{background:#16c8fa;color:#061523}.secondary{border:1px solid #52768f}.note{font-size:14px;color:#a9bfd0}.landing section{padding:38px 0;border-top:1px solid #284154}.landing h2{font-size:clamp(24px,3vw,32px)}.features{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.features article{padding:20px 24px;background:#102437;border:1px solid #29465c;border-radius:14px}.features h3{margin:0 0 8px}.features p{margin:0;color:#c6d7e6}.demo{background:#102437;padding:30px!important;border:1px solid #37627e!important;border-radius:16px;margin:24px 0}.landing aside{border-left:3px solid #68b6ed;background:#102437;padding:16px 22px;margin:30px 0}.landing footer{border-top:1px solid #284154;padding-top:28px;margin-top:45px}@media(max-width:650px){.landing header{padding:48px 0}.features{grid-template-columns:1fr}.landing{padding:22px 18px 60px}}`]
+  template: `
+    <main class="landing">
+      <nav class="nav" aria-label="Navigazione principale">
+        <a class="brand" href="/">RAZER<span>ETF</span></a>
+        <div class="nav-links"><a href="/chi-siamo">Guida ETF</a><a class="nav-login" href="/login">Accedi</a></div>
+      </nav>
+
+      <header class="stage stage--hero" id="inizio">
+        <div class="stage-content">
+          <p class="eyebrow">RAZER · LABORATORIO ETF</p>
+          <h1>Il tuo portafoglio.<br><span>Una nuova prospettiva.</span></h1>
+          <p class="lead">Costruisci, confronta e simula portafogli ETF. Esplora scenari, rischio e strategie in un unico laboratorio.</p>
+          <div class="actions">
+            <a class="primary" href="/login?tour=1">Esplora il tutorial gratuito <span aria-hidden="true">↗</span></a>
+            <a class="secondary" href="/login">Accedi alla piattaforma <span aria-hidden="true">→</span></a>
+          </div>
+          <p class="note">Tutorial gratuito, senza registrazione né dati finanziari personali.</p>
+        </div>
+        <a class="scroll-cue" href="#scopri">Scopri di più <span aria-hidden="true">↓</span></a>
+      </header>
+
+      <section class="stage stage--second" id="scopri" aria-labelledby="second-title">
+        <div class="stage-content">
+          <p class="eyebrow">01 / ESPLORA</p>
+          <h2 id="second-title">Ogni scelta<br><span>merita una visione più ampia.</span></h2>
+          <p class="lead">Un ambiente per osservare come pesi, esposizioni e correlazioni cambiano il profilo di un portafoglio.</p>
+          <a class="text-link" href="/login?tour=1">Scopri il laboratorio <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+
+      <section class="stage stage--third" aria-labelledby="third-title">
+        <div class="stage-content">
+          <p class="eyebrow">02 / SIMULA</p>
+          <h2 id="third-title">Non una previsione.<br><span>Molti scenari da esplorare.</span></h2>
+          <p class="lead">Confronta percorsi ipotetici con Monte Carlo e approfondisci il rapporto tra rendimento atteso e rischio.</p>
+          <a class="text-link" href="/chi-siamo">Approfondisci il metodo <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+
+      <div class="split-grid" aria-label="Funzionalità della piattaforma">
+        <section class="tile tile--one" aria-labelledby="tile-one-title">
+          <div class="tile-content"><p class="eyebrow">03 / CONFRONTA</p><h2 id="tile-one-title">Portafogli<br>su misura.</h2><p>Prova diverse allocazioni e confronta le caratteristiche dei tuoi portafogli.</p></div>
+        </section>
+        <section class="tile tile--two" aria-labelledby="tile-two-title">
+          <div class="tile-content"><p class="eyebrow">04 / RIBILANCIA</p><h2 id="tile-two-title">Ritrova<br>l'equilibrio.</h2><p>Esamina gli scostamenti dai pesi obiettivo e gli aggiustamenti possibili.</p></div>
+        </section>
+        <section class="tile tile--three" aria-labelledby="tile-three-title">
+          <div class="tile-content"><p class="eyebrow">05 / OSSERVA</p><h2 id="tile-three-title">Il mercato<br>in movimento.</h2><p>Analizza l'andamento dei prezzi e le strategie di trend following.</p></div>
+        </section>
+        <section class="tile tile--four" aria-labelledby="tile-four-title">
+          <div class="tile-content"><p class="eyebrow">06 / COMPRENDI</p><h2 id="tile-four-title">Il rischio<br>è parte del viaggio.</h2><p>Leggi volatilità, drawdown e scenari sfavorevoli con maggiore consapevolezza.</p></div>
+        </section>
+      </div>
+
+      <section class="stage stage--placeholder" aria-label="Sezione futura 1"><span class="placeholder-index">07</span><div class="placeholder-line" aria-hidden="true"></div></section>
+      <section class="stage stage--placeholder stage--placeholder-alt" aria-label="Sezione futura 2"><span class="placeholder-index">08</span><div class="placeholder-line" aria-hidden="true"></div></section>
+      <section class="stage stage--placeholder" aria-label="Sezione futura 3"><span class="placeholder-index">09</span><div class="placeholder-line" aria-hidden="true"></div></section>
+
+      <aside class="disclaimer"><strong>Uno strumento informativo, non una consulenza.</strong> RazerETF non offre raccomandazioni personalizzate né garantisce rendimenti futuri. Il capitale investito può diminuire.</aside>
+      <footer><a href="/chi-siamo">Guida ETF</a><a href="/privacy">Privacy</a><a href="/cookies">Cookie</a><a href="/contatti">Contatti</a><a href="/login">Accedi</a></footer>
+    </main>
+  `,
+  styles: [`
+    :host{display:block;background:#080e17;color:#f3f7ff;font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}
+    .landing{width:100%;overflow:hidden}
+    .landing a{color:inherit}
+    .nav{position:absolute;z-index:5;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:clamp(18px,3vw,42px) clamp(22px,5vw,88px)}
+    .brand{text-decoration:none;font-weight:900;font-size:clamp(21px,2vw,29px);letter-spacing:.1em}
+    .brand span{color:#61d8ff}
+    .nav-links{display:flex;align-items:center;gap:clamp(14px,3vw,34px)}
+    .nav-links a{text-decoration:none;font-size:14px;font-weight:650}
+    .nav-login{border:1px solid #7892ac;padding:10px 19px;border-radius:999px}
+    .stage{position:relative;min-height:100svh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:clamp(100px,12vh,160px) clamp(24px,8vw,144px);isolation:isolate;border-bottom:1px solid rgba(255,255,255,.09)}
+    .stage-content{position:relative;z-index:1;width:min(100%,1100px)}
+    .stage--hero{background:radial-gradient(ellipse at 76% 38%,rgba(0,137,211,.26),transparent 46%),linear-gradient(135deg,#08111e,#0b2135 55%,#060d17)}
+    .stage--second{background:radial-gradient(ellipse at 24% 62%,rgba(24,164,191,.16),transparent 46%),linear-gradient(150deg,#101b2b,#07141f)}
+    .stage--third{background:radial-gradient(ellipse at 75% 40%,rgba(108,95,210,.2),transparent 47%),linear-gradient(140deg,#0b1024,#11172e)}
+    .eyebrow{margin:0 0 24px;color:#75d9ff;font-size:clamp(11px,1.1vw,14px);font-weight:750;letter-spacing:.22em;text-transform:uppercase}
+    h1,h2{font-weight:760;letter-spacing:-.055em;line-height:1.07;margin:0;overflow-wrap:break-word}
+    h1{font-size:clamp(42px,7vw,106px)}
+    .stage h2{font-size:clamp(40px,6.4vw,92px)}
+    h1 span,.stage h2 span{color:#91b8d7}
+    .lead{max-width:740px;font-size:clamp(17px,1.65vw,24px);line-height:1.6;color:#c3d2e0;margin:clamp(22px,3vw,40px) 0 0}
+    .actions{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:clamp(26px,4vw,48px) 0 16px}
+    .primary,.secondary{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:52px;padding:13px 23px;border-radius:999px;text-decoration:none;font-weight:730;font-size:clamp(14px,1.1vw,16px);transition:transform .2s,box-shadow .2s}
+    .primary{background:#51d2ff;color:#071421!important}
+    .secondary{border:1px solid rgba(200,224,244,.55)}
+    .primary:hover,.secondary:hover{transform:translateY(-2px);box-shadow:0 9px 26px rgba(24,161,225,.2)}
+    .note{font-size:13px;color:#a7bfd2;margin:0}
+    .scroll-cue{position:absolute;bottom:clamp(20px,4vh,48px);left:50%;transform:translateX(-50%);display:flex;gap:12px;align-items:center;color:#b9d4e7!important;text-decoration:none;font-size:13px;letter-spacing:.08em}
+    .text-link{display:inline-flex;gap:12px;margin-top:34px;text-decoration:none;color:#77dcff!important;font-weight:750}
+    .split-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:10px;background:#050a11}
+    .tile{min-height:clamp(430px,60vh,750px);display:flex;align-items:center;justify-content:center;padding:clamp(30px,5vw,90px);border-radius:8px;isolation:isolate}
+    .tile-content{width:min(100%,520px)}
+    .tile h2{font-size:clamp(36px,4.4vw,70px)}
+    .tile p:not(.eyebrow){max-width:440px;font-size:clamp(16px,1.3vw,20px);color:#c5d5e2;line-height:1.65}
+    .tile--one{background:linear-gradient(145deg,#102e42,#071a2a)}
+    .tile--two{background:linear-gradient(145deg,#252039,#10152a)}
+    .tile--three{background:linear-gradient(145deg,#122b30,#081a22)}
+    .tile--four{background:linear-gradient(145deg,#292333,#131321)}
+    .stage--placeholder{background:linear-gradient(145deg,#0d1825,#101e2d);flex-direction:column;gap:22px}
+    .stage--placeholder-alt{background:linear-gradient(145deg,#101627,#172238)}
+    .placeholder-index{font-size:clamp(64px,13vw,190px);font-weight:750;letter-spacing:-.07em;color:rgba(185,216,243,.13);line-height:1}
+    .placeholder-line{height:2px;width:min(140px,30vw);background:rgba(165,205,239,.22)}
+    .disclaimer{padding:32px clamp(24px,8vw,144px);background:#0a1520;color:#a6b9c9;font-size:13px}
+    .disclaimer strong{color:#d9e6f1}
+    footer{display:flex;flex-wrap:wrap;gap:18px 30px;padding:30px clamp(24px,8vw,144px) 55px;background:#070e17;border-top:1px solid #253548}
+    footer a{text-decoration:none;font-size:14px;color:#a6c9df!important}
+    @media(max-width:760px){
+      .split-grid{grid-template-columns:1fr;gap:8px;padding:8px}
+      .tile{min-height:72svh;min-height:72dvh;padding:clamp(30px,8vw,60px)}
+      .tile h2{font-size:clamp(40px,9vw,66px)}
+      .stage{padding:120px 7vw 90px}
+      .nav{padding:22px 7vw}
+    }
+    @media(max-width:440px){
+      .nav-links{gap:12px}.nav-links a{font-size:12px}.nav-login{padding:8px 12px}
+      .stage{min-height:100svh;min-height:100dvh}
+      .actions{align-items:stretch;flex-direction:column}.primary,.secondary{width:100%}
+      .scroll-cue{bottom:18px}
+    }
+    @media(prefers-reduced-motion:reduce){.primary,.secondary{transition:none}.primary:hover,.secondary:hover{transform:none}}
+  `]
 })
 export class PublicLandingComponent {}
