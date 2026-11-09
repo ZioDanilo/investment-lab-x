@@ -1,3 +1,4 @@
+import { PublicLandingComponent } from './features/public/public-landing.component';
 import { TutorialPageComponent } from './features/tutorial/tutorial-page.component';
 import { Routes } from '@angular/router';
 import { PublicInfoComponent } from './features/public/public-info.component';
@@ -20,7 +21,7 @@ export const appRoutes: Routes = [
   { path: 'privacy', component: PublicLegalComponent },
   { path: 'cookies', component: PublicLegalComponent },
   { path: 'contatti', component: PublicLegalComponent },
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: '', component: PublicLandingComponent, pathMatch: 'full' },
   {
     path: '',
     component: AppShellComponent,
