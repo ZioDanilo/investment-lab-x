@@ -57,9 +57,6 @@ import { Component } from '@angular/core';
         </section>
       </div>
 
-      <section class="stage stage--placeholder" aria-label="Sezione futura 1"><span class="placeholder-index">07</span><div class="placeholder-line" aria-hidden="true"></div></section>
-      <section class="stage stage--placeholder stage--placeholder-alt" aria-label="Sezione futura 2"><span class="placeholder-index">08</span><div class="placeholder-line" aria-hidden="true"></div></section>
-      <section class="stage stage--placeholder" aria-label="Sezione futura 3"><span class="placeholder-index">09</span><div class="placeholder-line" aria-hidden="true"></div></section>
 
       <aside class="disclaimer"><strong>Uno strumento informativo, non una consulenza.</strong> RazerETF non offre raccomandazioni personalizzate né garantisce rendimenti futuri. Il capitale investito può diminuire.</aside>
       <footer><a href="/chi-siamo">Guida ETF</a><a href="/privacy">Privacy</a><a href="/cookies">Cookie</a><a href="/contatti">Contatti</a><a href="/login">Accedi</a></footer>
@@ -104,10 +101,6 @@ import { Component } from '@angular/core';
     .tile--two{background:linear-gradient(145deg,#252039,#10152a)}
     .tile--three{background:linear-gradient(145deg,#122b30,#081a22)}
     .tile--four{background:linear-gradient(145deg,#292333,#131321)}
-    .stage--placeholder{background:linear-gradient(145deg,#0d1825,#101e2d);flex-direction:column;gap:22px}
-    .stage--placeholder-alt{background:linear-gradient(145deg,#101627,#172238)}
-    .placeholder-index{font-size:clamp(64px,13vw,190px);font-weight:750;letter-spacing:-.07em;color:rgba(185,216,243,.13);line-height:1}
-    .placeholder-line{height:2px;width:min(140px,30vw);background:rgba(165,205,239,.22)}
     .disclaimer{padding:32px clamp(24px,8vw,144px);background:#0a1520;color:#a6b9c9;font-size:13px}
     .disclaimer strong{color:#d9e6f1}
     footer{display:flex;flex-wrap:wrap;gap:18px 30px;padding:30px clamp(24px,8vw,144px) 55px;background:#070e17;border-top:1px solid #253548}
