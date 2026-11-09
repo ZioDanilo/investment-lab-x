@@ -88,9 +88,9 @@ import { Component } from '@angular/core';
     h1 span,.stage h2 span{color:#91b8d7}
     .lead{max-width:740px;font-size:clamp(17px,1.65vw,24px);line-height:1.6;color:#c3d2e0;margin:clamp(22px,3vw,40px) 0 0}
     .actions{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:clamp(26px,4vw,48px) 0 16px}
-    .primary,.secondary{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:52px;padding:13px 23px;border-radius:999px;text-decoration:none;font-weight:730;font-size:clamp(14px,1.1vw,16px);transition:transform .2s,box-shadow .2s}
+    .primary,.secondary{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:52px;padding:13px 23px;border-radius:10px;text-decoration:none;font-weight:730;font-size:clamp(14px,1.1vw,16px);transition:transform .2s,box-shadow .2s}
     .primary{background:#51d2ff;color:#071421!important}
-    .secondary{border:1px solid rgba(200,224,244,.55)}
+    .secondary{border:1px solid rgba(119,201,255,.56);background:rgba(22,131,204,.16);color:#dff5ff!important}
     .primary:hover,.secondary:hover{transform:translateY(-2px);box-shadow:0 9px 26px rgba(24,161,225,.2)}
     .note{font-size:13px;color:#a7bfd2;margin:0}
     .scroll-cue{position:absolute;bottom:clamp(20px,4vh,48px);left:50%;transform:translateX(-50%);display:flex;gap:12px;align-items:center;color:#b9d4e7!important;text-decoration:none;font-size:13px;letter-spacing:.08em}
