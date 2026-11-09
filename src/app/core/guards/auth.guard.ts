@@ -7,7 +7,7 @@ export const authGuard: CanActivateFn = (_route, state) => {
 
   if (username === 'tutorial') {
     return localStorage.getItem('investmentLabRole') === 'TUTORIAL' && sessionStorage.getItem('investmentLabTutorial') === 'true'
-      ? (['/home', '/laboratorio-portafogli', '/monte-carlo'].includes(state.url.split('?')[0]) ? true : router.createUrlTree(['/home']))
+      ? (['/home', '/laboratorio-portafogli', '/monte-carlo'].includes(state.url.split('?')[0]) ? true : router.createUrlTree(['/laboratorio-portafogli']))
       : router.createUrlTree(['/login']);
   }
   return username ? true : router.createUrlTree(['/login']);
