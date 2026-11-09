@@ -17,12 +17,13 @@ export class AppComponent implements OnInit {
   readonly router = inject(Router);
   private readonly titleService = inject(Title);
   private readonly meta = inject(Meta);
-  get publicPage(): boolean { return ['/chi-siamo','/privacy','/cookies','/contatti'].includes(this.router.url.split('?')[0]); }
+  get publicPage(): boolean { return ['/','/chi-siamo','/privacy','/cookies','/contatti'].includes(this.router.url.split('?')[0]); }
   ngOnInit(): void {
     this.analytics.start();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe(event => {
       const path = event.urlAfterRedirects.split('?')[0];
       const pages: Record<string, [string,string]> = {
+        '/': ['Razer | Laboratorio ETF, portafogli e simulazioni Monte Carlo','Costruisci e confronta portafogli ETF, studia rischio e rendimento con simulazioni Monte Carlo. Prova il tutorial gratuito senza registrazione.'],
         '/chi-siamo': ['Guida ETF, Monte Carlo e rischio | Razer','Guida pubblica Razer: diversificazione ETF, volatilità, drawdown, simulazioni Monte Carlo, ribilanciamento e trend following.'],
         '/privacy': ['Informativa privacy | Razer','Informativa sul trattamento dei dati personali e sui diritti degli utenti Razer.'],
         '/cookies': ['Cookie e preferenze | Razer','Informazioni su cookie, Google Analytics, pubblicità e gestione delle preferenze di consenso.'],
@@ -32,7 +33,7 @@ export class AppComponent implements OnInit {
       const data=pages[path] ?? ['Razer | Analisi portafogli ETF','Piattaforma Razer per analisi ETF, simulazioni e gestione del rischio.'];
       this.titleService.setTitle(data[0]);
       const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-      if (canonical) canonical.href = 'https://razeretf.com' + (path === '/login' ? '/' : path);
+      if (canonical) canonical.href = 'https://razeretf.com' + path;
       this.meta.updateTag({name:'description',content:data[1]});
       this.meta.updateTag({name:'robots',content:this.publicPage ? 'index,follow' : 'noindex,follow'});
       this.meta.updateTag({property:'og:title',content:data[0]});
