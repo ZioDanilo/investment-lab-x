@@ -823,6 +823,5 @@
 .profile-dropdown__item--quotation.is-running:disabled{opacity:1}
 .profile-quotation-fill{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,#1765a2,#43b2e9);transition:width .1s linear;pointer-events:none}
 .profile-quotation-label{position:relative;z-index:1}
-.app-feature-action-row.app-feature-action-row--quotations{display:flex;align-items:center;width:100%;min-width:0}
-.app-feature-action-row--quotations > .app-feature-action--quotations{display:flex;flex:1 1 100%;width:100%;min-width:0;max-width:none;grid-column:auto;justify-self:stretch;cursor:wait;opacity:1}
+.app-feature-action-row--quotations > .app-feature-action--quotations{cursor:wait;opacity:1}
 .app-feature-action-row--quotations > .app-feature-action--quotations:disabled{opacity:1}
