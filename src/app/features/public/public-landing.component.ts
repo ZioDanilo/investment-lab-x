@@ -6,7 +6,7 @@ import { Component } from '@angular/core';
   template: `
     <main class="landing">
       <nav class="nav" aria-label="Navigazione principale">
-        <a class="brand" href="/">RAZER<span>ETF</span></a>
+        <a class="brand" href="/" aria-label="Razer - Vai alla pagina iniziale"><img class="brand-logo" src="assets/img/Logo_razer.png" alt="Razer" /></a>
         <div class="nav-links"><a href="/chi-siamo">Guida ETF</a><a class="nav-login" href="/login">Accedi</a></div>
       </nav>
 
@@ -72,7 +72,7 @@ import { Component } from '@angular/core';
     .landing a{color:inherit}
     .nav{position:absolute;z-index:5;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:clamp(18px,3vw,42px) clamp(22px,5vw,88px)}
     .brand{text-decoration:none;font-weight:900;font-size:clamp(21px,2vw,29px);letter-spacing:.1em}
-    .brand span{color:#61d8ff}
+    .brand-logo{display:block;width:auto;height:clamp(34px,3.4vw,48px);max-width:min(230px,38vw);object-fit:contain;object-position:left center}
     .nav-links{display:flex;align-items:center;gap:clamp(14px,3vw,34px)}
     .nav-links a{text-decoration:none;font-size:14px;font-weight:650}
     .nav-login{border:1px solid #7892ac;padding:10px 19px;border-radius:999px}
