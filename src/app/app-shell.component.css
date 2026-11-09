@@ -813,3 +813,7 @@
   .brand-group { min-width: 0; }
   .brand-group .brand-logo { height: 34px; max-width: 32vw; }
 }
+
+/* The logo is the home navigation control throughout the authenticated app. */
+.global-navbar .brand-group{text-decoration:none;cursor:pointer}
+.global-navbar .brand-group:focus-visible{outline:2px solid #72d3ff;outline-offset:4px;border-radius:4px}
