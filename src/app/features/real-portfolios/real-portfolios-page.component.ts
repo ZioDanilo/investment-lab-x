@@ -12,7 +12,7 @@ import { ActionConfirmationService } from '../../core/services/action-confirmati
 import { QuotationsUpdatedService } from '../../core/services/quotations-updated.service';
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
-interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; quotationDate?:string|null; }
+interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; totalGainLoss?:number; totalGainLossPercent?:number|null; quotationDate?:string|null; }
 interface Holding { name:string; nickname:string; ticker:string; assetClass:string; qty:string; avg:string; price:string; value:string; marketValue:number|null; gain:string; weight:string; tone:'positive'|'negative'|'neutral'; }
 interface Operation { date:string; type:'Acquisto'|'Vendita'|'Ritenuta'; isin:string; etf:string; qty:string; price:string; total:string; }
 
@@ -188,10 +188,10 @@ export class RealPortfoliosPageComponent implements OnInit {
 
   // Angular templates do not expose the global Math object: format signed gains in TS.
   formatPortfolioGain(p:Portfolio):string {
-    const gain=Number(p.gainLoss ?? 0);
-    const percent=Number(p.gainLossPercent ?? 0);
+    const gain=Number(p.totalGainLoss ?? p.gainLoss ?? 0);
+    const percent=p.totalGainLoss == null ? Number(p.gainLossPercent ?? 0) : null;
     const sign=gain>0?'+':gain<0?'−':'';
-    return sign+this.formatCurrencyTrailing(Math.abs(gain))+' ('+this.formatSignedPercent(percent)+')';
+    return sign+this.formatCurrencyTrailing(Math.abs(gain))+(percent === null ? '' : ' ('+this.formatSignedPercent(percent)+')');
   }
 
   get hasSelectedPortfolio():boolean { return this.portfolios.length>0 && !!this.portfolios[this.selected]; }
@@ -221,12 +221,12 @@ export class RealPortfoliosPageComponent implements OnInit {
   }
   get kpis(){
     const p=this.portfolios[this.selected];
-    const value=p?.marketValue ?? 0, gain=p?.gainLoss ?? 0, pct=p?.gainLossPercent ?? 0;
+    const value=p?.marketValue ?? 0, gain=p?.totalGainLoss ?? p?.gainLoss ?? 0, pct=p?.totalGainLoss == null ? p?.gainLossPercent ?? 0 : null;
     const tone=this.valueTone(gain), sign=gain>0?'+ ':gain<0?'- ':'';
     return [
-    ['Valore di mercato',this.formatCurrency(value),`${sign}${this.formatCurrency(Math.abs(gain))}  (${this.formatSignedPercent(pct)})`,tone],
+    ['Valore di mercato',this.formatCurrency(value),`${sign}${this.formatCurrency(Math.abs(gain))}${pct === null ? '' : '  ('+this.formatSignedPercent(pct)+')'}`,tone],
     ['Capitale investito',this.formatCurrencyTrailing(p?.investedCapital ?? 0),'',''],
-    ['Gain/Loss',`${sign}${this.formatCurrency(Math.abs(gain))}`,this.formatSignedPercent(pct),tone],
+    ['Gain/Loss',`${sign}${this.formatCurrency(Math.abs(gain))}`,pct === null ? '' : this.formatSignedPercent(pct),tone],
     ['Rendimento annuo (TWR)',this.performance.annualReturn === null ? '—' : this.formatSignedPercent(this.performance.annualReturn),'',this.performance.annualReturn === null ? '' : this.valueTone(this.performance.annualReturn)],
     ['Volatilità annua',this.performance.volatility === null ? '—' : this.formatSignedPercent(this.performance.volatility).replace(/^\+/,''),'',''],
     ['Numero ETF',String(this.holdings.length),'','']
