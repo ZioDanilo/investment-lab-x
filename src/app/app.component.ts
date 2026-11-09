@@ -17,11 +17,11 @@ export class AppComponent implements OnInit {
   readonly router = inject(Router);
   private readonly titleService = inject(Title);
   private readonly meta = inject(Meta);
-  get publicPage(): boolean { return ['/','/chi-siamo','/privacy','/cookies','/contatti'].includes(this.router.url.split('?')[0]); }
+  get publicPage(): boolean { return ['/','/chi-siamo','/privacy','/cookies','/contatti'].includes(this.router.url.split(/[?#]/)[0]); }
   ngOnInit(): void {
     this.analytics.start();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe(event => {
-      const path = event.urlAfterRedirects.split('?')[0];
+      const path = event.urlAfterRedirects.split(/[?#]/)[0];
       const pages: Record<string, [string,string]> = {
         '/': ['Razer | Laboratorio ETF, portafogli e simulazioni Monte Carlo','Costruisci e confronta portafogli ETF, studia rischio e rendimento con simulazioni Monte Carlo. Prova il tutorial gratuito senza registrazione.'],
         '/chi-siamo': ['Guida ETF, Monte Carlo e rischio | Razer','Guida pubblica Razer: diversificazione ETF, volatilità, drawdown, simulazioni Monte Carlo, ribilanciamento e trend following.'],

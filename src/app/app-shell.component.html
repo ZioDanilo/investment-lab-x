@@ -1,14 +1,10 @@
 <div class="app-shell" [class.app-shell--tutorial]="isTutorial">
   <header class="global-navbar" aria-label="Navigazione principale">
-    <div class="brand-group" aria-label="Razer brand">
-      <div class="brand-copy">
-        <span class="brand-name">Razer</span>
-        <span class="brand-tag">COSTRUISCI • ANALIZZA • MIGLIORA</span>
-      </div>
-    </div>
+    <a class="brand-group" routerLink="/home" aria-label="Razer - Vai alla home">
+      <img class="brand-logo" src="assets/img/Logo_razer.png" alt="Razer" />
+    </a>
 
     <nav class="nav-links" aria-label="Menu principale">
-      <a routerLink="/home" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="goHome($event)">Home</a>
       <app-portfolio-selector *ngIf="!isTutorial"></app-portfolio-selector>
     </nav>
 

@@ -427,7 +427,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
             const portfolioIds = new Set(portfolios.map(p => String(p.id)));
             const ownRows = rows.filter(row => portfolioIds.has(String(row.portfolioId ?? row.portfolio_id ?? row.id)));
             const valid = ownRows.filter(row => row.marketValue != null && Number.isFinite(Number(row.marketValue)));
-            const currency = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
+            const currency = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', useGrouping: true, minimumFractionDigits: 2, maximumFractionDigits: 2 });
             this.summaryMetrics[4].value = valid.length ? currency.format(valid.reduce((sum, row) => sum + Number(row.marketValue), 0)) : '—';
             const gains = ownRows.filter(row => row.gainLoss != null && Number.isFinite(Number(row.gainLoss)));
             const gain = gains.reduce((sum, row) => sum + Number(row.gainLoss), 0);

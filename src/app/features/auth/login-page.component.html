@@ -1,9 +1,8 @@
 <div class="login-page">
   <div class="message-navbar" aria-label="Navigazione e messaggi Razer">
-    <div class="prelogin-brand" aria-label="Razer">
-      <span class="prelogin-brand-name">Razer</span>
-      <span class="prelogin-brand-tag">COSTRUISCI • ANALIZZA • MIGLIORA</span>
-    </div>
+    <a class="prelogin-brand" href="/" aria-label="Razer - Vai alla pagina iniziale">
+      <img class="prelogin-brand-logo" src="assets/img/Logo_razer.png" alt="Razer" />
+    </a>
     <div class="message-rotator" (mouseenter)="pauseRotation()" (mouseleave)="resumeRotation()">
       <ng-container *ngIf="currentMessageIndex === 0 || outgoingMessageIndex === 0"><span [class.message-outgoing]="outgoingMessageIndex === 0">Perché perdere soldi senza statistiche era troppo facile.</span></ng-container>
       <ng-container *ngIf="currentMessageIndex === 1 || outgoingMessageIndex === 1"><span [class.message-outgoing]="outgoingMessageIndex === 1">Il mercato è imprevedibile. Noi almeno lo siamo con metodo.</span></ng-container>
