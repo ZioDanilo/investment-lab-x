@@ -132,6 +132,8 @@ export class PortafoliPageComponent implements OnInit {
       this.initialized = true;
       this.portafogli.set([]);
       this.loading.set(false);
+      // The public tour starts directly in the portfolio creation flow.
+      void this.openNewPortfolioForm();
       return;
     }
     this.initialized = true;
