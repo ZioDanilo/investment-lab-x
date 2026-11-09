@@ -66,7 +66,7 @@ for (const [route, [title, description]] of Object.entries(routes)) {
 
 // Make the canonical root URL readable to crawlers before Angular bootstraps.
 // Preserve the Angular JS bundles so /login and all authenticated SPA routes still work.
-const rootHead = shell.replace(/<title>[\\s\\S]*?<\\/title>/, '<title>Razer | Laboratorio ETF, portafogli e simulazioni Monte Carlo</title>')
+const rootHead = shell.replace(/<title>[\s\S]*?<\/title>/, '<title>Razer | Laboratorio ETF, portafogli e simulazioni Monte Carlo</title>')
   .replace(/<meta name="description"[^>]*>/, '<meta name="description" content="Costruisci e confronta portafogli ETF, studia rischio e rendimento con simulazioni Monte Carlo. Prova il tutorial gratuito senza registrazione.">');
 const rootHtml = rootHead.replace('<app-root></app-root>', '<app-root>' + clean(template(landing)) + '</app-root>')
   .replace('</head>', '<meta name="robots" content="index,follow"><style>' + styles(landing) + '</style></head>');
