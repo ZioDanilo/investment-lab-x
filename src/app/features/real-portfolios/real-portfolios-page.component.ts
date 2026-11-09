@@ -348,8 +348,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     ];
   }
   readonly legend:ChartLegendItem[]=[
-    {label:'Valore del portafoglio',color:'#2586d9'},
-    {label:'Capitale netto investito',color:'#9ab2cf'}
+    {label:'Valore del portafoglio',color:'#2586d9'}
   ];
   history:Array<{date:string;month:string;marketValue:number|null;netContributions:number;performancePercent:number;valuation:string;estimatedPositions:number}>=[];
   historyPeriod:'1W'|'1M'|'3M'|'6M'|'1Y'|'3Y'|'5Y'|'MAX'='MAX';
@@ -388,7 +387,7 @@ export class RealPortfoliosPageComponent implements OnInit {
     const rows=this.visibleHistory;
     const values=this.historyMode==='performance'
       ?rows.map(p=>p.performancePercent)
-      :rows.flatMap(p=>[p.marketValue,p.netContributions]);
+      :rows.map(p=>p.marketValue);
     const valid=values.filter((v):v is number=>v!==null&&Number.isFinite(v));
     if(!valid.length)return {min:0,max:1};
     const low=Math.min(...valid),high=Math.max(...valid);
@@ -415,10 +414,7 @@ export class RealPortfoliosPageComponent implements OnInit {
       return n===null||!Number.isFinite(n)?'':x(i).toFixed(1)+','+y(n).toFixed(1);
     }).filter(Boolean).join(' ');
     if(this.historyMode==='performance')return [{label:'Performance TWR (%)',color:'#2586d9',points:points(r=>r.performancePercent)}];
-    return [
-      {label:'Valore del portafoglio',color:'#2586d9',points:points(r=>r.marketValue)},
-      {label:'Capitale netto investito',color:'#9ab2cf',points:points(r=>r.netContributions)}
-    ];
+    return [{label:'Valore del portafoglio',color:'#2586d9',points:points(r=>r.marketValue)}];
   }
   startPortfolioDrag(i:number,event:DragEvent):void {
     this.openPortfolioMenu=null;
