@@ -315,7 +315,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     sessionStorage.setItem('investmentLabTutorialPassword', '0000');
     localStorage.setItem('investmentLabUsername', 'tutorial');
     localStorage.setItem('investmentLabRole', 'TUTORIAL');
-    void this.router.navigateByUrl('/home');
+    void this.router.navigateByUrl('/laboratorio-portafogli');
   }
 
   private onLogin(): void {
