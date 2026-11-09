@@ -68,6 +68,18 @@ export class RebalanceComponent {
   readonly holdingsError = signal(false);
   private requestVersion = 0;
 
+  // Display-only formatters: do not alter numeric signals, quotations or optimization inputs.
+  private readonly moneyFormatter = new Intl.NumberFormat('de-DE', {style:'currency',currency:'EUR',useGrouping:true,minimumFractionDigits:2,maximumFractionDigits:2});
+  private readonly priceFormatter = new Intl.NumberFormat('de-DE', {style:'currency',currency:'EUR',useGrouping:true,minimumFractionDigits:2,maximumFractionDigits:4});
+  private readonly quantityFormatter = new Intl.NumberFormat('de-DE', {useGrouping:true,maximumFractionDigits:2});
+  private readonly integerFormatter = new Intl.NumberFormat('de-DE', {useGrouping:true,maximumFractionDigits:0});
+  private readonly percentageFormatter = new Intl.NumberFormat('de-DE', {style:'percent',useGrouping:true,minimumFractionDigits:2,maximumFractionDigits:2});
+  displayMoney(value:number):string { return this.moneyFormatter.format(value); }
+  displayPrice(value:number):string { return this.priceFormatter.format(value); }
+  displayQuantity(value:number):string { return this.quantityFormatter.format(value); }
+  displayInteger(value:number):string { return this.integerFormatter.format(value); }
+  displayPercent(value:number):string { return this.percentageFormatter.format(value); }
+
   formatQuotationDate(isin: string): string {
     const raw = this.quotationDates()[isin.toUpperCase()];
     const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw || '');
