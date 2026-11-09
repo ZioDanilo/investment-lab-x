@@ -623,7 +623,7 @@ export class RealPortfoliosPageComponent implements OnInit {
       error:()=>this.holdings=[]
     });
   }
-  formatCurrencyTrailing(value:number):string { return `${new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value)||0)} €`; }
+  formatCurrencyTrailing(value:number):string { return `${new Intl.NumberFormat('de-DE',{useGrouping:true,minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value)||0)} €`; }
   formatCurrency(value:number):string { return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value)||0); }
   formatSignedPercent(value:number):string { const n=Number(value)||0; return `${n>0?'+':''}${new Intl.NumberFormat('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1}).format(n)}%`; }
   valueTone(value:number):string { return value>0?'positive':value<0?'negative':'neutral'; }
