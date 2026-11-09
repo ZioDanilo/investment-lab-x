@@ -817,3 +817,11 @@
 /* The logo is the home navigation control throughout the authenticated app. */
 .global-navbar .brand-group{text-decoration:none;cursor:pointer}
 .global-navbar .brand-group:focus-visible{outline:2px solid #72d3ff;outline-offset:4px;border-radius:4px}
+
+/* Global quotation updates reuse the existing action areas, never a floating control. */
+.profile-dropdown__item--quotation{position:relative;overflow:hidden}
+.profile-dropdown__item--quotation.is-running:disabled{opacity:1}
+.profile-quotation-fill{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,#1765a2,#43b2e9);transition:width .1s linear;pointer-events:none}
+.profile-quotation-label{position:relative;z-index:1}
+.app-feature-action-row--quotations > .app-feature-action--quotations{cursor:wait;opacity:1}
+.app-feature-action-row--quotations > .app-feature-action--quotations:disabled{opacity:1}
