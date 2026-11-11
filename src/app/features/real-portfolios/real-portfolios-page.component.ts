@@ -13,7 +13,7 @@ import { QuotationsUpdatedService } from '../../core/services/quotations-updated
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; totalGainLoss?:number; totalGainLossPercent?:number|null; quotationDate?:string|null; }
-interface Holding { name:string; nickname:string; ticker:string; assetClass:string; qty:string; avg:string; price:string; value:string; marketValue:number|null; gain:string; weight:string; tone:'positive'|'negative'|'neutral'; }
+interface Holding { name:string; nickname:string; ticker:string; isin:string; assetClass:string; qty:string; avg:string; price:string; value:string; marketValue:number|null; gain:string; weight:string; tone:'positive'|'negative'|'neutral'; }
 interface Operation { date:string; type:'Acquisto'|'Vendita'; isin:string; etf:string; qty:string; price:string; withholding:string; total:string; }
 
 @Component({
@@ -604,6 +604,7 @@ export class RealPortfoliosPageComponent implements OnInit {
             name:row.nickname||row.name||row.ticker||row.isin,
             nickname:row.nickname||row.ticker||row.name||row.isin,
             ticker:row.ticker||'—',
+            isin:row.isin||'—',
             assetClass:row.assetClass||'',
             qty:nf.format(Number(row.quantity)||0),
             avg:eur.format(Number(row.averageCost)||0),
