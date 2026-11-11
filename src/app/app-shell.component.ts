@@ -293,7 +293,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     if (this.portfolioCreationOpen) {
       event.preventDefault();
       this.pendingPortfolioDestination = '/home';
-      this.homeExitConfirmationOpen = true;
+      this.askLeavePortfolio();
       return;
     }
     event.preventDefault();
