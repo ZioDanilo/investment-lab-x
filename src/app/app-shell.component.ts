@@ -38,7 +38,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   rebalanceTargetWidth = 280;
   private targetResizeObserver: ResizeObserver | null = null;
   private readonly interceptPortfolioNavigation = (event: MouseEvent): void => {
-    if (!this.portfolioCreationOpen || this.homeExitConfirmationOpen) return;
+    if (!this.portfolioCreationOpen || this.confirmation.pending()) return;
     const anchor = (event.target as Element | null)?.closest?.('a[routerLink], a[href]') as HTMLAnchorElement | null;
     if (!anchor || !anchor.closest('.global-navbar, .app-feature-sidebar, .feature-sidebar, .app-feature-menu, .app-shell')) return;
     const target = anchor.getAttribute('href');
@@ -46,7 +46,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     event.preventDefault();
     event.stopImmediatePropagation();
     this.pendingPortfolioDestination = target;
-    this.homeExitConfirmationOpen = true;
+    this.askLeavePortfolio();
   };
   ngAfterViewInit(): void {
     document.addEventListener('click', this.interceptPortfolioNavigation, true);
@@ -150,7 +150,6 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   activeFeaturePage: any = null;
   onFeatureActivate(component: any): void {
     this.activePortfolioEditor = component;
-    this.homeExitConfirmationOpen = false;
     this.activeFeaturePage = component;
     this.pushMarketUniverseStatusToActivePage();
   }
@@ -266,19 +265,28 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     this.marketUniversePollTimeoutId = setTimeout(() => void poll(), 3000);
   }
 
-  homeExitConfirmationOpen = false;
   private pendingPortfolioDestination = '/home';
   get portfolioCreationOpen(): boolean {
     return this.router.url.startsWith('/laboratorio-portafogli') && !!this.activePortfolioEditor?.showForm?.() && !this.activePortfolioEditor?.currentEditingPortfolioId?.();
   }
   private activePortfolioEditor: any = null;
-  stayOnPortfolio(): void { this.homeExitConfirmationOpen = false; this.pendingPortfolioDestination = '/home'; }
+  stayOnPortfolio(): void { this.pendingPortfolioDestination = '/home'; }
   confirmReturnHome(): void {
-    this.homeExitConfirmationOpen = false;
     this.activePortfolioEditor?.closeForm?.();
     const destination = this.pendingPortfolioDestination;
     this.pendingPortfolioDestination = '/home';
     void this.router.navigateByUrl(destination);
+  }
+
+  private askLeavePortfolio(): void {
+    this.confirmation.pending.set({
+      title: 'Vuoi abbandonare la creazione di un nuovo portafoglio?',
+      confirmLabel: 'Rimani',
+      cancelLabel: 'Torna alla home',
+      reverseActions: true,
+      action: () => this.stayOnPortfolio(),
+      onCancel: () => this.confirmReturnHome()
+    });
   }
 
   goHome(event: MouseEvent): void {
