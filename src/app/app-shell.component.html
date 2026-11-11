@@ -1,6 +1,6 @@
 <div class="app-shell" [class.app-shell--tutorial]="isTutorial">
   <header class="global-navbar" aria-label="Navigazione principale">
-    <a class="brand-group" routerLink="/home" aria-label="Razer - Vai alla home">
+    <a class="brand-group" routerLink="/home" (click)="goHome($event)" aria-label="Razer - Vai alla home">
       <img class="brand-logo" src="assets/img/Logo_razer.png" alt="Razer" />
     </a>
 
@@ -67,4 +67,14 @@
   </main>
 </div>
 
+<div *ngIf="homeExitConfirmationOpen" class="portfolio-exit-overlay" role="presentation">
+  <section class="portfolio-exit-dialog" role="alertdialog" aria-modal="true" aria-labelledby="portfolio-exit-title" aria-describedby="portfolio-exit-description">
+    <h3 id="portfolio-exit-title">Tornare alla home?</h3>
+    <p id="portfolio-exit-description">Se torni alla home perderai tutte le modifiche al portafoglio non salvate. Vuoi continuare?</p>
+    <div class="portfolio-exit-actions">
+      <button type="button" class="portfolio-exit-danger" (click)="confirmReturnHome()">Torna alla home</button>
+      <button type="button" class="portfolio-exit-safe" (click)="stayOnPortfolio()">Rimani sul portafoglio</button>
+    </div>
+  </section>
+</div>
 <app-action-confirmation></app-action-confirmation>
