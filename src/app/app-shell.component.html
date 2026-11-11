@@ -69,11 +69,11 @@
 
 <div *ngIf="homeExitConfirmationOpen" class="portfolio-exit-overlay" role="presentation">
   <section class="portfolio-exit-dialog" role="alertdialog" aria-modal="true" aria-labelledby="portfolio-exit-title" aria-describedby="portfolio-exit-description">
-    <h3 id="portfolio-exit-title">Tornare alla home?</h3>
-    <p id="portfolio-exit-description">Se torni alla home perderai tutte le modifiche al portafoglio non salvate. Vuoi continuare?</p>
+    <h3 id="portfolio-exit-title">Vuoi abbandonare la creazione di un nuovo portafoglio?</h3>
+    <p id="portfolio-exit-description">Le modifiche non salvate andranno perse.</p>
     <div class="portfolio-exit-actions">
       <button type="button" class="portfolio-exit-danger" (click)="confirmReturnHome()">Torna alla home</button>
-      <button type="button" class="portfolio-exit-safe" (click)="stayOnPortfolio()">Rimani sul portafoglio</button>
+      <button type="button" class="portfolio-exit-safe" (click)="stayOnPortfolio()">Rimani</button>
     </div>
   </section>
 </div>
