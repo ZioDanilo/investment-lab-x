@@ -37,7 +37,19 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   rebalanceTargetLeft = 0;
   rebalanceTargetWidth = 280;
   private targetResizeObserver: ResizeObserver | null = null;
+  private readonly interceptPortfolioNavigation = (event: MouseEvent): void => {
+    if (!this.portfolioCreationOpen || this.homeExitConfirmationOpen) return;
+    const anchor = (event.target as Element | null)?.closest?.('a[routerLink], a[href]') as HTMLAnchorElement | null;
+    if (!anchor || !anchor.closest('.global-navbar, .app-feature-sidebar, .feature-sidebar, .app-feature-menu, .app-shell')) return;
+    const target = anchor.getAttribute('href');
+    if (!target || !target.startsWith('/') || target === this.router.url.split('?')[0]) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    this.pendingPortfolioDestination = target;
+    this.homeExitConfirmationOpen = true;
+  };
   ngAfterViewInit(): void {
+    document.addEventListener('click', this.interceptPortfolioNavigation, true);
     this.alignRebalanceSelector();
     // The rebalance action row is created only after route navigation.
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
@@ -60,6 +72,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     this.rebalanceTargetWidth = navbar.getBoundingClientRect().width;
   }
   ngOnDestroy(): void {
+    document.removeEventListener('click', this.interceptPortfolioNavigation, true);
     this.targetResizeObserver?.disconnect();
     this.stopMarketUniversePolling();
     this.stopYahooPricesProgress();
@@ -254,20 +267,24 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   }
 
   homeExitConfirmationOpen = false;
+  private pendingPortfolioDestination = '/home';
   get portfolioCreationOpen(): boolean {
     return this.router.url.startsWith('/laboratorio-portafogli') && !!this.activePortfolioEditor?.showForm?.() && !this.activePortfolioEditor?.currentEditingPortfolioId?.();
   }
   private activePortfolioEditor: any = null;
-  stayOnPortfolio(): void { this.homeExitConfirmationOpen = false; }
+  stayOnPortfolio(): void { this.homeExitConfirmationOpen = false; this.pendingPortfolioDestination = '/home'; }
   confirmReturnHome(): void {
     this.homeExitConfirmationOpen = false;
     this.activePortfolioEditor?.closeForm?.();
-    void this.router.navigateByUrl('/home');
+    const destination = this.pendingPortfolioDestination;
+    this.pendingPortfolioDestination = '/home';
+    void this.router.navigateByUrl(destination);
   }
 
   goHome(event: MouseEvent): void {
     if (this.portfolioCreationOpen) {
       event.preventDefault();
+      this.pendingPortfolioDestination = '/home';
       this.homeExitConfirmationOpen = true;
       return;
     }
