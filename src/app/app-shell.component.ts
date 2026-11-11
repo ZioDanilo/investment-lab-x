@@ -283,7 +283,6 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
       title: 'Vuoi abbandonare la creazione di un nuovo portafoglio?',
       confirmLabel: 'Rimani',
       cancelLabel: 'Torna alla home',
-      reverseActions: true,
       action: () => this.stayOnPortfolio(),
       onCancel: () => this.confirmReturnHome()
     });
