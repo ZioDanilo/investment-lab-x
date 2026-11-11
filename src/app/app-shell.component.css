@@ -825,11 +825,3 @@
 .profile-quotation-label{position:relative;z-index:1}
 .app-feature-action-row--quotations > .app-feature-action--quotations{cursor:wait;opacity:1}
 .app-feature-action-row--quotations > .app-feature-action--quotations:disabled{opacity:1}
-
-/* Confirm leaving an unsaved laboratory portfolio. */
-.portfolio-exit-overlay{position:fixed;inset:84px 0 0;background:rgba(3,7,14,.85);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px}
-.portfolio-exit-dialog{width:min(440px,100%);padding:26px;border:1px solid rgba(122,176,224,.3);border-radius:14px;background:#0d1727;color:#edf5ff;box-shadow:0 20px 70px #000a}
-.portfolio-exit-dialog h3{margin:0 0 12px}.portfolio-exit-dialog p{line-height:1.5;color:#b7c9db}
-.portfolio-exit-actions{display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;margin-top:24px}
-.portfolio-exit-actions button{cursor:pointer;padding:11px 15px;border-radius:8px;background:transparent;font-weight:700}
-.portfolio-exit-danger{border:1px solid #ff526c;color:#ff526c}.portfolio-exit-safe{border:1px solid #25e6b1;color:#25e6b1}
