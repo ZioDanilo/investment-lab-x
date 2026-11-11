@@ -136,6 +136,8 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
 
   activeFeaturePage: any = null;
   onFeatureActivate(component: any): void {
+    this.activePortfolioEditor = component;
+    this.homeExitConfirmationOpen = false;
     this.activeFeaturePage = component;
     this.pushMarketUniverseStatusToActivePage();
   }
@@ -251,7 +253,24 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     this.marketUniversePollTimeoutId = setTimeout(() => void poll(), 3000);
   }
 
+  homeExitConfirmationOpen = false;
+  get portfolioCreationOpen(): boolean {
+    return this.router.url.startsWith('/laboratorio-portafogli') && !!this.activePortfolioEditor?.showForm?.() && !this.activePortfolioEditor?.currentEditingPortfolioId?.();
+  }
+  private activePortfolioEditor: any = null;
+  stayOnPortfolio(): void { this.homeExitConfirmationOpen = false; }
+  confirmReturnHome(): void {
+    this.homeExitConfirmationOpen = false;
+    this.activePortfolioEditor?.closeForm?.();
+    void this.router.navigateByUrl('/home');
+  }
+
   goHome(event: MouseEvent): void {
+    if (this.portfolioCreationOpen) {
+      event.preventDefault();
+      this.homeExitConfirmationOpen = true;
+      return;
+    }
     event.preventDefault();
 
     if (this.router.url === '/home') {
