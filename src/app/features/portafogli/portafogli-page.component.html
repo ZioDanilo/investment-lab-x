@@ -1,7 +1,7 @@
 <section class="page-panel" [class.tutorial-portfolio-form-open]="isTutorial && showForm()">
 
   <!-- Header with "Nuovo Portafoglio" button -->
-  <div class="portafogli-header">
+  <div class="portafogli-header" [attr.inert]="showForm() ? '' : null">
     <h2>Laboratorio Portafogli</h2>
     <div class="tutorial-new-portfolio" [class.tutorial-new-portfolio--active]="isTutorial">
       <div *ngIf="isTutorial" class="tutorial-new-portfolio-bubble" role="status">Crea il tuo primo portafoglio simulato.</div>
@@ -135,7 +135,7 @@
   </div>
 
   <!-- Portfolios List -->
-  <div *ngIf="!loading()" class="portafogli-list">
+  <div *ngIf="!loading()" class="portafogli-list" [attr.inert]="showForm() ? '' : null">
     <div *ngIf="portafogli().length === 0" class="empty-state">
       <p>Nessun portafoglio creato. Clicca su "Nuovo Portafoglio" per iniziare</p>
     </div>
@@ -165,7 +165,7 @@
     </div>
   </div>
 
-  <div *ngIf="loading()" class="loading-spinner">
+  <div *ngIf="loading()" class="loading-spinner" [attr.inert]="showForm() ? '' : null">
     Caricamento portafogli...
   </div>
 
