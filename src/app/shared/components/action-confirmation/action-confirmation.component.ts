@@ -11,8 +11,8 @@ import { ActionConfirmationService } from '../../../core/services/action-confirm
       <section class="portfolio-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="action-confirm-title" (click)="$event.stopPropagation()">
         <h2 id="action-confirm-title">{{ request.title }}</h2>
         <div class="portfolio-confirm-actions" [class.portfolio-confirm-actions--single]="request.acknowledgeOnly">
-          <button *ngIf="!request.acknowledgeOnly" type="button" class="portfolio-confirm-button portfolio-confirm-button--cancel" (click)="confirmation.cancel()">No, non farlo</button>
-          <button type="button" class="portfolio-confirm-button portfolio-confirm-button--confirm" [class.portfolio-confirm-button--error]="request.isError" (click)="confirmation.confirm()">{{ request.confirmLabel }}</button>
+          <button *ngIf="!request.acknowledgeOnly" type="button" class="portfolio-confirm-button portfolio-confirm-button--cancel" [class.portfolio-confirm-button--confirm]="request.reverseActions" (click)="confirmation.cancel()">{{ request.cancelLabel || 'No, non farlo' }}</button>
+          <button type="button" class="portfolio-confirm-button portfolio-confirm-button--confirm" [class.portfolio-confirm-button--error]="request.isError || request.reverseActions" (click)="confirmation.confirm()">{{ request.confirmLabel }}</button>
         </div>
       </section>
     </div>

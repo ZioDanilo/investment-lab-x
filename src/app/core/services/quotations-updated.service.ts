@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-/** Signals successful quotation updates and fully reloads the current page afterwards. */
+/** Notifies active views about successful quotation updates. */
 @Injectable({ providedIn: 'root' })
 export class QuotationsUpdatedService {
   readonly version = signal(0);
@@ -8,8 +8,10 @@ export class QuotationsUpdatedService {
 
   publish(): void {
     this.version.update(value => value + 1);
-    // A full reload ensures every widget, chart and derived calculation uses
-    // the latest persisted prices, regardless of the route where refresh began.
+    // Real portfolios refreshes its data, calculations and charts reactively;
+    // reloading here would discard the selected portfolio and current view.
+    if (window.location.pathname.startsWith('/portafogli')) return;
+    // Other routes retain their existing full-refresh behavior.
     // Coalesce multiple successful updates into one reload and let progress UI finish.
     if (this.reloadPending) return;
     this.reloadPending = true;

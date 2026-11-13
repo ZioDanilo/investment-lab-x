@@ -13,8 +13,8 @@ import { QuotationsUpdatedService } from '../../core/services/quotations-updated
 import { PortfolioSelectionService } from '../../core/services/portfolio-selection.service';
 
 interface Portfolio { id:string; name:string; description?:string|null; status:string; marketValue?:number; investedCapital?:number; gainLoss?:number; gainLossPercent?:number; totalGainLoss?:number; totalGainLossPercent?:number|null; quotationDate?:string|null; }
-interface Holding { name:string; nickname:string; ticker:string; assetClass:string; qty:string; avg:string; price:string; value:string; marketValue:number|null; gain:string; weight:string; tone:'positive'|'negative'|'neutral'; }
-interface Operation { date:string; type:'Acquisto'|'Vendita'|'Ritenuta'; isin:string; etf:string; qty:string; price:string; total:string; }
+interface Holding { name:string; nickname:string; ticker:string; isin:string; assetClass:string; qty:string; avg:string; price:string; value:string; marketValue:number|null; gain:string; weight:string; tone:'positive'|'negative'|'neutral'; }
+interface Operation { date:string; type:'Acquisto'|'Vendita'; isin:string; etf:string; qty:string; price:string; withholding:string; total:string; }
 
 @Component({
   selector:'app-real-portfolios-page',
@@ -604,6 +604,7 @@ export class RealPortfoliosPageComponent implements OnInit {
             name:row.nickname||row.name||row.ticker||row.isin,
             nickname:row.nickname||row.ticker||row.name||row.isin,
             ticker:row.ticker||'—',
+            isin:row.isin||'—',
             assetClass:row.assetClass||'',
             qty:nf.format(Number(row.quantity)||0),
             avg:eur.format(Number(row.averageCost)||0),
@@ -636,10 +637,9 @@ export class RealPortfoliosPageComponent implements OnInit {
       const nf=new Intl.NumberFormat('it-IT',{minimumFractionDigits:0,maximumFractionDigits:8});
       const eur=new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2});
       const df=new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'short',year:'numeric'});
-      this.operations=rows.map((o:any)=>{
+      this.operations=rows.filter((o:any)=>o.operationType==='buy'||o.operationType==='sell').map((o:any)=>{
         const q=this.parseDecimal(o.quantity),p=this.parseDecimal(o.unitPrice);
-        if(o.operationType==='tax') return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:'Ritenuta' as const,isin:'—',etf:'Ritenuta fiscale 26%',qty:'—',price:'—',total:eur.format(Number(o.total ?? -p))};
-        return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:o.operationType==='sell'?'Vendita' as const:'Acquisto' as const,isin:o.etf?.isin||'',etf:o.etf?.nickname||o.etf?.name||o.etf?.ticker||'',qty:nf.format(q),price:eur.format(p),total:eur.format(q*p)};
+        return {date:df.format(new Date(String(o.operationDate)+'T12:00:00')),type:o.operationType==='sell'?'Vendita' as const:'Acquisto' as const,isin:o.etf?.isin||'',etf:o.etf?.nickname||o.etf?.name||o.etf?.ticker||'',qty:nf.format(q),price:eur.format(p),withholding:o.operationType==='sell'?eur.format(Number(o.withholding ?? 0)):'—',total:eur.format(Number(o.total ?? (q*p-Number(o.withholding ?? 0))))};
       });
     },error:()=>this.operations=[]});
   }

@@ -37,7 +37,19 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
   rebalanceTargetLeft = 0;
   rebalanceTargetWidth = 280;
   private targetResizeObserver: ResizeObserver | null = null;
+  private readonly interceptPortfolioNavigation = (event: MouseEvent): void => {
+    if (!this.portfolioCreationOpen || this.confirmation.pending()) return;
+    const anchor = (event.target as Element | null)?.closest?.('a[routerLink], a[href]') as HTMLAnchorElement | null;
+    if (!anchor || !anchor.closest('.global-navbar, .app-feature-sidebar, .feature-sidebar, .app-feature-menu, .app-shell')) return;
+    const target = anchor.getAttribute('href');
+    if (!target || !target.startsWith('/') || target === this.router.url.split('?')[0]) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    this.pendingPortfolioDestination = target;
+    this.askLeavePortfolio();
+  };
   ngAfterViewInit(): void {
+    document.addEventListener('click', this.interceptPortfolioNavigation, true);
     this.alignRebalanceSelector();
     // The rebalance action row is created only after route navigation.
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
@@ -60,6 +72,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     this.rebalanceTargetWidth = navbar.getBoundingClientRect().width;
   }
   ngOnDestroy(): void {
+    document.removeEventListener('click', this.interceptPortfolioNavigation, true);
     this.targetResizeObserver?.disconnect();
     this.stopMarketUniversePolling();
     this.stopYahooPricesProgress();
@@ -136,6 +149,7 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
 
   activeFeaturePage: any = null;
   onFeatureActivate(component: any): void {
+    this.activePortfolioEditor = component;
     this.activeFeaturePage = component;
     this.pushMarketUniverseStatusToActivePage();
   }
@@ -251,7 +265,36 @@ export class AppShellComponent implements OnDestroy, AfterViewInit {
     this.marketUniversePollTimeoutId = setTimeout(() => void poll(), 3000);
   }
 
+  private pendingPortfolioDestination = '/home';
+  get portfolioCreationOpen(): boolean {
+    return this.router.url.startsWith('/laboratorio-portafogli') && !!this.activePortfolioEditor?.showForm?.() && !this.activePortfolioEditor?.currentEditingPortfolioId?.();
+  }
+  private activePortfolioEditor: any = null;
+  stayOnPortfolio(): void { this.pendingPortfolioDestination = '/home'; }
+  confirmReturnHome(): void {
+    this.activePortfolioEditor?.closeForm?.();
+    const destination = this.pendingPortfolioDestination;
+    this.pendingPortfolioDestination = '/home';
+    void this.router.navigateByUrl(destination);
+  }
+
+  private askLeavePortfolio(): void {
+    this.confirmation.pending.set({
+      title: 'Vuoi abbandonare la creazione di un nuovo portafoglio?',
+      confirmLabel: 'Rimani',
+      cancelLabel: 'Torna alla home',
+      action: () => this.stayOnPortfolio(),
+      onCancel: () => this.confirmReturnHome()
+    });
+  }
+
   goHome(event: MouseEvent): void {
+    if (this.portfolioCreationOpen) {
+      event.preventDefault();
+      this.pendingPortfolioDestination = '/home';
+      this.askLeavePortfolio();
+      return;
+    }
     event.preventDefault();
 
     if (this.router.url === '/home') {

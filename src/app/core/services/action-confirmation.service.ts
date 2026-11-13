@@ -6,6 +6,9 @@ export interface ConfirmationRequest {
   action: () => void | Promise<void>;
   acknowledgeOnly?: boolean;
   isError?: boolean;
+  cancelLabel?: string;
+  onCancel?: () => void;
+  reverseActions?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -20,7 +23,11 @@ export class ActionConfirmationService {
     this.pending.set({ title: message, confirmLabel: 'OK', action: onAcknowledge, acknowledgeOnly: true, isError });
   }
 
-  cancel(): void { this.pending.set(null); }
+  cancel(): void {
+    const request = this.pending();
+    this.pending.set(null);
+    request?.onCancel?.();
+  }
 
   confirm(): void {
     const request = this.pending();

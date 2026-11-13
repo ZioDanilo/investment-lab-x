@@ -1,6 +1,6 @@
 <div class="app-shell" [class.app-shell--tutorial]="isTutorial">
   <header class="global-navbar" aria-label="Navigazione principale">
-    <a class="brand-group" routerLink="/home" aria-label="Razer - Vai alla home">
+    <a class="brand-group" routerLink="/home" (click)="goHome($event)" aria-label="Razer - Vai alla home">
       <img class="brand-logo" src="assets/img/Logo_razer.png" alt="Razer" />
     </a>
 

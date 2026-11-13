@@ -110,8 +110,8 @@
 }
 .create-dialog-footer .discard-btn{border-color:rgba(255,83,102,.72);color:#ff657d}
 .create-dialog-footer .discard-btn:hover{background:rgba(255,82,108,.07);border-color:#ff526c;color:#ff8092}
-.create-dialog-footer .create-btn{border-color:rgba(38,149,255,.72);color:#63c7ff}
-.create-dialog-footer .create-btn:hover:not(:disabled){background:rgba(38,149,255,.08);border-color:#5cb9ff;color:#8bd5ff}
+.create-dialog-footer .create-btn{border-color:rgba(37,230,177,.68);color:#25e6b1}
+.create-dialog-footer .create-btn:hover:not(:disabled){background:rgba(37,230,177,.07);border-color:#25e6b1;color:#69f1c9}
 
 
 .field-error {
@@ -166,7 +166,7 @@ input.invalid,
 
 /* Create portfolio perceived progress, consistent with long-running shell actions. */
 .create-btn--progress{position:relative;overflow:hidden}
-.create-btn__fill{position:absolute;inset:0 auto 0 0;width:0;border-radius:inherit;background:linear-gradient(90deg,rgba(25,126,232,.72),rgba(38,149,255,.42));transition:width .09s linear;pointer-events:none}
+.create-btn__fill{position:absolute;inset:0 auto 0 0;width:0;border-radius:inherit;background:linear-gradient(90deg,rgba(24,127,97,.72),rgba(37,230,177,.42));transition:width .09s linear;pointer-events:none}
 .create-btn__content{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
 .create-dialog-footer .discard-btn:disabled{opacity:.45;cursor:not-allowed}
 

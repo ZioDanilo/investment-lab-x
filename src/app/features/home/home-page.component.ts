@@ -142,7 +142,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
     { value: '—', label: 'Volatilità media', icon: 'signal_cellular_alt', tone: 'purple' },
     { value: '—', label: 'Drawdown medio', icon: 'trending_down', tone: 'red' },
     { value: '—', label: 'Valore portafogli', icon: 'account_balance_wallet', tone: 'blue' },
-    { value: '—', label: 'Resa portafogli', icon: 'payments', tone: 'cyan' }
+    { value: '—', label: 'Resa storica portafogli', icon: 'payments', tone: 'cyan' }
   ];
 
 
@@ -429,8 +429,9 @@ export class HomePageComponent implements OnInit, OnDestroy {
             const valid = ownRows.filter(row => row.marketValue != null && Number.isFinite(Number(row.marketValue)));
             const currency = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', useGrouping: true, minimumFractionDigits: 2, maximumFractionDigits: 2 });
             this.summaryMetrics[4].value = valid.length ? currency.format(valid.reduce((sum, row) => sum + Number(row.marketValue), 0)) : '—';
-            const gains = ownRows.filter(row => row.gainLoss != null && Number.isFinite(Number(row.gainLoss)));
-            const gain = gains.reduce((sum, row) => sum + Number(row.gainLoss), 0);
+            // Match 'I miei Portafogli': unrealized gain/loss plus realized gains net of withholding.
+            const gains = ownRows.filter(row => (row.totalGainLoss ?? row.gainLoss) != null && Number.isFinite(Number(row.totalGainLoss ?? row.gainLoss)));
+            const gain = gains.reduce((sum, row) => sum + Number(row.totalGainLoss ?? row.gainLoss), 0);
             this.summaryMetrics[5].value = gains.length ? (gain > 0 ? '+' : '') + currency.format(gain) : '—';
             this.summaryMetrics[5].tone = gain < 0 ? 'red' : 'cyan';
           },
